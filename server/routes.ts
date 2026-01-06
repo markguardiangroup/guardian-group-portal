@@ -2,11 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import type { ModuleType } from "@shared/schema";
 
 const createDocumentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  type: z.enum(["policy", "risk_assessment", "audit", "assessment", "compliance", "incident_log", "checklist", "template"]),
+  module: z.enum(["health_safety", "human_resources"]),
+  type: z.string().min(1),
   entityId: z.string().min(1),
   siteId: z.string().optional(),
   fileName: z.string().min(1),
@@ -21,6 +23,7 @@ const createSupportRequestSchema = z.object({
   description: z.string().min(20),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   category: z.string().min(1),
+  module: z.enum(["health_safety", "human_resources"]).optional(),
 });
 
 const approvalSchema = z.object({
@@ -33,24 +36,22 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Dashboard
+  // Main Dashboard (overview of all modules)
   app.get("/api/dashboard", async (req, res) => {
     try {
-      const summary = await storage.getComplianceSummary();
-      const documents = await storage.getDocuments();
-      const auditLogs = await storage.getAuditLogs();
+      const module = req.query.module as ModuleType | undefined;
+      const summary = await storage.getComplianceSummary(module);
+      const documents = await storage.getDocuments(module);
+      const auditLogs = await storage.getAuditLogs(undefined, module);
       
-      // Get recent documents
       const recentDocuments = documents.slice(0, 5);
       
-      // Get upcoming reviews (documents with review dates in the future)
       const now = new Date();
       const upcomingReviews = documents
         .filter(doc => doc.reviewDate && new Date(doc.reviewDate) > now)
         .sort((a, b) => new Date(a.reviewDate!).getTime() - new Date(b.reviewDate!).getTime())
         .slice(0, 5);
       
-      // Get recent activity
       const recentActivity = auditLogs.slice(0, 10);
       
       res.json({
@@ -65,10 +66,22 @@ export async function registerRoutes(
     }
   });
 
+  // Module summaries for overview dashboard
+  app.get("/api/modules/summary", async (req, res) => {
+    try {
+      const summaries = await storage.getModuleSummaries();
+      res.json(summaries);
+    } catch (error) {
+      console.error("Module summaries error:", error);
+      res.status(500).json({ error: "Failed to fetch module summaries" });
+    }
+  });
+
   // Documents
   app.get("/api/documents", async (req, res) => {
     try {
-      const documents = await storage.getDocuments();
+      const module = req.query.module as ModuleType | undefined;
+      const documents = await storage.getDocuments(module);
       res.json(documents);
     } catch (error) {
       console.error("Documents error:", error);
@@ -118,11 +131,11 @@ export async function registerRoutes(
       
       const body = parseResult.data;
       
-      // Create document
       const document = await storage.createDocument({
         title: body.title,
         description: body.description || null,
-        type: body.type,
+        module: body.module,
+        type: body.type as any,
         entityId: body.entityId,
         siteId: body.siteId || null,
         fileName: body.fileName,
@@ -138,7 +151,6 @@ export async function registerRoutes(
         isArchived: false,
       });
 
-      // Create audit log
       await storage.createAuditLog({
         action: "document_uploaded",
         userId: "user-1",
@@ -146,6 +158,7 @@ export async function registerRoutes(
         entityId: body.entityId,
         documentId: document.id,
         supportRequestId: null,
+        module: body.module,
         details: `Uploaded ${body.title}`,
         metadata: null,
       });
@@ -166,6 +179,11 @@ export async function registerRoutes(
       
       const { action, feedback } = parseResult.data;
       const documentId = req.params.id;
+
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
 
       let approvalStatus: "approved" | "rejected" | "changes_requested";
       let documentStatus: "compliant" | "review_required" | "overdue";
@@ -207,6 +225,7 @@ export async function registerRoutes(
         entityId: document.entityId,
         documentId: document.id,
         supportRequestId: null,
+        module: existingDoc.module,
         details: feedback || `Document ${action}ed`,
         metadata: null,
       });
@@ -243,7 +262,8 @@ export async function registerRoutes(
   // Support Requests
   app.get("/api/support-requests", async (req, res) => {
     try {
-      const requests = await storage.getSupportRequests();
+      const module = req.query.module as ModuleType | undefined;
+      const requests = await storage.getSupportRequests(module);
       res.json(requests);
     } catch (error) {
       console.error("Support requests error:", error);
@@ -266,6 +286,7 @@ export async function registerRoutes(
         priority: body.priority,
         status: "open",
         category: body.category,
+        module: body.module || null,
         entityId: "entity-1",
         createdBy: "user-1",
         assignedTo: null,
@@ -278,6 +299,7 @@ export async function registerRoutes(
         entityId: "entity-1",
         documentId: null,
         supportRequestId: request.id,
+        module: body.module || null,
         details: `Created support request: ${body.subject}`,
         metadata: null,
       });
@@ -293,9 +315,9 @@ export async function registerRoutes(
   app.get("/api/reports", async (req, res) => {
     try {
       const summary = await storage.getComplianceSummary();
+      const moduleSummaries = await storage.getModuleSummaries();
       const entities = await storage.getEntities();
       
-      // Generate mock monthly trend data
       const monthlyTrend = [
         { month: "Jul", score: 72 },
         { month: "Aug", score: 78 },
@@ -307,6 +329,7 @@ export async function registerRoutes(
 
       res.json({
         summary,
+        moduleSummaries,
         entities: entities.map(e => ({ id: e.id, name: e.name })),
         monthlyTrend,
       });
@@ -316,15 +339,18 @@ export async function registerRoutes(
     }
   });
 
-  // Assessments (returning mock data for now)
+  // Assessments
   app.get("/api/assessments", async (req, res) => {
     try {
+      const module = req.query.module as ModuleType | undefined;
       const now = new Date();
-      const assessments = [
+      
+      let assessments = [
         {
           id: "assess-1",
           title: "Annual Fire Safety Assessment",
           type: "Fire Safety",
+          module: "health_safety" as ModuleType,
           entityId: "entity-1",
           entityName: "Acme Manufacturing Ltd",
           siteId: "site-1",
@@ -340,6 +366,7 @@ export async function registerRoutes(
           id: "assess-2",
           title: "Workplace Ergonomics Review",
           type: "Ergonomics",
+          module: "health_safety" as ModuleType,
           entityId: "entity-2",
           entityName: "TechCorp Solutions",
           siteId: "site-3",
@@ -353,12 +380,13 @@ export async function registerRoutes(
         },
         {
           id: "assess-3",
-          title: "Chemical Handling Audit",
-          type: "COSHH",
+          title: "Employee Training Compliance Audit",
+          type: "Training Audit",
+          module: "human_resources" as ModuleType,
           entityId: "entity-1",
           entityName: "Acme Manufacturing Ltd",
-          siteId: "site-1",
-          siteName: "Main Factory",
+          siteId: null,
+          siteName: null,
           assignedTo: "user-1",
           assignedToName: "John Doe",
           status: "completed",
@@ -368,6 +396,10 @@ export async function registerRoutes(
           createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         },
       ];
+      
+      if (module) {
+        assessments = assessments.filter(a => a.module === module);
+      }
       
       res.json(assessments);
     } catch (error) {

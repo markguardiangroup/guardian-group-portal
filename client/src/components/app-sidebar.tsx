@@ -9,6 +9,9 @@ import {
   Settings,
   Shield,
   Bell,
+  HardHat,
+  Users,
+  ChevronDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,39 +22,51 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarHeader,
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const mainNavItems = [
+const moduleNavItems = [
   {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
+    title: "Health & Safety",
+    icon: HardHat,
+    url: "/health-safety",
+    subItems: [
+      { title: "Dashboard", url: "/health-safety" },
+      { title: "Documents", url: "/health-safety/documents" },
+      { title: "Assessments", url: "/health-safety/assessments" },
+    ],
   },
   {
-    title: "Documents",
-    url: "/documents",
-    icon: FileText,
-    badge: 3,
+    title: "Human Resources",
+    icon: Users,
+    url: "/human-resources",
+    subItems: [
+      { title: "Dashboard", url: "/human-resources" },
+      { title: "Documents", url: "/human-resources/documents" },
+      { title: "Records", url: "/human-resources/records" },
+    ],
   },
+];
+
+const sharedNavItems = [
   {
     title: "Entities & Sites",
     url: "/entities",
     icon: Building2,
   },
-  {
-    title: "Assessments",
-    url: "/assessments",
-    icon: ClipboardCheck,
-  },
-];
-
-const secondaryNavItems = [
   {
     title: "Reports",
     url: "/reports",
@@ -88,7 +103,7 @@ export function AppSidebar() {
               Guardian Group
             </span>
             <span className="text-xs text-muted-foreground">
-              H&S Compliance Portal
+              Compliance Portal
             </span>
           </div>
         </Link>
@@ -98,35 +113,84 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/"}
+                  className={cn(
+                    "transition-colors",
+                    location === "/" && "bg-sidebar-accent font-medium"
+                  )}
+                >
+                  <Link href="/" data-testid="nav-dashboard">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Overview</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Main
+            Modules
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => {
-                const isActive = location === item.url || 
-                  (item.url !== "/" && location.startsWith(item.url));
+              {moduleNavItems.map((item) => {
+                const isModuleActive = location.startsWith(item.url);
                 return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={cn(
-                        "transition-colors",
-                        isActive && "bg-sidebar-accent font-medium"
-                      )}
-                    >
-                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="secondary" className="h-5 min-w-5 justify-center text-xs">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <Collapsible
+                    key={item.title}
+                    asChild
+                    defaultOpen={isModuleActive}
+                    className="group/collapsible"
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          className={cn(
+                            "transition-colors",
+                            isModuleActive && "bg-sidebar-accent font-medium"
+                          )}
+                          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.subItems.map((subItem) => {
+                            const isSubActive = location === subItem.url;
+                            return (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isSubActive}
+                                  className={cn(
+                                    "transition-colors",
+                                    isSubActive && "bg-sidebar-accent font-medium"
+                                  )}
+                                >
+                                  <Link 
+                                    href={subItem.url}
+                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase()}`}
+                                  >
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
                 );
               })}
             </SidebarMenu>
@@ -135,11 +199,11 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Tools
+            Shared
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {secondaryNavItems.map((item) => {
+              {sharedNavItems.map((item) => {
                 const isActive = location === item.url || 
                   (item.url !== "/" && location.startsWith(item.url));
                 return (

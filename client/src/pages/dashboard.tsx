@@ -2,82 +2,29 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { 
   FileText, 
   Clock, 
   AlertTriangle, 
   CheckCircle,
-  TrendingUp,
   ArrowRight,
-  Calendar,
-  Plus,
-  Upload,
-  Eye,
-  BarChart3,
+  HardHat,
+  Users,
+  TrendingUp,
+  Shield,
 } from "lucide-react";
 import { Link } from "wouter";
-import { format, formatDistanceToNow } from "date-fns";
-import type { ComplianceSummary, Document, AuditLog } from "@shared/schema";
+import type { ModuleSummary } from "@shared/schema";
 
 interface DashboardData {
-  summary: ComplianceSummary;
-  recentDocuments: Document[];
-  recentActivity: AuditLog[];
-  upcomingReviews: Document[];
+  moduleSummaries: ModuleSummary[];
 }
 
-function MetricCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  trend,
-  variant = "default",
-  testId,
-}: {
-  title: string;
-  value: number | string;
-  description: string;
-  icon: React.ElementType;
-  trend?: { value: number; isPositive: boolean };
-  variant?: "default" | "success" | "warning" | "danger";
-  testId?: string;
-}) {
-  const variantStyles = {
-    default: "bg-primary/10 text-primary",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    danger: "bg-red-500/10 text-red-600 dark:text-red-400",
-  };
-
-  return (
-    <Card data-testid={testId}>
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-md ${variantStyles[variant]}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-semibold" data-testid={testId ? `${testId}-value` : undefined}>{value}</div>
-        <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{description}</span>
-          {trend && (
-            <span className={`flex items-center gap-0.5 ${trend.isPositive ? "text-emerald-600" : "text-red-600"}`}>
-              <TrendingUp className={`h-3 w-3 ${!trend.isPositive && "rotate-180"}`} />
-              {trend.value}%
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ComplianceScoreCard({ score }: { score: number }) {
+function ModuleCard({ summary }: { summary: ModuleSummary }) {
+  const isHS = summary.module === "health_safety";
+  const Icon = isHS ? HardHat : Users;
+  const basePath = isHS ? "/health-safety" : "/human-resources";
+  
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
     if (score >= 70) return "text-amber-600 dark:text-amber-400";
@@ -91,115 +38,164 @@ function ComplianceScoreCard({ score }: { score: number }) {
   };
 
   return (
-    <Card data-testid="card-compliance-score">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Compliance Score
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-end gap-3">
-          <span className={`text-5xl font-bold ${getScoreColor(score)}`} data-testid="text-compliance-score">
-            {score}%
-          </span>
-          <span className="mb-1 text-sm text-muted-foreground">Overall</span>
-        </div>
-        <div className="mt-4">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div 
-              className={`h-full transition-all ${getScoreBg(score)}`}
-              style={{ width: `${score}%` }}
-            />
+    <Card className="hover-elevate" data-testid={`card-module-${summary.module}`}>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
+            <CardDescription>{summary.totalDocuments} documents</CardDescription>
           </div>
         </div>
-        <p className="mt-3 text-sm text-muted-foreground">
-          {score >= 90 
-            ? "Excellent compliance status" 
-            : score >= 70 
-            ? "Some items require attention" 
-            : "Urgent action required"}
-        </p>
+        <div className="text-right">
+          <span className={`text-3xl font-bold ${getScoreColor(summary.complianceScore)}`}>
+            {summary.complianceScore}%
+          </span>
+          <p className="text-xs text-muted-foreground">Compliance</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div 
+            className={`h-full transition-all ${getScoreBg(summary.complianceScore)}`}
+            style={{ width: `${summary.complianceScore}%` }}
+          />
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.compliantDocuments}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Compliant</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <Clock className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.reviewRequired}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Review</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.overdueDocuments}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Overdue</p>
+          </div>
+        </div>
+
+        <Button variant="outline" className="w-full" asChild>
+          <Link href={basePath} data-testid={`link-module-${summary.module}`}>
+            View Module
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );
 }
 
-function RecentActivityItem({ log }: { log: AuditLog }) {
-  const actionConfig: Record<string, { icon: React.ElementType; color: string }> = {
-    document_uploaded: { icon: Upload, color: "text-blue-500" },
-    document_viewed: { icon: Eye, color: "text-slate-500" },
-    document_approved: { icon: CheckCircle, color: "text-emerald-500" },
-    document_rejected: { icon: AlertTriangle, color: "text-red-500" },
-    document_updated: { icon: FileText, color: "text-amber-500" },
-    document_archived: { icon: FileText, color: "text-slate-400" },
-    changes_requested: { icon: AlertTriangle, color: "text-amber-500" },
-    comment_added: { icon: FileText, color: "text-blue-400" },
-    support_request_created: { icon: Plus, color: "text-purple-500" },
-    support_request_resolved: { icon: CheckCircle, color: "text-emerald-500" },
+function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
+  const totalDocs = summaries.reduce((acc, s) => acc + s.totalDocuments, 0);
+  const compliantDocs = summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
+  const reviewDocs = summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
+  const overdueDocs = summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
+  const pendingApprovals = summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
+  const overallScore = totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 100;
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
+    if (score >= 70) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
   };
 
-  const config = actionConfig[log.action] || { icon: FileText, color: "text-slate-500" };
-  const Icon = config.icon;
+  const getScoreBg = (score: number) => {
+    if (score >= 90) return "bg-emerald-500";
+    if (score >= 70) return "bg-amber-500";
+    return "bg-red-500";
+  };
 
   return (
-    <div className="flex items-start gap-3 py-3">
-      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted ${config.color}`}>
-        <Icon className="h-3.5 w-3.5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm">
-          <span className="font-medium">{log.userName}</span>{" "}
-          <span className="text-muted-foreground">
-            {log.action.replace(/_/g, " ")}
+    <Card data-testid="card-overall-compliance">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary">
+            <Shield className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <CardTitle>Overall Compliance</CardTitle>
+            <CardDescription>Across all modules</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-end gap-3">
+          <span className={`text-6xl font-bold ${getScoreColor(overallScore)}`} data-testid="text-overall-score">
+            {overallScore}%
           </span>
-        </p>
-        {log.details && (
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {log.details}
-          </p>
+          <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+            <span>+5% from last month</span>
+          </div>
+        </div>
+
+        <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div 
+            className={`h-full transition-all ${getScoreBg(overallScore)}`}
+            style={{ width: `${overallScore}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-md border p-3 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-2xl font-semibold">{totalDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Total Documents</p>
+          </div>
+          <div className="rounded-md border p-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{compliantDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Compliant</p>
+          </div>
+          <div className="rounded-md border p-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <Clock className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{reviewDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Review Required</p>
+          </div>
+          <div className="rounded-md border p-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{overdueDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Overdue</p>
+          </div>
+        </div>
+
+        {pendingApprovals > 0 && (
+          <div className="rounded-md bg-amber-500/10 p-3 text-center">
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              {pendingApprovals} document{pendingApprovals > 1 ? "s" : ""} pending approval
+            </p>
+          </div>
         )}
-        <p className="mt-1 font-mono text-xs text-muted-foreground">
-          {log.createdAt ? formatDistanceToNow(new Date(log.createdAt), { addSuffix: true }) : "Just now"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function UpcomingReviewItem({ document }: { document: Document }) {
-  const daysUntilReview = document.reviewDate 
-    ? Math.ceil((new Date(document.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
-
-  return (
-    <div className="flex items-center gap-3 py-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-        <FileText className="h-4 w-4 text-muted-foreground" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{document.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {document.reviewDate && format(new Date(document.reviewDate), "MMM d, yyyy")}
-        </p>
-      </div>
-      {daysUntilReview !== null && (
-        <span className={`text-xs font-medium ${
-          daysUntilReview <= 7 
-            ? "text-red-600 dark:text-red-400" 
-            : daysUntilReview <= 14 
-            ? "text-amber-600 dark:text-amber-400" 
-            : "text-muted-foreground"
-        }`}>
-          {daysUntilReview <= 0 ? "Overdue" : `${daysUntilReview}d`}
-        </span>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function Dashboard() {
-  const { data, isLoading } = useQuery<DashboardData>({
-    queryKey: ["/api/dashboard"],
+  const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
+    queryKey: ["/api/modules/summary"],
   });
 
   if (isLoading) {
@@ -209,192 +205,90 @@ export default function Dashboard() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="mt-2 h-4 w-64" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="mt-2 h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
+        <Skeleton className="h-64 w-full" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </div>
     );
   }
 
-  const summary = data?.summary || {
-    totalDocuments: 0,
-    compliantDocuments: 0,
-    reviewRequired: 0,
-    overdueDocuments: 0,
-    pendingApprovals: 0,
-    complianceScore: 0,
-  };
+  const summaries = moduleSummaries || [];
 
   return (
     <div className="space-y-8 p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Dashboard</h1>
-          <p className="mt-1 text-muted-foreground">
-            Your compliance overview at a glance
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" asChild>
-            <Link href="/reports" data-testid="link-view-reports">
-              <BarChart3 className="mr-2 h-4 w-4" />
-              View Reports
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/documents/upload" data-testid="link-upload-document">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Document
-            </Link>
-          </Button>
+      <div>
+        <h1 className="text-3xl font-semibold">Compliance Overview</h1>
+        <p className="mt-1 text-muted-foreground">
+          Monitor compliance across all modules
+        </p>
+      </div>
+
+      <OverallComplianceCard summaries={summaries} />
+
+      <div>
+        <h2 className="mb-4 text-xl font-semibold">Modules</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {summaries.map((summary) => (
+            <ModuleCard key={summary.module} summary={summary} />
+          ))}
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <ComplianceScoreCard score={summary.complianceScore} />
-        <MetricCard
-          title="Total Documents"
-          value={summary.totalDocuments}
-          description="Across all entities"
-          icon={FileText}
-          testId="card-total-documents"
-        />
-        <MetricCard
-          title="Compliant"
-          value={summary.compliantDocuments}
-          description="Up to date"
-          icon={CheckCircle}
-          variant="success"
-          testId="card-compliant-documents"
-        />
-        <MetricCard
-          title="Review Required"
-          value={summary.reviewRequired}
-          description="Pending review"
-          icon={Clock}
-          variant="warning"
-          testId="card-review-required"
-        />
-        <MetricCard
-          title="Overdue"
-          value={summary.overdueDocuments}
-          description="Action needed"
-          icon={AlertTriangle}
-          variant="danger"
-          testId="card-overdue-documents"
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-lg">Recent Documents</CardTitle>
-              <CardDescription>Latest document activity</CardDescription>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardDescription>Common tasks across modules</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/documents" data-testid="link-view-all-documents">
-                View all
-                <ArrowRight className="ml-1 h-4 w-4" />
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/health-safety/documents" data-testid="link-hs-documents">
+                <HardHat className="mr-2 h-4 w-4" />
+                H&S Documents
               </Link>
             </Button>
-          </CardHeader>
-          <CardContent>
-            {data?.recentDocuments && data.recentDocuments.length > 0 ? (
-              <div className="space-y-3">
-                {data.recentDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{doc.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          v{doc.version} • {doc.type.replace(/_/g, " ")}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <RAGBadge status={doc.status} />
-                      <ApprovalBadge status={doc.approvalStatus} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="mt-4 font-medium">No documents yet</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Upload your first document to get started
-                </p>
-                <Button className="mt-4" asChild>
-                  <Link href="/documents/upload">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
-                </Button>
-              </div>
-            )}
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/human-resources/documents" data-testid="link-hr-documents">
+                <Users className="mr-2 h-4 w-4" />
+                HR Documents
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/entities" data-testid="link-entities">
+                <FileText className="mr-2 h-4 w-4" />
+                Manage Entities
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/reports" data-testid="link-reports">
+                <TrendingUp className="mr-2 h-4 w-4" />
+                View Reports
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4">
-              <CardTitle className="text-lg">Upcoming Reviews</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {data?.upcomingReviews && data.upcomingReviews.length > 0 ? (
-                <div className="divide-y">
-                  {data.upcomingReviews.slice(0, 5).map((doc) => (
-                    <UpcomingReviewItem key={doc.id} document={doc} />
-                  ))}
-                </div>
-              ) : (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No upcoming reviews
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {data?.recentActivity && data.recentActivity.length > 0 ? (
-                <div className="divide-y">
-                  {data.recentActivity.slice(0, 5).map((log) => (
-                    <RecentActivityItem key={log.id} log={log} />
-                  ))}
-                </div>
-              ) : (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No recent activity
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Support</CardTitle>
+            <CardDescription>Need help with compliance?</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Our consultants are here to help you maintain compliance across all areas of Health & Safety and Human Resources.
+            </p>
+            <Button asChild>
+              <Link href="/support" data-testid="link-support">
+                Contact Support
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

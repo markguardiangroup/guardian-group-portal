@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import Dashboard from "@/pages/dashboard";
+import ModuleDashboard from "@/pages/module-dashboard";
+import ModuleDocuments from "@/pages/module-documents";
 import Documents from "@/pages/documents";
 import DocumentUpload from "@/pages/document-upload";
 import Entities from "@/pages/entities";
@@ -17,10 +19,37 @@ import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
+function HealthSafetyDashboard() {
+  return <ModuleDashboard module="health_safety" />;
+}
+
+function HumanResourcesDashboard() {
+  return <ModuleDashboard module="human_resources" />;
+}
+
+function HealthSafetyDocuments() {
+  return <ModuleDocuments module="health_safety" />;
+}
+
+function HumanResourcesDocuments() {
+  return <ModuleDocuments module="human_resources" />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      
+      <Route path="/health-safety" component={HealthSafetyDashboard} />
+      <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
+      <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
+      <Route path="/health-safety/assessments" component={Assessments} />
+      
+      <Route path="/human-resources" component={HumanResourcesDashboard} />
+      <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
+      <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
+      <Route path="/human-resources/records" component={HumanResourcesDocuments} />
+      
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />

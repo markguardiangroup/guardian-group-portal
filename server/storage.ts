@@ -9,6 +9,8 @@ import {
   type ComplianceSummary,
   type EntityWithSites,
   type DocumentWithDetails,
+  type ModuleType,
+  type ModuleSummary,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -29,7 +31,7 @@ export interface IStorage {
   createSite(site: InsertSite): Promise<Site>;
   
   // Documents
-  getDocuments(): Promise<Document[]>;
+  getDocuments(module?: ModuleType): Promise<Document[]>;
   getDocument(id: string): Promise<DocumentWithDetails | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
@@ -39,16 +41,17 @@ export interface IStorage {
   createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion>;
   
   // Audit Logs
-  getAuditLogs(documentId?: string): Promise<AuditLog[]>;
+  getAuditLogs(documentId?: string, module?: ModuleType): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   
   // Support Requests
-  getSupportRequests(): Promise<SupportRequest[]>;
+  getSupportRequests(module?: ModuleType): Promise<SupportRequest[]>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
   updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined>;
   
   // Dashboard
-  getComplianceSummary(): Promise<ComplianceSummary>;
+  getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
+  getModuleSummaries(): Promise<ModuleSummary[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -69,7 +72,6 @@ export class MemStorage implements IStorage {
     this.auditLogs = new Map();
     this.supportRequests = new Map();
     
-    // Initialize with sample data
     this.initializeSampleData();
   }
 
@@ -135,14 +137,16 @@ export class MemStorage implements IStorage {
     ];
     sites.forEach(site => this.sites.set(site.id, site));
 
-    // Create sample documents
     const now = new Date();
-    const docs: Document[] = [
+
+    // Health & Safety Documents
+    const hsDocs: Document[] = [
       {
-        id: "doc-1",
+        id: "doc-hs-1",
         title: "Health & Safety Policy 2024",
         description: "Company-wide health and safety policy document",
-        type: "policy",
+        module: "health_safety",
+        type: "hs_policy",
         entityId: "entity-1",
         siteId: null,
         fileName: "hs_policy_2024.pdf",
@@ -160,10 +164,11 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "doc-2",
+        id: "doc-hs-2",
         title: "Fire Risk Assessment - Main Factory",
         description: "Annual fire risk assessment for the main manufacturing facility",
-        type: "risk_assessment",
+        module: "health_safety",
+        type: "fire_safety",
         entityId: "entity-1",
         siteId: "site-1",
         fileName: "fire_risk_main_factory.pdf",
@@ -181,10 +186,11 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "doc-3",
+        id: "doc-hs-3",
         title: "COSHH Assessment - Chemical Storage",
         description: "Control of Substances Hazardous to Health assessment",
-        type: "assessment",
+        module: "health_safety",
+        type: "coshh_assessment",
         entityId: "entity-1",
         siteId: "site-1",
         fileName: "coshh_chemical_storage.pdf",
@@ -202,37 +208,65 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "doc-4",
-        title: "Workplace Safety Audit Q4 2024",
-        description: "Quarterly workplace safety audit report",
-        type: "audit",
+        id: "doc-hs-4",
+        title: "Risk Assessment - Office Workstation",
+        description: "DSE assessment for office workstations",
+        module: "health_safety",
+        type: "risk_assessment",
         entityId: "entity-2",
         siteId: "site-3",
-        fileName: "safety_audit_q4_2024.pdf",
-        fileSize: 768000,
+        fileName: "dse_assessment.pdf",
+        fileSize: 256000,
         mimeType: "application/pdf",
         version: 1,
         status: "compliant",
         approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+        reviewDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
         expiryDate: null,
         uploadedBy: "user-1",
         assignedTo: null,
         isArchived: false,
-        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+      },
+    ];
+
+    // Human Resources Documents
+    const hrDocs: Document[] = [
+      {
+        id: "doc-hr-1",
+        title: "Employee Handbook 2024",
+        description: "Comprehensive employee handbook with policies and procedures",
+        module: "human_resources",
+        type: "employee_handbook",
+        entityId: "entity-1",
+        siteId: null,
+        fileName: "employee_handbook_2024.pdf",
+        fileSize: 1024000,
+        mimeType: "application/pdf",
+        version: 5,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "doc-5",
-        title: "Emergency Evacuation Procedure",
-        description: "Site emergency evacuation procedures and assembly points",
-        type: "policy",
+        id: "doc-hr-2",
+        title: "Disciplinary Procedure",
+        description: "Company disciplinary and grievance procedure",
+        module: "human_resources",
+        type: "disciplinary_procedure",
         entityId: "entity-1",
-        siteId: "site-2",
-        fileName: "emergency_evacuation.pdf",
-        fileSize: 128000,
+        siteId: null,
+        fileName: "disciplinary_procedure.pdf",
+        fileSize: 320000,
         mimeType: "application/pdf",
-        version: 4,
+        version: 2,
         status: "review_required",
         approvalStatus: "pending",
         reviewDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
@@ -240,11 +274,56 @@ export class MemStorage implements IStorage {
         uploadedBy: "user-1",
         assignedTo: "user-1",
         isArchived: false,
-        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-hr-3",
+        title: "Training Record - John Smith",
+        description: "Training history and certifications for John Smith",
+        module: "human_resources",
+        type: "training_record",
+        entityId: "entity-1",
+        siteId: "site-1",
+        fileName: "training_john_smith.pdf",
+        fileSize: 128000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-hr-4",
+        title: "HR Policy - Remote Working",
+        description: "Policy for remote and hybrid working arrangements",
+        module: "human_resources",
+        type: "hr_policy",
+        entityId: "entity-2",
+        siteId: null,
+        fileName: "remote_working_policy.pdf",
+        fileSize: 192000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "overdue",
+        approvalStatus: "changes_requested",
+        reviewDate: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: "user-1",
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
       },
     ];
-    docs.forEach(doc => this.documents.set(doc.id, doc));
+
+    [...hsDocs, ...hrDocs].forEach(doc => this.documents.set(doc.id, doc));
 
     // Create sample audit logs
     const logs: AuditLog[] = [
@@ -254,8 +333,9 @@ export class MemStorage implements IStorage {
         userId: "user-1",
         userName: "John Doe",
         entityId: "entity-1",
-        documentId: "doc-2",
+        documentId: "doc-hs-2",
         supportRequestId: null,
+        module: "health_safety",
         details: "Uploaded Fire Risk Assessment - Main Factory",
         metadata: null,
         createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
@@ -266,35 +346,38 @@ export class MemStorage implements IStorage {
         userId: "user-1",
         userName: "John Doe",
         entityId: "entity-1",
-        documentId: "doc-1",
+        documentId: "doc-hs-1",
         supportRequestId: null,
+        module: "health_safety",
         details: "Approved Health & Safety Policy 2024 v3",
         metadata: null,
         createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
       },
       {
         id: "log-3",
-        action: "changes_requested",
+        action: "document_approved",
         userId: "user-1",
         userName: "John Doe",
         entityId: "entity-1",
-        documentId: "doc-3",
+        documentId: "doc-hr-1",
         supportRequestId: null,
-        details: "Requested updates to chemical inventory section",
+        module: "human_resources",
+        details: "Approved Employee Handbook 2024",
         metadata: null,
         createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
       },
       {
         id: "log-4",
-        action: "document_viewed",
+        action: "changes_requested",
         userId: "user-1",
         userName: "John Doe",
         entityId: "entity-2",
-        documentId: "doc-4",
+        documentId: "doc-hr-4",
         supportRequestId: null,
-        details: "Viewed Workplace Safety Audit Q4 2024",
+        module: "human_resources",
+        details: "Requested updates to remote working policy",
         metadata: null,
-        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
       },
     ];
     logs.forEach(log => this.auditLogs.set(log.id, log));
@@ -308,6 +391,7 @@ export class MemStorage implements IStorage {
         priority: "medium",
         status: "open",
         category: "Compliance Question",
+        module: "health_safety",
         entityId: "entity-1",
         createdBy: "user-1",
         assignedTo: null,
@@ -317,11 +401,12 @@ export class MemStorage implements IStorage {
       },
       {
         id: "req-2",
-        subject: "Unable to download audit report",
-        description: "Getting an error when trying to download the Q4 safety audit report. Browser shows a timeout error after 30 seconds.",
+        subject: "Need updated contract template",
+        description: "We need an updated employment contract template that includes the new remote working clause as per our HR policy.",
         priority: "low",
         status: "resolved",
-        category: "Technical Support",
+        category: "Document Request",
+        module: "human_resources",
         entityId: "entity-2",
         createdBy: "user-1",
         assignedTo: "user-1",
@@ -407,9 +492,12 @@ export class MemStorage implements IStorage {
   }
 
   // Documents
-  async getDocuments(): Promise<Document[]> {
-    return Array.from(this.documents.values()).filter(d => !d.isArchived)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  async getDocuments(module?: ModuleType): Promise<Document[]> {
+    let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+    if (module) {
+      docs = docs.filter(d => d.module === module);
+    }
+    return docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   async getDocument(id: string): Promise<DocumentWithDetails | undefined> {
@@ -473,10 +561,13 @@ export class MemStorage implements IStorage {
   }
 
   // Audit Logs
-  async getAuditLogs(documentId?: string): Promise<AuditLog[]> {
+  async getAuditLogs(documentId?: string, module?: ModuleType): Promise<AuditLog[]> {
     let logs = Array.from(this.auditLogs.values());
     if (documentId) {
       logs = logs.filter(log => log.documentId === documentId);
+    }
+    if (module) {
+      logs = logs.filter(log => log.module === module);
     }
     return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
@@ -493,9 +584,12 @@ export class MemStorage implements IStorage {
   }
 
   // Support Requests
-  async getSupportRequests(): Promise<SupportRequest[]> {
-    return Array.from(this.supportRequests.values())
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  async getSupportRequests(module?: ModuleType): Promise<SupportRequest[]> {
+    let requests = Array.from(this.supportRequests.values());
+    if (module) {
+      requests = requests.filter(r => r.module === module);
+    }
+    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async createSupportRequest(insertRequest: InsertSupportRequest): Promise<SupportRequest> {
@@ -522,8 +616,11 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard
-  async getComplianceSummary(): Promise<ComplianceSummary> {
-    const docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+  async getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary> {
+    let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+    if (module) {
+      docs = docs.filter(d => d.module === module);
+    }
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
@@ -538,6 +635,23 @@ export class MemStorage implements IStorage {
       pendingApprovals: pending,
       complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
     };
+  }
+
+  async getModuleSummaries(): Promise<ModuleSummary[]> {
+    const modules: ModuleType[] = ["health_safety", "human_resources"];
+    const moduleNames: Record<ModuleType, string> = {
+      health_safety: "Health & Safety",
+      human_resources: "Human Resources",
+    };
+    
+    return Promise.all(modules.map(async (module) => {
+      const summary = await this.getComplianceSummary(module);
+      return {
+        ...summary,
+        module,
+        moduleName: moduleNames[module],
+      };
+    }));
   }
 }
 
