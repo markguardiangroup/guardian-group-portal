@@ -29,20 +29,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Dev fallback: check localStorage when session cookie doesn't work (embedded preview)
+  const devUser = (() => {
+    try {
+      const stored = localStorage.getItem("dev_user");
+      return stored ? JSON.parse(stored) as AuthUser : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const effectiveUser = user ?? devUser;
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      localStorage.removeItem("dev_user");
       queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.invalidateQueries();
     },
   });
 
   const value: AuthContextType = {
-    user: user ?? null,
+    user: effectiveUser ?? null,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!effectiveUser,
     logout: () => logoutMutation.mutate(),
     isLoggingOut: logoutMutation.isPending,
   };

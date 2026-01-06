@@ -154,16 +154,76 @@ export default function Login() {
                 <div>
                   <span className="font-medium">Admin:</span> admin / admin123
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => {
+                    localStorage.setItem("dev_user", JSON.stringify({
+                      id: "user-admin",
+                      username: "admin",
+                      email: "admin@guardiangroup.com",
+                      fullName: "System Administrator",
+                      role: "admin",
+                      entityId: null
+                    }));
+                    window.location.href = "/";
+                  }}
+                  data-testid="button-dev-login-admin"
+                >
+                  Dev Login
+                </Button>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
                 <div>
                   <span className="font-medium">Consultant:</span> john.doe / consultant123
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => {
+                    localStorage.setItem("dev_user", JSON.stringify({
+                      id: "user-1",
+                      username: "john.doe",
+                      email: "john.doe@guardiangroup.com",
+                      fullName: "John Doe",
+                      role: "consultant",
+                      entityId: null
+                    }));
+                    window.location.href = "/";
+                  }}
+                  data-testid="button-dev-login-consultant"
+                >
+                  Dev Login
+                </Button>
               </div>
               <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
                 <div>
                   <span className="font-medium">Client:</span> sarah.acme / client123
                 </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => {
+                    localStorage.setItem("dev_user", JSON.stringify({
+                      id: "user-2",
+                      username: "sarah.acme",
+                      email: "sarah@acme-mfg.com",
+                      fullName: "Sarah Mitchell",
+                      role: "client",
+                      entityId: "entity-1"
+                    }));
+                    window.location.href = "/";
+                  }}
+                  data-testid="button-dev-login-client"
+                >
+                  Dev Login
+                </Button>
               </div>
             </div>
           </div>
