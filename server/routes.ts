@@ -36,6 +36,39 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Module-specific dashboard
+  app.get("/api/dashboard/:module", async (req, res) => {
+    try {
+      const module = req.params.module as ModuleType;
+      if (module !== "health_safety" && module !== "human_resources") {
+        return res.status(400).json({ error: "Invalid module" });
+      }
+      const summary = await storage.getComplianceSummary(module);
+      const documents = await storage.getDocuments(module);
+      const auditLogs = await storage.getAuditLogs(undefined, module);
+      
+      const recentDocuments = documents.slice(0, 5);
+      
+      const now = new Date();
+      const upcomingReviews = documents
+        .filter(doc => doc.reviewDate && new Date(doc.reviewDate) > now)
+        .sort((a, b) => new Date(a.reviewDate!).getTime() - new Date(b.reviewDate!).getTime())
+        .slice(0, 5);
+      
+      const recentActivity = auditLogs.slice(0, 10);
+      
+      res.json({
+        summary,
+        recentDocuments,
+        upcomingReviews,
+        recentActivity,
+      });
+    } catch (error) {
+      console.error("Module dashboard error:", error);
+      res.status(500).json({ error: "Failed to fetch module dashboard data" });
+    }
+  });
+
   // Main Dashboard (overview of all modules)
   app.get("/api/dashboard", async (req, res) => {
     try {
@@ -74,6 +107,21 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Module summaries error:", error);
       res.status(500).json({ error: "Failed to fetch module summaries" });
+    }
+  });
+
+  // Documents by module
+  app.get("/api/documents/module/:module", async (req, res) => {
+    try {
+      const module = req.params.module as ModuleType;
+      if (module !== "health_safety" && module !== "human_resources") {
+        return res.status(400).json({ error: "Invalid module" });
+      }
+      const documents = await storage.getDocuments(module);
+      res.json(documents);
+    } catch (error) {
+      console.error("Module documents error:", error);
+      res.status(500).json({ error: "Failed to fetch module documents" });
     }
   });
 

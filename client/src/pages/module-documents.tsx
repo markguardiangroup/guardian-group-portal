@@ -75,7 +75,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
 
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents", { module }],
+    queryKey: ["/api/documents/module", module],
   });
 
   const filteredDocuments = documents?.filter((doc) => {
@@ -291,7 +291,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({
