@@ -6,8 +6,20 @@ import { z } from "zod";
 // Modules
 export type ModuleType = "health_safety" | "human_resources";
 
-// User roles
+// User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
+
+// Consultant tiers (for consultant users)
+export type ConsultantTier = "senior" | "standard" | "junior";
+
+// Client permission roles (for client users within their entity)
+export type ClientPermissionRole = "owner" | "approver" | "contributor" | "viewer";
+
+// Entity request status
+export type EntityRequestStatus = "draft" | "pending" | "approved" | "rejected";
+
+// Entity status
+export type EntityStatus = "active" | "inactive" | "pending";
 
 // Document status for RAG indicators
 export type DocumentStatus = "compliant" | "review_required" | "overdue";
@@ -24,9 +36,16 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   role: text("role").$type<UserRole>().notNull().default("client"),
   entityId: varchar("entity_id"),
+  // Consultant-specific: tier level
+  consultantTier: text("consultant_tier").$type<ConsultantTier>(),
+  // Client-specific: permission role within their entity
+  clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
+  status: text("status").$type<"active" | "inactive">().notNull().default("active"),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastLoginAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -38,11 +57,59 @@ export const entities = pgTable("entities", {
   address: text("address"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
+  status: text("status").$type<EntityStatus>().notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertEntitySchema = createInsertSchema(entities).omit({ id: true });
+export const insertEntitySchema = createInsertSchema(entities).omit({ id: true, createdAt: true });
 export type InsertEntity = z.infer<typeof insertEntitySchema>;
 export type Entity = typeof entities.$inferSelect;
+
+// Entity Requests (consultants request, admins approve)
+export const entityRequests = pgTable("entity_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  proposedName: text("proposed_name").notNull(),
+  companyNumber: text("company_number"),
+  address: text("address"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  contactName: text("contact_name"),
+  notes: text("notes"),
+  status: text("status").$type<EntityRequestStatus>().notNull().default("draft"),
+  requestedBy: varchar("requested_by").notNull(),
+  reviewedBy: varchar("reviewed_by"),
+  adminNotes: text("admin_notes"),
+  approvedEntityId: varchar("approved_entity_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertEntityRequestSchema = createInsertSchema(entityRequests).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  reviewedBy: true,
+  adminNotes: true,
+  approvedEntityId: true
+});
+export type InsertEntityRequest = z.infer<typeof insertEntityRequestSchema>;
+export type EntityRequest = typeof entityRequests.$inferSelect;
+
+// Consultant-Entity assignments (which consultants work with which entities)
+export const consultantAssignments = pgTable("consultant_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  consultantId: varchar("consultant_id").notNull(),
+  entityId: varchar("entity_id").notNull(),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+});
+
+export const insertConsultantAssignmentSchema = createInsertSchema(consultantAssignments).omit({ 
+  id: true, 
+  assignedAt: true 
+});
+export type InsertConsultantAssignment = z.infer<typeof insertConsultantAssignmentSchema>;
+export type ConsultantAssignment = typeof consultantAssignments.$inferSelect;
 
 // Sites (Locations within entities)
 export const sites = pgTable("sites", {
@@ -267,3 +334,117 @@ export const moduleConfig: Record<ModuleType, {
     ],
   },
 };
+
+// Permission capability definitions
+
+// Client permission capabilities
+export interface ClientCapabilities {
+  canApproveDocuments: boolean;
+  canSubmitDocuments: boolean;
+  canComment: boolean;
+  canView: boolean;
+  canRequestSupport: boolean;
+  canManageTeam: boolean;
+}
+
+export const clientPermissionCapabilities: Record<ClientPermissionRole, ClientCapabilities> = {
+  owner: {
+    canApproveDocuments: true,
+    canSubmitDocuments: true,
+    canComment: true,
+    canView: true,
+    canRequestSupport: true,
+    canManageTeam: true,
+  },
+  approver: {
+    canApproveDocuments: true,
+    canSubmitDocuments: true,
+    canComment: true,
+    canView: true,
+    canRequestSupport: true,
+    canManageTeam: false,
+  },
+  contributor: {
+    canApproveDocuments: false,
+    canSubmitDocuments: true,
+    canComment: true,
+    canView: true,
+    canRequestSupport: true,
+    canManageTeam: false,
+  },
+  viewer: {
+    canApproveDocuments: false,
+    canSubmitDocuments: false,
+    canComment: false,
+    canView: true,
+    canRequestSupport: true,
+    canManageTeam: false,
+  },
+};
+
+// Consultant tier capabilities
+export interface ConsultantCapabilities {
+  canAccessAllClients: boolean;
+  canRequestEntities: boolean;
+  canManageClientUsers: boolean;
+  canEditDocuments: boolean;
+  canViewDocuments: boolean;
+  canManageChecklists: boolean;
+  canManageIncidents: boolean;
+}
+
+export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabilities> = {
+  senior: {
+    canAccessAllClients: true,
+    canRequestEntities: true,
+    canManageClientUsers: true,
+    canEditDocuments: true,
+    canViewDocuments: true,
+    canManageChecklists: true,
+    canManageIncidents: true,
+  },
+  standard: {
+    canAccessAllClients: false,
+    canRequestEntities: true,
+    canManageClientUsers: false,
+    canEditDocuments: true,
+    canViewDocuments: true,
+    canManageChecklists: true,
+    canManageIncidents: true,
+  },
+  junior: {
+    canAccessAllClients: false,
+    canRequestEntities: false,
+    canManageClientUsers: false,
+    canEditDocuments: false,
+    canViewDocuments: true,
+    canManageChecklists: false,
+    canManageIncidents: false,
+  },
+};
+
+// Helper to get capabilities
+export function getClientCapabilities(role: ClientPermissionRole | null | undefined): ClientCapabilities {
+  if (!role) {
+    return clientPermissionCapabilities.viewer;
+  }
+  return clientPermissionCapabilities[role];
+}
+
+export function getConsultantCapabilities(tier: ConsultantTier | null | undefined): ConsultantCapabilities {
+  if (!tier) {
+    return consultantTierCapabilities.standard;
+  }
+  return consultantTierCapabilities[tier];
+}
+
+// Entity request with requester info
+export interface EntityRequestWithDetails extends EntityRequest {
+  requesterName?: string;
+  reviewerName?: string;
+}
+
+// User with entity name
+export interface UserWithDetails extends User {
+  entityName?: string;
+}
