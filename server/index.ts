@@ -29,14 +29,15 @@ const MemoryStoreSession = MemoryStore(session);
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "guardian-group-secret-key",
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     store: new MemoryStoreSession({
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Allow cookies over HTTP in development
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })
