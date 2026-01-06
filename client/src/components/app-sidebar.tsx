@@ -60,7 +60,6 @@ const moduleNavItems = [
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
-      { title: "Records", url: "/human-resources/records" },
     ],
   },
 ];

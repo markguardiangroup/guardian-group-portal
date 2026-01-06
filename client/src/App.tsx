@@ -51,7 +51,6 @@ function Router() {
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
-      <Route path="/human-resources/records" component={HumanResourcesDocuments} />
       
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
