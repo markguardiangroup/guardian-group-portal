@@ -16,7 +16,8 @@ import ModuleDocuments from "@/pages/module-documents";
 import Documents from "@/pages/documents";
 import DocumentUpload from "@/pages/document-upload";
 import Entities from "@/pages/entities";
-import Assessments from "@/pages/assessments";
+import HSChecklists from "@/pages/hs-checklists";
+import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
@@ -46,7 +47,8 @@ function Router() {
       <Route path="/health-safety" component={HealthSafetyDashboard} />
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
-      <Route path="/health-safety/assessments" component={Assessments} />
+      <Route path="/health-safety/checklists" component={HSChecklists} />
+      <Route path="/health-safety/incidents" component={HSIncidents} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
@@ -56,7 +58,6 @@ function Router() {
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
       <Route path="/entities" component={Entities} />
-      <Route path="/assessments" component={Assessments} />
       <Route path="/reports" component={Reports} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
