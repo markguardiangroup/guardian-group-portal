@@ -60,7 +60,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <Card className="w-full max-w-md border shadow-lg">
+      <Card className="w-full max-w-md border shadow-lg bg-white text-slate-900">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
             <img 
@@ -69,11 +69,11 @@ export default function Login() {
               className="h-16 w-auto mx-auto"
             />
           </div>
-          <CardDescription>
+          <CardDescription className="text-slate-600">
             H&S and HR Compliance Portal
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="[&_label]:text-slate-700 [&_input]:bg-white [&_input]:border-slate-300 [&_input]:text-slate-900 [&_input::placeholder]:text-slate-400">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -145,22 +145,22 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="mt-6 border-t pt-4">
-            <p className="text-sm text-muted-foreground text-center mb-3">
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <p className="text-sm text-slate-500 text-center mb-3">
               Demo Accounts
             </p>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
                 <div>
                   <span className="font-medium">Admin:</span> admin / admin123
                 </div>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
                 <div>
                   <span className="font-medium">Consultant:</span> john.doe / consultant123
                 </div>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
                 <div>
                   <span className="font-medium">Client:</span> sarah.acme / client123
                 </div>
