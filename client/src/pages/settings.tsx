@@ -65,6 +65,12 @@ import type {
   ClientPermissionRole, 
   ConsultantTier 
 } from "@shared/schema";
+import {
+  clientPermissionCapabilities,
+  consultantTierCapabilities,
+  type ClientCapabilities,
+  type ConsultantCapabilities,
+} from "@shared/schema";
 
 interface MockUser {
   id: string;
@@ -374,6 +380,12 @@ export default function Settings() {
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
+          {(isAdmin || isConsultant) && (
+            <TabsTrigger value="permissions" className="gap-2" data-testid="tab-permissions">
+              <UserCog className="h-4 w-4" />
+              Permissions
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -1506,6 +1518,288 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {(isAdmin || isConsultant) && (
+          <TabsContent value="permissions">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Permission Roles</CardTitle>
+                  <CardDescription>
+                    Permissions available for each client role within their organization
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[200px]">Capability</TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="default" className="bg-emerald-600">Owner</Badge>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="default" className="bg-blue-600">Approver</Badge>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="default" className="bg-amber-600">Contributor</Badge>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="secondary">Viewer</Badge>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">View Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Request Support</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Comment on Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Submit Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Approve Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Manage Team Members</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Consultant Permission Tiers</CardTitle>
+                  <CardDescription>
+                    Permissions available for each consultant tier within Guardian Group
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[200px]">Capability</TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="default" className="bg-purple-600">Senior</Badge>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="default" className="bg-indigo-600">Standard</Badge>
+                          </TableHead>
+                          <TableHead className="text-center">
+                            <Badge variant="secondary">Junior</Badge>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">View Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Edit Documents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Manage Checklists</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Manage Incidents</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Request New Entities</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Access All Clients</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Manage Client Users</TableCell>
+                          <TableCell className="text-center">
+                            <Check className="mx-auto h-4 w-4 text-emerald-600" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <X className="mx-auto h-4 w-4 text-muted-foreground" />
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Admin Permissions</CardTitle>
+                  <CardDescription>
+                    Full system access with all capabilities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">Full System Access</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">Manage All Users</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">Approve Entity Requests</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">Manage All Entities</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">Access All Modules</span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border p-3">
+                      <Check className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm">View All Audit Logs</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
