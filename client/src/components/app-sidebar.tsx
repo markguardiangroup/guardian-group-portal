@@ -45,6 +45,7 @@ const moduleNavItems = [
     title: "Health & Safety",
     icon: HardHat,
     url: "/health-safety",
+    themeClass: "theme-hs",
     subItems: [
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
@@ -55,6 +56,7 @@ const moduleNavItems = [
     title: "Human Resources",
     icon: Users,
     url: "/human-resources",
+    themeClass: "theme-hr",
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
@@ -180,7 +182,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     key={item.title}
                     asChild
                     defaultOpen={isModuleActive}
-                    className="group/collapsible"
+                    className={cn("group/collapsible", item.themeClass)}
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
@@ -191,7 +193,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                           )}
                           data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="h-4 w-4 text-module-accent" />
                           <span className="flex-1">{item.title}</span>
                           <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>

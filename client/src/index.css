@@ -43,6 +43,14 @@
   --chart-3: 225 70% 40%;
   --chart-4: 180 65% 38%;
   --chart-5: 200 80% 36%;
+  
+  /* Module Theme Colors */
+  --module-hs: 145 65% 32%;
+  --module-hs-foreground: 145 20% 98%;
+  --module-hs-muted: 145 30% 92%;
+  --module-hr: 210 85% 32%;
+  --module-hr-foreground: 210 20% 98%;
+  --module-hr-muted: 210 30% 92%;
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, Menlo, monospace;
@@ -127,6 +135,14 @@
   --chart-3: 225 70% 70%;
   --chart-4: 180 65% 65%;
   --chart-5: 200 80% 67%;
+  
+  /* Module Theme Colors - Dark Mode */
+  --module-hs: 145 65% 45%;
+  --module-hs-foreground: 145 20% 98%;
+  --module-hs-muted: 145 30% 18%;
+  --module-hr: 210 85% 50%;
+  --module-hr-foreground: 210 20% 98%;
+  --module-hr-muted: 210 30% 18%;
   --shadow-2xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(210 6% 8% / 0.00), 0px 1px 2px -1px hsl(210 6% 8% / 0.00);
@@ -196,6 +212,39 @@
  * need to be distinguished from eachother visually.
  */
 @layer utilities {
+
+  /* Module Theme Utilities */
+  .theme-hs {
+    --module-accent: var(--module-hs);
+    --module-accent-foreground: var(--module-hs-foreground);
+    --module-accent-muted: var(--module-hs-muted);
+  }
+  
+  .theme-hr {
+    --module-accent: var(--module-hr);
+    --module-accent-foreground: var(--module-hr-foreground);
+    --module-accent-muted: var(--module-hr-muted);
+  }
+  
+  .bg-module-accent {
+    background-color: hsl(var(--module-accent));
+  }
+  
+  .bg-module-accent-muted {
+    background-color: hsl(var(--module-accent-muted));
+  }
+  
+  .text-module-accent {
+    color: hsl(var(--module-accent));
+  }
+  
+  .text-module-accent-foreground {
+    color: hsl(var(--module-accent-foreground));
+  }
+  
+  .border-module-accent {
+    border-color: hsl(var(--module-accent));
+  }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {

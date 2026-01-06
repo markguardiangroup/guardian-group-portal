@@ -124,6 +124,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
+  const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
     queryKey: ["/api/dashboard", module],
@@ -168,11 +169,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   };
 
   return (
-    <div className="space-y-8 p-8">
+    <div className={`space-y-8 p-8 ${themeClass}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-            <ModuleIcon className="h-6 w-6 text-primary" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-module-accent-muted">
+            <ModuleIcon className="h-6 w-6 text-module-accent" />
           </div>
           <div>
             <h1 className="text-3xl font-semibold">{config.name}</h1>
@@ -188,7 +189,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               View Documents
             </Link>
           </Button>
-          <Button asChild>
+          <Button className="bg-module-accent text-module-accent-foreground" asChild>
             <Link href={`${basePath}/documents/upload`} data-testid="link-upload-document">
               <Upload className="mr-2 h-4 w-4" />
               Upload Document

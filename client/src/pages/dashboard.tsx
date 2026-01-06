@@ -24,6 +24,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
   const isHS = summary.module === "health_safety";
   const Icon = isHS ? HardHat : Users;
   const basePath = isHS ? "/health-safety" : "/human-resources";
+  const themeClass = isHS ? "theme-hs" : "theme-hr";
   
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -38,11 +39,11 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
   };
 
   return (
-    <Card className="hover-elevate" data-testid={`card-module-${summary.module}`}>
+    <Card className={`hover-elevate ${themeClass}`} data-testid={`card-module-${summary.module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-module-accent-muted">
+            <Icon className="h-6 w-6 text-module-accent" />
           </div>
           <div>
             <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
@@ -88,7 +89,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full" asChild>
+        <Button className="w-full border-module-accent text-module-accent" variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
