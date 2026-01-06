@@ -1,0 +1,171 @@
+Guardian Group – H&S Web Portal Platform
+Phase 1 Product Brief & Developer RFP
+Document Type: Developer RFP / Product Definition
+Version: 1.0
+Prepared by: Guardian Group
+Purpose: To scope, design, and deliver Phase 1 of a consultancy-led compliance web portal
+1. Project Overview
+Guardian Group is seeking a technology partner to design and build Phase 1 of a secure, scalable H&S web portal that supports a hybrid consultancy + SaaS compliance delivery model.
+This platform will:
+Digitally support Guardian Group’s professional services
+Improve compliance visibility and auditability for clients
+Reduce internal administrative burden
+Create a scalable foundation for future functionality (mobile app, AI, integrations)
+This is not a standalone, self-serve SaaS platform.
+Clients will not generate compliance content themselves. Guardian Group remains the author, controller, and authority of compliance outputs.
+2. Objectives
+Primary objectives
+Centralise compliance documentation and evidence
+Enable digital review and approval workflows
+Create a robust audit trail for all compliance activity
+Improve operational efficiency for consultants and admin teams
+Secondary objectives
+Improve client experience and engagement
+Increase retention and long-term client value
+Support Guardian Group’s unified brand and service model
+3. Target Users & Roles
+User types
+Clients
+Consultants / Advisors
+Internal Guardian Group administrators
+Role-based access
+Role-based permissions (RBAC) required
+Different visibility and actions by role
+Certain roles must be able to approve documents
+All actions must be logged with timestamp and user attribution
+4. Platform Structure & Scope
+4.1 Modular architecture
+The platform must support modular functionality aligned to client entitlements.
+Initial verticals
+Health & Safety
+HR / Employment Law
+Each vertical will:
+Be switchable per client
+Contain sub-modules depending on commercial package
+Be extensible for future verticals
+4.2 Multi-entity support
+The platform must support:
+Multiple legal entities per client
+Multiple sites per entity
+Clear separation of documents and compliance status by site/entity
+5. Phase 1 Functional Scope (In Scope)
+5.1 Central Document Management
+The core of Phase 1 is a central compliance document store with full lifecycle management.
+Required capabilities:
+Secure document storage
+Version control and document history
+Archived documents retained and accessible
+Guardian Group uploads and maintains documents
+Clients can view and approve documents digitally
+Clear approval status indicators
+Full audit trail of:
+Uploads
+Changes
+Approvals
+Access
+5.2 Supported Deliverables
+The platform must support storage and management of:
+Policies
+Risk assessments
+Audits
+Assessment outputs
+Compliance documentation
+Incident logs
+Checklists and templates (client-completed only)
+5.3 Forms, Logs & Templates
+Guardian Group creates and controls all templates
+Clients may:
+Complete assigned forms and checklists
+Upload supporting evidence
+Clients may not create templates or compliance content
+5.4 Compliance Status & Dashboards
+High-level compliance dashboard per client
+RAG (Red / Amber / Green) indicators for:
+Document status
+Review/expiry cycles
+Outstanding items
+Clear visibility of current compliance position
+5.5 Automation & Notifications
+Automated reminders for:
+Document reviews
+Expiry dates
+Outstanding compliance actions
+Notification logic must be configurable by Guardian Group
+5.6 Reporting
+Ability to generate and export reports (PDF / Word as minimum)
+Reporting should reflect:
+Compliance status
+Document history
+Audit trail
+5.7 Support Requests
+Clients must be able to request support or advice through the platform
+Requests should be logged and auditable
+6. Consultant Capabilities (Phase 1)
+Consultants must be able to:
+Upload and manage documents
+Create and update assessments and outputs
+Create action plans
+Review client submissions
+Explicitly excluded in Phase 1
+Task assignment workflows
+Scheduling, routing, or site visit planning
+7. Out of Scope (Phase 1)
+The following are explicitly excluded from Phase 1:
+Asset registers
+COSHH, RAMS, inspections
+Full EHS task management
+Daily operational management tools
+HR/people management functionality
+Client-generated compliance content
+Third-party partner access
+Dedicated mobile app
+8. Mobile & Offline Requirements
+Phase 1
+Responsive, mobile-friendly web platform
+No offline capability required
+Future phases (for awareness only)
+Dedicated mobile app for consultants
+Offline capability for on-site assessments
+Evidence capture and sync once online
+The Phase 1 solution must be architected to allow this future expansion.
+9. Integrations (Future Consideration)
+No integrations are required for Phase 1 delivery, but the solution must be architected to support future integration with:
+HRIS platforms
+Training platforms
+Safety schemes
+CRM systems
+Finance systems (invoice visibility)
+10. Non-Functional Requirements
+Security & Compliance
+Secure authentication
+Role-based access control
+Data segregation between clients
+Full audit logging
+UK data hosting preferred
+Scalability
+Must support growth across multiple Guardian Group divisions
+Must support increasing document volume and users
+UX Principles
+Consultant- and client-friendly
+Clear, simple navigation
+Compliance-first design (clarity over complexity)
+11. Deliverables Expected from the Supplier
+Responding suppliers should include:
+Proposed technical architecture
+Approach to Phase 1 delivery
+Estimated timeline
+Cost breakdown
+Discovery / design
+Build
+Testing
+Deployment
+Assumptions and dependencies
+Ongoing support and maintenance options
+Examples of similar platforms delivered
+12. Definition of Phase 1 Success
+Phase 1 will be considered successful if it delivers:
+A stable, secure central compliance portal
+Reduced manual document handling
+Clear audit trails and approval workflows
+Positive consultant and client adoption
+A solid foundation for Phase 2 exp
