@@ -8,11 +8,13 @@ import {
   HelpCircle,
   Settings,
   Shield,
-  Bell,
+  LogOut,
   HardHat,
   Users,
   ChevronDown,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import type { UserRole } from "@shared/schema";
 import {
   Sidebar,
   SidebarContent,
@@ -88,8 +90,37 @@ const settingsNavItems = [
   },
 ];
 
-export function AppSidebar() {
+interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  entityId: string | null;
+}
+
+interface AppSidebarProps {
+  user?: AuthUser | null;
+}
+
+const roleLabels: Record<UserRole, string> = {
+  admin: "Administrator",
+  consultant: "Consultant",
+  client: "Client",
+};
+
+export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
+  const { logout, isLoggingOut } = useAuth();
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <Sidebar>
@@ -267,20 +298,25 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
             <AvatarFallback className="bg-primary/10 text-sm font-medium">
-              JD
+              {user ? getInitials(user.fullName) : "?"}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 flex-col overflow-hidden">
-            <span className="truncate text-sm font-medium">John Doe</span>
-            <span className="truncate text-xs text-muted-foreground">
-              Consultant
+            <span className="truncate text-sm font-medium" data-testid="text-user-name">
+              {user?.fullName || "Guest"}
+            </span>
+            <span className="truncate text-xs text-muted-foreground" data-testid="text-user-role">
+              {user ? roleLabels[user.role] : "Not logged in"}
             </span>
           </div>
           <button
+            onClick={logout}
+            disabled={isLoggingOut}
             className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover-elevate"
-            data-testid="button-notifications"
+            data-testid="button-logout"
+            title="Sign out"
           >
-            <Bell className="h-4 w-4 text-muted-foreground" />
+            <LogOut className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </SidebarFooter>

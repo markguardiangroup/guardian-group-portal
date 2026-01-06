@@ -7,6 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
+import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ModuleDashboard from "@/pages/module-dashboard";
 import ModuleDocuments from "@/pages/module-documents";
@@ -63,30 +66,55 @@ function Router() {
   );
 }
 
-function App() {
+function AuthenticatedApp() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="space-y-4 text-center">
+          <Skeleton className="h-12 w-12 mx-auto rounded-full" />
+          <Skeleton className="h-4 w-32 mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   const sidebarStyle = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
 
   return (
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar user={user} />
+        <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <ThemeToggle />
+          </header>
+          <main className="flex-1 overflow-auto">
+            <Router />
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="guardian-theme">
         <TooltipProvider>
-          <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-            <div className="flex h-screen w-full">
-              <AppSidebar />
-              <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <ThemeToggle />
-                </header>
-                <main className="flex-1 overflow-auto">
-                  <Router />
-                </main>
-              </SidebarInset>
-            </div>
-          </SidebarProvider>
+          <AuthProvider>
+            <AuthenticatedApp />
+          </AuthProvider>
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
