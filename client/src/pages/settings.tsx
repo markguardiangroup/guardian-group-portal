@@ -144,14 +144,46 @@ export default function Settings() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
+  const isConsultant = user?.role === "consultant";
+  const isClient = user?.role === "client";
+  const canViewUsers = isAdmin || isConsultant || isClient;
+  const canEditUsers = isAdmin;
+  const canAddUsers = isAdmin;
 
-  const filteredUsers = mockUsers.filter((u) => {
+  const getVisibleUsers = () => {
+    if (isAdmin) {
+      return mockUsers;
+    } else if (isConsultant) {
+      return mockUsers.filter((u) => u.role === "client");
+    } else if (isClient && user?.entityId) {
+      return mockUsers.filter((u) => u.entityId === user.entityId);
+    }
+    return [];
+  };
+
+  const visibleUsers = getVisibleUsers();
+
+  const filteredUsers = visibleUsers.filter((u) => {
     const matchesSearch = u.fullName.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
       u.username.toLowerCase().includes(userSearchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const getUserTabLabel = () => {
+    if (isAdmin) return "User Management";
+    if (isConsultant) return "Client Users";
+    if (isClient) return "Team Members";
+    return "Users";
+  };
+
+  const getUserTabDescription = () => {
+    if (isAdmin) return "Manage admins, consultants, and client users";
+    if (isConsultant) return "View client users you work with";
+    if (isClient) return "View team members from your organization";
+    return "";
+  };
 
   const getRoleBadgeClass = (role: string) => {
     switch (role) {
@@ -196,10 +228,10 @@ export default function Settings() {
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          {isAdmin && (
+          {canViewUsers && (
             <TabsTrigger value="users" className="gap-2" data-testid="tab-users">
               <Users className="h-4 w-4" />
-              User Management
+              {getUserTabLabel()}
             </TabsTrigger>
           )}
           <TabsTrigger value="notifications" className="gap-2" data-testid="tab-notifications">
@@ -256,22 +288,23 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {isAdmin && (
+        {canViewUsers && (
           <TabsContent value="users">
             <Card>
               <CardHeader>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage admins, consultants, and client users</CardDescription>
+                    <CardTitle>{getUserTabLabel()}</CardTitle>
+                    <CardDescription>{getUserTabDescription()}</CardDescription>
                   </div>
-                  <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-                    <DialogTrigger asChild>
-                      <Button data-testid="button-add-user">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add User
-                      </Button>
-                    </DialogTrigger>
+                  {canAddUsers && (
+                    <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                      <DialogTrigger asChild>
+                        <Button data-testid="button-add-user">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add User
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Add New User</DialogTitle>
@@ -335,6 +368,7 @@ export default function Settings() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -349,19 +383,21 @@ export default function Settings() {
                       data-testid="input-search-users"
                     />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {["all", "admin", "consultant", "client"].map((role) => (
-                      <Button
-                        key={role}
-                        variant={roleFilter === role ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setRoleFilter(role)}
-                        data-testid={`filter-role-${role}`}
-                      >
-                        {role === "all" ? "All Roles" : role.charAt(0).toUpperCase() + role.slice(1) + "s"}
-                      </Button>
-                    ))}
-                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-wrap gap-2">
+                      {["all", "admin", "consultant", "client"].map((role) => (
+                        <Button
+                          key={role}
+                          variant={roleFilter === role ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setRoleFilter(role)}
+                          data-testid={`filter-role-${role}`}
+                        >
+                          {role === "all" ? "All Roles" : role.charAt(0).toUpperCase() + role.slice(1) + "s"}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-md border">
@@ -373,7 +409,7 @@ export default function Settings() {
                         <TableHead>Entity</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Last Login</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {canEditUsers && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -419,21 +455,23 @@ export default function Settings() {
                           <TableCell className="text-sm text-muted-foreground">
                             {formatLastLogin(u.lastLogin)}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingUser(u)}
-                              data-testid={`button-edit-user-${u.id}`}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                          {canEditUsers && (
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => setEditingUser(u)}
+                                data-testid={`button-edit-user-${u.id}`}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                       {filteredUsers.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                          <TableCell colSpan={canEditUsers ? 6 : 5} className="py-8 text-center text-muted-foreground">
                             No users found matching your criteria
                           </TableCell>
                         </TableRow>
@@ -442,44 +480,51 @@ export default function Settings() {
                   </Table>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Card>
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
-                        <UserCog className="h-5 w-5 text-purple-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "admin").length}</p>
-                        <p className="text-sm text-muted-foreground">Admins</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-                        <Users className="h-5 w-5 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "consultant").length}</p>
-                        <p className="text-sm text-muted-foreground">Consultants</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-                        <Building2 className="h-5 w-5 text-emerald-500" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "client").length}</p>
-                        <p className="text-sm text-muted-foreground">Clients</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                {isAdmin ? (
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <Card>
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
+                          <UserCog className="h-5 w-5 text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "admin").length}</p>
+                          <p className="text-sm text-muted-foreground">Admins</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
+                          <Users className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "consultant").length}</p>
+                          <p className="text-sm text-muted-foreground">Consultants</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="flex items-center gap-4 p-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
+                          <Building2 className="h-5 w-5 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "client").length}</p>
+                          <p className="text-sm text-muted-foreground">Clients</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-muted/50 p-4 text-sm text-muted-foreground">
+                    Showing {visibleUsers.length} {isConsultant ? "client" : "team"} user{visibleUsers.length !== 1 ? "s" : ""}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {canEditUsers && (
             <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
               <DialogContent>
                 <DialogHeader>
@@ -560,6 +605,7 @@ export default function Settings() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </TabsContent>
         )}
 
