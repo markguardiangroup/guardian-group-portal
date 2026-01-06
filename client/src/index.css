@@ -234,6 +234,10 @@
     background-color: hsl(var(--module-accent-muted));
   }
   
+  .bg-module-accent-subtle {
+    background-color: hsl(var(--module-accent) / 0.06);
+  }
+  
   .text-module-accent {
     color: hsl(var(--module-accent));
   }
@@ -244,6 +248,18 @@
   
   .border-module-accent {
     border-color: hsl(var(--module-accent));
+  }
+  
+  .border-l-module-accent {
+    border-left-color: hsl(var(--module-accent));
+  }
+  
+  .border-t-module-accent {
+    border-top-color: hsl(var(--module-accent));
+  }
+  
+  .progress-module-accent {
+    background-color: hsl(var(--module-accent));
   }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */

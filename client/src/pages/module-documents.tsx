@@ -109,26 +109,31 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }
 
   return (
-    <div className={`space-y-6 p-8 ${themeClass}`}>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-module-accent-muted">
-            <ModuleIcon className="h-5 w-5 text-module-accent" />
+    <div className={`${themeClass}`}>
+      {/* Module Header with tinted background */}
+      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-module-accent">
+              <ModuleIcon className="h-6 w-6 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">{config.name} Documents</h1>
+              <p className="text-muted-foreground">
+                Manage {config.shortName} compliance documents
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-semibold">{config.name} Documents</h1>
-            <p className="text-muted-foreground">
-              Manage {config.shortName} compliance documents
-            </p>
-          </div>
+          <Button className="bg-module-accent text-module-accent-foreground" asChild>
+            <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Document
+            </Link>
+          </Button>
         </div>
-        <Button className="bg-module-accent text-module-accent-foreground" asChild>
-          <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Document
-          </Link>
-        </Button>
       </div>
+
+      <div className="space-y-6 p-8">
 
       <Card>
         <CardHeader className="pb-4">
@@ -262,6 +267,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
