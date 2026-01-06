@@ -112,6 +112,24 @@ export async function registerRoutes(
     });
   });
 
+  // Authentication middleware for protected routes
+  const requireAuth = (req: any, res: any, next: any) => {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    next();
+  };
+
+  // Apply auth middleware to all routes below this point
+  app.use("/api/dashboard", requireAuth);
+  app.use("/api/documents", requireAuth);
+  app.use("/api/entities", requireAuth);
+  app.use("/api/sites", requireAuth);
+  app.use("/api/support", requireAuth);
+  app.use("/api/audit", requireAuth);
+  app.use("/api/modules", requireAuth);
+
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
