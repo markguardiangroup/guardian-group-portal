@@ -53,7 +53,18 @@ import {
   Building2,
   Search,
   UserCog,
+  Check,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  ClockIcon,
+  Eye,
 } from "lucide-react";
+import type { 
+  EntityRequestStatus, 
+  ClientPermissionRole, 
+  ConsultantTier 
+} from "@shared/schema";
 
 interface MockUser {
   id: string;
@@ -65,6 +76,34 @@ interface MockUser {
   entityName: string | null;
   status: "active" | "inactive";
   lastLogin: string | null;
+  consultantTier?: ConsultantTier | null;
+  clientPermissionRole?: ClientPermissionRole | null;
+}
+
+interface MockEntity {
+  id: string;
+  name: string;
+  companyNumber?: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  status: "active" | "inactive" | "pending";
+  createdAt: string;
+}
+
+interface MockEntityRequest {
+  id: string;
+  proposedName: string;
+  companyNumber?: string;
+  address?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactName?: string;
+  notes?: string;
+  status: EntityRequestStatus;
+  requestedBy: string;
+  requesterName: string;
+  createdAt: string;
 }
 
 const mockUsers: MockUser[] = [
@@ -89,6 +128,7 @@ const mockUsers: MockUser[] = [
     entityName: null,
     status: "active",
     lastLogin: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    consultantTier: "senior",
   },
   {
     id: "3",
@@ -100,6 +140,7 @@ const mockUsers: MockUser[] = [
     entityName: "Acme Corporation",
     status: "active",
     lastLogin: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    clientPermissionRole: "owner",
   },
   {
     id: "4",
@@ -111,6 +152,7 @@ const mockUsers: MockUser[] = [
     entityName: "TechStart Ltd",
     status: "active",
     lastLogin: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    clientPermissionRole: "approver",
   },
   {
     id: "5",
@@ -122,14 +164,87 @@ const mockUsers: MockUser[] = [
     entityName: null,
     status: "inactive",
     lastLogin: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    consultantTier: "standard",
+  },
+  {
+    id: "6",
+    username: "tom.acme",
+    email: "tom@acmecorp.com",
+    fullName: "Tom Brown",
+    role: "client",
+    entityId: "1",
+    entityName: "Acme Corporation",
+    status: "active",
+    lastLogin: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    clientPermissionRole: "contributor",
   },
 ];
 
-const mockEntities = [
-  { id: "1", name: "Acme Corporation" },
-  { id: "2", name: "TechStart Ltd" },
-  { id: "3", name: "Global Industries" },
+const mockEntitiesFull: MockEntity[] = [
+  { 
+    id: "1", 
+    name: "Acme Corporation", 
+    companyNumber: "12345678",
+    address: "123 Business Park, London, UK",
+    contactEmail: "info@acmecorp.com",
+    contactPhone: "+44 20 1234 5678",
+    status: "active",
+    createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  { 
+    id: "2", 
+    name: "TechStart Ltd", 
+    companyNumber: "87654321",
+    address: "45 Innovation Way, Manchester, UK",
+    contactEmail: "hello@techstart.com",
+    contactPhone: "+44 161 987 6543",
+    status: "active",
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  { 
+    id: "3", 
+    name: "Global Industries", 
+    companyNumber: "55667788",
+    address: "789 Enterprise Road, Birmingham, UK",
+    contactEmail: "contact@globalind.com",
+    contactPhone: "+44 121 555 6677",
+    status: "active",
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
+
+const mockEntityRequests: MockEntityRequest[] = [
+  {
+    id: "req-1",
+    proposedName: "Northern Manufacturing Co",
+    companyNumber: "11223344",
+    address: "100 Industrial Estate, Leeds, UK",
+    contactEmail: "ops@northernmfg.com",
+    contactPhone: "+44 113 222 3344",
+    contactName: "David Miller",
+    notes: "New client referred by existing customer. Initial H&S audit scheduled.",
+    status: "pending",
+    requestedBy: "2",
+    requesterName: "John Doe",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "req-2",
+    proposedName: "Retail Solutions UK",
+    companyNumber: "99887766",
+    address: "200 High Street, Bristol, UK",
+    contactEmail: "admin@retailsolutions.co.uk",
+    contactPhone: "+44 117 999 8877",
+    contactName: "Emma White",
+    notes: "Multi-site retail chain, 12 locations. Needs both H&S and HR modules.",
+    status: "draft",
+    requestedBy: "5",
+    requesterName: "Jane Smith",
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+const mockEntities = mockEntitiesFull.map(e => ({ id: e.id, name: e.name }));
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -142,6 +257,10 @@ export default function Settings() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [editingUser, setEditingUser] = useState<MockUser | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [entitySearchQuery, setEntitySearchQuery] = useState("");
+  const [isRequestEntityOpen, setIsRequestEntityOpen] = useState(false);
+  const [viewingEntity, setViewingEntity] = useState<MockEntity | null>(null);
+  const [viewingRequest, setViewingRequest] = useState<MockEntityRequest | null>(null);
 
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
@@ -149,6 +268,9 @@ export default function Settings() {
   const canViewUsers = isAdmin || isConsultant || isClient;
   const canEditUsers = isAdmin;
   const canAddUsers = isAdmin;
+  const canViewEntities = isAdmin || isConsultant;
+  const canManageEntities = isAdmin;
+  const canRequestEntities = isAdmin || isConsultant;
 
   const getVisibleUsers = () => {
     if (isAdmin) {
@@ -232,6 +354,12 @@ export default function Settings() {
             <TabsTrigger value="users" className="gap-2" data-testid="tab-users">
               <Users className="h-4 w-4" />
               {getUserTabLabel()}
+            </TabsTrigger>
+          )}
+          {canViewEntities && (
+            <TabsTrigger value="entities" className="gap-2" data-testid="tab-entities">
+              <Building2 className="h-4 w-4" />
+              Client Organizations
             </TabsTrigger>
           )}
           <TabsTrigger value="notifications" className="gap-2" data-testid="tab-notifications">
@@ -406,6 +534,7 @@ export default function Settings() {
                       <TableRow>
                         <TableHead>User</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead>Permissions</TableHead>
                         <TableHead>Entity</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Last Login</TableHead>
@@ -430,6 +559,24 @@ export default function Settings() {
                             <Badge variant="outline" className={getRoleBadgeClass(u.role)}>
                               {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {u.role === "consultant" && u.consultantTier && (
+                              <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20">
+                                {u.consultantTier.charAt(0).toUpperCase() + u.consultantTier.slice(1)}
+                              </Badge>
+                            )}
+                            {u.role === "client" && u.clientPermissionRole && (
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
+                                {u.clientPermissionRole.charAt(0).toUpperCase() + u.clientPermissionRole.slice(1)}
+                              </Badge>
+                            )}
+                            {u.role === "admin" && (
+                              <span className="text-sm text-muted-foreground">Full Access</span>
+                            )}
+                            {!u.consultantTier && !u.clientPermissionRole && u.role !== "admin" && (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             {u.entityName ? (
@@ -471,7 +618,7 @@ export default function Settings() {
                       ))}
                       {filteredUsers.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={canEditUsers ? 6 : 5} className="py-8 text-center text-muted-foreground">
+                          <TableCell colSpan={canEditUsers ? 7 : 6} className="py-8 text-center text-muted-foreground">
                             No users found matching your criteria
                           </TableCell>
                         </TableRow>
@@ -576,21 +723,64 @@ export default function Settings() {
                         </Select>
                       </div>
                     </div>
-                    {editingUser.role === "client" && (
+                    {editingUser.role === "consultant" && (
                       <div className="space-y-2">
-                        <Label htmlFor="editEntity">Entity</Label>
-                        <Select defaultValue={editingUser.entityId || undefined}>
-                          <SelectTrigger data-testid="select-edit-entity">
-                            <SelectValue placeholder="Select entity" />
+                        <Label htmlFor="editConsultantTier">Consultant Tier</Label>
+                        <Select defaultValue={editingUser.consultantTier || "standard"}>
+                          <SelectTrigger data-testid="select-edit-consultant-tier">
+                            <SelectValue placeholder="Select tier" />
                           </SelectTrigger>
                           <SelectContent>
-                            {mockEntities.map((entity) => (
-                              <SelectItem key={entity.id} value={entity.id}>
-                                {entity.name}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="senior">Senior Consultant</SelectItem>
+                            <SelectItem value="standard">Standard Consultant</SelectItem>
+                            <SelectItem value="junior">Junior Consultant</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Senior: Full access to all clients. Standard: Assigned clients only. Junior: View-only access.
+                        </p>
+                      </div>
+                    )}
+                    {editingUser.role === "client" && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="editEntity">Entity</Label>
+                          <Select defaultValue={editingUser.entityId || undefined}>
+                            <SelectTrigger data-testid="select-edit-entity">
+                              <SelectValue placeholder="Select entity" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockEntities.map((entity) => (
+                                <SelectItem key={entity.id} value={entity.id}>
+                                  {entity.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editClientRole">Permission Level</Label>
+                          <Select defaultValue={editingUser.clientPermissionRole || "viewer"}>
+                            <SelectTrigger data-testid="select-edit-client-role">
+                              <SelectValue placeholder="Select permission" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="approver">Approver</SelectItem>
+                              <SelectItem value="contributor">Contributor</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+                    {editingUser.role === "client" && (
+                      <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
+                        <strong>Permission Levels:</strong><br/>
+                        Owner: Full access including team management<br/>
+                        Approver: Can approve documents<br/>
+                        Contributor: Can submit documents and comment<br/>
+                        Viewer: Read-only access
                       </div>
                     )}
                   </div>
@@ -606,6 +796,517 @@ export default function Settings() {
               </DialogContent>
             </Dialog>
             )}
+          </TabsContent>
+        )}
+
+        {canViewEntities && (
+          <TabsContent value="entities">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>Client Organizations</CardTitle>
+                      <CardDescription>
+                        {isAdmin 
+                          ? "Manage client entities and review new requests" 
+                          : "View client organizations and request new entities"
+                        }
+                      </CardDescription>
+                    </div>
+                    {canRequestEntities && (
+                      <Dialog open={isRequestEntityOpen} onOpenChange={setIsRequestEntityOpen}>
+                        <DialogTrigger asChild>
+                          <Button data-testid="button-request-entity">
+                            <Plus className="mr-2 h-4 w-4" />
+                            {isAdmin ? "Add Entity" : "Request New Entity"}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>{isAdmin ? "Add New Entity" : "Request New Client Entity"}</DialogTitle>
+                            <DialogDescription>
+                              {isAdmin 
+                                ? "Create a new client organization directly" 
+                                : "Submit a request for a new client organization. An administrator will review and approve."
+                              }
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="entityName">Organization Name</Label>
+                              <Input id="entityName" placeholder="e.g., Acme Corporation" data-testid="input-entity-name" />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor="companyNumber">Company Number</Label>
+                                <Input id="companyNumber" placeholder="e.g., 12345678" data-testid="input-company-number" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="contactName">Primary Contact</Label>
+                                <Input id="contactName" placeholder="Contact name" data-testid="input-contact-name" />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="entityAddress">Address</Label>
+                              <Input id="entityAddress" placeholder="Business address" data-testid="input-entity-address" />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label htmlFor="contactEmail">Contact Email</Label>
+                                <Input id="contactEmail" type="email" placeholder="email@company.com" data-testid="input-contact-email" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="contactPhone">Contact Phone</Label>
+                                <Input id="contactPhone" type="tel" placeholder="+44 123 456 7890" data-testid="input-contact-phone" />
+                              </div>
+                            </div>
+                            {!isAdmin && (
+                              <div className="space-y-2">
+                                <Label htmlFor="requestNotes">Notes</Label>
+                                <Input id="requestNotes" placeholder="Additional context for your request..." data-testid="input-request-notes" />
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsRequestEntityOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={() => setIsRequestEntityOpen(false)} data-testid="button-submit-entity">
+                              {isAdmin ? "Create Entity" : "Submit Request"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search organizations..."
+                      value={entitySearchQuery}
+                      onChange={(e) => setEntitySearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-entities"
+                    />
+                  </div>
+
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Organization</TableHead>
+                          <TableHead>Company Number</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {mockEntitiesFull
+                          .filter(e => e.name.toLowerCase().includes(entitySearchQuery.toLowerCase()))
+                          .map((entity) => (
+                            <TableRow key={entity.id} data-testid={`row-entity-${entity.id}`}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500/10">
+                                    <Building2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{entity.name}</p>
+                                    <p className="text-sm text-muted-foreground">{entity.address}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">{entity.companyNumber || "-"}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <p>{entity.contactEmail}</p>
+                                  <p className="text-muted-foreground">{entity.contactPhone}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="outline" 
+                                  className={entity.status === "active" 
+                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                    : "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20"
+                                  }
+                                >
+                                  {entity.status.charAt(0).toUpperCase() + entity.status.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => setViewingEntity(entity)}
+                                  data-testid={`button-view-entity-${entity.id}`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {canManageEntities && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    data-testid={`button-edit-entity-${entity.id}`}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {isAdmin && mockEntityRequests.filter(r => r.status === "pending").length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                      <CardTitle>Pending Entity Requests</CardTitle>
+                    </div>
+                    <CardDescription>Review and approve new client organization requests</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Proposed Organization</TableHead>
+                            <TableHead>Requested By</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {mockEntityRequests
+                            .filter(r => r.status === "pending")
+                            .map((request) => (
+                              <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium">{request.proposedName}</p>
+                                    <p className="text-sm text-muted-foreground">{request.contactEmail}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{request.requesterName}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(request.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                                    Pending Review
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      onClick={() => setViewingRequest(request)}
+                                      data-testid={`button-view-request-${request.id}`}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="text-emerald-600 hover:text-emerald-700"
+                                      data-testid={`button-approve-request-${request.id}`}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="text-red-600 hover:text-red-700"
+                                      data-testid={`button-reject-request-${request.id}`}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isConsultant && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>My Entity Requests</CardTitle>
+                    <CardDescription>Track the status of your submitted entity requests</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Proposed Organization</TableHead>
+                            <TableHead>Submitted</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {mockEntityRequests.length > 0 ? (
+                            mockEntityRequests.map((request) => (
+                              <TableRow key={request.id} data-testid={`row-my-request-${request.id}`}>
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium">{request.proposedName}</p>
+                                    <p className="text-sm text-muted-foreground">{request.contactName}</p>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                  {new Date(request.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={
+                                      request.status === "approved" 
+                                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                        : request.status === "pending"
+                                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                                          : request.status === "rejected"
+                                            ? "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20"
+                                            : "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20"
+                                    }
+                                  >
+                                    {request.status === "draft" && <ClockIcon className="mr-1 h-3 w-3" />}
+                                    {request.status === "pending" && <ClockIcon className="mr-1 h-3 w-3" />}
+                                    {request.status === "approved" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                                    {request.status === "rejected" && <X className="mr-1 h-3 w-3" />}
+                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => setViewingRequest(request)}
+                                    data-testid={`button-view-my-request-${request.id}`}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {request.status === "draft" && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      data-testid={`button-edit-my-request-${request.id}`}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                                No entity requests yet
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
+                      <Building2 className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-semibold">{mockEntitiesFull.filter(e => e.status === "active").length}</p>
+                      <p className="text-sm text-muted-foreground">Active Entities</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                      <ClockIcon className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-semibold">{mockEntityRequests.filter(r => r.status === "pending").length}</p>
+                      <p className="text-sm text-muted-foreground">Pending Requests</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
+                      <Users className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-semibold">{mockUsers.filter(u => u.role === "client").length}</p>
+                      <p className="text-sm text-muted-foreground">Client Users</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            <Dialog open={!!viewingEntity} onOpenChange={(open) => !open && setViewingEntity(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Entity Details</DialogTitle>
+                </DialogHeader>
+                {viewingEntity && (
+                  <div className="space-y-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-emerald-500/10">
+                        <Building2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{viewingEntity.name}</h3>
+                        <p className="text-sm text-muted-foreground">Company #{viewingEntity.companyNumber}</p>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="grid gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Address</span>
+                        <span>{viewingEntity.address}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Email</span>
+                        <span>{viewingEntity.contactEmail}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Phone</span>
+                        <span>{viewingEntity.contactPhone}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <Badge 
+                          variant="outline" 
+                          className={viewingEntity.status === "active" 
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                            : "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20"
+                          }
+                        >
+                          {viewingEntity.status.charAt(0).toUpperCase() + viewingEntity.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Created</span>
+                        <span>{new Date(viewingEntity.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setViewingEntity(null)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewingRequest} onOpenChange={(open) => !open && setViewingRequest(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Entity Request Details</DialogTitle>
+                </DialogHeader>
+                {viewingRequest && (
+                  <div className="space-y-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-amber-500/10">
+                        <Building2 className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{viewingRequest.proposedName}</h3>
+                        <Badge 
+                          variant="outline" 
+                          className={
+                            viewingRequest.status === "pending"
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                              : viewingRequest.status === "approved"
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20"
+                          }
+                        >
+                          {viewingRequest.status.charAt(0).toUpperCase() + viewingRequest.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="grid gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Company Number</span>
+                        <span>{viewingRequest.companyNumber || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Address</span>
+                        <span>{viewingRequest.address || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Contact Name</span>
+                        <span>{viewingRequest.contactName || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Email</span>
+                        <span>{viewingRequest.contactEmail || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Phone</span>
+                        <span>{viewingRequest.contactPhone || "-"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Requested By</span>
+                        <span>{viewingRequest.requesterName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Submitted</span>
+                        <span>{new Date(viewingRequest.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {viewingRequest.notes && (
+                        <div className="pt-2">
+                          <span className="text-muted-foreground">Notes</span>
+                          <p className="mt-1 rounded-md bg-muted p-3">{viewingRequest.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  {isAdmin && viewingRequest?.status === "pending" && (
+                    <>
+                      <Button variant="outline" className="text-red-600" onClick={() => setViewingRequest(null)}>
+                        Reject
+                      </Button>
+                      <Button onClick={() => setViewingRequest(null)} data-testid="button-approve-from-dialog">
+                        Approve
+                      </Button>
+                    </>
+                  )}
+                  {(!isAdmin || viewingRequest?.status !== "pending") && (
+                    <Button variant="outline" onClick={() => setViewingRequest(null)}>
+                      Close
+                    </Button>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
         )}
 

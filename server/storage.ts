@@ -76,6 +76,8 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
+    const now = new Date();
+    
     // Create sample users
     const admin: User = {
       id: "user-admin",
@@ -85,6 +87,11 @@ export class MemStorage implements IStorage {
       fullName: "System Administrator",
       role: "admin",
       entityId: null,
+      status: "active",
+      consultantTier: null,
+      clientPermissionRole: null,
+      lastLoginAt: null,
+      createdAt: now,
     };
     this.users.set(admin.id, admin);
 
@@ -96,6 +103,11 @@ export class MemStorage implements IStorage {
       fullName: "John Doe",
       role: "consultant",
       entityId: null,
+      status: "active",
+      consultantTier: "senior",
+      clientPermissionRole: null,
+      lastLoginAt: null,
+      createdAt: now,
     };
     this.users.set(consultant.id, consultant);
 
@@ -107,6 +119,11 @@ export class MemStorage implements IStorage {
       fullName: "Sarah Johnson",
       role: "client",
       entityId: "entity-1",
+      status: "active",
+      consultantTier: null,
+      clientPermissionRole: "owner",
+      lastLoginAt: null,
+      createdAt: now,
     };
     this.users.set(client1.id, client1);
 
@@ -118,6 +135,11 @@ export class MemStorage implements IStorage {
       fullName: "Emma Davis",
       role: "client",
       entityId: "entity-2",
+      status: "active",
+      consultantTier: null,
+      clientPermissionRole: "approver",
+      lastLoginAt: null,
+      createdAt: now,
     };
     this.users.set(client2.id, client2);
 
@@ -129,6 +151,8 @@ export class MemStorage implements IStorage {
       address: "123 Industrial Way, Manchester M1 2AB",
       contactEmail: "safety@acme-mfg.com",
       contactPhone: "+44 161 123 4567",
+      status: "active",
+      createdAt: now,
     };
     const entity2: Entity = {
       id: "entity-2",
@@ -137,6 +161,8 @@ export class MemStorage implements IStorage {
       address: "456 Tech Park, London EC2A 4NE",
       contactEmail: "compliance@techcorp.co.uk",
       contactPhone: "+44 20 7123 4567",
+      status: "active",
+      createdAt: now,
     };
     this.entities.set(entity1.id, entity1);
     this.entities.set(entity2.id, entity2);
@@ -169,8 +195,6 @@ export class MemStorage implements IStorage {
       },
     ];
     sites.forEach(site => this.sites.set(site.id, site));
-
-    const now = new Date();
 
     // Health & Safety Documents
     const hsDocs: Document[] = [
@@ -464,7 +488,17 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role: (insertUser.role ?? "client") as any,
+      entityId: insertUser.entityId ?? null,
+      status: (insertUser.status ?? "active") as any,
+      consultantTier: (insertUser.consultantTier ?? null) as any,
+      clientPermissionRole: (insertUser.clientPermissionRole ?? null) as any,
+      lastLoginAt: null,
+      createdAt: new Date(),
+    };
     this.users.set(id, user);
     return user;
   }
@@ -485,7 +519,16 @@ export class MemStorage implements IStorage {
 
   async createEntity(insertEntity: InsertEntity): Promise<Entity> {
     const id = randomUUID();
-    const entity: Entity = { ...insertEntity, id };
+    const entity: Entity = { 
+      ...insertEntity, 
+      id,
+      status: (insertEntity.status ?? "active") as any,
+      companyNumber: insertEntity.companyNumber ?? null,
+      address: insertEntity.address ?? null,
+      contactEmail: insertEntity.contactEmail ?? null,
+      contactPhone: insertEntity.contactPhone ?? null,
+      createdAt: new Date(),
+    };
     this.entities.set(id, entity);
     return entity;
   }
@@ -519,7 +562,13 @@ export class MemStorage implements IStorage {
 
   async createSite(insertSite: InsertSite): Promise<Site> {
     const id = randomUUID();
-    const site: Site = { ...insertSite, id };
+    const site: Site = { 
+      ...insertSite, 
+      id,
+      address: insertSite.address ?? null,
+      siteManager: insertSite.siteManager ?? null,
+      contactPhone: insertSite.contactPhone ?? null,
+    };
     this.sites.set(id, site);
     return site;
   }
@@ -555,12 +604,23 @@ export class MemStorage implements IStorage {
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
     const id = randomUUID();
-    const now = new Date();
+    const createdNow = new Date();
     const doc: Document = { 
       ...insertDocument, 
       id,
-      createdAt: now,
-      updatedAt: now,
+      module: insertDocument.module as any,
+      type: insertDocument.type as any,
+      description: insertDocument.description ?? null,
+      siteId: insertDocument.siteId ?? null,
+      version: insertDocument.version ?? 1,
+      status: (insertDocument.status ?? "review_required") as any,
+      approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
+      reviewDate: insertDocument.reviewDate ?? null,
+      expiryDate: insertDocument.expiryDate ?? null,
+      assignedTo: insertDocument.assignedTo ?? null,
+      isArchived: insertDocument.isArchived ?? false,
+      createdAt: createdNow,
+      updatedAt: createdNow,
     };
     this.documents.set(id, doc);
     return doc;
@@ -587,6 +647,7 @@ export class MemStorage implements IStorage {
     const version: DocumentVersion = { 
       ...insertVersion, 
       id,
+      changeNote: insertVersion.changeNote ?? null,
       createdAt: new Date(),
     };
     this.documentVersions.set(id, version);
@@ -610,6 +671,13 @@ export class MemStorage implements IStorage {
     const log: AuditLog = { 
       ...insertLog, 
       id,
+      action: insertLog.action as any,
+      module: (insertLog.module ?? null) as any,
+      entityId: insertLog.entityId ?? null,
+      documentId: insertLog.documentId ?? null,
+      supportRequestId: insertLog.supportRequestId ?? null,
+      details: insertLog.details ?? null,
+      metadata: insertLog.metadata ?? null,
       createdAt: new Date(),
     };
     this.auditLogs.set(id, log);
@@ -631,6 +699,10 @@ export class MemStorage implements IStorage {
     const request: SupportRequest = { 
       ...insertRequest, 
       id,
+      status: (insertRequest.status ?? "open") as any,
+      priority: (insertRequest.priority ?? "medium") as any,
+      module: (insertRequest.module ?? null) as any,
+      assignedTo: insertRequest.assignedTo ?? null,
       createdAt: now,
       updatedAt: now,
       resolvedAt: null,
