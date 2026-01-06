@@ -7,7 +7,6 @@ import {
   BarChart3,
   HelpCircle,
   Settings,
-  Shield,
   LogOut,
   HardHat,
   Users,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import type { UserRole } from "@shared/schema";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
   Sidebar,
   SidebarContent,
@@ -126,9 +126,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary">
-            <Shield className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img 
+            src={logoIcon} 
+            alt="Guardian Group" 
+            className="h-10 w-10 rounded-full object-cover"
+          />
           <div className="flex flex-col">
             <span className="text-base font-semibold text-sidebar-foreground">
               Guardian Group

@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Shield, LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
+import logoFull from "@assets/IFRA_and_Guardian_Group_A3_1767695020984.jpg";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,10 +62,13 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-primary">
-            <Shield className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto mb-4">
+            <img 
+              src={logoFull} 
+              alt="Guardian Group" 
+              className="h-16 w-auto mx-auto"
+            />
           </div>
-          <CardTitle className="text-2xl">Guardian Group</CardTitle>
           <CardDescription>
             H&S and HR Compliance Portal
           </CardDescription>
