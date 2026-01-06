@@ -38,12 +38,12 @@ export default function Login() {
       return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Welcome",
         description: "You have successfully logged in",
       });
-      setLocation("/");
+      // Force a full page reload to ensure session cookie is properly loaded
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
