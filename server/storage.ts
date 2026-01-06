@@ -1,22 +1,339 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { 
+  type User, type InsertUser,
+  type Entity, type InsertEntity,
+  type Site, type InsertSite,
+  type Document, type InsertDocument,
+  type DocumentVersion, type InsertDocumentVersion,
+  type AuditLog, type InsertAuditLog,
+  type SupportRequest, type InsertSupportRequest,
+  type ComplianceSummary,
+  type EntityWithSites,
+  type DocumentWithDetails,
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
+  // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Entities
+  getEntities(): Promise<EntityWithSites[]>;
+  getEntity(id: string): Promise<Entity | undefined>;
+  createEntity(entity: InsertEntity): Promise<Entity>;
+  
+  // Sites
+  getSites(): Promise<Site[]>;
+  getSitesByEntity(entityId: string): Promise<Site[]>;
+  createSite(site: InsertSite): Promise<Site>;
+  
+  // Documents
+  getDocuments(): Promise<Document[]>;
+  getDocument(id: string): Promise<DocumentWithDetails | undefined>;
+  createDocument(document: InsertDocument): Promise<Document>;
+  updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
+  
+  // Document Versions
+  getDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
+  createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion>;
+  
+  // Audit Logs
+  getAuditLogs(documentId?: string): Promise<AuditLog[]>;
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  
+  // Support Requests
+  getSupportRequests(): Promise<SupportRequest[]>;
+  createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
+  updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined>;
+  
+  // Dashboard
+  getComplianceSummary(): Promise<ComplianceSummary>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private entities: Map<string, Entity>;
+  private sites: Map<string, Site>;
+  private documents: Map<string, Document>;
+  private documentVersions: Map<string, DocumentVersion>;
+  private auditLogs: Map<string, AuditLog>;
+  private supportRequests: Map<string, SupportRequest>;
 
   constructor() {
     this.users = new Map();
+    this.entities = new Map();
+    this.sites = new Map();
+    this.documents = new Map();
+    this.documentVersions = new Map();
+    this.auditLogs = new Map();
+    this.supportRequests = new Map();
+    
+    // Initialize with sample data
+    this.initializeSampleData();
   }
 
+  private initializeSampleData() {
+    // Create sample users
+    const consultant: User = {
+      id: "user-1",
+      username: "john.doe",
+      password: "password",
+      email: "john.doe@guardiangroup.com",
+      fullName: "John Doe",
+      role: "consultant",
+      entityId: null,
+    };
+    this.users.set(consultant.id, consultant);
+
+    // Create sample entities
+    const entity1: Entity = {
+      id: "entity-1",
+      name: "Acme Manufacturing Ltd",
+      companyNumber: "12345678",
+      address: "123 Industrial Way, Manchester M1 2AB",
+      contactEmail: "safety@acme-mfg.com",
+      contactPhone: "+44 161 123 4567",
+    };
+    const entity2: Entity = {
+      id: "entity-2",
+      name: "TechCorp Solutions",
+      companyNumber: "87654321",
+      address: "456 Tech Park, London EC2A 4NE",
+      contactEmail: "compliance@techcorp.co.uk",
+      contactPhone: "+44 20 7123 4567",
+    };
+    this.entities.set(entity1.id, entity1);
+    this.entities.set(entity2.id, entity2);
+
+    // Create sample sites
+    const sites: Site[] = [
+      {
+        id: "site-1",
+        entityId: "entity-1",
+        name: "Main Factory",
+        address: "123 Industrial Way, Manchester M1 2AB",
+        siteManager: "Sarah Johnson",
+        contactPhone: "+44 161 123 4568",
+      },
+      {
+        id: "site-2",
+        entityId: "entity-1",
+        name: "Warehouse North",
+        address: "789 Logistics Road, Manchester M3 4CD",
+        siteManager: "Mike Williams",
+        contactPhone: "+44 161 123 4569",
+      },
+      {
+        id: "site-3",
+        entityId: "entity-2",
+        name: "London Office",
+        address: "456 Tech Park, London EC2A 4NE",
+        siteManager: "Emma Davis",
+        contactPhone: "+44 20 7123 4568",
+      },
+    ];
+    sites.forEach(site => this.sites.set(site.id, site));
+
+    // Create sample documents
+    const now = new Date();
+    const docs: Document[] = [
+      {
+        id: "doc-1",
+        title: "Health & Safety Policy 2024",
+        description: "Company-wide health and safety policy document",
+        type: "policy",
+        entityId: "entity-1",
+        siteId: null,
+        fileName: "hs_policy_2024.pdf",
+        fileSize: 245760,
+        mimeType: "application/pdf",
+        version: 3,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
+        expiryDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-2",
+        title: "Fire Risk Assessment - Main Factory",
+        description: "Annual fire risk assessment for the main manufacturing facility",
+        type: "risk_assessment",
+        entityId: "entity-1",
+        siteId: "site-1",
+        fileName: "fire_risk_main_factory.pdf",
+        fileSize: 512000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "review_required",
+        approvalStatus: "pending",
+        reviewDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: "user-1",
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-3",
+        title: "COSHH Assessment - Chemical Storage",
+        description: "Control of Substances Hazardous to Health assessment",
+        type: "assessment",
+        entityId: "entity-1",
+        siteId: "site-1",
+        fileName: "coshh_chemical_storage.pdf",
+        fileSize: 384000,
+        mimeType: "application/pdf",
+        version: 2,
+        status: "overdue",
+        approvalStatus: "changes_requested",
+        reviewDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: "user-1",
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-4",
+        title: "Workplace Safety Audit Q4 2024",
+        description: "Quarterly workplace safety audit report",
+        type: "audit",
+        entityId: "entity-2",
+        siteId: "site-3",
+        fileName: "safety_audit_q4_2024.pdf",
+        fileSize: 768000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-5",
+        title: "Emergency Evacuation Procedure",
+        description: "Site emergency evacuation procedures and assembly points",
+        type: "policy",
+        entityId: "entity-1",
+        siteId: "site-2",
+        fileName: "emergency_evacuation.pdf",
+        fileSize: 128000,
+        mimeType: "application/pdf",
+        version: 4,
+        status: "review_required",
+        approvalStatus: "pending",
+        reviewDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: "user-1",
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    docs.forEach(doc => this.documents.set(doc.id, doc));
+
+    // Create sample audit logs
+    const logs: AuditLog[] = [
+      {
+        id: "log-1",
+        action: "document_uploaded",
+        userId: "user-1",
+        userName: "John Doe",
+        entityId: "entity-1",
+        documentId: "doc-2",
+        supportRequestId: null,
+        details: "Uploaded Fire Risk Assessment - Main Factory",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "log-2",
+        action: "document_approved",
+        userId: "user-1",
+        userName: "John Doe",
+        entityId: "entity-1",
+        documentId: "doc-1",
+        supportRequestId: null,
+        details: "Approved Health & Safety Policy 2024 v3",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "log-3",
+        action: "changes_requested",
+        userId: "user-1",
+        userName: "John Doe",
+        entityId: "entity-1",
+        documentId: "doc-3",
+        supportRequestId: null,
+        details: "Requested updates to chemical inventory section",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "log-4",
+        action: "document_viewed",
+        userId: "user-1",
+        userName: "John Doe",
+        entityId: "entity-2",
+        documentId: "doc-4",
+        supportRequestId: null,
+        details: "Viewed Workplace Safety Audit Q4 2024",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    logs.forEach(log => this.auditLogs.set(log.id, log));
+
+    // Create sample support requests
+    const requests: SupportRequest[] = [
+      {
+        id: "req-1",
+        subject: "Question about fire extinguisher placement",
+        description: "We're renovating the main floor and need guidance on where to relocate the fire extinguishers. Current positions will be blocked by new equipment.",
+        priority: "medium",
+        status: "open",
+        category: "Compliance Question",
+        entityId: "entity-1",
+        createdBy: "user-1",
+        assignedTo: null,
+        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        resolvedAt: null,
+      },
+      {
+        id: "req-2",
+        subject: "Unable to download audit report",
+        description: "Getting an error when trying to download the Q4 safety audit report. Browser shows a timeout error after 30 seconds.",
+        priority: "low",
+        status: "resolved",
+        category: "Technical Support",
+        entityId: "entity-2",
+        createdBy: "user-1",
+        assignedTo: "user-1",
+        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+        resolvedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    requests.forEach(req => this.supportRequests.set(req.id, req));
+  }
+
+  // Users
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -32,6 +349,195 @@ export class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
+  }
+
+  // Entities
+  async getEntities(): Promise<EntityWithSites[]> {
+    const entities = Array.from(this.entities.values());
+    return Promise.all(entities.map(async (entity) => {
+      const sites = await this.getSitesByEntity(entity.id);
+      const summary = await this.getEntityComplianceSummary(entity.id);
+      return { ...entity, sites, complianceSummary: summary };
+    }));
+  }
+
+  async getEntity(id: string): Promise<Entity | undefined> {
+    return this.entities.get(id);
+  }
+
+  async createEntity(insertEntity: InsertEntity): Promise<Entity> {
+    const id = randomUUID();
+    const entity: Entity = { ...insertEntity, id };
+    this.entities.set(id, entity);
+    return entity;
+  }
+
+  private async getEntityComplianceSummary(entityId: string): Promise<ComplianceSummary> {
+    const docs = Array.from(this.documents.values()).filter(d => d.entityId === entityId && !d.isArchived);
+    const total = docs.length;
+    const compliant = docs.filter(d => d.status === "compliant").length;
+    const review = docs.filter(d => d.status === "review_required").length;
+    const overdue = docs.filter(d => d.status === "overdue").length;
+    const pending = docs.filter(d => d.approvalStatus === "pending").length;
+    
+    return {
+      totalDocuments: total,
+      compliantDocuments: compliant,
+      reviewRequired: review,
+      overdueDocuments: overdue,
+      pendingApprovals: pending,
+      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
+    };
+  }
+
+  // Sites
+  async getSites(): Promise<Site[]> {
+    return Array.from(this.sites.values());
+  }
+
+  async getSitesByEntity(entityId: string): Promise<Site[]> {
+    return Array.from(this.sites.values()).filter(site => site.entityId === entityId);
+  }
+
+  async createSite(insertSite: InsertSite): Promise<Site> {
+    const id = randomUUID();
+    const site: Site = { ...insertSite, id };
+    this.sites.set(id, site);
+    return site;
+  }
+
+  // Documents
+  async getDocuments(): Promise<Document[]> {
+    return Array.from(this.documents.values()).filter(d => !d.isArchived)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  async getDocument(id: string): Promise<DocumentWithDetails | undefined> {
+    const doc = this.documents.get(id);
+    if (!doc) return undefined;
+    
+    const entity = this.entities.get(doc.entityId);
+    const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
+    const uploader = doc.uploadedBy ? this.users.get(doc.uploadedBy) : undefined;
+    const assignee = doc.assignedTo ? this.users.get(doc.assignedTo) : undefined;
+    const versions = await this.getDocumentVersions(id);
+    
+    return {
+      ...doc,
+      entityName: entity?.name,
+      siteName: site?.name,
+      uploadedByName: uploader?.fullName,
+      assignedToName: assignee?.fullName,
+      versions,
+    };
+  }
+
+  async createDocument(insertDocument: InsertDocument): Promise<Document> {
+    const id = randomUUID();
+    const now = new Date();
+    const doc: Document = { 
+      ...insertDocument, 
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.documents.set(id, doc);
+    return doc;
+  }
+
+  async updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined> {
+    const doc = this.documents.get(id);
+    if (!doc) return undefined;
+    
+    const updated = { ...doc, ...updates, updatedAt: new Date() };
+    this.documents.set(id, updated);
+    return updated;
+  }
+
+  // Document Versions
+  async getDocumentVersions(documentId: string): Promise<DocumentVersion[]> {
+    return Array.from(this.documentVersions.values())
+      .filter(v => v.documentId === documentId)
+      .sort((a, b) => b.version - a.version);
+  }
+
+  async createDocumentVersion(insertVersion: InsertDocumentVersion): Promise<DocumentVersion> {
+    const id = randomUUID();
+    const version: DocumentVersion = { 
+      ...insertVersion, 
+      id,
+      createdAt: new Date(),
+    };
+    this.documentVersions.set(id, version);
+    return version;
+  }
+
+  // Audit Logs
+  async getAuditLogs(documentId?: string): Promise<AuditLog[]> {
+    let logs = Array.from(this.auditLogs.values());
+    if (documentId) {
+      logs = logs.filter(log => log.documentId === documentId);
+    }
+    return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createAuditLog(insertLog: InsertAuditLog): Promise<AuditLog> {
+    const id = randomUUID();
+    const log: AuditLog = { 
+      ...insertLog, 
+      id,
+      createdAt: new Date(),
+    };
+    this.auditLogs.set(id, log);
+    return log;
+  }
+
+  // Support Requests
+  async getSupportRequests(): Promise<SupportRequest[]> {
+    return Array.from(this.supportRequests.values())
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createSupportRequest(insertRequest: InsertSupportRequest): Promise<SupportRequest> {
+    const id = randomUUID();
+    const now = new Date();
+    const request: SupportRequest = { 
+      ...insertRequest, 
+      id,
+      createdAt: now,
+      updatedAt: now,
+      resolvedAt: null,
+    };
+    this.supportRequests.set(id, request);
+    return request;
+  }
+
+  async updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined> {
+    const request = this.supportRequests.get(id);
+    if (!request) return undefined;
+    
+    const updated = { ...request, ...updates, updatedAt: new Date() };
+    this.supportRequests.set(id, updated);
+    return updated;
+  }
+
+  // Dashboard
+  async getComplianceSummary(): Promise<ComplianceSummary> {
+    const docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+    const total = docs.length;
+    const compliant = docs.filter(d => d.status === "compliant").length;
+    const review = docs.filter(d => d.status === "review_required").length;
+    const overdue = docs.filter(d => d.status === "overdue").length;
+    const pending = docs.filter(d => d.approvalStatus === "pending").length;
+    
+    return {
+      totalDocuments: total,
+      compliantDocuments: compliant,
+      reviewRequired: review,
+      overdueDocuments: overdue,
+      pendingApprovals: pending,
+      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
+    };
   }
 }
 
