@@ -77,16 +77,49 @@ export class MemStorage implements IStorage {
 
   private initializeSampleData() {
     // Create sample users
+    const admin: User = {
+      id: "user-admin",
+      username: "admin",
+      password: "admin123",
+      email: "admin@guardiangroup.com",
+      fullName: "System Administrator",
+      role: "admin",
+      entityId: null,
+    };
+    this.users.set(admin.id, admin);
+
     const consultant: User = {
       id: "user-1",
       username: "john.doe",
-      password: "password",
+      password: "consultant123",
       email: "john.doe@guardiangroup.com",
       fullName: "John Doe",
       role: "consultant",
       entityId: null,
     };
     this.users.set(consultant.id, consultant);
+
+    const client1: User = {
+      id: "user-client-1",
+      username: "sarah.acme",
+      password: "client123",
+      email: "sarah@acme-mfg.com",
+      fullName: "Sarah Johnson",
+      role: "client",
+      entityId: "entity-1",
+    };
+    this.users.set(client1.id, client1);
+
+    const client2: User = {
+      id: "user-client-2",
+      username: "emma.tech",
+      password: "client123",
+      email: "emma@techcorp.co.uk",
+      fullName: "Emma Davis",
+      role: "client",
+      entityId: "entity-2",
+    };
+    this.users.set(client2.id, client2);
 
     // Create sample entities
     const entity1: Entity = {
