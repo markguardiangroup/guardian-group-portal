@@ -145,20 +145,19 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="mt-6 border-t border-slate-200 pt-4">
-            <p className="text-sm text-slate-500 text-center mb-3">
-              Demo Accounts
+          <div className="mt-6 border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+            <p className="text-sm font-semibold text-blue-800 text-center mb-3">
+              Quick Login (Demo Accounts)
             </p>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
-                <div>
-                  <span className="font-medium">Admin:</span> admin / admin123
+              <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
+                <div className="text-slate-700">
+                  <span className="font-semibold">Admin:</span> admin / admin123
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  className="text-xs"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => {
                     localStorage.setItem("dev_user", JSON.stringify({
                       id: "user-admin",
@@ -172,18 +171,17 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-admin"
                 >
-                  Dev Login
+                  Login as Admin
                 </Button>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
-                <div>
-                  <span className="font-medium">Consultant:</span> john.doe / consultant123
+              <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
+                <div className="text-slate-700">
+                  <span className="font-semibold">Consultant:</span> john.doe
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  className="text-xs"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => {
                     localStorage.setItem("dev_user", JSON.stringify({
                       id: "user-1",
@@ -197,18 +195,17 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-consultant"
                 >
-                  Dev Login
+                  Login as Consultant
                 </Button>
               </div>
-              <div className="flex items-center justify-between p-2 rounded bg-slate-100 text-slate-700">
-                <div>
-                  <span className="font-medium">Client:</span> sarah.acme / client123
+              <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
+                <div className="text-slate-700">
+                  <span className="font-semibold">Client:</span> sarah.acme
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  className="text-xs"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={() => {
                     localStorage.setItem("dev_user", JSON.stringify({
                       id: "user-2",
@@ -222,7 +219,7 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-client"
                 >
-                  Dev Login
+                  Login as Client
                 </Button>
               </div>
             </div>
