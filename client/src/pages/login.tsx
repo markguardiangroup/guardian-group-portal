@@ -158,16 +158,18 @@ export default function Login() {
                   type="button"
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    localStorage.setItem("dev_user", JSON.stringify({
-                      id: "user-admin",
-                      username: "admin",
-                      email: "admin@guardiangroup.com",
-                      fullName: "System Administrator",
-                      role: "admin",
-                      entityId: null
-                    }));
-                    window.location.href = "/";
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: "admin", password: "admin123" }),
+                        credentials: "include"
+                      });
+                      window.location.href = "/";
+                    } catch (e) {
+                      console.error("Login failed", e);
+                    }
                   }}
                   data-testid="button-dev-login-admin"
                 >
@@ -182,16 +184,18 @@ export default function Login() {
                   type="button"
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => {
-                    localStorage.setItem("dev_user", JSON.stringify({
-                      id: "user-1",
-                      username: "john.doe",
-                      email: "john.doe@guardiangroup.com",
-                      fullName: "John Doe",
-                      role: "consultant",
-                      entityId: null
-                    }));
-                    window.location.href = "/";
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: "john.doe", password: "consultant123" }),
+                        credentials: "include"
+                      });
+                      window.location.href = "/";
+                    } catch (e) {
+                      console.error("Login failed", e);
+                    }
                   }}
                   data-testid="button-dev-login-consultant"
                 >
@@ -206,16 +210,18 @@ export default function Login() {
                   type="button"
                   size="sm"
                   className="bg-purple-600 hover:bg-purple-700 text-white"
-                  onClick={() => {
-                    localStorage.setItem("dev_user", JSON.stringify({
-                      id: "user-2",
-                      username: "sarah.acme",
-                      email: "sarah@acme-mfg.com",
-                      fullName: "Sarah Mitchell",
-                      role: "client",
-                      entityId: "entity-1"
-                    }));
-                    window.location.href = "/";
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: "sarah.acme", password: "client123" }),
+                        credentials: "include"
+                      });
+                      window.location.href = "/";
+                    } catch (e) {
+                      console.error("Login failed", e);
+                    }
                   }}
                   data-testid="button-dev-login-client"
                 >
