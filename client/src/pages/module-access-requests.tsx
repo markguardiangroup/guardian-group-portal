@@ -41,10 +41,12 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Filter,
   CheckSquare,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -157,6 +159,7 @@ export default function ModuleAccessRequests() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<"date" | "entity" | "module">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
@@ -323,6 +326,16 @@ export default function ModuleAccessRequests() {
       newSelected.delete(id);
     }
     setSelectedRequests(newSelected);
+  };
+
+  const toggleRowExpansion = (id: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
   };
 
   const selectedPendingRequests = useMemo(() => {
@@ -549,102 +562,137 @@ export default function ModuleAccessRequests() {
                       data-testid="checkbox-select-all"
                     />
                   </TableHead>
+                  <TableHead className="w-10"></TableHead>
                   <TableHead>Entity</TableHead>
                   <TableHead>Module</TableHead>
                   <TableHead>Requested By</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Review Details</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedRequests.map((request) => (
-                  <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
-                    <TableCell>
-                      {request.status === "pending" && (
-                        <Checkbox
-                          checked={selectedRequests.has(request.id)}
-                          onCheckedChange={(checked) => handleSelectRequest(request.id, !!checked)}
-                          data-testid={`checkbox-request-${request.id}`}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{request.entityName || request.entityId}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <ModuleBadge module={request.module} />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{request.requestedByName}</p>
-                        {request.reason && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]" title={request.reason}>
-                            {request.reason}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm">{format(new Date(request.createdAt), "MMM d, yyyy")}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge request={request} />
-                    </TableCell>
-                    <TableCell>
-                      {request.status !== "pending" && request.reviewedByName ? (
-                        <div className="max-w-[200px]">
-                          <p className="text-sm">
-                            <span className="text-muted-foreground">by </span>
-                            <span className="font-medium">{request.reviewedByName}</span>
-                          </p>
-                          {request.reviewedAt && (
+                {paginatedRequests.map((request) => {
+                  const isExpanded = expandedRows.has(request.id);
+                  return (
+                    <Fragment key={request.id}>
+                      <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
+                        <TableCell>
+                          {request.status === "pending" && (
+                            <Checkbox
+                              checked={selectedRequests.has(request.id)}
+                              onCheckedChange={(checked) => handleSelectRequest(request.id, !!checked)}
+                              data-testid={`checkbox-request-${request.id}`}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => toggleRowExpansion(request.id)}
+                            data-testid={`button-expand-${request.id}`}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{request.entityName || request.entityId}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <ModuleBadge module={request.module} />
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{request.requestedByName}</p>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm">{format(new Date(request.createdAt), "MMM d, yyyy")}</p>
                             <p className="text-xs text-muted-foreground">
-                              {format(new Date(request.reviewedAt), "MMM d, yyyy")}
+                              {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                             </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge request={request} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {request.status === "pending" && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => openReviewDialog([request], "approve")}
+                                data-testid={`button-approve-${request.id}`}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openReviewDialog([request], "reject")}
+                                data-testid={`button-reject-${request.id}`}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
-                          {request.reviewNotes && (
-                            <p className="text-xs text-muted-foreground truncate" title={request.reviewNotes}>
-                              {request.reviewNotes}
-                            </p>
-                          )}
-                        </div>
-                      ) : request.status === "pending" ? (
-                        <span className="text-xs text-muted-foreground">Awaiting review</span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {request.status === "pending" && (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => openReviewDialog([request], "approve")}
-                            data-testid={`button-approve-${request.id}`}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openReviewDialog([request], "reject")}
-                            data-testid={`button-reject-${request.id}`}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow key={`${request.id}-expanded`} className="bg-muted/50">
+                          <TableCell colSpan={8} className="py-4">
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 px-4">
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Request Reason</p>
+                                <p className="text-sm">{request.reason || "No reason provided"}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Entity ID</p>
+                                <p className="text-sm font-mono">{request.entityId}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Request Date</p>
+                                <p className="text-sm">{format(new Date(request.createdAt), "PPP 'at' p")}</p>
+                              </div>
+                              {request.status !== "pending" && (
+                                <>
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Reviewed By</p>
+                                    <p className="text-sm">{request.reviewedByName || "Unknown"}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Review Date</p>
+                                    <p className="text-sm">
+                                      {request.reviewedAt ? format(new Date(request.reviewedAt), "PPP 'at' p") : "N/A"}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Review Notes</p>
+                                    <p className="text-sm">{request.reviewNotes || "No notes"}</p>
+                                  </div>
+                                </>
+                              )}
+                              {request.status === "pending" && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Days Pending</p>
+                                  <p className="text-sm">{differenceInDays(new Date(), new Date(request.createdAt))} days</p>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </Card>
