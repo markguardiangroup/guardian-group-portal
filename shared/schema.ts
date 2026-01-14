@@ -15,11 +15,11 @@ export type ConsultantTier = "senior" | "standard" | "junior";
 // Client permission roles (for client users within their entity)
 export type ClientPermissionRole = "owner" | "approver" | "contributor" | "viewer";
 
-// Entity request status
-export type EntityRequestStatus = "draft" | "pending" | "approved" | "rejected";
+// Site request status
+export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
 
-// Entity status
-export type EntityStatus = "active" | "inactive" | "pending";
+// Site status
+export type SiteStatus = "active" | "inactive" | "pending";
 
 // Document status for RAG indicators
 export type DocumentStatus = "compliant" | "review_required" | "overdue";
@@ -35,10 +35,10 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").$type<UserRole>().notNull().default("client"),
-  entityId: varchar("entity_id"),
+  siteId: varchar("site_id"),
   // Consultant-specific: tier level
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
-  // Client-specific: permission role within their entity
+  // Client-specific: permission role within their site
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
   status: text("status").$type<"active" | "inactive">().notNull().default("active"),
   lastLoginAt: timestamp("last_login_at"),
@@ -49,58 +49,61 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// Entities (Client organizations)
-export const entities = pgTable("entities", {
+// Sites (Client locations - primary unit of management)
+export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  companyName: text("company_name").notNull(),
   companyNumber: text("company_number"),
   address: text("address"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
+  siteManager: text("site_manager"),
   website: text("website"),
-  status: text("status").$type<EntityStatus>().notNull().default("active"),
+  status: text("status").$type<SiteStatus>().notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertEntitySchema = createInsertSchema(entities).omit({ id: true, createdAt: true });
-export type InsertEntity = z.infer<typeof insertEntitySchema>;
-export type Entity = typeof entities.$inferSelect;
+export const insertSiteSchema = createInsertSchema(sites).omit({ id: true, createdAt: true });
+export type InsertSite = z.infer<typeof insertSiteSchema>;
+export type Site = typeof sites.$inferSelect;
 
-// Entity Requests (consultants request, admins approve)
-export const entityRequests = pgTable("entity_requests", {
+// Site Requests (consultants request, admins approve)
+export const siteRequests = pgTable("site_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   proposedName: text("proposed_name").notNull(),
+  companyName: text("company_name").notNull(),
   companyNumber: text("company_number"),
   address: text("address"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   contactName: text("contact_name"),
   notes: text("notes"),
-  status: text("status").$type<EntityRequestStatus>().notNull().default("draft"),
+  status: text("status").$type<SiteRequestStatus>().notNull().default("draft"),
   requestedBy: varchar("requested_by").notNull(),
   reviewedBy: varchar("reviewed_by"),
   adminNotes: text("admin_notes"),
-  approvedEntityId: varchar("approved_entity_id"),
+  approvedSiteId: varchar("approved_site_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertEntityRequestSchema = createInsertSchema(entityRequests).omit({ 
+export const insertSiteRequestSchema = createInsertSchema(siteRequests).omit({ 
   id: true, 
   createdAt: true, 
   updatedAt: true,
   reviewedBy: true,
   adminNotes: true,
-  approvedEntityId: true
+  approvedSiteId: true
 });
-export type InsertEntityRequest = z.infer<typeof insertEntityRequestSchema>;
-export type EntityRequest = typeof entityRequests.$inferSelect;
+export type InsertSiteRequest = z.infer<typeof insertSiteRequestSchema>;
+export type SiteRequest = typeof siteRequests.$inferSelect;
 
-// Consultant-Entity assignments (which consultants work with which entities)
+// Consultant-Site assignments (which consultants work with which sites)
 export const consultantAssignments = pgTable("consultant_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   consultantId: varchar("consultant_id").notNull(),
-  entityId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   isPrimary: boolean("is_primary").notNull().default(false),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
 });
@@ -112,16 +115,16 @@ export const insertConsultantAssignmentSchema = createInsertSchema(consultantAss
 export type InsertConsultantAssignment = z.infer<typeof insertConsultantAssignmentSchema>;
 export type ConsultantAssignment = typeof consultantAssignments.$inferSelect;
 
-// Entity Module Access status
+// Site Module Access status
 export type ModuleAccessStatus = "active" | "visible" | "hidden";
 
-// Entity Module Access Request status
+// Site Module Access Request status
 export type ModuleAccessRequestStatus = "pending" | "approved" | "rejected";
 
-// Entity Module Access (which modules an entity has access to)
-export const entityModuleAccess = pgTable("entity_module_access", {
+// Site Module Access (which modules a site has access to)
+export const siteModuleAccess = pgTable("site_module_access", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   module: text("module").$type<ModuleType>().notNull(),
   status: text("status").$type<ModuleAccessStatus>().notNull().default("visible"),
   grantedBy: varchar("granted_by"),
@@ -131,20 +134,20 @@ export const entityModuleAccess = pgTable("entity_module_access", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertEntityModuleAccessSchema = createInsertSchema(entityModuleAccess).omit({ 
+export const insertSiteModuleAccessSchema = createInsertSchema(siteModuleAccess).omit({ 
   id: true, 
   createdAt: true,
   updatedAt: true,
   grantedAt: true
 });
-export type InsertEntityModuleAccess = z.infer<typeof insertEntityModuleAccessSchema>;
-export type EntityModuleAccess = typeof entityModuleAccess.$inferSelect;
+export type InsertSiteModuleAccess = z.infer<typeof insertSiteModuleAccessSchema>;
+export type SiteModuleAccess = typeof siteModuleAccess.$inferSelect;
 
-// Entity Module Access Requests (clients request access to modules)
+// Site Module Access Requests (clients request access to modules)
 export const moduleAccessRequests = pgTable("module_access_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: varchar("entity_id").notNull(),
-  entityName: text("entity_name").notNull(),
+  siteId: varchar("site_id").notNull(),
+  siteName: text("site_name").notNull(),
   module: text("module").$type<ModuleType>().notNull(),
   requestedBy: varchar("requested_by").notNull(),
   requestedByName: text("requested_by_name").notNull(),
@@ -167,20 +170,6 @@ export const insertModuleAccessRequestSchema = createInsertSchema(moduleAccessRe
 });
 export type InsertModuleAccessRequest = z.infer<typeof insertModuleAccessRequestSchema>;
 export type ModuleAccessRequest = typeof moduleAccessRequests.$inferSelect;
-
-// Sites (Locations within entities)
-export const sites = pgTable("sites", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: varchar("entity_id").notNull(),
-  name: text("name").notNull(),
-  address: text("address"),
-  siteManager: text("site_manager"),
-  contactPhone: text("contact_phone"),
-});
-
-export const insertSiteSchema = createInsertSchema(sites).omit({ id: true });
-export type InsertSite = z.infer<typeof insertSiteSchema>;
-export type Site = typeof sites.$inferSelect;
 
 // Health & Safety document types
 export type HSDocumentType = 
@@ -237,7 +226,7 @@ export type CaseType =
 // Employment Law Cases (Individual files linked to specific people)
 export const cases = pgTable("cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   caseReference: text("case_reference").notNull(),
   employeeName: text("employee_name").notNull(),
   employeeId: text("employee_id"),
@@ -315,8 +304,7 @@ export const documents = pgTable("documents", {
   module: text("module").$type<ModuleType>().notNull(),
   type: text("type").$type<DocumentType>().notNull(),
   documentTypeId: varchar("document_type_id"), // Reference to admin-managed document types
-  entityId: varchar("entity_id").notNull(),
-  siteId: varchar("site_id"),
+  siteId: varchar("site_id").notNull(),
   caseId: varchar("case_id"),
   fileName: text("file_name").notNull(),
   fileSize: integer("file_size").notNull(),
@@ -386,7 +374,7 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").$type<AuditAction>().notNull(),
   userId: varchar("user_id").notNull(),
   userName: text("user_name").notNull(),
-  entityId: varchar("entity_id"),
+  siteId: varchar("site_id"),
   documentId: varchar("document_id"),
   caseId: varchar("case_id"),
   supportRequestId: varchar("support_request_id"),
@@ -418,7 +406,7 @@ export const supportRequests = pgTable("support_requests", {
   status: text("status").$type<SupportStatus>().notNull().default("open"),
   category: text("category").notNull(),
   module: text("module").$type<ModuleType>(),
-  entityId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   createdBy: varchar("created_by").notNull(),
   assignedTo: varchar("assigned_to"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -435,22 +423,22 @@ export const insertSupportRequestSchema = createInsertSchema(supportRequests).om
 export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
 export type SupportRequest = typeof supportRequests.$inferSelect;
 
-// Entity document type access - tracks which document types each entity has access to
-export const entityDocumentTypeAccess = pgTable("entity_document_type_access", {
+// Site document type access - tracks which document types each site has access to
+export const siteDocumentTypeAccess = pgTable("site_document_type_access", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   documentTypeId: varchar("document_type_id").notNull(), // Links to documentTypes.id
   module: text("module").$type<ModuleType>().notNull(),
   grantedAt: timestamp("granted_at").notNull().defaultNow(),
   grantedBy: varchar("granted_by"),
 });
 
-export const insertEntityDocumentTypeAccessSchema = createInsertSchema(entityDocumentTypeAccess).omit({ 
+export const insertSiteDocumentTypeAccessSchema = createInsertSchema(siteDocumentTypeAccess).omit({ 
   id: true, 
   grantedAt: true 
 });
-export type InsertEntityDocumentTypeAccess = z.infer<typeof insertEntityDocumentTypeAccessSchema>;
-export type EntityDocumentTypeAccess = typeof entityDocumentTypeAccess.$inferSelect;
+export type InsertSiteDocumentTypeAccess = z.infer<typeof insertSiteDocumentTypeAccessSchema>;
+export type SiteDocumentTypeAccess = typeof siteDocumentTypeAccess.$inferSelect;
 
 // Document type with access status for display
 export interface DocumentTypeWithAccess {
@@ -480,32 +468,31 @@ export interface ModuleSummary extends ComplianceSummary {
   moduleName: string;
 }
 
-// Module access summary for entity list view
-export interface EntityModuleAccessSummary {
+// Module access summary for site list view
+export interface SiteModuleAccessSummary {
   health_safety: "active" | "visible" | "hidden";
   human_resources: "active" | "visible" | "hidden";
   employment_law: "active" | "visible" | "hidden";
 }
 
-// Assigned consultant summary for entity list view
+// Assigned consultant summary for site list view
 export interface AssignedConsultantSummary {
   id: string;
   name: string;
   isPrimary: boolean;
 }
 
-// Entity with sites for hierarchy view
-export interface EntityWithSites extends Entity {
-  sites: Site[];
+// Site with extended data for list view
+export interface SiteWithDetails extends Site {
   complianceSummary?: ComplianceSummary;
-  moduleAccess?: EntityModuleAccessSummary;
+  moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];
 }
 
 // Document with related data
 export interface DocumentWithDetails extends Document {
-  entityName?: string;
   siteName?: string;
+  companyName?: string;
   uploadedByName?: string;
   assignedToName?: string;
   versions?: DocumentVersion[];
@@ -666,13 +653,13 @@ export function getConsultantCapabilities(tier: ConsultantTier | null | undefine
   return consultantTierCapabilities[tier];
 }
 
-// Entity request with requester info
-export interface EntityRequestWithDetails extends EntityRequest {
+// Site request with requester info
+export interface SiteRequestWithDetails extends SiteRequest {
   requesterName?: string;
   reviewerName?: string;
 }
 
-// User with entity name
+// User with site name
 export interface UserWithDetails extends User {
-  entityName?: string;
+  siteName?: string;
 }

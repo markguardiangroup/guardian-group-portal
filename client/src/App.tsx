@@ -16,8 +16,8 @@ import ModuleDocuments from "@/pages/module-documents";
 import EmploymentLawPage from "@/pages/employment-law";
 import Documents from "@/pages/documents";
 import DocumentUpload from "@/pages/document-upload";
-import Entities from "@/pages/entities";
-import EntityDetail from "@/pages/entity-detail";
+import Sites from "@/pages/sites";
+import SiteDetail from "@/pages/site-detail";
 import HSChecklists from "@/pages/hs-checklists";
 import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
@@ -67,8 +67,8 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/entities" component={Entities} />
-      <Route path="/entities/:entityId" component={EntityDetail} />
+      <Route path="/sites" component={Sites} />
+      <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/reports" component={Reports} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />

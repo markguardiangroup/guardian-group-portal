@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { EntityCombobox } from "@/components/entity-combobox";
+import { SiteCombobox } from "@/components/site-combobox";
 import { 
   FileText, 
   Clock, 
@@ -21,7 +21,7 @@ import {
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, Entity } from "@shared/schema";
+import type { ModuleSummary, ModuleType, Site } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -294,28 +294,28 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   
   const isClientUser = user?.role === "client";
   const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch entities for admin/consultant users
-  const { data: entities, isLoading: entitiesLoading } = useQuery<Entity[]>({
-    queryKey: ["/api/entities"],
+  // Fetch sites for admin/consultant users
+  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
     enabled: canSelectEntities,
   });
   
   // Determine which entity to show data for
   // "all" means show data across all entities
-  const entityId = isClientUser 
-    ? user?.entityId 
-    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
+  const siteId = isClientUser 
+    ? user?.siteId 
+    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary", entityId],
+    queryKey: ["/api/modules/summary", siteId],
     queryFn: async () => {
-      const url = entityId 
-        ? `/api/modules/summary?entityId=${entityId}`
+      const url = siteId 
+        ? `/api/modules/summary?siteId=${siteId}`
         : "/api/modules/summary";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
@@ -325,10 +325,10 @@ export default function Dashboard() {
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
   const currentEntityName = canSelectEntities 
-    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
     : null;
 
-  if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
+  if (isLoading || isAuthLoading || (canSelectEntities && sitesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -365,14 +365,14 @@ export default function Dashboard() {
             {currentEntityName && <span className="font-medium"> - {currentEntityName}</span>}
           </p>
         </div>
-        {/* Entity selector for admin/consultant oversight */}
-        {canSelectEntities && entities && entities.length > 0 && (
-          <EntityCombobox
-            entities={entities}
-            value={selectedEntityId}
-            onValueChange={setSelectedEntityId}
+        {/* Site selector for admin/consultant oversight */}
+        {canSelectEntities && sites && sites.length > 0 && (
+          <SiteCombobox
+            sites={sites}
+            value={selectedSiteId}
+            onValueChange={setSelectedSiteId}
             className="w-64"
-            testId="select-entity-dashboard"
+            testId="select-site-dashboard"
           />
         )}
       </div>

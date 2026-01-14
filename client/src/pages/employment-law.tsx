@@ -368,7 +368,7 @@ function CreateCaseDialog({
   isLoading: boolean;
 }) {
   const [formData, setFormData] = useState({
-    entityId: "entity-1",
+    siteId: "entity-1",
     caseReference: "",
     employeeName: "",
     employeeId: "",

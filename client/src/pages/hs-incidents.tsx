@@ -29,9 +29,8 @@ interface Incident {
   description: string;
   type: string;
   severity: IncidentSeverity;
-  entityId: string;
-  entityName: string;
-  siteId?: string;
+  siteId: string;
+  companyName: string;
   siteName?: string;
   reportedBy: string;
   reportedByName: string;
@@ -50,9 +49,8 @@ const mockIncidents: Incident[] = [
     description: "Water leak from roof caused wet floor conditions in warehouse area B",
     type: "Slip/Trip/Fall Hazard",
     severity: "moderate",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "2",
+    companyName: "Acme Corporation",
     siteName: "Warehouse",
     reportedBy: "user2",
     reportedByName: "Sarah Jones",
@@ -68,9 +66,8 @@ const mockIncidents: Incident[] = [
     description: "Forklift nearly struck a pedestrian in loading bay due to poor visibility",
     type: "Near Miss",
     severity: "major",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "2",
+    companyName: "Acme Corporation",
     siteName: "Warehouse",
     reportedBy: "user1",
     reportedByName: "John Smith",
@@ -86,8 +83,8 @@ const mockIncidents: Incident[] = [
     description: "Employee sustained minor cut while handling damaged shelving unit",
     type: "Injury",
     severity: "minor",
-    entityId: "2",
-    entityName: "TechStart Ltd",
+    siteId: "3",
+    companyName: "TechStart Ltd",
     reportedBy: "user3",
     reportedByName: "Mike Wilson",
     status: "resolved",
@@ -103,9 +100,8 @@ const mockIncidents: Incident[] = [
     description: "Accidental spill of cleaning chemicals requiring emergency response",
     type: "Hazardous Substance",
     severity: "critical",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "1",
+    companyName: "Acme Corporation",
     siteName: "Head Office",
     reportedBy: "user1",
     reportedByName: "John Smith",
@@ -187,7 +183,7 @@ function IncidentCard({ incident }: { incident: Incident }) {
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
-                  {incident.entityName}
+                  {incident.companyName}
                   {incident.siteName && ` - ${incident.siteName}`}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -248,7 +244,7 @@ export default function HSIncidents() {
 
   const filteredIncidents = incidents?.filter((incident) => {
     const matchesSearch = incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      incident.entityName.toLowerCase().includes(searchQuery.toLowerCase());
+      incident.companyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

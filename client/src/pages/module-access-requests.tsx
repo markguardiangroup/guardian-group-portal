@@ -284,7 +284,7 @@ export default function ModuleAccessRequests() {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(r => 
-        r.entityName?.toLowerCase().includes(query) ||
+        r.companyName?.toLowerCase().includes(query) ||
         r.requestedByName.toLowerCase().includes(query)
       );
     }
@@ -294,7 +294,7 @@ export default function ModuleAccessRequests() {
       if (sortBy === "date") {
         comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       } else if (sortBy === "entity") {
-        comparison = (a.entityName || "").localeCompare(b.entityName || "");
+        comparison = (a.companyName || "").localeCompare(b.companyName || "");
       } else if (sortBy === "module") {
         comparison = a.module.localeCompare(b.module);
       }
@@ -603,7 +603,7 @@ export default function ModuleAccessRequests() {
                           </div>
                         </TableCell>
                         <TableCell className="py-2">
-                          <span className="font-medium text-sm">{request.entityName || request.entityId}</span>
+                          <span className="font-medium text-sm">{request.companyName || request.siteId}</span>
                         </TableCell>
                         <TableCell className="py-2">
                           <ModuleBadge module={request.module} />
@@ -619,7 +619,7 @@ export default function ModuleAccessRequests() {
                         </TableCell>
                         <TableCell className="py-2 text-right">
                           <div className="flex justify-end gap-1">
-                            <Link href={`/entities/${request.entityId}`}>
+                            <Link href={`/entities/${request.siteId}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -757,7 +757,7 @@ export default function ModuleAccessRequests() {
                           })()}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{request.entityName || request.entityId}</p>
+                          <p className="font-medium text-sm">{request.companyName || request.siteId}</p>
                           <p className="text-xs text-muted-foreground">{moduleNames[request.module]}</p>
                         </div>
                       </div>

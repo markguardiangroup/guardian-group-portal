@@ -47,7 +47,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { EntityWithSites, EntityModuleAccess, ModuleType, ModuleAccessStatus } from "@shared/schema";
+import type { SiteWithDetails, SiteModuleAccess, ModuleType, ModuleAccessStatus } from "@shared/schema";
 
 const modules: { module: ModuleType; name: string; shortName: string; icon: typeof HardHat; color: string; bgColor: string }[] = [
   { 
@@ -100,22 +100,22 @@ function StatusBadge({ status }: { status: ModuleAccessStatus }) {
 }
 
 function StatusDropdown({ 
-  entityId,
+  siteId,
   module,
   currentStatus,
   onUpdate,
   disabled,
 }: {
-  entityId: string;
+  siteId: string;
   module: ModuleType;
   currentStatus: ModuleAccessStatus;
-  onUpdate: (entityId: string, module: ModuleType, status: ModuleAccessStatus) => void;
+  onUpdate: (siteId: string, module: ModuleType, status: ModuleAccessStatus) => void;
   disabled: boolean;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled}>
-        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" data-testid={`dropdown-status-${entityId}-${module}`}>
+        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" data-testid={`dropdown-status-${siteId}-${module}`}>
           <StatusBadge status={currentStatus} />
           <ChevronDown className="h-3 w-3" />
         </Button>
@@ -126,9 +126,9 @@ function StatusDropdown({
           return (
             <DropdownMenuItem 
               key={option.value}
-              onClick={() => onUpdate(entityId, module, option.value)}
+              onClick={() => onUpdate(siteId, module, option.value)}
               disabled={option.value === currentStatus}
-              data-testid={`option-${option.value}-${entityId}-${module}`}
+              data-testid={`option-${option.value}-${siteId}-${module}`}
             >
               <Icon className={`h-4 w-4 mr-2 ${option.color}`} />
               {option.label}
@@ -141,7 +141,7 @@ function StatusDropdown({
   );
 }
 
-export default function EntityModuleAccess() {
+export default function SiteModuleAccess() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -150,20 +150,20 @@ export default function EntityModuleAccess() {
   const [filterStatus, setFilterStatus] = useState<ModuleAccessStatus | "all">("all");
   const [selectedEntities, setSelectedEntities] = useState<Set<string>>(new Set());
 
-  const { data: entities = [], isLoading: entitiesLoading } = useQuery<EntityWithSites[]>({
-    queryKey: ["/api/entities"],
+  const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites"],
   });
 
   const updateAccessMutation = useMutation({
-    mutationFn: async ({ entityId, module, status }: { 
-      entityId: string; 
+    mutationFn: async ({ siteId, module, status }: { 
+      siteId: string; 
       module: ModuleType; 
       status: ModuleAccessStatus;
     }) => {
-      return apiRequest("POST", `/api/entities/${entityId}/module-access`, { module, status });
+      return apiRequest("POST", `/api/sites/${siteId}/module-access`, { module, status });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/entities/${variables.entityId}/module-access`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sites/${variables.siteId}/module-access`] });
       toast({
         title: "Access Updated",
         description: "Module access has been updated.",
@@ -179,25 +179,25 @@ export default function EntityModuleAccess() {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: async ({ entityIds, module, status }: { 
-      entityIds: string[]; 
+    mutationFn: async ({ siteIds, module, status }: { 
+      siteIds: string[]; 
       module: ModuleType; 
       status: ModuleAccessStatus;
     }) => {
       await Promise.all(
-        entityIds.map(entityId => 
-          apiRequest("POST", `/api/entities/${entityId}/module-access`, { module, status })
+        siteIds.map(siteId => 
+          apiRequest("POST", `/api/sites/${siteId}/module-access`, { module, status })
         )
       );
     },
     onSuccess: () => {
-      entities.forEach(e => {
-        queryClient.invalidateQueries({ queryKey: [`/api/entities/${e.id}/module-access`] });
+      sites.forEach(e => {
+        queryClient.invalidateQueries({ queryKey: [`/api/sites/${e.id}/module-access`] });
       });
       setSelectedEntities(new Set());
       toast({
         title: "Bulk Update Complete",
-        description: `Updated ${selectedEntities.size} entities.`,
+        description: `Updated ${selectedEntities.size} sites.`,
       });
     },
     onError: () => {
@@ -212,7 +212,7 @@ export default function EntityModuleAccess() {
   const isAdmin = user?.role === "admin" || user?.role === "consultant";
 
   const filteredEntities = useMemo(() => {
-    return entities.filter(entity => {
+    return sites.filter(entity => {
       if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) {
         return false;
       }
@@ -234,19 +234,19 @@ export default function EntityModuleAccess() {
     }
   };
 
-  const toggleSelectEntity = (entityId: string) => {
+  const toggleSelectEntity = (siteId: string) => {
     const newSelected = new Set(selectedEntities);
-    if (newSelected.has(entityId)) {
-      newSelected.delete(entityId);
+    if (newSelected.has(siteId)) {
+      newSelected.delete(siteId);
     } else {
-      newSelected.add(entityId);
+      newSelected.add(siteId);
     }
     setSelectedEntities(newSelected);
   };
 
   const handleBulkUpdate = (module: ModuleType, status: ModuleAccessStatus) => {
     bulkUpdateMutation.mutate({
-      entityIds: Array.from(selectedEntities),
+      siteIds: Array.from(selectedEntities),
       module,
       status,
     });
@@ -267,7 +267,7 @@ export default function EntityModuleAccess() {
     );
   }
 
-  if (entitiesLoading) {
+  if (sitesLoading) {
     return (
       <div className="space-y-6 p-8">
         <Skeleton className="h-8 w-64" />
@@ -282,7 +282,7 @@ export default function EntityModuleAccess() {
       <div>
         <h1 className="text-3xl font-semibold">Entity Module Access</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage which modules each entity can access ({entities.length} entities)
+          Manage which modules each entity can access ({sites.length} entities)
         </p>
       </div>
 
@@ -290,7 +290,7 @@ export default function EntityModuleAccess() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search entities..."
+            placeholder="Search sites..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -397,7 +397,7 @@ export default function EntityModuleAccess() {
                   isSelected={selectedEntities.has(entity.id)}
                   onToggleSelect={() => toggleSelectEntity(entity.id)}
                   onUpdateAccess={(module, status) => {
-                    updateAccessMutation.mutate({ entityId: entity.id, module, status });
+                    updateAccessMutation.mutate({ siteId: entity.id, module, status });
                   }}
                   isUpdating={updateAccessMutation.isPending}
                 />
@@ -450,14 +450,14 @@ function EntityRow({
   onUpdateAccess,
   isUpdating,
 }: { 
-  entity: EntityWithSites;
+  entity: SiteWithDetails;
   isSelected: boolean;
   onToggleSelect: () => void;
   onUpdateAccess: (module: ModuleType, status: ModuleAccessStatus) => void;
   isUpdating: boolean;
 }) {
-  const { data: moduleAccess = [] } = useQuery<EntityModuleAccess[]>({
-    queryKey: [`/api/entities/${entity.id}/module-access`],
+  const { data: moduleAccess = [] } = useQuery<SiteModuleAccess[]>({
+    queryKey: [`/api/sites/${entity.id}/module-access`],
   });
 
   const getModuleStatus = (module: ModuleType): ModuleAccessStatus => {
@@ -490,7 +490,7 @@ function EntityRow({
       {modules.map(mod => (
         <TableCell key={mod.module} className="text-center">
           <StatusDropdown
-            entityId={entity.id}
+            siteId={entity.id}
             module={mod.module}
             currentStatus={getModuleStatus(mod.module)}
             onUpdate={(_, module, status) => onUpdateAccess(module, status)}

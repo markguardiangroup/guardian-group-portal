@@ -11,8 +11,7 @@ const createDocumentSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law"]),
   type: z.string().min(1),
   documentTypeId: z.string().optional(),
-  entityId: z.string().min(1),
-  siteId: z.string().optional(),
+  siteId: z.string().min(1),
   caseId: z.string().optional(),
   fileName: z.string().min(1),
   fileSize: z.number().positive(),
@@ -22,7 +21,7 @@ const createDocumentSchema = z.object({
 });
 
 const createCaseSchema = z.object({
-  entityId: z.string().min(1),
+  siteId: z.string().min(1),
   caseReference: z.string().min(1),
   employeeName: z.string().min(1),
   employeeId: z.string().optional(),
@@ -118,7 +117,7 @@ export async function registerRoutes(
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        entityId: user.entityId,
+        siteId: user.siteId,
       };
 
       res.json({
@@ -127,7 +126,7 @@ export async function registerRoutes(
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        entityId: user.entityId,
+        siteId: user.siteId,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -162,7 +161,7 @@ export async function registerRoutes(
       email: user.email,
       fullName: user.fullName,
       role: user.role,
-      entityId: user.entityId,
+      siteId: user.siteId,
     });
   });
 
@@ -178,7 +177,7 @@ export async function registerRoutes(
   // Apply auth middleware to all routes below this point
   app.use("/api/dashboard", requireAuth);
   app.use("/api/documents", requireAuth);
-  app.use("/api/entities", requireAuth);
+  app.use("/api/sites", requireAuth);
   app.use("/api/sites", requireAuth);
   app.use("/api/support", requireAuth);
   app.use("/api/audit", requireAuth);
@@ -188,12 +187,12 @@ export async function registerRoutes(
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
       const module = req.params.module as ModuleType;
-      const entityId = req.query.entityId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
       if (module !== "health_safety" && module !== "human_resources") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const summary = await storage.getComplianceSummary(module, entityId);
-      const documents = await storage.getDocuments(module, entityId);
+      const summary = await storage.getComplianceSummary(module, siteId);
+      const documents = await storage.getDocuments(module, siteId);
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
       const recentDocuments = documents.slice(0, 5);
@@ -251,8 +250,8 @@ export async function registerRoutes(
   // Module summaries for overview dashboard
   app.get("/api/modules/summary", async (req, res) => {
     try {
-      const entityId = req.query.entityId as string | undefined;
-      const summaries = await storage.getModuleSummaries(entityId);
+      const siteId = req.query.siteId as string | undefined;
+      const summaries = await storage.getModuleSummaries(siteId);
       res.json(summaries);
     } catch (error) {
       console.error("Module summaries error:", error);
@@ -301,7 +300,7 @@ export async function registerRoutes(
           action: "document_viewed",
           userId: user.id,
           userName: user.fullName,
-          entityId: document.entityId,
+          siteId: document.siteId,
           documentId: document.id,
           supportRequestId: null,
           module: document.module,
@@ -352,7 +351,7 @@ export async function registerRoutes(
           action: "document_downloaded",
           userId: user.id,
           userName: user.fullName,
-          entityId: document.entityId,
+          siteId: document.siteId,
           documentId: document.id,
           supportRequestId: null,
           module: document.module,
@@ -385,7 +384,7 @@ export async function registerRoutes(
       }
 
       // Get entity name for the PDF
-      const entity = await storage.getEntity(document.entityId);
+      const entity = await storage.getSite(document.siteId);
       const entityName = entity?.name || 'Unknown Entity';
 
       // Generate PDF document
@@ -507,7 +506,7 @@ export async function registerRoutes(
         module: body.module,
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,
-        entityId: body.entityId,
+        siteId: body.siteId,
         siteId: body.siteId || null,
         fileName: body.fileName,
         fileSize: body.fileSize,
@@ -526,7 +525,7 @@ export async function registerRoutes(
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: body.entityId,
+        siteId: body.siteId,
         documentId: document.id,
         supportRequestId: null,
         module: body.module,
@@ -593,7 +592,7 @@ export async function registerRoutes(
         action: auditAction,
         userId: "user-1",
         userName: "John Doe",
-        entityId: document.entityId,
+        siteId: document.siteId,
         documentId: document.id,
         supportRequestId: null,
         module: existingDoc.module,
@@ -609,9 +608,9 @@ export async function registerRoutes(
   });
 
   // Entities
-  app.get("/api/entities", async (req, res) => {
+  app.get("/api/sites", async (req, res) => {
     try {
-      const entities = await storage.getEntities();
+      const entities = await storage.getSitesWithDetails();
       res.json(entities);
     } catch (error) {
       console.error("Entities error:", error);
@@ -620,7 +619,7 @@ export async function registerRoutes(
   });
 
   // Create entity
-  app.post("/api/entities", requireAuth, async (req, res) => {
+  app.post("/api/sites", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -638,7 +637,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Entity name is required" });
       }
       
-      const entity = await storage.createEntity({
+      const entity = await storage.createSite({
         name: name.trim(),
         companyNumber: companyNumber || null,
         address: address || null,
@@ -655,7 +654,7 @@ export async function registerRoutes(
   });
 
   // Update entity
-  app.patch("/api/entities/:entityId", requireAuth, async (req, res) => {
+  app.patch("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -677,7 +676,7 @@ export async function registerRoutes(
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
       if (website !== undefined) updates.website = website || null;
       
-      const entity = await storage.updateEntity(req.params.entityId, updates);
+      const entity = await storage.updateSite(req.params.siteId, updates);
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
@@ -690,7 +689,7 @@ export async function registerRoutes(
   });
 
   // Get single entity
-  app.get("/api/entities/:entityId", requireAuth, async (req, res) => {
+  app.get("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -698,11 +697,11 @@ export async function registerRoutes(
       }
       
       // Clients can only access their own entity
-      if (user.role === "client" && user.entityId !== req.params.entityId) {
+      if (user.role === "client" && user.siteId !== req.params.siteId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const entity = await storage.getEntity(req.params.entityId);
+      const entity = await storage.getSite(req.params.siteId);
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
@@ -714,7 +713,7 @@ export async function registerRoutes(
   });
 
   // Get sites for entity
-  app.get("/api/entities/:entityId/sites", requireAuth, async (req, res) => {
+  app.get("/api/sites/:siteId/sites", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -722,11 +721,11 @@ export async function registerRoutes(
       }
       
       // Clients can only access their own entity's sites
-      if (user.role === "client" && user.entityId !== req.params.entityId) {
+      if (user.role === "client" && user.siteId !== req.params.siteId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const sites = await storage.getSitesByEntity(req.params.entityId);
+      const sites = await storage.getSitesByCompany(req.params.siteId);
       res.json(sites);
     } catch (error) {
       console.error("Get entity sites error:", error);
@@ -773,7 +772,7 @@ export async function registerRoutes(
         status: "open",
         category: body.category,
         module: body.module || null,
-        entityId: "entity-1",
+        siteId: "entity-1",
         createdBy: "user-1",
         assignedTo: null,
       });
@@ -782,7 +781,7 @@ export async function registerRoutes(
         action: "support_request_created",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "entity-1",
         documentId: null,
         supportRequestId: request.id,
         module: body.module || null,
@@ -917,7 +916,7 @@ export async function registerRoutes(
     try {
       const summary = await storage.getComplianceSummary();
       const moduleSummaries = await storage.getModuleSummaries();
-      const entities = await storage.getEntities();
+      const entities = await storage.getSitesWithDetails();
       
       const monthlyTrend = [
         { month: "Jul", score: 72 },
@@ -952,7 +951,7 @@ export async function registerRoutes(
           title: "Annual Fire Safety Assessment",
           type: "Fire Safety",
           module: "health_safety" as ModuleType,
-          entityId: "entity-1",
+          siteId: "entity-1",
           entityName: "Acme Manufacturing Ltd",
           siteId: "site-1",
           siteName: "Main Factory",
@@ -968,7 +967,7 @@ export async function registerRoutes(
           title: "Workplace Ergonomics Review",
           type: "Ergonomics",
           module: "health_safety" as ModuleType,
-          entityId: "entity-2",
+          siteId: "entity-2",
           entityName: "TechCorp Solutions",
           siteId: "site-3",
           siteName: "London Office",
@@ -984,7 +983,7 @@ export async function registerRoutes(
           title: "Employee Training Compliance Audit",
           type: "Training Audit",
           module: "human_resources" as ModuleType,
-          entityId: "entity-1",
+          siteId: "entity-1",
           entityName: "Acme Manufacturing Ltd",
           siteId: null,
           siteName: null,
@@ -1010,9 +1009,9 @@ export async function registerRoutes(
   });
 
   // Document Type Access routes (protected by auth)
-  app.get("/api/document-types/:module/:entityId", requireAuth, async (req, res) => {
+  app.get("/api/document-types/:module/:siteId", requireAuth, async (req, res) => {
     try {
-      const { module, entityId } = req.params;
+      const { module, siteId } = req.params;
       if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
         return res.status(400).json({ error: "Invalid module" });
       }
@@ -1022,11 +1021,11 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role === "client" && user.entityId !== entityId) {
+      if (user.role === "client" && user.siteId !== siteId) {
         return res.status(403).json({ error: "Not authorized to view this entity's access" });
       }
       
-      const documentTypes = await storage.getDocumentTypesWithAccess(entityId, module as ModuleType);
+      const documentTypes = await storage.getDocumentTypesWithAccess(siteId, module as ModuleType);
       res.json(documentTypes);
     } catch (error) {
       console.error("Document types error:", error);
@@ -1034,9 +1033,9 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/entity-access/:entityId", requireAuth, async (req, res) => {
+  app.get("/api/entity-access/:siteId", requireAuth, async (req, res) => {
     try {
-      const { entityId } = req.params;
+      const { siteId } = req.params;
       const module = req.query.module as ModuleType | undefined;
       
       // Authorization check
@@ -1044,11 +1043,11 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role === "client" && user.entityId !== entityId) {
+      if (user.role === "client" && user.siteId !== siteId) {
         return res.status(403).json({ error: "Not authorized to view this entity's access" });
       }
       
-      const access = await storage.getEntityDocumentTypeAccess(entityId, module);
+      const access = await storage.getSiteDocumentTypeAccess(siteId, module);
       res.json(access);
     } catch (error) {
       console.error("Entity access error:", error);
@@ -1064,12 +1063,12 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only administrators can grant document type access" });
       }
       
-      const { entityId, documentTypeId, module, grantedBy } = req.body;
-      if (!entityId || !documentTypeId || !module) {
+      const { siteId, documentTypeId, module, grantedBy } = req.body;
+      if (!siteId || !documentTypeId || !module) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       const access = await storage.grantDocumentTypeAccess({
-        entityId,
+        siteId,
         documentTypeId,
         module,
         grantedBy: grantedBy || user.id,
@@ -1081,7 +1080,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/entity-access/:entityId/:documentTypeId", requireAuth, async (req, res) => {
+  app.delete("/api/entity-access/:siteId/:documentTypeId", requireAuth, async (req, res) => {
     try {
       // Only admins can revoke access
       const user = await storage.getUser((req.session as any).userId);
@@ -1089,8 +1088,8 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only administrators can revoke document type access" });
       }
       
-      const { entityId, documentTypeId } = req.params;
-      const success = await storage.revokeDocumentTypeAccess(entityId, documentTypeId);
+      const { siteId, documentTypeId } = req.params;
+      const success = await storage.revokeDocumentTypeAccess(siteId, documentTypeId);
       if (success) {
         res.json({ message: "Access revoked successfully" });
       } else {
@@ -1112,15 +1111,15 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      const entityId = req.query.entityId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
       const status = req.query.status as any;
 
       // Clients can only see cases for their entity
-      if (user.role === "client" && entityId && user.entityId !== entityId) {
+      if (user.role === "client" && siteId && user.siteId !== siteId) {
         return res.status(403).json({ error: "Not authorized to view these cases" });
       }
 
-      const filterEntityId = user.role === "client" ? user.entityId! : entityId;
+      const filterEntityId = user.role === "client" ? user.siteId! : siteId;
       const cases = await storage.getCases(filterEntityId, status);
       
       // Filter out confidential cases for non-privileged users
@@ -1154,7 +1153,7 @@ export async function registerRoutes(
       }
 
       // Authorization check
-      if (user.role === "client" && user.entityId !== caseData.entityId) {
+      if (user.role === "client" && user.siteId !== caseData.siteId) {
         return res.status(403).json({ error: "Not authorized to view this case" });
       }
 
@@ -1208,7 +1207,7 @@ export async function registerRoutes(
         action: "case_created",
         userId: user.id,
         userName: user.fullName,
-        entityId: caseData.entityId,
+        siteId: caseData.siteId,
         caseId: caseData.id,
         module: "employment_law",
         details: `Case ${caseData.caseReference} created for ${caseData.employeeName}`,
@@ -1257,7 +1256,7 @@ export async function registerRoutes(
           action: "case_status_changed",
           userId: user.id,
           userName: user.fullName,
-          entityId: existingCase.entityId,
+          siteId: existingCase.siteId,
           caseId: existingCase.id,
           module: "employment_law",
           details: `Case status changed from ${existingCase.status} to ${parseResult.data.status}`,
@@ -1300,7 +1299,7 @@ export async function registerRoutes(
       }
 
       // Authorization check
-      if (user.role === "client" && user.entityId !== caseData.entityId) {
+      if (user.role === "client" && user.siteId !== caseData.siteId) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1376,7 +1375,7 @@ export async function registerRoutes(
         action: "milestone_added",
         userId: user.id,
         userName: user.fullName,
-        entityId: caseData.entityId,
+        siteId: caseData.siteId,
         caseId: caseData.id,
         module: "employment_law",
         details: `Milestone "${milestone.title}" added to case ${caseData.caseReference}`,
@@ -1419,7 +1418,7 @@ export async function registerRoutes(
           action: "milestone_completed",
           userId: user.id,
           userName: user.fullName,
-          entityId: caseData?.entityId,
+          siteId: caseData?.siteId,
           caseId: milestone.caseId,
           module: "employment_law",
           details: `Milestone "${milestone.title}" marked as completed`,
@@ -1465,7 +1464,7 @@ export async function registerRoutes(
   // Entity Module Access Routes
   
   // Get module access for an entity
-  app.get("/api/entities/:entityId/module-access", requireAuth, async (req, res) => {
+  app.get("/api/sites/:siteId/module-access", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1473,11 +1472,11 @@ export async function registerRoutes(
       }
       
       // Authorization: clients can only view their own entity's access
-      if (user.role === "client" && user.entityId !== req.params.entityId) {
+      if (user.role === "client" && user.siteId !== req.params.siteId) {
         return res.status(403).json({ error: "Not authorized to view this entity's module access" });
       }
       
-      const access = await storage.getEntityModuleAccess(req.params.entityId);
+      const access = await storage.getSiteModuleAccess(req.params.siteId);
       res.json(access);
     } catch (error) {
       console.error("Get entity module access error:", error);
@@ -1486,7 +1485,7 @@ export async function registerRoutes(
   });
 
   // Set module access for an entity (admin/consultant only)
-  app.post("/api/entities/:entityId/module-access", requireAuth, async (req, res) => {
+  app.post("/api/sites/:siteId/module-access", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1516,7 +1515,7 @@ export async function registerRoutes(
       }
       
       const access = await storage.setEntityModuleAccess(
-        req.params.entityId,
+        req.params.siteId,
         module,
         status,
         user.id,
@@ -1540,17 +1539,17 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      let entityId: string | undefined;
+      let siteId: string | undefined;
       const status = req.query.status as string | undefined;
       
       // Clients can only see their own entity's requests
-      if (user.role === "client" && user.entityId) {
-        entityId = user.entityId;
-      } else if (req.query.entityId) {
-        entityId = req.query.entityId as string;
+      if (user.role === "client" && user.siteId) {
+        siteId = user.siteId;
+      } else if (req.query.siteId) {
+        siteId = req.query.siteId as string;
       }
       
-      const requests = await storage.getModuleAccessRequests(entityId, status as any);
+      const requests = await storage.getModuleAccessRequests(siteId, status as any);
       res.json(requests);
     } catch (error) {
       console.error("Get module access requests error:", error);
@@ -1566,7 +1565,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      const { entityId, module, reason } = req.body;
+      const { siteId, module, reason } = req.body;
       
       // Validate module
       const validModules = ["health_safety", "human_resources", "employment_law"];
@@ -1575,13 +1574,13 @@ export async function registerRoutes(
       }
       
       // Validate entity and module access status
-      const entity = await storage.getEntity(entityId);
+      const entity = await storage.getSite(siteId);
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
       
       // Check if module is visible (requestable)
-      const moduleAccess = await storage.getEntityModuleAccessByModule(entityId, module);
+      const moduleAccess = await storage.getSiteModuleAccessByModule(siteId, module);
       if (moduleAccess && moduleAccess.status === "active") {
         return res.status(400).json({ error: "Module is already active for this entity" });
       }
@@ -1590,14 +1589,14 @@ export async function registerRoutes(
       }
       
       // Check for existing pending request
-      const existingRequests = await storage.getModuleAccessRequests(entityId, "pending");
+      const existingRequests = await storage.getModuleAccessRequests(siteId, "pending");
       const duplicateRequest = existingRequests.find(r => r.module === module);
       if (duplicateRequest) {
         return res.status(400).json({ error: "A pending request for this module already exists" });
       }
       
       const request = await storage.createModuleAccessRequest({
-        entityId,
+        siteId,
         entityName: entity.name,
         module,
         requestedBy: user.id,
@@ -1676,7 +1675,7 @@ export async function registerRoutes(
   // Entity Users Routes
   
   // Create user for an entity
-  app.post("/api/entities/:entityId/users", requireAuth, async (req, res) => {
+  app.post("/api/sites/:siteId/users", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser) {
@@ -1709,7 +1708,7 @@ export async function registerRoutes(
         fullName,
         password,
         role: "client",
-        entityId: req.params.entityId,
+        siteId: req.params.siteId,
         status: "active",
         clientPermissionRole: clientPermissionRole || "viewer",
       });
@@ -1723,7 +1722,7 @@ export async function registerRoutes(
   });
 
   // Get users for an entity
-  app.get("/api/entities/:entityId/users", requireAuth, async (req, res) => {
+  app.get("/api/sites/:siteId/users", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1731,11 +1730,11 @@ export async function registerRoutes(
       }
       
       // Clients can only see users from their own entity
-      if (user.role === "client" && user.entityId !== req.params.entityId) {
+      if (user.role === "client" && user.siteId !== req.params.siteId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const users = await storage.getUsersByEntity(req.params.entityId);
+      const users = await storage.getUsersBySite(req.params.siteId);
       // Remove passwords from response
       const safeUsers = users.map(({ password, ...u }) => u);
       res.json(safeUsers);
@@ -1761,17 +1760,17 @@ export async function registerRoutes(
       }
       
       const consultants = await storage.getConsultants();
-      const entities = await storage.getEntities();
+      const entities = await storage.getSitesWithDetails();
       
       // Enhance each consultant with their entity assignments
       const enhancedConsultants = await Promise.all(
         consultants.map(async (consultant) => {
           const { password, ...safeConsultant } = consultant;
-          const assignments = await storage.getConsultantEntities(consultant.id);
+          const assignments = await storage.getConsultantSites(consultant.id);
           const entityAssignments = assignments.map((a) => {
-            const entity = entities.find((e) => e.id === a.entityId);
+            const entity = entities.find((e) => e.id === a.siteId);
             return {
-              entityId: a.entityId,
+              siteId: a.siteId,
               entityName: entity?.name || "Unknown",
               isPrimary: a.isPrimary,
             };
@@ -1837,7 +1836,7 @@ export async function registerRoutes(
   });
 
   // Get consultant assignments for an entity
-  app.get("/api/entities/:entityId/consultants", requireAuth, async (req, res) => {
+  app.get("/api/sites/:siteId/consultants", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1845,11 +1844,11 @@ export async function registerRoutes(
       }
       
       // Clients can only access their own entity's consultants
-      if (user.role === "client" && user.entityId !== req.params.entityId) {
+      if (user.role === "client" && user.siteId !== req.params.siteId) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const assignments = await storage.getConsultantAssignments(req.params.entityId);
+      const assignments = await storage.getConsultantAssignments(req.params.siteId);
       
       // Enhance with consultant details
       const enhancedAssignments = await Promise.all(
@@ -1872,7 +1871,7 @@ export async function registerRoutes(
   });
 
   // Assign consultant to entity
-  app.post("/api/entities/:entityId/consultants", requireAuth, async (req, res) => {
+  app.post("/api/sites/:siteId/consultants", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1897,7 +1896,7 @@ export async function registerRoutes(
       
       const assignment = await storage.assignConsultant({
         consultantId,
-        entityId: req.params.entityId,
+        siteId: req.params.siteId,
         isPrimary: isPrimary || false,
       });
       
@@ -1914,7 +1913,7 @@ export async function registerRoutes(
   });
 
   // Remove consultant assignment
-  app.delete("/api/entities/:entityId/consultants/:consultantId", requireAuth, async (req, res) => {
+  app.delete("/api/sites/:siteId/consultants/:consultantId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1928,7 +1927,7 @@ export async function registerRoutes(
       
       const removed = await storage.removeConsultantAssignment(
         req.params.consultantId,
-        req.params.entityId
+        req.params.siteId
       );
       
       if (!removed) {
@@ -1943,7 +1942,7 @@ export async function registerRoutes(
   });
 
   // Update consultant assignment (set primary)
-  app.patch("/api/entities/:entityId/consultants/:consultantId", requireAuth, async (req, res) => {
+  app.patch("/api/sites/:siteId/consultants/:consultantId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
@@ -1959,7 +1958,7 @@ export async function registerRoutes(
       
       const updated = await storage.updateConsultantAssignment(
         req.params.consultantId,
-        req.params.entityId,
+        req.params.siteId,
         { isPrimary }
       );
       
@@ -1997,8 +1996,8 @@ export async function registerRoutes(
       
       if (currentUser.role !== "admin") {
         // Consultants can only update users in their assigned entities
-        if (currentUser.role === "consultant" && targetUser.entityId) {
-          const assignments = await storage.getConsultantAssignments(targetUser.entityId);
+        if (currentUser.role === "consultant" && targetUser.siteId) {
+          const assignments = await storage.getConsultantAssignments(targetUser.siteId);
           if (!assignments.some(a => a.consultantId === currentUser.id)) {
             return res.status(403).json({ error: "Access denied" });
           }

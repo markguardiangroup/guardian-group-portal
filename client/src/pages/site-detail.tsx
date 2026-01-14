@@ -69,7 +69,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
-import type { Entity, Site, User, ConsultantAssignment, EntityModuleAccess, ModuleAccessRequest } from "@shared/schema";
+import type { Entity, Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest } from "@shared/schema";
 
 type ModuleStatus = "active" | "visible" | "hidden";
 
@@ -85,7 +85,7 @@ interface UserWithoutPassword {
   email: string;
   fullName: string;
   role: string;
-  entityId: string | null;
+  siteId: string | null;
   status: string;
   consultantTier: string | null;
   clientPermissionRole: string | null;
@@ -219,13 +219,13 @@ function OverviewTab({ entity, sites, onEditEntity }: { entity: Entity; sites: S
   );
 }
 
-function ConsultantsTab({ entityId }: { entityId: string }) {
+function ConsultantsTab({ siteId }: { siteId: string }) {
   const { toast } = useToast();
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedConsultantId, setSelectedConsultantId] = useState<string>("");
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<ConsultantWithDetails[]>({
-    queryKey: ["/api/entities", entityId, "consultants"],
+    queryKey: ["/api/sites", siteId, "consultants"],
   });
 
   const { data: allConsultants = [], isLoading: consultantsLoading } = useQuery<UserWithoutPassword[]>({
@@ -234,14 +234,14 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
 
   const assignMutation = useMutation({
     mutationFn: async ({ consultantId, isPrimary }: { consultantId: string; isPrimary: boolean }) => {
-      const response = await apiRequest("POST", `/api/entities/${entityId}/consultants`, {
+      const response = await apiRequest("POST", `/api/sites/${siteId}/consultants`, {
         consultantId,
         isPrimary,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant assigned successfully" });
       setIsAssignDialogOpen(false);
       setSelectedConsultantId("");
@@ -253,10 +253,10 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
 
   const removeMutation = useMutation({
     mutationFn: async (consultantId: string) => {
-      await apiRequest("DELETE", `/api/entities/${entityId}/consultants/${consultantId}`);
+      await apiRequest("DELETE", `/api/sites/${siteId}/consultants/${consultantId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant removed successfully" });
     },
     onError: () => {
@@ -266,13 +266,13 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
 
   const updateMutation = useMutation({
     mutationFn: async ({ consultantId, isPrimary }: { consultantId: string; isPrimary: boolean }) => {
-      const response = await apiRequest("PATCH", `/api/entities/${entityId}/consultants/${consultantId}`, {
+      const response = await apiRequest("PATCH", `/api/sites/${siteId}/consultants/${consultantId}`, {
         isPrimary,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "consultants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant updated successfully" });
     },
     onError: () => {
@@ -459,7 +459,7 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
   );
 }
 
-function UsersTab({ entityId }: { entityId: string }) {
+function UsersTab({ siteId }: { siteId: string }) {
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const [editRole, setEditRole] = useState<string>("");
@@ -474,7 +474,7 @@ function UsersTab({ entityId }: { entityId: string }) {
   });
 
   const { data: users = [], isLoading } = useQuery<UserWithoutPassword[]>({
-    queryKey: ["/api/entities", entityId, "users"],
+    queryKey: ["/api/sites", siteId, "users"],
   });
 
   const updateMutation = useMutation({
@@ -486,7 +486,7 @@ function UsersTab({ entityId }: { entityId: string }) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "users"] });
       toast({ title: "User updated successfully" });
       setEditingUser(null);
     },
@@ -497,11 +497,11 @@ function UsersTab({ entityId }: { entityId: string }) {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof newUser) => {
-      const response = await apiRequest("POST", `/api/entities/${entityId}/users`, data);
+      const response = await apiRequest("POST", `/api/sites/${siteId}/users`, data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "users"] });
       toast({ title: "User created successfully" });
       setIsAddUserOpen(false);
       setNewUser({
@@ -776,24 +776,24 @@ function UsersTab({ entityId }: { entityId: string }) {
   );
 }
 
-function ModuleAccessTab({ entityId }: { entityId: string }) {
+function ModuleAccessTab({ siteId }: { siteId: string }) {
   const { toast } = useToast();
 
-  const { data: moduleAccess = [], isLoading } = useQuery<EntityModuleAccess[]>({
-    queryKey: ["/api/entities", entityId, "module-access"],
+  const { data: moduleAccess = [], isLoading } = useQuery<SiteModuleAccess[]>({
+    queryKey: ["/api/sites", siteId, "module-access"],
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ module, status }: { module: string; status: string }) => {
-      const response = await apiRequest("POST", `/api/entities/${entityId}/module-access`, {
+      const response = await apiRequest("POST", `/api/sites/${siteId}/module-access`, {
         module,
         status,
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "module-access"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "module-access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Module access updated" });
     },
     onError: () => {
@@ -887,9 +887,9 @@ function ModuleAccessTab({ entityId }: { entityId: string }) {
   );
 }
 
-function ComplianceTab({ entityId }: { entityId: string }) {
+function ComplianceTab({ siteId }: { siteId: string }) {
   const { data: documents = [] } = useQuery<any[]>({
-    queryKey: ["/api/documents", { entityId }],
+    queryKey: ["/api/documents", { siteId }],
   });
 
   const compliantDocs = documents.filter((d) => d.status === "compliant").length;
@@ -962,11 +962,11 @@ function ComplianceTab({ entityId }: { entityId: string }) {
   );
 }
 
-function AccessRequestsTab({ entityId }: { entityId: string }) {
+function AccessRequestsTab({ siteId }: { siteId: string }) {
   const { toast } = useToast();
 
   const { data: requests = [], isLoading } = useQuery<ModuleAccessRequest[]>({
-    queryKey: ["/api/module-access-requests", { entityId }],
+    queryKey: ["/api/module-access-requests", { siteId }],
   });
 
   const reviewMutation = useMutation({
@@ -979,7 +979,7 @@ function AccessRequestsTab({ entityId }: { entityId: string }) {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "module-access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "module-access"] });
       toast({ title: `Request ${variables.status}` });
     },
     onError: () => {
@@ -1112,10 +1112,10 @@ function AccessRequestsTab({ entityId }: { entityId: string }) {
 }
 
 export default function EntityDetail() {
-  const params = useParams<{ entityId: string }>();
+  const params = useParams<{ siteId: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const entityId = params.entityId;
+  const siteId = params.siteId;
   const [isEditEntityOpen, setIsEditEntityOpen] = useState(false);
   const [editEntityData, setEditEntityData] = useState({
     name: "",
@@ -1127,23 +1127,23 @@ export default function EntityDetail() {
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Entity>({
-    queryKey: ["/api/entities", entityId],
-    enabled: !!entityId,
+    queryKey: ["/api/sites", siteId],
+    enabled: !!siteId,
   });
 
   const { data: sites = [] } = useQuery<Site[]>({
-    queryKey: ["/api/entities", entityId, "sites"],
-    enabled: !!entityId,
+    queryKey: ["/api/sites", siteId, "sites"],
+    enabled: !!siteId,
   });
 
   const updateEntityMutation = useMutation({
     mutationFn: async (data: typeof editEntityData) => {
-      const response = await apiRequest("PATCH", `/api/entities/${entityId}`, data);
+      const response = await apiRequest("PATCH", `/api/sites/${siteId}`, data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Entity updated successfully" });
       setIsEditEntityOpen(false);
     },
@@ -1258,23 +1258,23 @@ export default function EntityDetail() {
         </TabsContent>
 
         <TabsContent value="consultants">
-          <ConsultantsTab entityId={entityId!} />
+          <ConsultantsTab siteId={siteId!} />
         </TabsContent>
 
         <TabsContent value="users">
-          <UsersTab entityId={entityId!} />
+          <UsersTab siteId={siteId!} />
         </TabsContent>
 
         <TabsContent value="module-access">
-          <ModuleAccessTab entityId={entityId!} />
+          <ModuleAccessTab siteId={siteId!} />
         </TabsContent>
 
         <TabsContent value="compliance">
-          <ComplianceTab entityId={entityId!} />
+          <ComplianceTab siteId={siteId!} />
         </TabsContent>
 
         <TabsContent value="access-requests">
-          <AccessRequestsTab entityId={entityId!} />
+          <AccessRequestsTab siteId={siteId!} />
         </TabsContent>
       </Tabs>
 

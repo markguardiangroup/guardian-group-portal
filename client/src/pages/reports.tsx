@@ -43,11 +43,11 @@ import {
   EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ComplianceSummary, Entity, EntityWithSites } from "@shared/schema";
+import type { ComplianceSummary, Entity, SiteWithDetails } from "@shared/schema";
 
 interface ReportData {
   summary: ComplianceSummary;
-  entities: Entity[];
+  sites: Entity[];
   monthlyTrend: { month: string; score: number }[];
 }
 
@@ -213,7 +213,7 @@ function TrendChart({ data }: { data: { month: string; score: number }[] }) {
 }
 
 export default function Reports() {
-  const [entityFilter, setEntityFilter] = useState<string>("all");
+  const [siteFilter, setEntityFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [showModuleReport, setShowModuleReport] = useState(false);
 
@@ -221,8 +221,8 @@ export default function Reports() {
     queryKey: ["/api/reports"],
   });
 
-  const { data: entitiesWithModules = [] } = useQuery<EntityWithSites[]>({
-    queryKey: ["/api/entities"],
+  const { data: sitesWithModules = [] } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites"],
     enabled: showModuleReport,
   });
 
@@ -290,14 +290,14 @@ export default function Reports() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Select value={entityFilter} onValueChange={setEntityFilter}>
+        <Select value={siteFilter} onValueChange={setEntityFilter}>
           <SelectTrigger className="w-48" data-testid="select-entity-filter">
             <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="All Entities" />
+            <SelectValue placeholder="All Sites" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Entities</SelectItem>
-            {data?.entities?.map((entity) => (
+            <SelectItem value="all">All Sites</SelectItem>
+            {data?.sites?.map((entity) => (
               <SelectItem key={entity.id} value={entity.id}>{entity.name}</SelectItem>
             ))}
           </SelectContent>
@@ -447,7 +447,7 @@ export default function Reports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entitiesWithModules.map((entity) => (
+                {sitesWithModules.map((entity) => (
                   <TableRow key={entity.id} data-testid={`report-row-${entity.id}`}>
                     <TableCell>
                       <div className="font-medium">{entity.name}</div>
@@ -512,7 +512,7 @@ export default function Reports() {
               </TableBody>
             </Table>
 
-            {entitiesWithModules.length === 0 && (
+            {sitesWithModules.length === 0 && (
               <div className="py-8 text-center text-muted-foreground">
                 No entities found.
               </div>
@@ -526,7 +526,7 @@ export default function Reports() {
                   size="sm"
                   onClick={() => {
                     const headers = ["Entity", "Company Number", "Assigned Consultants", "Primary Consultant", "Sites", "Health & Safety", "Human Resources", "Employment Law", "Compliance Score"];
-                    const rows = entitiesWithModules.map(entity => {
+                    const rows = sitesWithModules.map(entity => {
                       const consultantNames = entity.assignedConsultants?.map(c => c.name).join("; ") || "";
                       const primaryConsultant = entity.assignedConsultants?.find(c => c.isPrimary)?.name || "";
                       return [
@@ -558,24 +558,24 @@ export default function Reports() {
               </div>
               <div className="grid gap-4 sm:grid-cols-4">
                 <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold">{entitiesWithModules.length}</p>
+                  <p className="text-2xl font-semibold">{sitesWithModules.length}</p>
                   <p className="text-sm text-muted-foreground">Total Entities</p>
                 </div>
                 <div className="rounded-md border p-3 text-center">
                   <p className="text-2xl font-semibold text-emerald-600">
-                    {entitiesWithModules.filter(e => e.moduleAccess?.health_safety === "active").length}
+                    {sitesWithModules.filter(e => e.moduleAccess?.health_safety === "active").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active H&S</p>
                 </div>
                 <div className="rounded-md border p-3 text-center">
                   <p className="text-2xl font-semibold text-emerald-600">
-                    {entitiesWithModules.filter(e => e.moduleAccess?.human_resources === "active").length}
+                    {sitesWithModules.filter(e => e.moduleAccess?.human_resources === "active").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active HR</p>
                 </div>
                 <div className="rounded-md border p-3 text-center">
                   <p className="text-2xl font-semibold text-emerald-600">
-                    {entitiesWithModules.filter(e => e.moduleAccess?.employment_law === "active").length}
+                    {sitesWithModules.filter(e => e.moduleAccess?.employment_law === "active").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active EL</p>
                 </div>

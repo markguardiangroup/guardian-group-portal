@@ -4,7 +4,7 @@
 
 Guardian Group H&S Web Portal is a B2B compliance platform for Health & Safety and HR/Employment Law management. This is a consultancy-led portal where Guardian Group creates and controls compliance content for their clients - it is not a self-serve SaaS platform.
 
-The platform centralizes compliance documentation, enables digital review and approval workflows, creates audit trails, and supports multi-entity/multi-site client organizations with role-based access control.
+The platform centralizes compliance documentation, enables digital review and approval workflows, creates audit trails, and supports multi-site client organizations with role-based access control. Sites are the primary management unit, with companies being a grouping mechanism for related sites.
 
 ## User Preferences
 
@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 - **Forms**: React Hook Form with Zod validation
 - **Build Tool**: Vite
 
-The frontend follows a page-based structure with shared components. Key pages include Dashboard, Documents, Entities, Assessments, Reports, Support, and Settings. The design follows enterprise design system principles (Carbon/Fluent Design) prioritizing data density and clarity.
+The frontend follows a page-based structure with shared components. Key pages include Dashboard, Documents, Sites, Assessments, Reports, Support, and Settings. The design follows enterprise design system principles (Carbon/Fluent Design) prioritizing data density and clarity.
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
@@ -34,34 +34,34 @@ The server uses a single entry point that registers API routes and serves the st
 
 ### Data Model
 Core entities include:
-- **Users**: Role-based (admin, consultant, client) with entity association
-- **Entities**: Client organizations with company details - the central hub for management
-- **Sites**: Physical locations belonging to entities
+- **Users**: Role-based (admin, consultant, client) with site association
+- **Sites**: Physical locations with company grouping via `companyName` field - the primary management unit
 - **Document Types**: Admin-managed master list defining required/optional document types per module with renewal periods
-- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to document types
+- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to document types and sites
 - **Document Versions**: Version history for document changes
-- **Consultant Assignments**: Links consultants to entities with primary flag
-- **Entity Module Access**: Three-state access control (active/visible/hidden) per module
+- **Consultant Assignments**: Links consultants to sites with primary flag
+- **Site Module Access**: Three-state access control (active/visible/hidden) per module per site
 - **Module Access Requests**: Workflow for clients to request module access
 - **Audit Logs**: Activity tracking with timestamps and user attribution
 - **Support Requests**: Client support ticket system
 
-### Entity-Centric Architecture
-The platform uses an entity-centric management model where entities serve as the central hub:
-- **Consultant Management**: Assign multiple consultants to entities with primary designation
-- **User Management**: Manage client users scoped to their entity
-- **Module Access**: Control which modules (H&S, HR, Employment Law) each entity can access
-- **Compliance Tracking**: Track document compliance per entity
+### Site-Centric Architecture
+The platform uses a site-centric management model where sites serve as the primary unit:
+- **Company Grouping**: Sites are grouped by `companyName` field for organizational hierarchy
+- **Consultant Management**: Assign multiple consultants to sites with primary designation
+- **User Management**: Manage client users scoped to their site
+- **Module Access**: Control which modules (H&S, HR, Employment Law) each site can access
+- **Compliance Tracking**: Track document compliance per site with aggregation by company
 
-Key API Routes for Entity Management:
-- `GET /api/entities/:entityId` - Get single entity
-- `GET /api/entities/:entityId/sites` - Get entity sites
-- `GET /api/entities/:entityId/users` - Get entity users
-- `GET /api/entities/:entityId/consultants` - Get assigned consultants
-- `POST /api/entities/:entityId/consultants` - Assign consultant
-- `DELETE /api/entities/:entityId/consultants/:consultantId` - Remove assignment
-- `GET /api/entities/:entityId/module-access` - Get module access settings
-- `POST /api/entities/:entityId/module-access` - Set module access
+Key API Routes for Site Management:
+- `GET /api/sites` - Get all sites with details
+- `GET /api/sites/:siteId` - Get single site
+- `GET /api/sites/:siteId/users` - Get site users
+- `GET /api/sites/:siteId/consultants` - Get assigned consultants
+- `POST /api/sites/:siteId/consultants` - Assign consultant
+- `DELETE /api/sites/:siteId/consultants/:consultantId` - Remove assignment
+- `GET /api/sites/:siteId/module-access` - Get module access settings
+- `POST /api/sites/:siteId/module-access` - Set module access
 
 ### Storage Pattern
 The application uses an in-memory storage implementation (`MemStorage` class) that implements the `IStorage` interface. This allows for easy swapping to a database-backed implementation when PostgreSQL is provisioned.

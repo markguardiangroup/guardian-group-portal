@@ -25,8 +25,8 @@ interface Assessment {
   id: string;
   title: string;
   type: string;
-  entityId: string;
-  entityName: string;
+  siteId: string;
+  companyName: string;
   siteId?: string;
   siteName?: string;
   assignedTo: string;
@@ -74,7 +74,7 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
-                  {assessment.entityName}
+                  {assessment.companyName}
                   {assessment.siteName && ` - ${assessment.siteName}`}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -134,7 +134,7 @@ export default function Assessments() {
 
   const filteredAssessments = assessments?.filter((assessment) => {
     const matchesSearch = assessment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      assessment.entityName.toLowerCase().includes(searchQuery.toLowerCase());
+      assessment.companyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || assessment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

@@ -113,8 +113,8 @@ const settingsNavItems = [
 
 const adminNavItems = [
   {
-    title: "Entities & Sites",
-    url: "/entities",
+    title: "Sites",
+    url: "/sites",
     icon: Building2,
   },
   {
@@ -140,7 +140,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
-  entityId: string | null;
+  siteId: string | null;
 }
 
 interface AppSidebarProps {

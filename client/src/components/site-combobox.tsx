@@ -16,13 +16,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface EntityOption {
+interface SiteOption {
   id: string;
   name: string;
 }
 
-interface EntityComboboxProps {
-  entities: EntityOption[];
+interface SiteComboboxProps {
+  sites: SiteOption[];
   value: string | null;
   onValueChange: (value: string | null) => void;
   placeholder?: string;
@@ -31,24 +31,24 @@ interface EntityComboboxProps {
   testId?: string;
 }
 
-export function EntityCombobox({
-  entities,
+export function SiteCombobox({
+  sites,
   value,
   onValueChange,
-  placeholder = "Select client...",
+  placeholder = "Select site...",
   className,
   includeAllOption = true,
   testId,
-}: EntityComboboxProps) {
+}: SiteComboboxProps) {
   const [open, setOpen] = useState(false);
 
-  const selectedEntity = value === "all" || !value 
+  const selectedSite = value === "all" || !value 
     ? null 
-    : entities.find((e) => e.id === value);
+    : sites.find((e) => e.id === value);
   
   const displayValue = value === "all" || !value
-    ? "All Entities"
-    : selectedEntity?.name || placeholder;
+    ? "All Sites"
+    : selectedSite?.name || placeholder;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -69,13 +69,13 @@ export function EntityCombobox({
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search clients..." />
+          <CommandInput placeholder="Search sites..." />
           <CommandList>
-            <CommandEmpty>No client found.</CommandEmpty>
+            <CommandEmpty>No site found.</CommandEmpty>
             <CommandGroup>
               {includeAllOption && (
                 <CommandItem
-                  value="all-entities"
+                  value="all-sites"
                   onSelect={() => {
                     onValueChange("all");
                     setOpen(false);
@@ -87,25 +87,25 @@ export function EntityCombobox({
                       (!value || value === "all") ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  All Entities
+                  All Sites
                 </CommandItem>
               )}
-              {entities.map((entity) => (
+              {sites.map((site) => (
                 <CommandItem
-                  key={entity.id}
-                  value={entity.name}
+                  key={site.id}
+                  value={site.name}
                   onSelect={() => {
-                    onValueChange(entity.id);
+                    onValueChange(site.id);
                     setOpen(false);
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === entity.id ? "opacity-100" : "opacity-0"
+                      value === site.id ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {entity.name}
+                  {site.name}
                 </CommandItem>
               ))}
             </CommandGroup>

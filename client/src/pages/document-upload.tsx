@@ -35,15 +35,14 @@ import {
   Calendar,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Entity, Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
+import type { Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
   module: z.enum(["health_safety", "human_resources", "employment_law"]),
   documentTypeId: z.string().min(1, "Please select a document type"),
-  entityId: z.string().min(1, "Please select an entity"),
-  siteId: z.string().optional(),
+  siteId: z.string().min(1, "Please select a site"),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
 });
@@ -68,10 +67,6 @@ export default function DocumentUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const { data: entities } = useQuery<Entity[]>({
-    queryKey: ["/api/entities"],
-  });
-
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
   });
@@ -87,16 +82,13 @@ export default function DocumentUpload() {
       description: "",
       module: "health_safety",
       documentTypeId: "",
-      entityId: "",
       siteId: "",
       reviewDate: "",
       expiryDate: "",
     },
   });
 
-  const selectedEntityId = form.watch("entityId");
   const selectedModule = form.watch("module");
-  const filteredSites = sites?.filter((site) => site.entityId === selectedEntityId);
   const filteredDocumentTypes = documentTypes?.filter(
     (dt) => dt.module === selectedModule && dt.isActive
   );
@@ -301,59 +293,30 @@ export default function DocumentUpload() {
                     />
                   </div>
 
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="entityId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Entity</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-entity">
-                                <SelectValue placeholder="Select entity" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {entities?.map((entity) => (
-                                <SelectItem key={entity.id} value={entity.id}>{entity.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {selectedEntityId && filteredSites && filteredSites.length > 0 && (
-                      <FormField
-                        control={form.control}
-                        name="siteId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Site (Optional)</FormLabel>
-                            <Select 
-                              onValueChange={(value) => field.onChange(value === "all" ? "" : value)} 
-                              value={field.value || "all"}
-                            >
-                              <FormControl>
-                                <SelectTrigger data-testid="select-site">
-                                  <SelectValue placeholder="Select site" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="all">All Sites</SelectItem>
-                                {filteredSites.map((site) => (
-                                  <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <FormField
+                    control={form.control}
+                    name="siteId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-site">
+                              <SelectValue placeholder="Select site" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {sites?.map((site) => (
+                              <SelectItem key={site.id} value={site.id}>
+                                {site.name} ({site.companyName})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
+                  />
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField

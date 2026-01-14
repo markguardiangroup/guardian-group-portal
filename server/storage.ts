@@ -1,6 +1,5 @@
 import { 
   type User, type InsertUser,
-  type Entity, type InsertEntity,
   type Site, type InsertSite,
   type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
@@ -9,15 +8,15 @@ import {
   type Case, type InsertCase,
   type CaseMilestone, type InsertCaseMilestone,
   type ComplianceSummary,
-  type EntityWithSites,
+  type SiteWithDetails,
   type DocumentWithDetails,
   type ModuleType,
   type ModuleSummary,
-  type EntityDocumentTypeAccess, type InsertEntityDocumentTypeAccess,
+  type SiteDocumentTypeAccess, type InsertSiteDocumentTypeAccess,
   type DocumentTypeWithAccess,
   type DocumentType,
   type CaseStatus,
-  type EntityModuleAccess, type InsertEntityModuleAccess, type ModuleAccessStatus,
+  type SiteModuleAccess, type InsertSiteModuleAccess, type ModuleAccessStatus,
   type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
   type ConsultantAssignment, type InsertConsultantAssignment,
   type DocumentTypeRecord, type InsertDocumentType,
@@ -33,16 +32,14 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
-  // Entities
-  getEntities(): Promise<EntityWithSites[]>;
-  getEntity(id: string): Promise<Entity | undefined>;
-  createEntity(entity: InsertEntity): Promise<Entity>;
-  updateEntity(id: string, updates: Partial<Entity>): Promise<Entity | undefined>;
-  
   // Sites
   getSites(): Promise<Site[]>;
-  getSitesByEntity(entityId: string): Promise<Site[]>;
+  getSitesWithDetails(): Promise<SiteWithDetails[]>;
+  getSite(id: string): Promise<Site | undefined>;
+  getSitesByCompany(companyName: string): Promise<Site[]>;
   createSite(site: InsertSite): Promise<Site>;
+  updateSite(id: string, updates: Partial<Site>): Promise<Site | undefined>;
+  getCompanyNames(): Promise<string[]>;
   
   // Documents
   getDocuments(module?: ModuleType): Promise<Document[]>;
@@ -65,16 +62,16 @@ export interface IStorage {
   
   // Dashboard
   getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
-  getModuleSummaries(entityId?: string): Promise<ModuleSummary[]>;
+  getModuleSummaries(siteId?: string): Promise<ModuleSummary[]>;
   
-  // Entity Document Type Access
-  getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]>;
-  getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]>;
-  grantDocumentTypeAccess(access: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess>;
-  revokeDocumentTypeAccess(entityId: string, documentTypeId: string): Promise<boolean>;
+  // Site Document Type Access
+  getSiteDocumentTypeAccess(siteId: string, module?: ModuleType): Promise<SiteDocumentTypeAccess[]>;
+  getDocumentTypesWithAccess(siteId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]>;
+  grantDocumentTypeAccess(access: InsertSiteDocumentTypeAccess): Promise<SiteDocumentTypeAccess>;
+  revokeDocumentTypeAccess(siteId: string, documentTypeId: string): Promise<boolean>;
   
   // Cases (Employment Law)
-  getCases(entityId?: string, status?: CaseStatus): Promise<Case[]>;
+  getCases(siteId?: string, status?: CaseStatus): Promise<Case[]>;
   getCase(id: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined>;
@@ -85,25 +82,25 @@ export interface IStorage {
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
   
-  // Entity Module Access
-  getEntityModuleAccess(entityId: string): Promise<EntityModuleAccess[]>;
-  getEntityModuleAccessByModule(entityId: string, module: ModuleType): Promise<EntityModuleAccess | undefined>;
-  setEntityModuleAccess(entityId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<EntityModuleAccess>;
+  // Site Module Access
+  getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]>;
+  getSiteModuleAccessByModule(siteId: string, module: ModuleType): Promise<SiteModuleAccess | undefined>;
+  setSiteModuleAccess(siteId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<SiteModuleAccess>;
   
   // Module Access Requests
-  getModuleAccessRequests(entityId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
+  getModuleAccessRequests(siteId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
   createModuleAccessRequest(request: InsertModuleAccessRequest): Promise<ModuleAccessRequest>;
   reviewModuleAccessRequest(id: string, reviewedBy: string, reviewedByName: string, status: ModuleAccessRequestStatus, notes?: string): Promise<ModuleAccessRequest | undefined>;
   
   // Consultant Assignments
-  getConsultantAssignments(entityId: string): Promise<ConsultantAssignment[]>;
-  getConsultantEntities(consultantId: string): Promise<ConsultantAssignment[]>;
+  getConsultantAssignments(siteId: string): Promise<ConsultantAssignment[]>;
+  getConsultantSites(consultantId: string): Promise<ConsultantAssignment[]>;
   assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment>;
-  updateConsultantAssignment(consultantId: string, entityId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined>;
-  removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean>;
+  updateConsultantAssignment(consultantId: string, siteId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined>;
+  removeConsultantAssignment(consultantId: string, siteId: string): Promise<boolean>;
   
-  // Users by Entity
-  getUsersByEntity(entityId: string): Promise<User[]>;
+  // Users by Site
+  getUsersBySite(siteId: string): Promise<User[]>;
   getConsultants(): Promise<User[]>;
   
   // Document Types (Admin-managed)
@@ -116,32 +113,30 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private entities: Map<string, Entity>;
   private sites: Map<string, Site>;
   private documents: Map<string, Document>;
   private documentVersions: Map<string, DocumentVersion>;
   private auditLogs: Map<string, AuditLog>;
   private supportRequests: Map<string, SupportRequest>;
-  private entityDocumentTypeAccess: Map<string, EntityDocumentTypeAccess>;
+  private siteDocumentTypeAccess: Map<string, SiteDocumentTypeAccess>;
   private cases: Map<string, Case>;
   private caseMilestones: Map<string, CaseMilestone>;
-  private entityModuleAccess: Map<string, EntityModuleAccess>;
+  private siteModuleAccess: Map<string, SiteModuleAccess>;
   private moduleAccessRequests: Map<string, ModuleAccessRequest>;
   private consultantAssignments: Map<string, ConsultantAssignment>;
   private documentTypesMap: Map<string, DocumentTypeRecord>;
 
   constructor() {
     this.users = new Map();
-    this.entities = new Map();
     this.sites = new Map();
     this.documents = new Map();
     this.documentVersions = new Map();
     this.auditLogs = new Map();
     this.supportRequests = new Map();
-    this.entityDocumentTypeAccess = new Map();
+    this.siteDocumentTypeAccess = new Map();
     this.cases = new Map();
     this.caseMilestones = new Map();
-    this.entityModuleAccess = new Map();
+    this.siteModuleAccess = new Map();
     this.moduleAccessRequests = new Map();
     this.consultantAssignments = new Map();
     this.documentTypesMap = new Map();
@@ -160,7 +155,7 @@ export class MemStorage implements IStorage {
       email: "admin@guardiangroup.com",
       fullName: "System Administrator",
       role: "admin",
-      entityId: null,
+      siteId: null,
       status: "active",
       consultantTier: null,
       clientPermissionRole: null,
@@ -176,7 +171,7 @@ export class MemStorage implements IStorage {
       email: "john.doe@guardiangroup.com",
       fullName: "John Doe",
       role: "consultant",
-      entityId: null,
+      siteId: null,
       status: "active",
       consultantTier: "senior",
       clientPermissionRole: null,
@@ -192,7 +187,7 @@ export class MemStorage implements IStorage {
       email: "jane.smith@guardiangroup.com",
       fullName: "Jane Smith",
       role: "consultant",
-      entityId: null,
+      siteId: null,
       status: "active",
       consultantTier: "standard",
       clientPermissionRole: null,
@@ -208,7 +203,7 @@ export class MemStorage implements IStorage {
       email: "sarah@acme-mfg.com",
       fullName: "Sarah Johnson",
       role: "client",
-      entityId: "entity-1",
+      siteId: "site-1",
       status: "active",
       consultantTier: null,
       clientPermissionRole: "owner",
@@ -224,7 +219,7 @@ export class MemStorage implements IStorage {
       email: "emma@techcorp.co.uk",
       fullName: "Emma Davis",
       role: "client",
-      entityId: "entity-2",
+      siteId: "site-3",
       status: "active",
       consultantTier: null,
       clientPermissionRole: "approver",
@@ -233,60 +228,49 @@ export class MemStorage implements IStorage {
     };
     this.users.set(client2.id, client2);
 
-    // Create sample entities
-    const entity1: Entity = {
-      id: "entity-1",
-      name: "Acme Manufacturing Ltd",
-      companyNumber: "12345678",
-      address: "123 Industrial Way, Manchester M1 2AB",
-      contactEmail: "safety@acme-mfg.com",
-      contactPhone: "+44 161 123 4567",
-      website: "https://www.acme-mfg.com",
-      status: "active",
-      createdAt: now,
-    };
-    const entity2: Entity = {
-      id: "entity-2",
-      name: "TechCorp Solutions",
-      companyNumber: "87654321",
-      address: "456 Tech Park, London EC2A 4NE",
-      contactEmail: "compliance@techcorp.co.uk",
-      contactPhone: "+44 20 7123 4567",
-      website: "https://www.techcorp.co.uk",
-      status: "active",
-      createdAt: now,
-    };
-    this.entities.set(entity1.id, entity1);
-    this.entities.set(entity2.id, entity2);
-
-    // Create sample sites
-    const sites: Site[] = [
+    // Create sample sites (with companyName for grouping)
+    const sampleSites: Site[] = [
       {
         id: "site-1",
-        entityId: "entity-1",
         name: "Main Factory",
+        companyName: "Acme Manufacturing Ltd",
+        companyNumber: "12345678",
         address: "123 Industrial Way, Manchester M1 2AB",
+        contactEmail: "safety@acme-mfg.com",
+        contactPhone: "+44 161 123 4567",
+        website: "https://www.acme-mfg.com",
         siteManager: "Sarah Johnson",
-        contactPhone: "+44 161 123 4568",
+        status: "active",
+        createdAt: now,
       },
       {
         id: "site-2",
-        entityId: "entity-1",
         name: "Warehouse North",
+        companyName: "Acme Manufacturing Ltd",
+        companyNumber: "12345678",
         address: "789 Logistics Road, Manchester M3 4CD",
-        siteManager: "Mike Williams",
+        contactEmail: "safety@acme-mfg.com",
         contactPhone: "+44 161 123 4569",
+        website: "https://www.acme-mfg.com",
+        siteManager: "Mike Williams",
+        status: "active",
+        createdAt: now,
       },
       {
         id: "site-3",
-        entityId: "entity-2",
         name: "London Office",
+        companyName: "TechCorp Solutions",
+        companyNumber: "87654321",
         address: "456 Tech Park, London EC2A 4NE",
+        contactEmail: "compliance@techcorp.co.uk",
+        contactPhone: "+44 20 7123 4567",
+        website: "https://www.techcorp.co.uk",
         siteManager: "Emma Davis",
-        contactPhone: "+44 20 7123 4568",
+        status: "active",
+        createdAt: now,
       },
     ];
-    sites.forEach(site => this.sites.set(site.id, site));
+    sampleSites.forEach(site => this.sites.set(site.id, site));
 
     // Health & Safety Documents
     const hsDocs: Document[] = [
@@ -296,8 +280,7 @@ export class MemStorage implements IStorage {
         description: "Company-wide health and safety policy document",
         module: "health_safety",
         type: "hs_policy",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "hs_policy_2024.pdf",
@@ -320,7 +303,6 @@ export class MemStorage implements IStorage {
         description: "Annual fire risk assessment for the main manufacturing facility",
         module: "health_safety",
         type: "fire_safety",
-        entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
@@ -344,7 +326,6 @@ export class MemStorage implements IStorage {
         description: "Control of Substances Hazardous to Health assessment",
         module: "health_safety",
         type: "coshh_assessment",
-        entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
@@ -368,7 +349,6 @@ export class MemStorage implements IStorage {
         description: "DSE assessment for office workstations",
         module: "health_safety",
         type: "risk_assessment",
-        entityId: "entity-2",
         siteId: "site-3",
         caseId: null,
         documentTypeId: null,
@@ -396,8 +376,7 @@ export class MemStorage implements IStorage {
         description: "Comprehensive employee handbook with policies and procedures",
         module: "human_resources",
         type: "employee_handbook",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "employee_handbook_2024.pdf",
@@ -420,8 +399,7 @@ export class MemStorage implements IStorage {
         description: "Company disciplinary and grievance procedure",
         module: "human_resources",
         type: "disciplinary_procedure",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "disciplinary_procedure.pdf",
@@ -444,7 +422,6 @@ export class MemStorage implements IStorage {
         description: "Training history and certifications for John Smith",
         module: "human_resources",
         type: "training_record",
-        entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
@@ -468,8 +445,7 @@ export class MemStorage implements IStorage {
         description: "Policy for remote and hybrid working arrangements",
         module: "human_resources",
         type: "hr_policy",
-        entityId: "entity-2",
-        siteId: null,
+        siteId: "site-3",
         caseId: null,
         documentTypeId: null,
         fileName: "remote_working_policy.pdf",
@@ -492,8 +468,7 @@ export class MemStorage implements IStorage {
         description: "Standard employment contract template for full-time employees",
         module: "human_resources",
         type: "employment_contract",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "employment_contract_template.pdf",
@@ -516,8 +491,7 @@ export class MemStorage implements IStorage {
         description: "Formal grievance handling and resolution process",
         module: "human_resources",
         type: "grievance_procedure",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "grievance_procedure.pdf",
@@ -540,7 +514,6 @@ export class MemStorage implements IStorage {
         description: "Quarterly performance review documentation",
         module: "human_resources",
         type: "performance_review",
-        entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
@@ -564,8 +537,7 @@ export class MemStorage implements IStorage {
         description: "Policy for managing employee absences and leave",
         module: "human_resources",
         type: "hr_policy",
-        entityId: "entity-2",
-        siteId: null,
+        siteId: "site-3",
         caseId: null,
         documentTypeId: null,
         fileName: "absence_management_policy.pdf",
@@ -588,7 +560,6 @@ export class MemStorage implements IStorage {
         description: "Training history and certifications for Sarah Johnson",
         module: "human_resources",
         type: "training_record",
-        entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
@@ -612,8 +583,7 @@ export class MemStorage implements IStorage {
         description: "Monthly absence tracking report",
         module: "human_resources",
         type: "absence_record",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "absence_record_jan_2025.pdf",
@@ -636,8 +606,7 @@ export class MemStorage implements IStorage {
         description: "Employment contract template for part-time employees",
         module: "human_resources",
         type: "employment_contract",
-        entityId: "entity-2",
-        siteId: null,
+        siteId: "site-3",
         caseId: null,
         documentTypeId: null,
         fileName: "employment_contract_parttime.pdf",
@@ -660,8 +629,7 @@ export class MemStorage implements IStorage {
         description: "Equal opportunities and diversity policy statement",
         module: "human_resources",
         type: "hr_policy",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: null,
         documentTypeId: null,
         fileName: "equal_opportunities_policy.pdf",
@@ -691,7 +659,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -705,7 +673,7 @@ export class MemStorage implements IStorage {
         action: "document_rejected",
         userId: "user-consultant-1",
         userName: "Sarah Mitchell",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -719,7 +687,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -733,7 +701,7 @@ export class MemStorage implements IStorage {
         action: "changes_requested",
         userId: "user-consultant-1",
         userName: "Sarah Mitchell",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -747,7 +715,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -761,7 +729,7 @@ export class MemStorage implements IStorage {
         action: "document_approved",
         userId: "user-consultant-1",
         userName: "Sarah Mitchell",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -775,7 +743,7 @@ export class MemStorage implements IStorage {
         action: "document_downloaded",
         userId: "user-client-1",
         userName: "Mike Thompson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -789,7 +757,7 @@ export class MemStorage implements IStorage {
         action: "document_viewed",
         userId: "user-client-2",
         userName: "Emma Wilson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-1",
         caseId: null,
         supportRequestId: null,
@@ -804,7 +772,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hs-2",
         caseId: null,
         supportRequestId: null,
@@ -819,7 +787,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "John Doe",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hr-1",
         caseId: null,
         supportRequestId: null,
@@ -833,7 +801,7 @@ export class MemStorage implements IStorage {
         action: "document_approved",
         userId: "user-consultant-2",
         userName: "James Anderson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-hr-1",
         caseId: null,
         supportRequestId: null,
@@ -847,7 +815,7 @@ export class MemStorage implements IStorage {
         action: "changes_requested",
         userId: "user-consultant-2",
         userName: "James Anderson",
-        entityId: "entity-2",
+        siteId: "site-3",
         documentId: "doc-hr-4",
         caseId: null,
         supportRequestId: null,
@@ -919,7 +887,7 @@ export class MemStorage implements IStorage {
         status: "open",
         category: "Compliance Question",
         module: "health_safety",
-        entityId: "entity-1",
+        siteId: "site-1",
         createdBy: "user-1",
         assignedTo: null,
         createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
@@ -934,7 +902,7 @@ export class MemStorage implements IStorage {
         status: "resolved",
         category: "Document Request",
         module: "human_resources",
-        entityId: "entity-2",
+        siteId: "site-3",
         createdBy: "user-1",
         assignedTo: "user-1",
         createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
@@ -946,55 +914,55 @@ export class MemStorage implements IStorage {
     
     // Create sample entity document type access - now linked to document type IDs from master list
     // Entity 1 (Acme Manufacturing) - has access to most document types but not all
-    const entity1Access: EntityDocumentTypeAccess[] = [
+    const entity1Access: SiteDocumentTypeAccess[] = [
       // H&S document types (doctype-1 to doctype-8) - missing doctype-7 (method_statement) and doctype-8 (hs_checklist) for upsell
-      { id: "access-1", entityId: "entity-1", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-2", entityId: "entity-1", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-3", entityId: "entity-1", documentTypeId: "doctype-3", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-4", entityId: "entity-1", documentTypeId: "doctype-4", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-5", entityId: "entity-1", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-6", entityId: "entity-1", documentTypeId: "doctype-6", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-1", siteId: "site-1", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-2", siteId: "site-1", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-3", siteId: "site-1", documentTypeId: "doctype-3", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-4", siteId: "site-1", documentTypeId: "doctype-4", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-5", siteId: "site-1", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-6", siteId: "site-1", documentTypeId: "doctype-6", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
       // HR document types (doctype-9 to doctype-16) - missing doctype-16 (absence_record) for upsell
-      { id: "access-7", entityId: "entity-1", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-8", entityId: "entity-1", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-9", entityId: "entity-1", documentTypeId: "doctype-11", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-10", entityId: "entity-1", documentTypeId: "doctype-12", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-11", entityId: "entity-1", documentTypeId: "doctype-13", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-12", entityId: "entity-1", documentTypeId: "doctype-14", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-13", entityId: "entity-1", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-7", siteId: "site-1", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-8", siteId: "site-1", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-9", siteId: "site-1", documentTypeId: "doctype-11", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-10", siteId: "site-1", documentTypeId: "doctype-12", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-11", siteId: "site-1", documentTypeId: "doctype-13", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-12", siteId: "site-1", documentTypeId: "doctype-14", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-13", siteId: "site-1", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
-    entity1Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    entity1Access.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
     
     // Entity 2 (TechStart Solutions) - smaller package, fewer document types
-    const entity2Access: EntityDocumentTypeAccess[] = [
+    const entity2Access: SiteDocumentTypeAccess[] = [
       // H&S - basic package only (doctype-1, doctype-2, doctype-5)
-      { id: "access-20", entityId: "entity-2", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-21", entityId: "entity-2", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-22", entityId: "entity-2", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-20", siteId: "site-3", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-21", siteId: "site-3", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-22", siteId: "site-3", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
       // HR - basic package only (doctype-9, doctype-10, doctype-15)
-      { id: "access-23", entityId: "entity-2", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-24", entityId: "entity-2", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-25", entityId: "entity-2", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-23", siteId: "site-3", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-24", siteId: "site-3", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-25", siteId: "site-3", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
-    entity2Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    entity2Access.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
     
     // Employment Law document type access for Entity 1 (doctype-17 to doctype-26)
-    const entity1ELAccess: EntityDocumentTypeAccess[] = [
-      { id: "access-30", entityId: "entity-1", documentTypeId: "doctype-17", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-31", entityId: "entity-1", documentTypeId: "doctype-18", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-32", entityId: "entity-1", documentTypeId: "doctype-19", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-33", entityId: "entity-1", documentTypeId: "doctype-21", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-34", entityId: "entity-1", documentTypeId: "doctype-22", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-35", entityId: "entity-1", documentTypeId: "doctype-24", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-36", entityId: "entity-1", documentTypeId: "doctype-25", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    const entity1ELAccess: SiteDocumentTypeAccess[] = [
+      { id: "access-30", siteId: "site-1", documentTypeId: "doctype-17", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-31", siteId: "site-1", documentTypeId: "doctype-18", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-32", siteId: "site-1", documentTypeId: "doctype-19", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-33", siteId: "site-1", documentTypeId: "doctype-21", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-34", siteId: "site-1", documentTypeId: "doctype-22", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-35", siteId: "site-1", documentTypeId: "doctype-24", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-36", siteId: "site-1", documentTypeId: "doctype-25", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
-    entity1ELAccess.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    entity1ELAccess.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
     
     // Sample Employment Law Cases
     const sampleCases: Case[] = [
       {
         id: "case-1",
-        entityId: "entity-1",
+        siteId: "site-1",
         caseReference: "EL-2024-001",
         employeeName: "John Smith",
         employeeId: "EMP-1234",
@@ -1013,7 +981,7 @@ export class MemStorage implements IStorage {
       },
       {
         id: "case-2",
-        entityId: "entity-1",
+        siteId: "site-1",
         caseReference: "EL-2024-002",
         employeeName: "Sarah Johnson",
         employeeId: "EMP-5678",
@@ -1032,7 +1000,7 @@ export class MemStorage implements IStorage {
       },
       {
         id: "case-3",
-        entityId: "entity-1",
+        siteId: "site-1",
         caseReference: "EL-2023-015",
         employeeName: "Michael Brown",
         employeeId: "EMP-9012",
@@ -1051,7 +1019,7 @@ export class MemStorage implements IStorage {
       },
       {
         id: "case-4",
-        entityId: "entity-1",
+        siteId: "site-1",
         caseReference: "EL-2024-003",
         employeeName: "Emma Wilson",
         employeeId: "EMP-3456",
@@ -1150,8 +1118,7 @@ export class MemStorage implements IStorage {
         description: "Summary of investigation findings",
         module: "employment_law",
         type: "investigation_report",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: "case-1",
         documentTypeId: null,
         fileName: "investigation_report_jsmith.pdf",
@@ -1174,8 +1141,7 @@ export class MemStorage implements IStorage {
         description: "Witness statement from colleague",
         module: "employment_law",
         type: "witness_statement",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: "case-1",
         documentTypeId: null,
         fileName: "witness_statement_adavis.pdf",
@@ -1198,8 +1164,7 @@ export class MemStorage implements IStorage {
         description: "Original grievance submission",
         module: "employment_law",
         type: "case_notes",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: "case-2",
         documentTypeId: null,
         fileName: "grievance_letter_sjohnson.pdf",
@@ -1222,8 +1187,7 @@ export class MemStorage implements IStorage {
         description: "Final signed settlement agreement",
         module: "employment_law",
         type: "settlement_agreement",
-        entityId: "entity-1",
-        siteId: null,
+        siteId: "site-1",
         caseId: "case-3",
         documentTypeId: null,
         fileName: "settlement_mbrown.pdf",
@@ -1251,7 +1215,7 @@ export class MemStorage implements IStorage {
         action: "case_created",
         userId: "user-1",
         userName: "Sarah Johnson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: null,
         caseId: "case-1",
         supportRequestId: null,
@@ -1265,7 +1229,7 @@ export class MemStorage implements IStorage {
         action: "document_uploaded",
         userId: "user-1",
         userName: "Sarah Johnson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: "doc-el-1",
         caseId: "case-1",
         supportRequestId: null,
@@ -1279,7 +1243,7 @@ export class MemStorage implements IStorage {
         action: "milestone_completed",
         userId: "user-1",
         userName: "Sarah Johnson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: null,
         caseId: "case-1",
         supportRequestId: null,
@@ -1293,7 +1257,7 @@ export class MemStorage implements IStorage {
         action: "case_status_changed",
         userId: "user-1",
         userName: "Sarah Johnson",
-        entityId: "entity-1",
+        siteId: "site-1",
         documentId: null,
         caseId: "case-1",
         supportRequestId: null,
@@ -1306,11 +1270,11 @@ export class MemStorage implements IStorage {
     // Seed EL audit logs disabled for clean testing
     // elAuditLogs.forEach(log => this.auditLogs.set(log.id, log));
     
-    // Entity Module Access - Entity 1 has all modules active
-    const entity1ModuleAccess: EntityModuleAccess[] = [
+    // Site Module Access - Site 1 has all modules active
+    const site1ModuleAccess: SiteModuleAccess[] = [
       {
-        id: "ema-1",
-        entityId: "entity-1",
+        id: "sma-1",
+        siteId: "site-1",
         module: "health_safety",
         status: "active",
         grantedBy: "user-admin",
@@ -1320,8 +1284,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "ema-2",
-        entityId: "entity-1",
+        id: "sma-2",
+        siteId: "site-1",
         module: "human_resources",
         status: "active",
         grantedBy: "user-admin",
@@ -1331,8 +1295,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "ema-3",
-        entityId: "entity-1",
+        id: "sma-3",
+        siteId: "site-1",
         module: "employment_law",
         status: "active",
         grantedBy: "user-admin",
@@ -1342,13 +1306,13 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
       },
     ];
-    entity1ModuleAccess.forEach(a => this.entityModuleAccess.set(a.id, a));
+    site1ModuleAccess.forEach(a => this.siteModuleAccess.set(a.id, a));
     
-    // Entity 2 has H&S active, HR visible (can request), EL hidden
-    const entity2ModuleAccess: EntityModuleAccess[] = [
+    // Site 3 has H&S active, HR visible (can request), EL hidden
+    const site3ModuleAccess: SiteModuleAccess[] = [
       {
-        id: "ema-4",
-        entityId: "entity-2",
+        id: "sma-4",
+        siteId: "site-3",
         module: "health_safety",
         status: "active",
         grantedBy: "user-admin",
@@ -1358,8 +1322,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "ema-5",
-        entityId: "entity-2",
+        id: "sma-5",
+        siteId: "site-3",
         module: "human_resources",
         status: "visible",
         grantedBy: null,
@@ -1369,8 +1333,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
       },
       {
-        id: "ema-6",
-        entityId: "entity-2",
+        id: "sma-6",
+        siteId: "site-3",
         module: "employment_law",
         status: "hidden",
         grantedBy: null,
@@ -1380,14 +1344,14 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
       },
     ];
-    entity2ModuleAccess.forEach(a => this.entityModuleAccess.set(a.id, a));
+    site3ModuleAccess.forEach(a => this.siteModuleAccess.set(a.id, a));
     
-    // Sample pending access request from Entity 2 for HR module
+    // Sample pending access request from sites for modules
     const sampleAccessRequests: ModuleAccessRequest[] = [
       {
         id: "mar-1",
-        entityId: "entity-2",
-        entityName: "TechStart Solutions",
+        siteId: "site-3",
+        siteName: "London Office",
         module: "human_resources",
         requestedBy: "user-2",
         requestedByName: "Client User",
@@ -1401,8 +1365,8 @@ export class MemStorage implements IStorage {
       },
       {
         id: "mar-2",
-        entityId: "entity-1",
-        entityName: "Acme Manufacturing Ltd",
+        siteId: "site-1",
+        siteName: "Main Factory",
         module: "employment_law",
         requestedBy: "user-3",
         requestedByName: "Sarah Mitchell",
@@ -1416,8 +1380,8 @@ export class MemStorage implements IStorage {
       },
       {
         id: "mar-3",
-        entityId: "entity-3",
-        entityName: "BuildRight Construction",
+        siteId: "site-2",
+        siteName: "Warehouse North",
         module: "health_safety",
         requestedBy: "user-4",
         requestedByName: "James Wilson",
@@ -1431,8 +1395,8 @@ export class MemStorage implements IStorage {
       },
       {
         id: "mar-4",
-        entityId: "entity-2",
-        entityName: "TechStart Solutions",
+        siteId: "site-3",
+        siteName: "London Office",
         module: "health_safety",
         requestedBy: "user-2",
         requestedByName: "Client User",
@@ -1444,36 +1408,6 @@ export class MemStorage implements IStorage {
         createdAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
         reviewedAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
       },
-      {
-        id: "mar-5",
-        entityId: "entity-4",
-        entityName: "Global Retail Services",
-        module: "human_resources",
-        requestedBy: "user-5",
-        requestedByName: "Emma Thompson",
-        reason: "Need HR module for staff onboarding process.",
-        status: "rejected",
-        reviewedBy: "user-consultant-2",
-        reviewedByName: "Emily Watson",
-        reviewNotes: "Contract does not include HR module. Please contact sales.",
-        createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-        reviewedAt: new Date(now.getTime() - 18 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "mar-6",
-        entityId: "entity-5",
-        entityName: "Precision Engineering Co",
-        module: "employment_law",
-        requestedBy: "user-6",
-        requestedByName: "David Brown",
-        reason: "Legal team requires access for compliance review.",
-        status: "pending",
-        reviewedBy: null,
-        reviewedByName: null,
-        reviewNotes: null,
-        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-        reviewedAt: null,
-      },
     ];
     sampleAccessRequests.forEach(req => this.moduleAccessRequests.set(req.id, req));
 
@@ -1482,21 +1416,21 @@ export class MemStorage implements IStorage {
       {
         id: "ca-1",
         consultantId: "user-1",
-        entityId: "entity-1",
+        siteId: "site-1",
         isPrimary: true,
         assignedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
       },
       {
         id: "ca-2",
         consultantId: "user-consultant-2",
-        entityId: "entity-1",
+        siteId: "site-1",
         isPrimary: false,
         assignedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
       },
       {
         id: "ca-3",
         consultantId: "user-consultant-2",
-        entityId: "entity-2",
+        siteId: "site-3",
         isPrimary: true,
         assignedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
       },
@@ -1550,7 +1484,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       role: (insertUser.role ?? "client") as any,
-      entityId: insertUser.entityId ?? null,
+      siteId: insertUser.siteId ?? null,
       status: (insertUser.status ?? "active") as any,
       consultantTier: (insertUser.consultantTier ?? null) as any,
       clientPermissionRole: (insertUser.clientPermissionRole ?? null) as any,
@@ -1574,13 +1508,16 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
 
-  // Entities
-  async getEntities(): Promise<EntityWithSites[]> {
-    const entities = Array.from(this.entities.values());
-    return Promise.all(entities.map(async (entity) => {
-      const sites = await this.getSitesByEntity(entity.id);
-      const summary = await this.getEntityComplianceSummary(entity.id);
-      const moduleAccessList = await this.getEntityModuleAccess(entity.id);
+  // Sites
+  async getSites(): Promise<Site[]> {
+    return Array.from(this.sites.values());
+  }
+
+  async getSitesWithDetails(): Promise<SiteWithDetails[]> {
+    const sites = Array.from(this.sites.values());
+    return Promise.all(sites.map(async (site) => {
+      const summary = await this.getSiteComplianceSummary(site.id);
+      const moduleAccessList = await this.getSiteModuleAccess(site.id);
       
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
@@ -1599,7 +1536,7 @@ export class MemStorage implements IStorage {
       }
       
       // Get assigned consultants
-      const assignments = await this.getConsultantAssignments(entity.id);
+      const assignments = await this.getConsultantAssignments(site.id);
       const assignedConsultants = await Promise.all(
         assignments.map(async (assignment: ConsultantAssignment) => {
           const user = await this.getUser(assignment.consultantId);
@@ -1611,46 +1548,57 @@ export class MemStorage implements IStorage {
         })
       );
       
-      return { ...entity, sites, complianceSummary: summary, moduleAccess, assignedConsultants };
+      return { ...site, complianceSummary: summary, moduleAccess, assignedConsultants };
     }));
   }
 
-  async getEntity(id: string): Promise<Entity | undefined> {
-    return this.entities.get(id);
+  async getSite(id: string): Promise<Site | undefined> {
+    return this.sites.get(id);
   }
 
-  async createEntity(insertEntity: InsertEntity): Promise<Entity> {
+  async getSitesByCompany(companyName: string): Promise<Site[]> {
+    return Array.from(this.sites.values()).filter(site => site.companyName === companyName);
+  }
+
+  async createSite(insertSite: InsertSite): Promise<Site> {
     const id = randomUUID();
-    const entity: Entity = { 
-      ...insertEntity, 
+    const site: Site = { 
+      ...insertSite, 
       id,
-      status: (insertEntity.status ?? "active") as any,
-      companyNumber: insertEntity.companyNumber ?? null,
-      address: insertEntity.address ?? null,
-      contactEmail: insertEntity.contactEmail ?? null,
-      contactPhone: insertEntity.contactPhone ?? null,
-      website: insertEntity.website ?? null,
+      status: (insertSite.status ?? "active") as any,
+      companyNumber: insertSite.companyNumber ?? null,
+      address: insertSite.address ?? null,
+      contactEmail: insertSite.contactEmail ?? null,
+      contactPhone: insertSite.contactPhone ?? null,
+      siteManager: insertSite.siteManager ?? null,
+      website: insertSite.website ?? null,
       createdAt: new Date(),
     };
-    this.entities.set(id, entity);
-    return entity;
+    this.sites.set(id, site);
+    return site;
   }
 
-  async updateEntity(id: string, updates: Partial<Entity>): Promise<Entity | undefined> {
-    const entity = this.entities.get(id);
-    if (!entity) {
+  async updateSite(id: string, updates: Partial<Site>): Promise<Site | undefined> {
+    const site = this.sites.get(id);
+    if (!site) {
       return undefined;
     }
-    const updatedEntity: Entity = {
-      ...entity,
+    const updatedSite: Site = {
+      ...site,
       ...updates,
     };
-    this.entities.set(id, updatedEntity);
-    return updatedEntity;
+    this.sites.set(id, updatedSite);
+    return updatedSite;
   }
 
-  private async getEntityComplianceSummary(entityId: string): Promise<ComplianceSummary> {
-    const docs = Array.from(this.documents.values()).filter(d => d.entityId === entityId && !d.isArchived);
+  async getCompanyNames(): Promise<string[]> {
+    const sites = Array.from(this.sites.values());
+    const companyNames = new Set(sites.map(s => s.companyName));
+    return Array.from(companyNames);
+  }
+
+  private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
+    const docs = Array.from(this.documents.values()).filter(d => d.siteId === siteId && !d.isArchived);
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
@@ -1667,28 +1615,6 @@ export class MemStorage implements IStorage {
     };
   }
 
-  // Sites
-  async getSites(): Promise<Site[]> {
-    return Array.from(this.sites.values());
-  }
-
-  async getSitesByEntity(entityId: string): Promise<Site[]> {
-    return Array.from(this.sites.values()).filter(site => site.entityId === entityId);
-  }
-
-  async createSite(insertSite: InsertSite): Promise<Site> {
-    const id = randomUUID();
-    const site: Site = { 
-      ...insertSite, 
-      id,
-      address: insertSite.address ?? null,
-      siteManager: insertSite.siteManager ?? null,
-      contactPhone: insertSite.contactPhone ?? null,
-    };
-    this.sites.set(id, site);
-    return site;
-  }
-
   // Documents
   async getDocuments(module?: ModuleType): Promise<Document[]> {
     let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
@@ -1702,7 +1628,6 @@ export class MemStorage implements IStorage {
     const doc = this.documents.get(id);
     if (!doc) return undefined;
     
-    const entity = this.entities.get(doc.entityId);
     const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
     const uploader = doc.uploadedBy ? this.users.get(doc.uploadedBy) : undefined;
     const assignee = doc.assignedTo ? this.users.get(doc.assignedTo) : undefined;
@@ -1710,8 +1635,8 @@ export class MemStorage implements IStorage {
     
     return {
       ...doc,
-      entityName: entity?.name,
       siteName: site?.name,
+      companyName: site?.companyName,
       uploadedByName: uploader?.fullName,
       assignedToName: assignee?.fullName,
       versions,
@@ -1791,7 +1716,7 @@ export class MemStorage implements IStorage {
       id,
       action: insertLog.action as any,
       module: (insertLog.module ?? null) as any,
-      entityId: insertLog.entityId ?? null,
+      siteId: insertLog.siteId ?? null,
       documentId: insertLog.documentId ?? null,
       caseId: insertLog.caseId ?? null,
       supportRequestId: insertLog.supportRequestId ?? null,
@@ -1840,13 +1765,13 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard
-  async getComplianceSummary(module?: ModuleType, entityId?: string): Promise<ComplianceSummary> {
+  async getComplianceSummary(module?: ModuleType, siteId?: string): Promise<ComplianceSummary> {
     let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
     if (module) {
       docs = docs.filter(d => d.module === module);
     }
-    if (entityId) {
-      docs = docs.filter(d => d.entityId === entityId);
+    if (siteId) {
+      docs = docs.filter(d => d.siteId === siteId);
     }
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
@@ -1864,7 +1789,7 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getModuleSummaries(entityId?: string): Promise<ModuleSummary[]> {
+  async getModuleSummaries(siteId?: string): Promise<ModuleSummary[]> {
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
@@ -1873,7 +1798,7 @@ export class MemStorage implements IStorage {
     };
     
     return Promise.all(modules.map(async (module) => {
-      const summary = await this.getComplianceSummary(module, entityId);
+      const summary = await this.getComplianceSummary(module, siteId);
       return {
         ...summary,
         module,
@@ -1883,26 +1808,26 @@ export class MemStorage implements IStorage {
   }
 
   // Entity Document Type Access
-  async getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]> {
-    let access = Array.from(this.entityDocumentTypeAccess.values())
-      .filter(a => a.entityId === entityId);
+  async getSiteDocumentTypeAccess(siteId: string, module?: ModuleType): Promise<SiteDocumentTypeAccess[]> {
+    let access = Array.from(this.siteDocumentTypeAccess.values())
+      .filter(a => a.siteId === siteId);
     if (module) {
       access = access.filter(a => a.module === module);
     }
     return access;
   }
 
-  async getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
+  async getDocumentTypesWithAccess(siteId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
     // Get document types from master list for this module
     const masterDocTypes = Array.from(this.documentTypesMap.values())
       .filter(dt => dt.module === module && dt.isActive);
     
-    const entityAccess = await this.getEntityDocumentTypeAccess(entityId, module);
+    const entityAccess = await this.getSiteDocumentTypeAccess(siteId, module);
     const accessibleTypeIds = new Set(entityAccess.map(a => a.documentTypeId));
     
     // Filter documents by both module AND entity
     const docs = Array.from(this.documents.values())
-      .filter(d => d.module === module && d.entityId === entityId && !d.isArchived);
+      .filter(d => d.module === module && d.siteId === siteId && !d.isArchived);
     
     return masterDocTypes.map(dt => ({
       id: dt.id,
@@ -1917,9 +1842,9 @@ export class MemStorage implements IStorage {
     }));
   }
 
-  async grantDocumentTypeAccess(insertAccess: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess> {
+  async grantDocumentTypeAccess(insertAccess: InsertSiteDocumentTypeAccess): Promise<SiteDocumentTypeAccess> {
     const id = randomUUID();
-    const access: EntityDocumentTypeAccess = {
+    const access: SiteDocumentTypeAccess = {
       ...insertAccess,
       id,
       documentTypeId: insertAccess.documentTypeId,
@@ -1927,25 +1852,25 @@ export class MemStorage implements IStorage {
       grantedAt: new Date(),
       grantedBy: insertAccess.grantedBy ?? null,
     };
-    this.entityDocumentTypeAccess.set(id, access);
+    this.siteDocumentTypeAccess.set(id, access);
     return access;
   }
 
-  async revokeDocumentTypeAccess(entityId: string, documentTypeId: string): Promise<boolean> {
-    const toRemove = Array.from(this.entityDocumentTypeAccess.values())
-      .find(a => a.entityId === entityId && a.documentTypeId === documentTypeId);
+  async revokeDocumentTypeAccess(siteId: string, documentTypeId: string): Promise<boolean> {
+    const toRemove = Array.from(this.siteDocumentTypeAccess.values())
+      .find(a => a.siteId === siteId && a.documentTypeId === documentTypeId);
     if (toRemove) {
-      this.entityDocumentTypeAccess.delete(toRemove.id);
+      this.siteDocumentTypeAccess.delete(toRemove.id);
       return true;
     }
     return false;
   }
 
   // Cases (Employment Law)
-  async getCases(entityId?: string, status?: CaseStatus): Promise<Case[]> {
+  async getCases(siteId?: string, status?: CaseStatus): Promise<Case[]> {
     let cases = Array.from(this.cases.values());
-    if (entityId) {
-      cases = cases.filter(c => c.entityId === entityId);
+    if (siteId) {
+      cases = cases.filter(c => c.siteId === siteId);
     }
     if (status) {
       cases = cases.filter(c => c.status === status);
@@ -2030,28 +1955,28 @@ export class MemStorage implements IStorage {
   }
 
   // Entity Module Access
-  async getEntityModuleAccess(entityId: string): Promise<EntityModuleAccess[]> {
-    return Array.from(this.entityModuleAccess.values())
-      .filter(a => a.entityId === entityId);
+  async getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]> {
+    return Array.from(this.siteModuleAccess.values())
+      .filter(a => a.siteId === siteId);
   }
 
-  async getEntityModuleAccessByModule(entityId: string, module: ModuleType): Promise<EntityModuleAccess | undefined> {
-    return Array.from(this.entityModuleAccess.values())
-      .find(a => a.entityId === entityId && a.module === module);
+  async getSiteModuleAccessByModule(siteId: string, module: ModuleType): Promise<SiteModuleAccess | undefined> {
+    return Array.from(this.siteModuleAccess.values())
+      .find(a => a.siteId === siteId && a.module === module);
   }
 
-  async setEntityModuleAccess(
-    entityId: string, 
+  async setSiteModuleAccess(
+    siteId: string, 
     module: ModuleType, 
     status: ModuleAccessStatus, 
     grantedBy?: string, 
     notes?: string
-  ): Promise<EntityModuleAccess> {
-    const existing = await this.getEntityModuleAccessByModule(entityId, module);
+  ): Promise<SiteModuleAccess> {
+    const existing = await this.getSiteModuleAccessByModule(siteId, module);
     const now = new Date();
     
     if (existing) {
-      const updated: EntityModuleAccess = {
+      const updated: SiteModuleAccess = {
         ...existing,
         status,
         grantedBy: status === "active" ? (grantedBy ?? existing.grantedBy) : existing.grantedBy,
@@ -2059,13 +1984,13 @@ export class MemStorage implements IStorage {
         notes: notes ?? existing.notes,
         updatedAt: now,
       };
-      this.entityModuleAccess.set(existing.id, updated);
+      this.siteModuleAccess.set(existing.id, updated);
       return updated;
     } else {
       const id = randomUUID();
-      const access: EntityModuleAccess = {
+      const access: SiteModuleAccess = {
         id,
-        entityId,
+        siteId,
         module,
         status,
         grantedBy: status === "active" ? (grantedBy ?? null) : null,
@@ -2074,16 +1999,16 @@ export class MemStorage implements IStorage {
         createdAt: now,
         updatedAt: now,
       };
-      this.entityModuleAccess.set(id, access);
+      this.siteModuleAccess.set(id, access);
       return access;
     }
   }
 
   // Module Access Requests
-  async getModuleAccessRequests(entityId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]> {
+  async getModuleAccessRequests(siteId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]> {
     let requests = Array.from(this.moduleAccessRequests.values());
-    if (entityId) {
-      requests = requests.filter(r => r.entityId === entityId);
+    if (siteId) {
+      requests = requests.filter(r => r.siteId === siteId);
     }
     if (status) {
       requests = requests.filter(r => r.status === status);
@@ -2131,19 +2056,19 @@ export class MemStorage implements IStorage {
     
     // If approved, grant module access
     if (status === "approved") {
-      await this.setEntityModuleAccess(existing.entityId, existing.module, "active", reviewedBy);
+      await this.setSiteModuleAccess(existing.siteId, existing.module, "active", reviewedBy);
     }
     
     return updated;
   }
 
   // Consultant Assignments
-  async getConsultantAssignments(entityId: string): Promise<ConsultantAssignment[]> {
+  async getConsultantAssignments(siteId: string): Promise<ConsultantAssignment[]> {
     return Array.from(this.consultantAssignments.values())
-      .filter(a => a.entityId === entityId);
+      .filter(a => a.siteId === siteId);
   }
 
-  async getConsultantEntities(consultantId: string): Promise<ConsultantAssignment[]> {
+  async getConsultantSites(consultantId: string): Promise<ConsultantAssignment[]> {
     return Array.from(this.consultantAssignments.values())
       .filter(a => a.consultantId === consultantId);
   }
@@ -2151,7 +2076,7 @@ export class MemStorage implements IStorage {
   async assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment> {
     // Check if already assigned
     const existing = Array.from(this.consultantAssignments.values())
-      .find(a => a.consultantId === assignment.consultantId && a.entityId === assignment.entityId);
+      .find(a => a.consultantId === assignment.consultantId && a.siteId === assignment.siteId);
     if (existing) {
       return existing;
     }
@@ -2160,7 +2085,7 @@ export class MemStorage implements IStorage {
     const newAssignment: ConsultantAssignment = {
       id,
       consultantId: assignment.consultantId,
-      entityId: assignment.entityId,
+      siteId: assignment.siteId,
       isPrimary: assignment.isPrimary ?? false,
       assignedAt: new Date(),
     };
@@ -2168,9 +2093,9 @@ export class MemStorage implements IStorage {
     return newAssignment;
   }
 
-  async updateConsultantAssignment(consultantId: string, entityId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined> {
+  async updateConsultantAssignment(consultantId: string, siteId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined> {
     const entry = Array.from(this.consultantAssignments.entries())
-      .find(([_, a]) => a.consultantId === consultantId && a.entityId === entityId);
+      .find(([_, a]) => a.consultantId === consultantId && a.siteId === siteId);
     if (!entry) {
       return undefined;
     }
@@ -2183,9 +2108,9 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean> {
+  async removeConsultantAssignment(consultantId: string, siteId: string): Promise<boolean> {
     const assignment = Array.from(this.consultantAssignments.entries())
-      .find(([_, a]) => a.consultantId === consultantId && a.entityId === entityId);
+      .find(([_, a]) => a.consultantId === consultantId && a.siteId === siteId);
     if (assignment) {
       this.consultantAssignments.delete(assignment[0]);
       return true;
@@ -2194,9 +2119,9 @@ export class MemStorage implements IStorage {
   }
 
   // Users by Entity
-  async getUsersByEntity(entityId: string): Promise<User[]> {
+  async getUsersBySite(siteId: string): Promise<User[]> {
     return Array.from(this.users.values())
-      .filter(u => u.entityId === entityId);
+      .filter(u => u.siteId === siteId);
   }
 
   async getConsultants(): Promise<User[]> {

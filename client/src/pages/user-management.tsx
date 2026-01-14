@@ -60,9 +60,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole, ClientPermissionRole, ConsultantTier } from "@shared/schema";
 
-interface EntityAssignment {
-  entityId: string;
-  entityName: string;
+interface SiteAssignment {
+  siteId: string;
+  companyName: string;
   isPrimary: boolean;
 }
 
@@ -72,12 +72,12 @@ interface UserWithAssignments {
   email: string;
   fullName: string;
   role: UserRole;
-  entityId: string | null;
+  siteId: string | null;
   status: "active" | "inactive";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
-  entityAssignments?: EntityAssignment[];
+  entityAssignments?: SiteAssignment[];
 }
 
 interface Entity {
@@ -137,8 +137,8 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
-  const { data: entities = [] } = useQuery<Entity[]>({
-    queryKey: ["/api/entities"],
+  const { data: sites = [] } = useQuery<Entity[]>({
+    queryKey: ["/api/sites"],
     enabled: isAdmin || isConsultant,
   });
 
@@ -150,11 +150,11 @@ export default function UserManagement() {
         entityAssignments: consultantData?.entityAssignments || [],
       };
     }
-    if (u.role === "client" && u.entityId) {
-      const entity = entities.find((e) => e.id === u.entityId);
+    if (u.role === "client" && u.siteId) {
+      const entity = sites.find((e) => e.id === u.siteId);
       return {
         ...u,
-        entityName: entity?.name || null,
+        companyName: entity?.name || null,
       };
     }
     return u;
@@ -221,7 +221,7 @@ export default function UserManagement() {
     });
   };
 
-  const renderEntityAssignments = (u: UserWithAssignments & { entityName?: string | null }) => {
+  const renderSiteAssignments = (u: UserWithAssignments & { companyName?: string | null }) => {
     if (u.role === "consultant" && u.entityAssignments && u.entityAssignments.length > 0) {
       const primaryAssignment = u.entityAssignments.find((a) => a.isPrimary);
       const otherAssignments = u.entityAssignments.filter((a) => !a.isPrimary);
@@ -233,13 +233,13 @@ export default function UserManagement() {
         <div className="flex flex-wrap items-center gap-1">
           {visibleAssignments.map((a) => (
             <Badge
-              key={a.entityId}
+              key={a.siteId}
               variant="outline"
               className="text-xs"
-              data-testid={`badge-entity-${a.entityId}`}
+              data-testid={`badge-entity-${a.siteId}`}
             >
               {a.isPrimary && <Shield className="h-3 w-3 mr-1" />}
-              {a.entityName}
+              {a.companyName}
             </Badge>
           ))}
           {remainingCount > 0 && (
@@ -252,9 +252,9 @@ export default function UserManagement() {
               <TooltipContent>
                 <div className="space-y-1">
                   {u.entityAssignments.slice(displayCount).map((a) => (
-                    <div key={a.entityId} className="text-xs">
+                    <div key={a.siteId} className="text-xs">
                       {a.isPrimary && "(Primary) "}
-                      {a.entityName}
+                      {a.companyName}
                     </div>
                   ))}
                 </div>
@@ -269,17 +269,17 @@ export default function UserManagement() {
       return <span className="text-sm text-muted-foreground">No assignments</span>;
     }
 
-    if (u.role === "client" && u.entityName) {
+    if (u.role === "client" && u.companyName) {
       return (
         <div className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          {u.entityName}
+          {u.companyName}
         </div>
       );
     }
 
-    if (u.role === "client" && u.entityId) {
-      const entity = entities.find((e) => e.id === u.entityId);
+    if (u.role === "client" && u.siteId) {
+      const entity = sites.find((e) => e.id === u.siteId);
       return (
         <div className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -439,7 +439,7 @@ export default function UserManagement() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {renderEntityAssignments(u as UserWithAssignments & { entityName?: string | null })}
+                    {renderSiteAssignments(u as UserWithAssignments & { companyName?: string | null })}
                   </TableCell>
                   <TableCell>
                     <Badge variant={u.status === "active" ? "default" : "secondary"}>

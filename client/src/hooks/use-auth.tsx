@@ -9,7 +9,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
-  entityId: string | null;
+  siteId: string | null;
 }
 
 interface AuthContextType {

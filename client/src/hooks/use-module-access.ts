@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./use-auth";
-import type { EntityModuleAccess, ModuleType, ModuleAccessRequest } from "@shared/schema";
+import type { SiteModuleAccess, ModuleType, ModuleAccessRequest } from "@shared/schema";
 
 interface UseModuleAccessResult {
-  moduleAccess: EntityModuleAccess[];
+  moduleAccess: SiteModuleAccess[];
   accessRequests: ModuleAccessRequest[];
   isLoading: boolean;
   hasActiveAccess: (module: ModuleType) => boolean;
@@ -17,14 +17,15 @@ interface UseModuleAccessResult {
 export function useModuleAccess(): UseModuleAccessResult {
   const { user } = useAuth();
   
-  const entityId = user?.entityId;
+  const siteId = user?.siteId;
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
-  // Only fetch module access for clients with an entity
+  // Only fetch module access for clients with a valid site
   // Admin/consultants have access to all modules by default
-  const { data: moduleAccess = [], isLoading: accessLoading } = useQuery<EntityModuleAccess[]>({
-    queryKey: [`/api/entities/${entityId}/module-access`],
-    enabled: !!entityId && !isPrivilegedUser,
+  const shouldFetchModuleAccess = !!siteId && !isPrivilegedUser;
+  const { data: moduleAccess = [], isLoading: accessLoading } = useQuery<SiteModuleAccess[]>({
+    queryKey: [`/api/sites/${siteId}/module-access`],
+    enabled: shouldFetchModuleAccess,
   });
   
   // Fetch access requests for all users
@@ -39,8 +40,8 @@ export function useModuleAccess(): UseModuleAccessResult {
       return "active";
     }
     
-    // Clients without an entity have no access
-    if (!entityId) {
+    // Clients without a site have no access
+    if (!siteId) {
       return undefined;
     }
     
@@ -74,10 +75,10 @@ export function useModuleAccess(): UseModuleAccessResult {
   };
 
   const hasPendingRequest = (module: ModuleType): boolean => {
-    if (!entityId) return false;
+    if (!siteId) return false;
     return accessRequests.some(
       r => r.module === module && 
-           r.entityId === entityId && 
+           r.siteId === siteId && 
            r.status === "pending"
     );
   };

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
-import { EntityCombobox } from "@/components/entity-combobox";
+import { SiteCombobox } from "@/components/site-combobox";
 import { 
   FileText, 
   Clock, 
@@ -125,7 +125,7 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
@@ -135,22 +135,22 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch entities for admin/consultant users
-  const { data: entities, isLoading: entitiesLoading } = useQuery<Entity[]>({
-    queryKey: ["/api/entities"],
+  const { data: entities, isLoading: sitesLoading } = useQuery<Entity[]>({
+    queryKey: ["/api/sites"],
     enabled: canSelectEntities,
   });
   
   // Determine which entity to show data for
   // "all" means show data across all entities
-  const entityId = user?.role === "client" 
-    ? user?.entityId 
-    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
+  const siteId = user?.role === "client" 
+    ? user?.siteId 
+    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
-    queryKey: ["/api/dashboard", module, entityId],
+    queryKey: ["/api/dashboard", module, siteId],
     queryFn: async () => {
-      const url = entityId 
-        ? `/api/dashboard/${module}?entityId=${entityId}`
+      const url = siteId 
+        ? `/api/dashboard/${module}?siteId=${siteId}`
         : `/api/dashboard/${module}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
@@ -159,10 +159,10 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   });
   
   const currentEntityName = canSelectEntities 
-    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
     : null;
 
-  if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
+  if (isLoading || isAuthLoading || (canSelectEntities && sitesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -219,11 +219,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {/* Entity selector for admin/consultant oversight */}
-            {canSelectEntities && entities && entities.length > 0 && (
-              <EntityCombobox
+            {canSelectEntities && entities && sites.length > 0 && (
+              <SiteCombobox
                 entities={entities}
-                value={selectedEntityId}
-                onValueChange={setSelectedEntityId}
+                value={selectedSiteId}
+                onValueChange={setSelectedSiteId}
                 className="w-56"
                 testId="select-entity-module-dashboard"
               />

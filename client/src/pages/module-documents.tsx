@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
-import { EntityCombobox } from "@/components/entity-combobox";
+import { SiteCombobox } from "@/components/site-combobox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -118,7 +118,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   
   const { user } = useAuth();
   const config = moduleConfig[module];
@@ -131,7 +131,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Fetch entities for consultant/admin users
   const { data: entities } = useQuery<EntityBasic[]>({
-    queryKey: ["/api/entities"],
+    queryKey: ["/api/sites"],
     enabled: !isClientUser,
   });
 
@@ -146,13 +146,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Determine which entity to show access for
   // "all" means show data across all entities
   const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
-  const entityId = isClientUser 
-    ? (user?.entityId || null)
-    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
+  const siteId = isClientUser 
+    ? (user?.siteId || null)
+    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
     
   const { data: documentTypesWithAccess } = useQuery<DocumentTypeWithAccess[]>({
-    queryKey: ["/api/document-types", module, entityId],
-    enabled: !!entityId,
+    queryKey: ["/api/document-types", module, siteId],
+    enabled: !!siteId,
   });
   
   const accessibleTypes = documentTypesWithAccess?.filter(dt => dt.hasAccess) || [];
@@ -160,7 +160,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Get current entity name
   const currentEntityName = canSelectEntities 
-    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
     : null;
 
   const filteredDocuments = documents?.filter((doc) => {
@@ -216,11 +216,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Entity selector for admin/consultant oversight */}
-            {canSelectEntities && entities && entities.length > 0 && (
-              <EntityCombobox
+            {canSelectEntities && entities && sites.length > 0 && (
+              <SiteCombobox
                 entities={entities}
-                value={selectedEntityId}
-                onValueChange={setSelectedEntityId}
+                value={selectedSiteId}
+                onValueChange={setSelectedSiteId}
                 className="w-64"
                 testId="select-entity-header"
               />
@@ -238,7 +238,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       <div className="space-y-6 p-8">
 
       {/* Document Type Access Section */}
-      {entityId && documentTypesWithAccess && documentTypesWithAccess.length > 0 && (
+      {siteId && documentTypesWithAccess && documentTypesWithAccess.length > 0 && (
         <Collapsible open={showDocTypeAccess} onOpenChange={setShowDocTypeAccess}>
           <Card className={unavailableTypes.length > 0 ? "border-amber-300 dark:border-amber-700 shadow-sm" : ""}>
             <CollapsibleTrigger asChild>
@@ -281,18 +281,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <CollapsibleContent>
               <CardContent className="pt-0">
                 {/* Entity selector for consultants/admins */}
-                {!isClientUser && entities && entities.length > 1 && (
+                {!isClientUser && entities && sites.length > 1 && (
                   <div className="mb-4 flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">View access for:</span>
                     <Select 
-                      value={entityId || ""} 
-                      onValueChange={setSelectedEntityId}
+                      value={siteId || ""} 
+                      onValueChange={setSelectedSiteId}
                     >
                       <SelectTrigger className="w-64" data-testid="select-entity-access">
                         <SelectValue placeholder="Select client" />
                       </SelectTrigger>
                       <SelectContent>
-                        {entities.map((entity) => (
+                        {sites.map((entity) => (
                           <SelectItem key={entity.id} value={entity.id}>
                             {entity.name}
                           </SelectItem>
@@ -617,7 +617,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Entity</p>
-                  <p>{document.entityName || "N/A"}</p>
+                  <p>{document.companyName || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Site</p>

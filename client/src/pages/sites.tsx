@@ -39,10 +39,10 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { EntityWithSites, Site, ComplianceSummary, EntityModuleAccessSummary } from "@shared/schema";
+import type { SiteWithDetails, Site, ComplianceSummary, SiteModuleAccessSummary } from "@shared/schema";
 import { Shield, Heart, Briefcase } from "lucide-react";
 
-function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: EntityModuleAccessSummary }) {
+function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: SiteModuleAccessSummary }) {
   if (!moduleAccess) return null;
 
   const modules = [
@@ -116,7 +116,7 @@ function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
   );
 }
 
-function SiteCard({ site, entityId }: { site: Site; entityId: string }) {
+function SiteCard({ site, siteId }: { site: Site; siteId: string }) {
   return (
     <div className="rounded-md border p-4 hover-elevate">
       <div className="flex items-start gap-3">
@@ -155,7 +155,7 @@ function SiteCard({ site, entityId }: { site: Site; entityId: string }) {
   );
 }
 
-function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (id: string) => void }) {
+function EntityCard({ entity, onManage }: { entity: SiteWithDetails; onManage: (id: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -274,7 +274,7 @@ function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (
               {entity.sites && entity.sites.length > 0 ? (
                 <div className="space-y-3">
                   {entity.sites.map((site) => (
-                    <SiteCard key={site.id} site={site} entityId={entity.id} />
+                    <SiteCard key={site.id} site={site} siteId={entity.id} />
                   ))}
                 </div>
               ) : (
@@ -309,17 +309,17 @@ export default function Entities() {
   });
   const { toast } = useToast();
 
-  const { data: entities, isLoading } = useQuery<EntityWithSites[]>({
-    queryKey: ["/api/entities"],
+  const { data: entities, isLoading } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites"],
   });
 
   const createEntityMutation = useMutation({
     mutationFn: async (data: typeof newEntity) => {
-      const response = await apiRequest("POST", "/api/entities", data);
+      const response = await apiRequest("POST", "/api/sites", data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Entity created successfully" });
       setIsAddEntityOpen(false);
       setNewEntity({
@@ -336,8 +336,8 @@ export default function Entities() {
     },
   });
 
-  const handleManageEntity = (entityId: string) => {
-    navigate(`/entities/${entityId}`);
+  const handleManageEntity = (siteId: string) => {
+    navigate(`/entities/${siteId}`);
   };
 
   const handleCreateEntity = () => {
@@ -348,7 +348,7 @@ export default function Entities() {
     createEntityMutation.mutate(newEntity);
   };
 
-  const filteredEntities = entities?.filter((entity) =>
+  const filteredEntities = sites?.filter((entity) =>
     entity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     entity.companyNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -388,7 +388,7 @@ export default function Entities() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search entities..."
+            placeholder="Search sites..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"

@@ -25,9 +25,8 @@ interface Checklist {
   id: string;
   title: string;
   category: string;
-  entityId: string;
-  entityName: string;
-  siteId?: string;
+  siteId: string;
+  companyName: string;
   siteName?: string;
   assignedTo: string;
   assignedToName: string;
@@ -44,9 +43,8 @@ const mockChecklists: Checklist[] = [
     id: "1",
     title: "Monthly Fire Safety Inspection",
     category: "Fire Safety",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "1",
+    companyName: "Acme Corporation",
     siteName: "Head Office",
     assignedTo: "user1",
     assignedToName: "John Smith",
@@ -60,9 +58,8 @@ const mockChecklists: Checklist[] = [
     id: "2",
     title: "Weekly Workplace Hazard Check",
     category: "General Safety",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "2",
+    companyName: "Acme Corporation",
     siteName: "Warehouse",
     assignedTo: "user2",
     assignedToName: "Sarah Jones",
@@ -77,8 +74,8 @@ const mockChecklists: Checklist[] = [
     id: "3",
     title: "Annual COSHH Assessment Checklist",
     category: "COSHH",
-    entityId: "2",
-    entityName: "TechStart Ltd",
+    siteId: "3",
+    companyName: "TechStart Ltd",
     assignedTo: "user3",
     assignedToName: "Mike Wilson",
     status: "not_started",
@@ -91,9 +88,8 @@ const mockChecklists: Checklist[] = [
     id: "4",
     title: "First Aid Equipment Check",
     category: "First Aid",
-    entityId: "1",
-    entityName: "Acme Corporation",
     siteId: "1",
+    companyName: "Acme Corporation",
     siteName: "Head Office",
     assignedTo: "user1",
     assignedToName: "John Smith",
@@ -141,7 +137,7 @@ function ChecklistCard({ checklist }: { checklist: Checklist }) {
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
-                  {checklist.entityName}
+                  {checklist.companyName}
                   {checklist.siteName && ` - ${checklist.siteName}`}
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -199,7 +195,7 @@ export default function HSChecklists() {
 
   const filteredChecklists = checklists?.filter((checklist) => {
     const matchesSearch = checklist.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      checklist.entityName.toLowerCase().includes(searchQuery.toLowerCase());
+      checklist.companyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || checklist.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
