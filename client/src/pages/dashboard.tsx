@@ -13,10 +13,9 @@ import {
   TrendingUp,
   Shield,
   Scale,
-  Briefcase,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { ModuleSummary, Case } from "@shared/schema";
+import type { ModuleSummary } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -24,9 +23,10 @@ interface DashboardData {
 
 function ModuleCard({ summary }: { summary: ModuleSummary }) {
   const isHS = summary.module === "health_safety";
-  const Icon = isHS ? HardHat : Users;
-  const basePath = isHS ? "/health-safety" : "/human-resources";
-  const themeClass = isHS ? "theme-hs" : "theme-hr";
+  const isEL = summary.module === "employment_law";
+  const Icon = isHS ? HardHat : isEL ? Scale : Users;
+  const basePath = isHS ? "/health-safety" : isEL ? "/employment-law" : "/human-resources";
+  const themeClass = isHS ? "theme-hs" : isEL ? "theme-el" : "theme-hr";
   
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -43,14 +43,34 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
   // Module-specific styling
   const moduleStyles = isHS 
     ? "border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20"
+    : isEL 
+    ? "border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20"
     : "border-t-4 border-t-blue-500 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20";
+  
+  const iconBgClass = isHS 
+    ? "bg-emerald-100 dark:bg-emerald-900/40" 
+    : isEL 
+    ? "bg-pink-100 dark:bg-pink-900/40"
+    : "bg-blue-100 dark:bg-blue-900/40";
+  
+  const iconColorClass = isHS 
+    ? "text-emerald-600 dark:text-emerald-400" 
+    : isEL 
+    ? "text-pink-600 dark:text-pink-400"
+    : "text-blue-600 dark:text-blue-400";
+  
+  const buttonClass = isHS 
+    ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" 
+    : isEL 
+    ? "border-pink-500 text-pink-600 hover:bg-pink-50 dark:text-pink-400 dark:hover:bg-pink-950/30"
+    : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30";
 
   return (
     <Card className={`hover-elevate ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${isHS ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
-            <Icon className={`h-6 w-6 ${isHS ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}`} />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBgClass}`}>
+            <Icon className={`h-6 w-6 ${iconColorClass}`} />
           </div>
           <div>
             <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
@@ -96,68 +116,8 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        <Button className={`w-full ${isHS ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"}`} variant="outline" asChild>
+        <Button className={`w-full ${buttonClass}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
-            View Module
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmploymentLawCard({ cases }: { cases: Case[] }) {
-  const activeCases = cases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
-  const resolvedCases = cases.filter(c => c.status === "resolved" || c.status === "closed").length;
-  const totalCases = cases.length;
-
-  return (
-    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/40">
-            <Scale className="h-6 w-6 text-pink-600 dark:text-pink-400" />
-          </div>
-          <div>
-            <CardTitle className="text-lg">Employment Law</CardTitle>
-            <CardDescription>{totalCases} cases</CardDescription>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-            {activeCases}
-          </span>
-          <p className="text-xs text-muted-foreground">Active</p>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="flex items-center justify-center gap-1 text-pink-600 dark:text-pink-400">
-              <Briefcase className="h-4 w-4" />
-              <span className="text-lg font-semibold">{activeCases}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Active</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{resolvedCases}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Resolved</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-              <FileText className="h-4 w-4" />
-              <span className="text-lg font-semibold">{totalCases}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Total</p>
-          </div>
-        </div>
-
-        <Button className="w-full border-pink-500 text-pink-600 hover:bg-pink-50 dark:text-pink-400 dark:hover:bg-pink-950/30" variant="outline" asChild>
-          <Link href="/employment-law" data-testid="link-module-employment_law">
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -262,15 +222,9 @@ function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
 }
 
 export default function Dashboard() {
-  const { data: moduleSummaries, isLoading: isLoadingSummaries } = useQuery<ModuleSummary[]>({
+  const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary"],
   });
-
-  const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
-  });
-
-  const isLoading = isLoadingSummaries || isLoadingCases;
 
   if (isLoading) {
     return (
@@ -290,7 +244,6 @@ export default function Dashboard() {
   }
 
   const summaries = moduleSummaries || [];
-  const caseList = cases || [];
 
   return (
     <div className="space-y-8 p-8">
@@ -309,7 +262,6 @@ export default function Dashboard() {
           {summaries.map((summary) => (
             <ModuleCard key={summary.module} summary={summary} />
           ))}
-          <EmploymentLawCard cases={caseList} />
         </div>
       </div>
 
