@@ -37,7 +37,8 @@ Core entities include:
 - **Users**: Role-based (admin, consultant, client) with entity association
 - **Entities**: Client organizations with company details - the central hub for management
 - **Sites**: Physical locations belonging to entities
-- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue)
+- **Document Types**: Admin-managed master list defining required/optional document types per module with renewal periods
+- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to document types
 - **Document Versions**: Version history for document changes
 - **Consultant Assignments**: Links consultants to entities with primary flag
 - **Entity Module Access**: Three-state access control (active/visible/hidden) per module
