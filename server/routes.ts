@@ -1594,5 +1594,90 @@ export async function registerRoutes(
     }
   });
 
+  // Update consultant assignment (set primary)
+  app.patch("/api/entities/:entityId/consultants/:consultantId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can update consultant assignments
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update consultant assignments" });
+      }
+      
+      const { isPrimary } = req.body;
+      
+      const updated = await storage.updateConsultantAssignment(
+        req.params.consultantId,
+        req.params.entityId,
+        { isPrimary }
+      );
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      
+      // Get consultant details for response
+      const consultant = await storage.getUser(req.params.consultantId);
+      res.json({
+        ...updated,
+        consultantName: consultant?.fullName || "Unknown",
+        consultantEmail: consultant?.email || "",
+        consultantTier: consultant?.consultantTier || null,
+      });
+    } catch (error) {
+      console.error("Update consultant assignment error:", error);
+      res.status(500).json({ error: "Failed to update consultant assignment" });
+    }
+  });
+
+  // Update user
+  app.patch("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can update users, or consultants for their assigned entities
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (currentUser.role !== "admin") {
+        // Consultants can only update users in their assigned entities
+        if (currentUser.role === "consultant" && targetUser.entityId) {
+          const assignments = await storage.getConsultantAssignments(targetUser.entityId);
+          if (!assignments.some(a => a.consultantId === currentUser.id)) {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        } else {
+          return res.status(403).json({ error: "Only admins can update users" });
+        }
+      }
+      
+      const { status, clientPermissionRole } = req.body;
+      
+      const updated = await storage.updateUser(req.params.id, {
+        status,
+        clientPermissionRole,
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Remove password from response
+      const { password, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
   return httpServer;
 }

@@ -29,6 +29,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
   // Entities
   getEntities(): Promise<EntityWithSites[]>;
@@ -95,6 +96,7 @@ export interface IStorage {
   getConsultantAssignments(entityId: string): Promise<ConsultantAssignment[]>;
   getConsultantEntities(consultantId: string): Promise<ConsultantAssignment[]>;
   assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment>;
+  updateConsultantAssignment(consultantId: string, entityId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined>;
   removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean>;
   
   // Users by Entity
@@ -1413,6 +1415,19 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) {
+      return undefined;
+    }
+    const updatedUser: User = {
+      ...user,
+      ...updates,
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
   // Entities
   async getEntities(): Promise<EntityWithSites[]> {
     const entities = Array.from(this.entities.values());
@@ -1952,6 +1967,21 @@ export class MemStorage implements IStorage {
     };
     this.consultantAssignments.set(id, newAssignment);
     return newAssignment;
+  }
+
+  async updateConsultantAssignment(consultantId: string, entityId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined> {
+    const entry = Array.from(this.consultantAssignments.entries())
+      .find(([_, a]) => a.consultantId === consultantId && a.entityId === entityId);
+    if (!entry) {
+      return undefined;
+    }
+    const [id, assignment] = entry;
+    const updated: ConsultantAssignment = {
+      ...assignment,
+      ...updates,
+    };
+    this.consultantAssignments.set(id, updated);
+    return updated;
   }
 
   async removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean> {

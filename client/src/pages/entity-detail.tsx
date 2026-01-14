@@ -56,7 +56,16 @@ import {
   Crown,
   MessageSquare,
   Clock,
+  MoreHorizontal,
+  Pencil,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import type { Entity, Site, User, ConsultantAssignment, EntityModuleAccess, ModuleAccessRequest } from "@shared/schema";
 
@@ -241,6 +250,22 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ consultantId, isPrimary }: { consultantId: string; isPrimary: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/entities/${entityId}/consultants/${consultantId}`, {
+        isPrimary,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "consultants"] });
+      toast({ title: "Consultant updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update consultant", variant: "destructive" });
+    },
+  });
+
   const availableConsultants = allConsultants.filter(
     (c) => !assignments.some((a) => a.consultantId === c.id)
   );
@@ -351,35 +376,65 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
                   <Badge variant="outline">
                     {assignment.consultantTier || "Standard"}
                   </Badge>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        data-testid={`button-remove-consultant-${assignment.consultantId}`}
+                        className="h-8 w-8"
+                        data-testid={`button-consultant-menu-${assignment.consultantId}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Consultant</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to remove {assignment.consultantName} from this entity?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => removeMutation.mutate(assignment.consultantId)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {!assignment.isPrimary && (
+                        <DropdownMenuItem
+                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, isPrimary: true })}
                         >
-                          Remove
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <Crown className="mr-2 h-4 w-4" />
+                          Set as Primary
+                        </DropdownMenuItem>
+                      )}
+                      {assignment.isPrimary && (
+                        <DropdownMenuItem
+                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, isPrimary: false })}
+                        >
+                          <Star className="mr-2 h-4 w-4" />
+                          Remove Primary Status
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Remove from Entity
+                          </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Consultant</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to remove {assignment.consultantName} from this entity?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => removeMutation.mutate(assignment.consultantId)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
@@ -391,8 +446,31 @@ function ConsultantsTab({ entityId }: { entityId: string }) {
 }
 
 function UsersTab({ entityId }: { entityId: string }) {
+  const { toast } = useToast();
+  const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
+  const [editRole, setEditRole] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<string>("");
+
   const { data: users = [], isLoading } = useQuery<UserWithoutPassword[]>({
     queryKey: ["/api/entities", entityId, "users"],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ userId, role, status }: { userId: string; role?: string; status?: string }) => {
+      const response = await apiRequest("PATCH", `/api/users/${userId}`, {
+        clientPermissionRole: role,
+        status,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "users"] });
+      toast({ title: "User updated successfully" });
+      setEditingUser(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update user", variant: "destructive" });
+    },
   });
 
   const roleLabels: Record<string, string> = {
@@ -400,6 +478,21 @@ function UsersTab({ entityId }: { entityId: string }) {
     approver: "Approver",
     editor: "Editor",
     viewer: "Viewer",
+  };
+
+  const handleEditUser = (user: UserWithoutPassword) => {
+    setEditingUser(user);
+    setEditRole(user.clientPermissionRole || "viewer");
+    setEditStatus(user.status || "active");
+  };
+
+  const handleSaveUser = () => {
+    if (!editingUser) return;
+    updateMutation.mutate({
+      userId: editingUser.id,
+      role: editRole,
+      status: editStatus,
+    });
   };
 
   if (isLoading) {
@@ -413,60 +506,137 @@ function UsersTab({ entityId }: { entityId: string }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-base">Client Users ({users.length})</CardTitle>
-          <CardDescription>Users with access to this entity's portal</CardDescription>
-        </div>
-        <Button size="sm" data-testid="button-add-user">
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {users.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No users registered for this entity.</p>
-        ) : (
-          <div className="space-y-3">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between rounded-md border p-3"
-                data-testid={`user-${user.id}`}
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback>
-                      {user.fullName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{user.fullName}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-base">Client Users ({users.length})</CardTitle>
+            <CardDescription>Users with access to this entity's portal</CardDescription>
+          </div>
+          <Button size="sm" data-testid="button-add-user">
+            <Plus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {users.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No users registered for this entity.</p>
+          ) : (
+            <div className="space-y-3">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                  data-testid={`user-${user.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarFallback>
+                        {user.fullName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{user.fullName}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
+                    </Badge>
+                    <Badge
+                      variant={user.status === "active" ? "secondary" : "outline"}
+                      className={user.status === "active" ? "bg-emerald-500/10 text-emerald-600" : ""}
+                    >
+                      {user.status}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          data-testid={`button-user-menu-${user.id}`}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit User
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => updateMutation.mutate({
+                            userId: user.id,
+                            status: user.status === "active" ? "inactive" : "active"
+                          })}
+                        >
+                          {user.status === "active" ? "Deactivate" : "Activate"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">
-                    {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
-                  </Badge>
-                  <Badge
-                    variant={user.status === "active" ? "secondary" : "outline"}
-                    className={user.status === "active" ? "bg-emerald-500/10 text-emerald-600" : ""}
-                  >
-                    {user.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update {editingUser?.fullName}'s role and status.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Permission Role</label>
+              <Select value={editRole} onValueChange={setEditRole}>
+                <SelectTrigger data-testid="select-user-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="approver">Approver</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger data-testid="select-user-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveUser} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
