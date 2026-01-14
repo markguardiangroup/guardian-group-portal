@@ -25,6 +25,7 @@ import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ModuleAccessRequests from "@/pages/module-access-requests";
 import UserManagement from "@/pages/user-management";
+import DocumentTypes from "@/pages/document-types";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -71,6 +72,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route path="/users" component={UserManagement} />
+      <Route path="/document-types" component={DocumentTypes} />
       <Route component={NotFound} />
     </Switch>
   );

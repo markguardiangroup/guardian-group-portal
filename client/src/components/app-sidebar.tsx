@@ -123,6 +123,11 @@ const adminNavItems = [
     icon: Users,
   },
   {
+    title: "Document Types",
+    url: "/document-types",
+    icon: FileText,
+  },
+  {
     title: "Module Requests",
     url: "/access-requests",
     icon: KeyRound,
