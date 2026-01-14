@@ -502,8 +502,38 @@ export default function Reports() {
             )}
 
             <div className="mt-6 border-t pt-4">
-              <h4 className="mb-3 font-medium">Summary</h4>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="font-medium">Summary</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const headers = ["Entity", "Company Number", "Sites", "Health & Safety", "Human Resources", "Employment Law", "Compliance Score"];
+                    const rows = entitiesWithModules.map(entity => [
+                      entity.name,
+                      entity.companyNumber || "",
+                      entity.sites?.length || 0,
+                      entity.moduleAccess?.health_safety || "hidden",
+                      entity.moduleAccess?.human_resources || "hidden",
+                      entity.moduleAccess?.employment_law || "hidden",
+                      `${entity.complianceSummary?.complianceScore || 0}%`
+                    ]);
+                    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+                    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `entity-module-status-${format(new Date(), "yyyy-MM-dd")}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  data-testid="button-download-csv"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download CSV
+                </Button>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-4">
                 <div className="rounded-md border p-3 text-center">
                   <p className="text-2xl font-semibold">{entitiesWithModules.length}</p>
                   <p className="text-sm text-muted-foreground">Total Entities</p>
@@ -519,6 +549,12 @@ export default function Reports() {
                     {entitiesWithModules.filter(e => e.moduleAccess?.human_resources === "active").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active HR</p>
+                </div>
+                <div className="rounded-md border p-3 text-center">
+                  <p className="text-2xl font-semibold text-emerald-600">
+                    {entitiesWithModules.filter(e => e.moduleAccess?.employment_law === "active").length}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Active EL</p>
                 </div>
               </div>
             </div>
