@@ -11,6 +11,10 @@ import {
   type DocumentWithDetails,
   type ModuleType,
   type ModuleSummary,
+  type EntityDocumentTypeAccess, type InsertEntityDocumentTypeAccess,
+  type DocumentTypeWithAccess,
+  type DocumentType,
+  moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -52,6 +56,12 @@ export interface IStorage {
   // Dashboard
   getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
   getModuleSummaries(): Promise<ModuleSummary[]>;
+  
+  // Entity Document Type Access
+  getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]>;
+  getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]>;
+  grantDocumentTypeAccess(access: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess>;
+  revokeDocumentTypeAccess(entityId: string, documentType: DocumentType): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -62,6 +72,7 @@ export class MemStorage implements IStorage {
   private documentVersions: Map<string, DocumentVersion>;
   private auditLogs: Map<string, AuditLog>;
   private supportRequests: Map<string, SupportRequest>;
+  private entityDocumentTypeAccess: Map<string, EntityDocumentTypeAccess>;
 
   constructor() {
     this.users = new Map();
@@ -71,6 +82,7 @@ export class MemStorage implements IStorage {
     this.documentVersions = new Map();
     this.auditLogs = new Map();
     this.supportRequests = new Map();
+    this.entityDocumentTypeAccess = new Map();
     
     this.initializeSampleData();
   }
@@ -649,6 +661,40 @@ export class MemStorage implements IStorage {
       },
     ];
     requests.forEach(req => this.supportRequests.set(req.id, req));
+    
+    // Create sample entity document type access
+    // Entity 1 (Acme Manufacturing) - has access to most document types but not all
+    const entity1Access: EntityDocumentTypeAccess[] = [
+      // H&S document types - missing method_statement and hs_checklist for upsell opportunity
+      { id: "access-1", entityId: "entity-1", documentType: "hs_policy" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-2", entityId: "entity-1", documentType: "risk_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-3", entityId: "entity-1", documentType: "safety_audit" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-4", entityId: "entity-1", documentType: "coshh_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-5", entityId: "entity-1", documentType: "fire_safety" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-6", entityId: "entity-1", documentType: "incident_report" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // HR document types - missing absence_record for upsell opportunity
+      { id: "access-7", entityId: "entity-1", documentType: "employment_contract" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-8", entityId: "entity-1", documentType: "employee_handbook" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-9", entityId: "entity-1", documentType: "disciplinary_procedure" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-10", entityId: "entity-1", documentType: "grievance_procedure" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-11", entityId: "entity-1", documentType: "training_record" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-12", entityId: "entity-1", documentType: "performance_review" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-13", entityId: "entity-1", documentType: "hr_policy" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+    entity1Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    
+    // Entity 2 (TechStart Solutions) - smaller package, fewer document types
+    const entity2Access: EntityDocumentTypeAccess[] = [
+      // H&S - basic package only
+      { id: "access-20", entityId: "entity-2", documentType: "hs_policy" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-21", entityId: "entity-2", documentType: "risk_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-22", entityId: "entity-2", documentType: "fire_safety" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // HR - basic package only
+      { id: "access-23", entityId: "entity-2", documentType: "employment_contract" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-24", entityId: "entity-2", documentType: "employee_handbook" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-25", entityId: "entity-2", documentType: "hr_policy" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+    entity2Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
   }
 
   // Users
@@ -933,6 +979,59 @@ export class MemStorage implements IStorage {
         moduleName: moduleNames[module],
       };
     }));
+  }
+
+  // Entity Document Type Access
+  async getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]> {
+    let access = Array.from(this.entityDocumentTypeAccess.values())
+      .filter(a => a.entityId === entityId);
+    if (module) {
+      access = access.filter(a => a.module === module);
+    }
+    return access;
+  }
+
+  async getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
+    const config = moduleConfig[module];
+    if (!config) return [];
+    
+    const entityAccess = await this.getEntityDocumentTypeAccess(entityId, module);
+    const accessibleTypes = new Set(entityAccess.map(a => a.documentType));
+    
+    const docs = Array.from(this.documents.values())
+      .filter(d => d.module === module && !d.isArchived);
+    
+    return config.documentTypes.map(dt => ({
+      value: dt.value,
+      label: dt.label,
+      module,
+      hasAccess: accessibleTypes.has(dt.value),
+      documentCount: docs.filter(d => d.type === dt.value).length,
+    }));
+  }
+
+  async grantDocumentTypeAccess(insertAccess: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess> {
+    const id = randomUUID();
+    const access: EntityDocumentTypeAccess = {
+      ...insertAccess,
+      id,
+      documentType: insertAccess.documentType as DocumentType,
+      module: insertAccess.module as ModuleType,
+      grantedAt: new Date(),
+      grantedBy: insertAccess.grantedBy ?? null,
+    };
+    this.entityDocumentTypeAccess.set(id, access);
+    return access;
+  }
+
+  async revokeDocumentTypeAccess(entityId: string, documentType: DocumentType): Promise<boolean> {
+    const toRemove = Array.from(this.entityDocumentTypeAccess.values())
+      .find(a => a.entityId === entityId && a.documentType === documentType);
+    if (toRemove) {
+      this.entityDocumentTypeAccess.delete(toRemove.id);
+      return true;
+    }
+    return false;
   }
 }
 
