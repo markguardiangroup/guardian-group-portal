@@ -238,6 +238,23 @@ export async function registerRoutes(
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
+      
+      // Log document view (only if authenticated user)
+      const user = (req as any).session?.user;
+      if (user) {
+        await storage.createAuditLog({
+          action: "document_viewed",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: document.entityId,
+          documentId: document.id,
+          supportRequestId: null,
+          module: document.module,
+          details: `Viewed ${document.title}`,
+          metadata: null,
+        });
+      }
+      
       res.json(document);
     } catch (error) {
       console.error("Document error:", error);
@@ -271,6 +288,22 @@ export async function registerRoutes(
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Log document download
+      const user = (req as any).session?.user;
+      if (user) {
+        await storage.createAuditLog({
+          action: "document_downloaded",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: document.entityId,
+          documentId: document.id,
+          supportRequestId: null,
+          module: document.module,
+          details: `Downloaded ${document.title}${req.query.version ? ` (Version ${req.query.version})` : ''}`,
+          metadata: null,
+        });
       }
 
       // Check if a specific version is requested
