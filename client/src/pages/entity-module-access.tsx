@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -11,14 +13,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { 
   Building2,
   HardHat, 
@@ -27,18 +36,24 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  Save,
+  Search,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Settings2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { EntityWithSites, EntityModuleAccess, ModuleType, ModuleAccessStatus } from "@shared/schema";
 
-const modules: { module: ModuleType; name: string; icon: typeof HardHat; color: string; bgColor: string }[] = [
+const modules: { module: ModuleType; name: string; shortName: string; icon: typeof HardHat; color: string; bgColor: string }[] = [
   { 
     module: "health_safety", 
     name: "Health & Safety", 
+    shortName: "H&S",
     icon: HardHat,
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
@@ -46,6 +61,7 @@ const modules: { module: ModuleType; name: string; icon: typeof HardHat; color: 
   { 
     module: "human_resources", 
     name: "Human Resources", 
+    shortName: "HR",
     icon: Users,
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-100 dark:bg-blue-900/30",
@@ -53,252 +69,188 @@ const modules: { module: ModuleType; name: string; icon: typeof HardHat; color: 
   { 
     module: "employment_law", 
     name: "Employment Law", 
+    shortName: "EL",
     icon: Scale,
     color: "text-pink-600 dark:text-pink-400",
     bgColor: "bg-pink-100 dark:bg-pink-900/30",
   },
 ];
 
-const statusConfig: Record<ModuleAccessStatus, { label: string; icon: typeof CheckCircle; color: string }> = {
-  active: { label: "Active", icon: CheckCircle, color: "text-emerald-600" },
-  visible: { label: "Visible (Can Request)", icon: Eye, color: "text-amber-600" },
-  hidden: { label: "Hidden", icon: EyeOff, color: "text-muted-foreground" },
-};
+const statusOptions: { value: ModuleAccessStatus; label: string; icon: typeof CheckCircle; color: string }[] = [
+  { value: "active", label: "Active", icon: CheckCircle, color: "text-emerald-600" },
+  { value: "visible", label: "Visible", icon: Eye, color: "text-amber-600" },
+  { value: "hidden", label: "Hidden", icon: EyeOff, color: "text-muted-foreground" },
+];
 
-function EntityAccessCard({ 
-  entity,
-  moduleAccess,
-  onUpdateAccess,
-  isUpdating,
-}: { 
-  entity: EntityWithSites;
-  moduleAccess: EntityModuleAccess[];
-  onUpdateAccess: (entityId: string, module: ModuleType, status: ModuleAccessStatus, notes?: string) => void;
-  isUpdating: boolean;
-}) {
-  const [editDialog, setEditDialog] = useState<{ 
-    open: boolean; 
-    module: ModuleType | null;
-    currentStatus: ModuleAccessStatus;
-    newStatus: ModuleAccessStatus;
-  }>({ open: false, module: null, currentStatus: "hidden", newStatus: "hidden" });
-  const [notes, setNotes] = useState("");
+const ITEMS_PER_PAGE = 20;
 
-  const getModuleStatus = (module: ModuleType): ModuleAccessStatus => {
-    const access = moduleAccess.find(a => a.module === module);
-    return (access?.status as ModuleAccessStatus) || "hidden";
-  };
-
-  const openEditDialog = (module: ModuleType) => {
-    const currentStatus = getModuleStatus(module);
-    setEditDialog({ open: true, module, currentStatus, newStatus: currentStatus });
-    setNotes("");
-  };
-
-  const handleSave = () => {
-    if (!editDialog.module) return;
-    onUpdateAccess(entity.id, editDialog.module, editDialog.newStatus, notes || undefined);
-    setEditDialog({ open: false, module: null, currentStatus: "hidden", newStatus: "hidden" });
-    setNotes("");
-  };
-
+function StatusBadge({ status }: { status: ModuleAccessStatus }) {
+  const config = statusOptions.find(s => s.value === status) || statusOptions[2];
+  const Icon = config.icon;
+  
   return (
-    <>
-      <Card className="hover-elevate" data-testid={`card-entity-access-${entity.id}`}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <CardTitle className="text-base">{entity.name}</CardTitle>
-              <CardDescription>
-                {entity.sites?.length || 0} site{entity.sites?.length !== 1 ? "s" : ""}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {modules.map(({ module, name, icon: Icon, color, bgColor }) => {
-            const status = getModuleStatus(module);
-            const StatusIcon = statusConfig[status].icon;
-            
-            return (
-              <div 
-                key={module} 
-                className="flex items-center justify-between rounded-md border p-3"
-                data-testid={`row-module-${entity.id}-${module}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded ${bgColor}`}>
-                    <Icon className={`h-4 w-4 ${color}`} />
-                  </div>
-                  <span className="text-sm font-medium">{name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    variant={status === "active" ? "default" : "outline"}
-                    className={status === "active" ? "" : statusConfig[status].color}
-                  >
-                    <StatusIcon className="h-3 w-3 mr-1" />
-                    {statusConfig[status].label}
-                  </Badge>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => openEditDialog(module)}
-                    data-testid={`button-edit-${entity.id}-${module}`}
-                  >
-                    Edit
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+    <Badge 
+      variant={status === "active" ? "default" : "outline"}
+      className={status !== "active" ? config.color : ""}
+    >
+      <Icon className="h-3 w-3 mr-1" />
+      {config.label}
+    </Badge>
+  );
+}
 
-      <Dialog open={editDialog.open} onOpenChange={(open) => {
-        if (!open) setEditDialog({ open: false, module: null, currentStatus: "hidden", newStatus: "hidden" });
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Module Access</DialogTitle>
-            <DialogDescription>
-              Change access status for {entity.name}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editDialog.module && (
-            <div className="space-y-4">
-              <div className="rounded-md bg-muted p-4">
-                {(() => {
-                  const moduleConfig = modules.find(m => m.module === editDialog.module);
-                  if (!moduleConfig) return null;
-                  const Icon = moduleConfig.icon;
-                  return (
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${moduleConfig.bgColor}`}>
-                        <Icon className={`h-5 w-5 ${moduleConfig.color}`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{moduleConfig.name}</p>
-                        <p className="text-sm text-muted-foreground">{entity.name}</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Access Status</label>
-                <Select 
-                  value={editDialog.newStatus} 
-                  onValueChange={(value) => setEditDialog(prev => ({ ...prev, newStatus: value as ModuleAccessStatus }))}
-                >
-                  <SelectTrigger data-testid="select-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-emerald-600" />
-                        Active - Full access to module
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="visible">
-                      <div className="flex items-center gap-2">
-                        <Eye className="h-4 w-4 text-amber-600" />
-                        Visible - Can request access
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="hidden">
-                      <div className="flex items-center gap-2">
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        Hidden - Not visible to entity
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Notes (optional)</label>
-                <Textarea
-                  placeholder="Add any notes about this change..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  data-testid="input-access-notes"
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setEditDialog({ open: false, module: null, currentStatus: "hidden", newStatus: "hidden" })}
+function StatusDropdown({ 
+  entityId,
+  module,
+  currentStatus,
+  onUpdate,
+  disabled,
+}: {
+  entityId: string;
+  module: ModuleType;
+  currentStatus: ModuleAccessStatus;
+  onUpdate: (entityId: string, module: ModuleType, status: ModuleAccessStatus) => void;
+  disabled: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild disabled={disabled}>
+        <Button variant="ghost" size="sm" className="h-7 px-2 gap-1" data-testid={`dropdown-status-${entityId}-${module}`}>
+          <StatusBadge status={currentStatus} />
+          <ChevronDown className="h-3 w-3" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {statusOptions.map(option => {
+          const Icon = option.icon;
+          return (
+            <DropdownMenuItem 
+              key={option.value}
+              onClick={() => onUpdate(entityId, module, option.value)}
+              disabled={option.value === currentStatus}
+              data-testid={`option-${option.value}-${entityId}-${module}`}
             >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={isUpdating || editDialog.newStatus === editDialog.currentStatus}
-              data-testid="button-save-access"
-            >
-              {isUpdating ? "Saving..." : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+              <Icon className={`h-4 w-4 mr-2 ${option.color}`} />
+              {option.label}
+              {option.value === currentStatus && <span className="ml-auto text-xs text-muted-foreground">(current)</span>}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 export default function EntityModuleAccess() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [filterModule, setFilterModule] = useState<ModuleType | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<ModuleAccessStatus | "all">("all");
+  const [selectedEntities, setSelectedEntities] = useState<Set<string>>(new Set());
 
   const { data: entities = [], isLoading: entitiesLoading } = useQuery<EntityWithSites[]>({
     queryKey: ["/api/entities"],
   });
 
-  const { data: allModuleAccess = [], isLoading: accessLoading } = useQuery<EntityModuleAccess[]>({
-    queryKey: ["/api/all-module-access"],
-    enabled: false,
-  });
-
   const updateAccessMutation = useMutation({
-    mutationFn: async ({ entityId, module, status, notes }: { 
+    mutationFn: async ({ entityId, module, status }: { 
       entityId: string; 
       module: ModuleType; 
       status: ModuleAccessStatus;
-      notes?: string;
     }) => {
-      return apiRequest("POST", `/api/entities/${entityId}/module-access`, { module, status, notes });
+      return apiRequest("POST", `/api/entities/${entityId}/module-access`, { module, status });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [`/api/entities/${variables.entityId}/module-access`] });
       toast({
         title: "Access Updated",
-        description: "Module access has been updated successfully.",
+        description: "Module access has been updated.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update module access. Please try again.",
+        description: "Failed to update module access.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ entityIds, module, status }: { 
+      entityIds: string[]; 
+      module: ModuleType; 
+      status: ModuleAccessStatus;
+    }) => {
+      await Promise.all(
+        entityIds.map(entityId => 
+          apiRequest("POST", `/api/entities/${entityId}/module-access`, { module, status })
+        )
+      );
+    },
+    onSuccess: () => {
+      entities.forEach(e => {
+        queryClient.invalidateQueries({ queryKey: [`/api/entities/${e.id}/module-access`] });
+      });
+      setSelectedEntities(new Set());
+      toast({
+        title: "Bulk Update Complete",
+        description: `Updated ${selectedEntities.size} entities.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Some updates failed. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const isAdmin = user?.role === "admin" || user?.role === "consultant";
+
+  const filteredEntities = useMemo(() => {
+    return entities.filter(entity => {
+      if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  }, [entities, search]);
+
+  const totalPages = Math.ceil(filteredEntities.length / ITEMS_PER_PAGE);
+  const paginatedEntities = filteredEntities.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
+
+  const toggleSelectAll = () => {
+    if (selectedEntities.size === paginatedEntities.length) {
+      setSelectedEntities(new Set());
+    } else {
+      setSelectedEntities(new Set(paginatedEntities.map(e => e.id)));
+    }
+  };
+
+  const toggleSelectEntity = (entityId: string) => {
+    const newSelected = new Set(selectedEntities);
+    if (newSelected.has(entityId)) {
+      newSelected.delete(entityId);
+    } else {
+      newSelected.add(entityId);
+    }
+    setSelectedEntities(newSelected);
+  };
+
+  const handleBulkUpdate = (module: ModuleType, status: ModuleAccessStatus) => {
+    bulkUpdateMutation.mutate({
+      entityIds: Array.from(selectedEntities),
+      module,
+      status,
+    });
+  };
 
   if (!isAdmin) {
     return (
@@ -319,11 +271,8 @@ export default function EntityModuleAccess() {
     return (
       <div className="space-y-6 p-8">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-96" />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-72" />
-          <Skeleton className="h-72" />
-        </div>
+        <Skeleton className="h-10 w-full max-w-sm" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -333,75 +282,245 @@ export default function EntityModuleAccess() {
       <div>
         <h1 className="text-3xl font-semibold">Entity Module Access</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage which modules each entity can access
+          Manage which modules each entity can access ({entities.length} entities)
         </p>
       </div>
 
-      <div className="rounded-md bg-muted/50 p-4">
-        <h3 className="font-medium">Access Status Levels</h3>
-        <div className="mt-2 grid gap-2 sm:grid-cols-3 text-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
-            <span><strong>Active:</strong> Full module access</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-amber-600" />
-            <span><strong>Visible:</strong> Can request access</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-            <span><strong>Hidden:</strong> Module not shown</span>
-          </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search entities..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="pl-9"
+            data-testid="input-search-entities"
+          />
+        </div>
+
+        {selectedEntities.size > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" data-testid="button-bulk-actions">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Bulk Actions ({selectedEntities.size})
+                <ChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {modules.map(mod => {
+                const Icon = mod.icon;
+                return (
+                  <div key={mod.module}>
+                    <DropdownMenuLabel className="flex items-center gap-2">
+                      <Icon className={`h-4 w-4 ${mod.color}`} />
+                      {mod.shortName}
+                    </DropdownMenuLabel>
+                    {statusOptions.map(status => {
+                      const StatusIcon = status.icon;
+                      return (
+                        <DropdownMenuItem 
+                          key={`${mod.module}-${status.value}`}
+                          onClick={() => handleBulkUpdate(mod.module, status.value)}
+                          data-testid={`bulk-${mod.module}-${status.value}`}
+                        >
+                          <StatusIcon className={`h-4 w-4 mr-2 ${status.color}`} />
+                          Set {mod.shortName} to {status.label}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                  </div>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      <div className="rounded-md bg-muted/50 p-3 text-sm flex flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-emerald-600" />
+          <span><strong>Active:</strong> Full access</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Eye className="h-4 w-4 text-amber-600" />
+          <span><strong>Visible:</strong> Can request</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <EyeOff className="h-4 w-4 text-muted-foreground" />
+          <span><strong>Hidden:</strong> Not shown</span>
         </div>
       </div>
 
-      {entities.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No Entities</h3>
-            <p className="text-muted-foreground text-center mt-1">
-              Create entities first to manage their module access.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {entities.map((entity) => (
-            <EntityAccessCardWithData 
-              key={entity.id} 
-              entity={entity}
-              onUpdateAccess={(entityId, module, status, notes) => {
-                updateAccessMutation.mutate({ entityId, module, status, notes });
-              }}
-              isUpdating={updateAccessMutation.isPending}
-            />
-          ))}
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={selectedEntities.size === paginatedEntities.length && paginatedEntities.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                  data-testid="checkbox-select-all"
+                />
+              </TableHead>
+              <TableHead>Entity</TableHead>
+              {modules.map(mod => {
+                const Icon = mod.icon;
+                return (
+                  <TableHead key={mod.module} className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Icon className={`h-4 w-4 ${mod.color}`} />
+                      <span className="hidden sm:inline">{mod.shortName}</span>
+                    </div>
+                  </TableHead>
+                );
+              })}
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedEntities.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  {search ? "No entities match your search." : "No entities found."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedEntities.map(entity => (
+                <EntityRow
+                  key={entity.id}
+                  entity={entity}
+                  isSelected={selectedEntities.has(entity.id)}
+                  onToggleSelect={() => toggleSelectEntity(entity.id)}
+                  onUpdateAccess={(module, status) => {
+                    updateAccessMutation.mutate({ entityId: entity.id, module, status });
+                  }}
+                  isUpdating={updateAccessMutation.isPending}
+                />
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, filteredEntities.length)} of {filteredEntities.length} entities
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              data-testid="button-prev-page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              data-testid="button-next-page"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function EntityAccessCardWithData({ 
+function EntityRow({ 
   entity, 
+  isSelected,
+  onToggleSelect,
   onUpdateAccess,
   isUpdating,
 }: { 
   entity: EntityWithSites;
-  onUpdateAccess: (entityId: string, module: ModuleType, status: ModuleAccessStatus, notes?: string) => void;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onUpdateAccess: (module: ModuleType, status: ModuleAccessStatus) => void;
   isUpdating: boolean;
 }) {
   const { data: moduleAccess = [] } = useQuery<EntityModuleAccess[]>({
     queryKey: [`/api/entities/${entity.id}/module-access`],
   });
 
+  const getModuleStatus = (module: ModuleType): ModuleAccessStatus => {
+    const access = moduleAccess.find(a => a.module === module);
+    return (access?.status as ModuleAccessStatus) || "hidden";
+  };
+
   return (
-    <EntityAccessCard 
-      entity={entity}
-      moduleAccess={moduleAccess}
-      onUpdateAccess={onUpdateAccess}
-      isUpdating={isUpdating}
-    />
+    <TableRow data-testid={`row-entity-${entity.id}`}>
+      <TableCell>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onToggleSelect}
+          data-testid={`checkbox-${entity.id}`}
+        />
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-muted">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">{entity.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {entity.sites?.length || 0} site{entity.sites?.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      </TableCell>
+      {modules.map(mod => (
+        <TableCell key={mod.module} className="text-center">
+          <StatusDropdown
+            entityId={entity.id}
+            module={mod.module}
+            currentStatus={getModuleStatus(mod.module)}
+            onUpdate={(_, module, status) => onUpdateAccess(module, status)}
+            disabled={isUpdating}
+          />
+        </TableCell>
+      ))}
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" data-testid={`button-actions-${entity.id}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => {
+              modules.forEach(m => onUpdateAccess(m.module, "active"));
+            }}>
+              <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" />
+              Activate All Modules
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              modules.forEach(m => onUpdateAccess(m.module, "hidden"));
+            }}>
+              <EyeOff className="h-4 w-4 mr-2 text-muted-foreground" />
+              Hide All Modules
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }
