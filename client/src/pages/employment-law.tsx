@@ -156,59 +156,69 @@ function EmploymentLawDashboard() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Scale className="h-6 w-6 text-pink-600" />
-            Employment Law
-          </h1>
-          <p className="text-muted-foreground">Manage individual case files and employment law matters</p>
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
+              <Scale className="h-6 w-6" />
+              Employment Law
+            </h1>
+            <p className="text-pink-100">Manage individual case files and employment law matters</p>
+          </div>
+          {(user?.role === "admin" || user?.role === "consultant") && (
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              variant="secondary"
+              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
+              data-testid="button-create-case"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Case
+            </Button>
+          )}
         </div>
-        {(user?.role === "admin" || user?.role === "consultant") && (
-          <Button 
-            onClick={() => setShowCreateDialog(true)}
-            className="bg-pink-600 hover:bg-pink-700"
-            data-testid="button-create-case"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Case
-          </Button>
-        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-t-4 border-t-pink-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
-            <Briefcase className="h-4 w-4 text-pink-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{openCases}</div>
-            <p className="text-xs text-muted-foreground">Currently being managed</p>
-          </CardContent>
-        </Card>
-        <Card className="border-t-4 border-t-amber-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Urgent Deadlines</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{urgentCases}</div>
-            <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
-          </CardContent>
-        </Card>
-        <Card className="border-t-4 border-t-green-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resolved Cases</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{resolvedCases}</div>
-            <p className="text-xs text-muted-foreground">Successfully completed</p>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="px-6 space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-l-4 border-l-pink-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
+              <div className="rounded-full bg-pink-100 dark:bg-pink-900/40 p-2">
+                <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{openCases}</div>
+              <p className="text-xs text-muted-foreground">Currently being managed</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Urgent Deadlines</CardTitle>
+              <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{urgentCases}</div>
+              <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
+            </CardContent>
+          </Card>
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Resolved Cases</CardTitle>
+              <div className="rounded-full bg-green-100 dark:bg-green-900/40 p-2">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{resolvedCases}</div>
+              <p className="text-xs text-muted-foreground">Successfully completed</p>
+            </CardContent>
+          </Card>
+        </div>
 
       <Card>
         <CardHeader>
@@ -335,12 +345,13 @@ function EmploymentLawDashboard() {
         </CardContent>
       </Card>
 
-      <CreateCaseDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onSubmit={(data) => createCaseMutation.mutate(data)}
-        isLoading={createCaseMutation.isPending}
-      />
+        <CreateCaseDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSubmit={(data) => createCaseMutation.mutate(data)}
+          isLoading={createCaseMutation.isPending}
+        />
+      </div>
     </div>
   );
 }
