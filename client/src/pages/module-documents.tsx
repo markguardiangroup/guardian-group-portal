@@ -86,7 +86,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
+  const [showDocTypeAccess, setShowDocTypeAccess] = useState(true);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   
   const { user } = useAuth();
@@ -185,31 +185,33 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       {/* Document Type Access Section */}
       {entityId && documentTypesWithAccess && documentTypesWithAccess.length > 0 && (
         <Collapsible open={showDocTypeAccess} onOpenChange={setShowDocTypeAccess}>
-          <Card>
+          <Card className={unavailableTypes.length > 0 ? "border-amber-300 dark:border-amber-700 shadow-sm" : ""}>
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer hover-elevate pb-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <ShieldCheck className="h-5 w-5 text-module-accent" />
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${unavailableTypes.length > 0 ? "bg-amber-100 dark:bg-amber-900/40" : "bg-module-accent/10"}`}>
+                      <ShieldCheck className={`h-5 w-5 ${unavailableTypes.length > 0 ? "text-amber-600 dark:text-amber-400" : "text-module-accent"}`} />
+                    </div>
                     <div>
-                      <CardTitle className="text-base">
-                        Document Type Access
+                      <CardTitle className="text-base flex items-center gap-2">
+                        Your Document Type Access
                         {currentEntityName && (
-                          <span className="ml-2 text-sm font-normal text-muted-foreground">
-                            for {currentEntityName}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            ({currentEntityName})
                           </span>
                         )}
                       </CardTitle>
                       <CardDescription>
-                        {accessibleTypes.length} of {documentTypesWithAccess.length} document types available
+                        {accessibleTypes.length} of {documentTypesWithAccess.length} document types included in your package
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     {unavailableTypes.length > 0 && (
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                        <Sparkles className="mr-1 h-3 w-3" />
-                        {unavailableTypes.length} available to add
+                      <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                        {unavailableTypes.length} upgrade options
                       </Badge>
                     )}
                     {showDocTypeAccess ? (
