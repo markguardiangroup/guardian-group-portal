@@ -1442,7 +1442,25 @@ export class MemStorage implements IStorage {
     return Promise.all(entities.map(async (entity) => {
       const sites = await this.getSitesByEntity(entity.id);
       const summary = await this.getEntityComplianceSummary(entity.id);
-      return { ...entity, sites, complianceSummary: summary };
+      const moduleAccessList = await this.getEntityModuleAccess(entity.id);
+      
+      const moduleAccess: {
+        health_safety: "active" | "visible" | "hidden";
+        human_resources: "active" | "visible" | "hidden";
+        employment_law: "active" | "visible" | "hidden";
+      } = {
+        health_safety: "hidden",
+        human_resources: "hidden",
+        employment_law: "hidden",
+      };
+      
+      for (const access of moduleAccessList) {
+        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law") {
+          moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
+        }
+      }
+      
+      return { ...entity, sites, complianceSummary: summary, moduleAccess };
     }));
   }
 

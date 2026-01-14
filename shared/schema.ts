@@ -451,10 +451,18 @@ export interface ModuleSummary extends ComplianceSummary {
   moduleName: string;
 }
 
+// Module access summary for entity list view
+export interface EntityModuleAccessSummary {
+  health_safety: "active" | "visible" | "hidden";
+  human_resources: "active" | "visible" | "hidden";
+  employment_law: "active" | "visible" | "hidden";
+}
+
 // Entity with sites for hierarchy view
 export interface EntityWithSites extends Entity {
   sites: Site[];
   complianceSummary?: ComplianceSummary;
+  moduleAccess?: EntityModuleAccessSummary;
 }
 
 // Document with related data
