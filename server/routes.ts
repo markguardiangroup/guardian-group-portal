@@ -550,5 +550,66 @@ export async function registerRoutes(
     }
   });
 
+  // Document Type Access routes
+  app.get("/api/document-types/:module/:entityId", async (req, res) => {
+    try {
+      const { module, entityId } = req.params;
+      if (module !== "health_safety" && module !== "human_resources") {
+        return res.status(400).json({ error: "Invalid module" });
+      }
+      const documentTypes = await storage.getDocumentTypesWithAccess(entityId, module as ModuleType);
+      res.json(documentTypes);
+    } catch (error) {
+      console.error("Document types error:", error);
+      res.status(500).json({ error: "Failed to fetch document types" });
+    }
+  });
+
+  app.get("/api/entity-access/:entityId", async (req, res) => {
+    try {
+      const { entityId } = req.params;
+      const module = req.query.module as ModuleType | undefined;
+      const access = await storage.getEntityDocumentTypeAccess(entityId, module);
+      res.json(access);
+    } catch (error) {
+      console.error("Entity access error:", error);
+      res.status(500).json({ error: "Failed to fetch entity access" });
+    }
+  });
+
+  app.post("/api/entity-access", async (req, res) => {
+    try {
+      const { entityId, documentType, module, grantedBy } = req.body;
+      if (!entityId || !documentType || !module) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const access = await storage.grantDocumentTypeAccess({
+        entityId,
+        documentType,
+        module,
+        grantedBy,
+      });
+      res.json(access);
+    } catch (error) {
+      console.error("Grant access error:", error);
+      res.status(500).json({ error: "Failed to grant access" });
+    }
+  });
+
+  app.delete("/api/entity-access/:entityId/:documentType", async (req, res) => {
+    try {
+      const { entityId, documentType } = req.params;
+      const success = await storage.revokeDocumentTypeAccess(entityId, documentType as any);
+      if (success) {
+        res.json({ message: "Access revoked successfully" });
+      } else {
+        res.status(404).json({ error: "Access not found" });
+      }
+    } catch (error) {
+      console.error("Revoke access error:", error);
+      res.status(500).json({ error: "Failed to revoke access" });
+    }
+  });
+
   return httpServer;
 }
