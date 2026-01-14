@@ -23,6 +23,7 @@ import Reports from "@/pages/reports";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ModuleAccessRequests from "@/pages/module-access-requests";
+import EntityModuleAccess from "@/pages/entity-module-access";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
       <Route path="/access-requests" component={ModuleAccessRequests} />
+      <Route path="/entity-access" component={EntityModuleAccess} />
       <Route component={NotFound} />
     </Switch>
   );

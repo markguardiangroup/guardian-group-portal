@@ -122,6 +122,11 @@ const adminNavItems = [
     url: "/access-requests",
     icon: KeyRound,
   },
+  {
+    title: "Entity Access",
+    url: "/entity-access",
+    icon: Building2,
+  },
 ];
 
 interface AuthUser {
