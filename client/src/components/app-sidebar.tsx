@@ -118,14 +118,19 @@ const settingsNavItems = [
 
 const adminNavItems = [
   {
-    title: "Access Requests",
-    url: "/access-requests",
-    icon: KeyRound,
+    title: "User Management",
+    url: "/users",
+    icon: Users,
   },
   {
     title: "Entity Access",
     url: "/entity-access",
     icon: Building2,
+  },
+  {
+    title: "Access Requests",
+    url: "/access-requests",
+    icon: KeyRound,
   },
 ];
 
