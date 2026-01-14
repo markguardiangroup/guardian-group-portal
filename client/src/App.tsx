@@ -51,12 +51,14 @@ function Router() {
       
       <Route path="/health-safety" component={HealthSafetyDashboard} />
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
+      <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
       <Route path="/health-safety/checklists" component={HSChecklists} />
       <Route path="/health-safety/incidents" component={HSIncidents} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
+      <Route path="/human-resources/documents/upload" component={DocumentUpload} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
       
       <Route path="/employment-law" component={EmploymentLawPage} />
