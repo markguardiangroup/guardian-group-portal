@@ -1535,6 +1535,53 @@ export async function registerRoutes(
 
   // Entity Users Routes
   
+  // Create user for an entity
+  app.post("/api/entities/:entityId/users", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can create users
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create users" });
+      }
+      
+      const { username, email, fullName, password, clientPermissionRole } = req.body;
+      
+      if (!username || !email || !fullName || !password) {
+        return res.status(400).json({ error: "Username, email, full name, and password are required" });
+      }
+      
+      // Check if username or email already exists
+      const existingUsers = await storage.getAllUsers();
+      if (existingUsers.some(u => u.username === username)) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      if (existingUsers.some(u => u.email === email)) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+      
+      const newUser = await storage.createUser({
+        username,
+        email,
+        fullName,
+        password,
+        role: "client",
+        entityId: req.params.entityId,
+        status: "active",
+        clientPermissionRole: clientPermissionRole || "viewer",
+      });
+      
+      const { password: _, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Create entity user error:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
   // Get users for an entity
   app.get("/api/entities/:entityId/users", requireAuth, async (req, res) => {
     try {

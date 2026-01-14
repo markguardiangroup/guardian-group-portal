@@ -464,6 +464,14 @@ function UsersTab({ entityId }: { entityId: string }) {
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const [editRole, setEditRole] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("");
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: "",
+    email: "",
+    fullName: "",
+    password: "",
+    clientPermissionRole: "viewer",
+  });
 
   const { data: users = [], isLoading } = useQuery<UserWithoutPassword[]>({
     queryKey: ["/api/entities", entityId, "users"],
@@ -486,6 +494,36 @@ function UsersTab({ entityId }: { entityId: string }) {
       toast({ title: "Failed to update user", variant: "destructive" });
     },
   });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof newUser) => {
+      const response = await apiRequest("POST", `/api/entities/${entityId}/users`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "users"] });
+      toast({ title: "User created successfully" });
+      setIsAddUserOpen(false);
+      setNewUser({
+        username: "",
+        email: "",
+        fullName: "",
+        password: "",
+        clientPermissionRole: "viewer",
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || "Failed to create user", variant: "destructive" });
+    },
+  });
+
+  const handleAddUser = () => {
+    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.fullName.trim() || !newUser.password.trim()) {
+      toast({ title: "All fields are required", variant: "destructive" });
+      return;
+    }
+    createMutation.mutate(newUser);
+  };
 
   const roleLabels: Record<string, string> = {
     owner: "Owner",
@@ -527,7 +565,7 @@ function UsersTab({ entityId }: { entityId: string }) {
             <CardTitle className="text-base">Client Users ({users.length})</CardTitle>
             <CardDescription>Users with access to this entity's portal</CardDescription>
           </div>
-          <Button size="sm" data-testid="button-add-user">
+          <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
             <Plus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -646,6 +684,90 @@ function UsersTab({ entityId }: { entityId: string }) {
             </Button>
             <Button onClick={handleSaveUser} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new client user for this entity.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-user-fullname">Full Name *</Label>
+              <Input
+                id="new-user-fullname"
+                value={newUser.fullName}
+                onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                placeholder="Enter full name"
+                data-testid="input-new-user-fullname"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-username">Username *</Label>
+                <Input
+                  id="new-user-username"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  placeholder="Enter username"
+                  data-testid="input-new-user-username"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-email">Email *</Label>
+                <Input
+                  id="new-user-email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="email@example.com"
+                  data-testid="input-new-user-email"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-password">Password *</Label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Enter password"
+                  data-testid="input-new-user-password"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-role">Permission Role</Label>
+                <Select
+                  value={newUser.clientPermissionRole}
+                  onValueChange={(value) => setNewUser({ ...newUser, clientPermissionRole: value })}
+                >
+                  <SelectTrigger id="new-user-role" data-testid="select-new-user-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="owner">Owner</SelectItem>
+                    <SelectItem value="approver">Approver</SelectItem>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddUserOpen(false)} data-testid="button-cancel-add-user">
+              Cancel
+            </Button>
+            <Button onClick={handleAddUser} disabled={createMutation.isPending} data-testid="button-save-new-user">
+              {createMutation.isPending ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
