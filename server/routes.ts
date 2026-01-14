@@ -1466,7 +1466,7 @@ export async function registerRoutes(
 
   // Consultant Assignment Routes
   
-  // Get all consultants
+  // Get all consultants with entity assignments
   app.get("/api/consultants", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -1475,16 +1475,83 @@ export async function registerRoutes(
       }
       
       // Only admin can see all consultants
-      if (user.role !== "admin" && user.role !== "consultant") {
+      if (user.role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
       
       const consultants = await storage.getConsultants();
-      const safeConsultants = consultants.map(({ password, ...c }) => c);
-      res.json(safeConsultants);
+      const entities = await storage.getEntities();
+      
+      // Enhance each consultant with their entity assignments
+      const enhancedConsultants = await Promise.all(
+        consultants.map(async (consultant) => {
+          const { password, ...safeConsultant } = consultant;
+          const assignments = await storage.getConsultantEntities(consultant.id);
+          const entityAssignments = assignments.map((a) => {
+            const entity = entities.find((e) => e.id === a.entityId);
+            return {
+              entityId: a.entityId,
+              entityName: entity?.name || "Unknown",
+              isPrimary: a.isPrimary,
+            };
+          });
+          return {
+            ...safeConsultant,
+            entityAssignments,
+          };
+        })
+      );
+      
+      res.json(enhancedConsultants);
     } catch (error) {
       console.error("Get consultants error:", error);
       res.status(500).json({ error: "Failed to fetch consultants" });
+    }
+  });
+
+  // Create a new consultant
+  app.post("/api/consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can create consultants
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create consultants" });
+      }
+      
+      const { username, email, fullName, password, consultantTier } = req.body;
+      
+      if (!username || !email || !fullName || !password) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      
+      const newConsultant = await storage.createUser({
+        username,
+        email,
+        fullName,
+        password, // In production, this should be hashed
+        role: "consultant",
+        consultantTier: consultantTier || "standard",
+        status: "active",
+      });
+      
+      const { password: _, ...safeConsultant } = newConsultant;
+      res.status(201).json({
+        ...safeConsultant,
+        entityAssignments: [],
+      });
+    } catch (error) {
+      console.error("Create consultant error:", error);
+      res.status(500).json({ error: "Failed to create consultant" });
     }
   });
 

@@ -26,6 +26,7 @@ import Settings from "@/pages/settings";
 import ModuleAccessRequests from "@/pages/module-access-requests";
 import EntityModuleAccess from "@/pages/entity-module-access";
 import UserManagement from "@/pages/user-management";
+import ConsultantManagement from "@/pages/consultant-management";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -73,6 +74,7 @@ function Router() {
       <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route path="/entity-access" component={EntityModuleAccess} />
       <Route path="/users" component={UserManagement} />
+      <Route path="/consultants" component={ConsultantManagement} />
       <Route component={NotFound} />
     </Switch>
   );
