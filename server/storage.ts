@@ -17,6 +17,8 @@ import {
   type DocumentTypeWithAccess,
   type DocumentType,
   type CaseStatus,
+  type EntityModuleAccess, type InsertEntityModuleAccess, type ModuleAccessStatus,
+  type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
   moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -77,6 +79,16 @@ export interface IStorage {
   getCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
+  
+  // Entity Module Access
+  getEntityModuleAccess(entityId: string): Promise<EntityModuleAccess[]>;
+  getEntityModuleAccessByModule(entityId: string, module: ModuleType): Promise<EntityModuleAccess | undefined>;
+  setEntityModuleAccess(entityId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<EntityModuleAccess>;
+  
+  // Module Access Requests
+  getModuleAccessRequests(entityId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
+  createModuleAccessRequest(request: InsertModuleAccessRequest): Promise<ModuleAccessRequest>;
+  reviewModuleAccessRequest(id: string, reviewedBy: string, reviewedByName: string, status: ModuleAccessRequestStatus, notes?: string): Promise<ModuleAccessRequest | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -90,6 +102,8 @@ export class MemStorage implements IStorage {
   private entityDocumentTypeAccess: Map<string, EntityDocumentTypeAccess>;
   private cases: Map<string, Case>;
   private caseMilestones: Map<string, CaseMilestone>;
+  private entityModuleAccess: Map<string, EntityModuleAccess>;
+  private moduleAccessRequests: Map<string, ModuleAccessRequest>;
 
   constructor() {
     this.users = new Map();
@@ -102,6 +116,8 @@ export class MemStorage implements IStorage {
     this.entityDocumentTypeAccess = new Map();
     this.cases = new Map();
     this.caseMilestones = new Map();
+    this.entityModuleAccess = new Map();
+    this.moduleAccessRequests = new Map();
     
     this.initializeSampleData();
   }
@@ -1219,6 +1235,99 @@ export class MemStorage implements IStorage {
       },
     ];
     elAuditLogs.forEach(log => this.auditLogs.set(log.id, log));
+    
+    // Entity Module Access - Entity 1 has all modules active
+    const entity1ModuleAccess: EntityModuleAccess[] = [
+      {
+        id: "ema-1",
+        entityId: "entity-1",
+        module: "health_safety",
+        status: "active",
+        grantedBy: "user-admin",
+        grantedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        notes: "Initial subscription",
+        createdAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ema-2",
+        entityId: "entity-1",
+        module: "human_resources",
+        status: "active",
+        grantedBy: "user-admin",
+        grantedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        notes: "Initial subscription",
+        createdAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ema-3",
+        entityId: "entity-1",
+        module: "employment_law",
+        status: "active",
+        grantedBy: "user-admin",
+        grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+        notes: "Added 6 months after initial subscription",
+        createdAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    entity1ModuleAccess.forEach(a => this.entityModuleAccess.set(a.id, a));
+    
+    // Entity 2 has H&S active, HR visible (can request), EL hidden
+    const entity2ModuleAccess: EntityModuleAccess[] = [
+      {
+        id: "ema-4",
+        entityId: "entity-2",
+        module: "health_safety",
+        status: "active",
+        grantedBy: "user-admin",
+        grantedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+        notes: null,
+        createdAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ema-5",
+        entityId: "entity-2",
+        module: "human_resources",
+        status: "visible",
+        grantedBy: null,
+        grantedAt: null,
+        notes: "Available for request",
+        createdAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ema-6",
+        entityId: "entity-2",
+        module: "employment_law",
+        status: "hidden",
+        grantedBy: null,
+        grantedAt: null,
+        notes: null,
+        createdAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    entity2ModuleAccess.forEach(a => this.entityModuleAccess.set(a.id, a));
+    
+    // Sample pending access request from Entity 2 for HR module
+    const sampleAccessRequest: ModuleAccessRequest = {
+      id: "mar-1",
+      entityId: "entity-2",
+      module: "human_resources",
+      requestedBy: "user-2",
+      requestedByName: "Client User",
+      reason: "We need to manage our HR documentation and employee contracts through the portal.",
+      status: "pending",
+      reviewedBy: null,
+      reviewedByName: null,
+      reviewNotes: null,
+      createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      reviewedAt: null,
+    };
+    this.moduleAccessRequests.set(sampleAccessRequest.id, sampleAccessRequest);
   }
 
   // Users
@@ -1648,6 +1757,114 @@ export class MemStorage implements IStorage {
     if (!existing) return undefined;
     const updated = { ...existing, ...updates };
     this.caseMilestones.set(id, updated);
+    return updated;
+  }
+
+  // Entity Module Access
+  async getEntityModuleAccess(entityId: string): Promise<EntityModuleAccess[]> {
+    return Array.from(this.entityModuleAccess.values())
+      .filter(a => a.entityId === entityId);
+  }
+
+  async getEntityModuleAccessByModule(entityId: string, module: ModuleType): Promise<EntityModuleAccess | undefined> {
+    return Array.from(this.entityModuleAccess.values())
+      .find(a => a.entityId === entityId && a.module === module);
+  }
+
+  async setEntityModuleAccess(
+    entityId: string, 
+    module: ModuleType, 
+    status: ModuleAccessStatus, 
+    grantedBy?: string, 
+    notes?: string
+  ): Promise<EntityModuleAccess> {
+    const existing = await this.getEntityModuleAccessByModule(entityId, module);
+    const now = new Date();
+    
+    if (existing) {
+      const updated: EntityModuleAccess = {
+        ...existing,
+        status,
+        grantedBy: status === "active" ? (grantedBy ?? existing.grantedBy) : existing.grantedBy,
+        grantedAt: status === "active" ? now : existing.grantedAt,
+        notes: notes ?? existing.notes,
+        updatedAt: now,
+      };
+      this.entityModuleAccess.set(existing.id, updated);
+      return updated;
+    } else {
+      const id = randomUUID();
+      const access: EntityModuleAccess = {
+        id,
+        entityId,
+        module,
+        status,
+        grantedBy: status === "active" ? (grantedBy ?? null) : null,
+        grantedAt: status === "active" ? now : null,
+        notes: notes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.entityModuleAccess.set(id, access);
+      return access;
+    }
+  }
+
+  // Module Access Requests
+  async getModuleAccessRequests(entityId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]> {
+    let requests = Array.from(this.moduleAccessRequests.values());
+    if (entityId) {
+      requests = requests.filter(r => r.entityId === entityId);
+    }
+    if (status) {
+      requests = requests.filter(r => r.status === status);
+    }
+    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createModuleAccessRequest(insertRequest: InsertModuleAccessRequest): Promise<ModuleAccessRequest> {
+    const id = randomUUID();
+    const request: ModuleAccessRequest = {
+      ...insertRequest,
+      id,
+      module: insertRequest.module as ModuleType,
+      reason: insertRequest.reason ?? null,
+      status: "pending",
+      reviewedBy: null,
+      reviewedByName: null,
+      reviewNotes: null,
+      createdAt: new Date(),
+      reviewedAt: null,
+    };
+    this.moduleAccessRequests.set(id, request);
+    return request;
+  }
+
+  async reviewModuleAccessRequest(
+    id: string, 
+    reviewedBy: string, 
+    reviewedByName: string, 
+    status: ModuleAccessRequestStatus, 
+    notes?: string
+  ): Promise<ModuleAccessRequest | undefined> {
+    const existing = this.moduleAccessRequests.get(id);
+    if (!existing) return undefined;
+    
+    const updated: ModuleAccessRequest = {
+      ...existing,
+      status,
+      reviewedBy,
+      reviewedByName,
+      reviewNotes: notes ?? null,
+      reviewedAt: new Date(),
+    };
+    this.moduleAccessRequests.set(id, updated);
+    
+    // If approved, grant module access
+    if (status === "approved") {
+      await this.setEntityModuleAccess(existing.entityId, existing.module, "active", reviewedBy);
+    }
+    
     return updated;
   }
 }

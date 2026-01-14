@@ -12,9 +12,12 @@ import {
   Users,
   Scale,
   ChevronDown,
+  Lock,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import type { UserRole } from "@shared/schema";
+import { useModuleAccess } from "@/hooks/use-module-access";
+import type { UserRole, ModuleType } from "@shared/schema";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
   Sidebar,
@@ -41,12 +44,20 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const moduleNavItems = [
+const moduleNavItems: {
+  title: string;
+  icon: typeof HardHat;
+  url: string;
+  themeClass: string;
+  module: ModuleType;
+  subItems: { title: string; url: string }[];
+}[] = [
   {
     title: "Health & Safety",
     icon: HardHat,
     url: "/health-safety",
     themeClass: "theme-hs",
+    module: "health_safety",
     subItems: [
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
@@ -59,6 +70,7 @@ const moduleNavItems = [
     icon: Users,
     url: "/human-resources",
     themeClass: "theme-hr",
+    module: "human_resources",
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
@@ -69,6 +81,7 @@ const moduleNavItems = [
     icon: Scale,
     url: "/employment-law",
     themeClass: "theme-el",
+    module: "employment_law",
     subItems: [
       { title: "Cases", url: "/employment-law" },
     ],
@@ -124,6 +137,7 @@ const roleLabels: Record<UserRole, string> = {
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
   const { logout, isLoggingOut } = useAuth();
+  const { hasActiveAccess, hasVisibleAccess, isHidden, hasPendingRequest, canRequestAccess } = useModuleAccess();
 
   const getInitials = (name: string) => {
     return name
@@ -133,6 +147,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const visibleModules = moduleNavItems.filter(item => !isHidden(item.module));
 
   return (
     <Sidebar>
@@ -185,8 +201,39 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {moduleNavItems.map((item) => {
+              {visibleModules.map((item) => {
                 const isModuleActive = location.startsWith(item.url);
+                const hasAccess = hasActiveAccess(item.module);
+                const isPending = hasPendingRequest(item.module);
+                const showLock = !hasAccess && !isPending;
+                const showPending = !hasAccess && isPending;
+                
+                if (!hasAccess) {
+                  return (
+                    <SidebarMenuItem key={item.title} className={item.themeClass}>
+                      <SidebarMenuButton
+                        className="cursor-default opacity-60"
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <item.icon className="h-4 w-4 text-module-accent" />
+                        <span className="flex-1">{item.title}</span>
+                        {showLock && (
+                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Request
+                          </Badge>
+                        )}
+                        {showPending && (
+                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                
                 return (
                   <Collapsible
                     key={item.title}

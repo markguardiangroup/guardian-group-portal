@@ -111,6 +111,61 @@ export const insertConsultantAssignmentSchema = createInsertSchema(consultantAss
 export type InsertConsultantAssignment = z.infer<typeof insertConsultantAssignmentSchema>;
 export type ConsultantAssignment = typeof consultantAssignments.$inferSelect;
 
+// Entity Module Access status
+export type ModuleAccessStatus = "active" | "visible" | "hidden";
+
+// Entity Module Access Request status
+export type ModuleAccessRequestStatus = "pending" | "approved" | "rejected";
+
+// Entity Module Access (which modules an entity has access to)
+export const entityModuleAccess = pgTable("entity_module_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: varchar("entity_id").notNull(),
+  module: text("module").$type<ModuleType>().notNull(),
+  status: text("status").$type<ModuleAccessStatus>().notNull().default("visible"),
+  grantedBy: varchar("granted_by"),
+  grantedAt: timestamp("granted_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertEntityModuleAccessSchema = createInsertSchema(entityModuleAccess).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true,
+  grantedAt: true
+});
+export type InsertEntityModuleAccess = z.infer<typeof insertEntityModuleAccessSchema>;
+export type EntityModuleAccess = typeof entityModuleAccess.$inferSelect;
+
+// Entity Module Access Requests (clients request access to modules)
+export const moduleAccessRequests = pgTable("module_access_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: varchar("entity_id").notNull(),
+  module: text("module").$type<ModuleType>().notNull(),
+  requestedBy: varchar("requested_by").notNull(),
+  requestedByName: text("requested_by_name").notNull(),
+  reason: text("reason"),
+  status: text("status").$type<ModuleAccessRequestStatus>().notNull().default("pending"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedByName: text("reviewed_by_name"),
+  reviewNotes: text("review_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertModuleAccessRequestSchema = createInsertSchema(moduleAccessRequests).omit({ 
+  id: true, 
+  createdAt: true,
+  reviewedBy: true,
+  reviewedByName: true,
+  reviewNotes: true,
+  reviewedAt: true
+});
+export type InsertModuleAccessRequest = z.infer<typeof insertModuleAccessRequestSchema>;
+export type ModuleAccessRequest = typeof moduleAccessRequests.$inferSelect;
+
 // Sites (Locations within entities)
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

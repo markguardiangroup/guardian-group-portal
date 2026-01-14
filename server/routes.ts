@@ -1208,5 +1208,191 @@ export async function registerRoutes(
     }
   });
 
+  // Entity Module Access Routes
+  
+  // Get module access for an entity
+  app.get("/api/entities/:entityId/module-access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Authorization: clients can only view their own entity's access
+      if (user.role === "client" && user.entityId !== req.params.entityId) {
+        return res.status(403).json({ error: "Not authorized to view this entity's module access" });
+      }
+      
+      const access = await storage.getEntityModuleAccess(req.params.entityId);
+      res.json(access);
+    } catch (error) {
+      console.error("Get entity module access error:", error);
+      res.status(500).json({ error: "Failed to fetch module access" });
+    }
+  });
+
+  // Set module access for an entity (admin/consultant only)
+  app.post("/api/entities/:entityId/module-access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin and consultants can set module access
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can manage module access" });
+      }
+      
+      const { module, status, notes } = req.body;
+      if (!module || !status) {
+        return res.status(400).json({ error: "Module and status are required" });
+      }
+      
+      // Validate module and status against allowed values
+      const validModules = ["health_safety", "human_resources", "employment_law"];
+      const validStatuses = ["active", "visible", "hidden"];
+      
+      if (!validModules.includes(module)) {
+        return res.status(400).json({ error: `Invalid module. Must be one of: ${validModules.join(", ")}` });
+      }
+      
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+      }
+      
+      const access = await storage.setEntityModuleAccess(
+        req.params.entityId,
+        module,
+        status,
+        user.id,
+        notes
+      );
+      
+      res.status(201).json(access);
+    } catch (error) {
+      console.error("Set entity module access error:", error);
+      res.status(500).json({ error: "Failed to set module access" });
+    }
+  });
+
+  // Module Access Request Routes
+  
+  // Get all access requests (admin/consultant) or entity-specific (client)
+  app.get("/api/module-access-requests", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      let entityId: string | undefined;
+      const status = req.query.status as string | undefined;
+      
+      // Clients can only see their own entity's requests
+      if (user.role === "client" && user.entityId) {
+        entityId = user.entityId;
+      } else if (req.query.entityId) {
+        entityId = req.query.entityId as string;
+      }
+      
+      const requests = await storage.getModuleAccessRequests(entityId, status as any);
+      res.json(requests);
+    } catch (error) {
+      console.error("Get module access requests error:", error);
+      res.status(500).json({ error: "Failed to fetch access requests" });
+    }
+  });
+
+  // Create module access request
+  app.post("/api/module-access-requests", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const { entityId, module, reason } = req.body;
+      
+      // Validate module
+      const validModules = ["health_safety", "human_resources", "employment_law"];
+      if (!module || !validModules.includes(module)) {
+        return res.status(400).json({ error: `Invalid module. Must be one of: ${validModules.join(", ")}` });
+      }
+      
+      // Validate entity and module access status
+      const entity = await storage.getEntity(entityId);
+      if (!entity) {
+        return res.status(404).json({ error: "Entity not found" });
+      }
+      
+      // Check if module is visible (requestable)
+      const moduleAccess = await storage.getEntityModuleAccessByModule(entityId, module);
+      if (moduleAccess && moduleAccess.status === "active") {
+        return res.status(400).json({ error: "Module is already active for this entity" });
+      }
+      if (moduleAccess && moduleAccess.status === "hidden") {
+        return res.status(400).json({ error: "Module is not available for request" });
+      }
+      
+      // Check for existing pending request
+      const existingRequests = await storage.getModuleAccessRequests(entityId, "pending");
+      const duplicateRequest = existingRequests.find(r => r.module === module);
+      if (duplicateRequest) {
+        return res.status(400).json({ error: "A pending request for this module already exists" });
+      }
+      
+      const request = await storage.createModuleAccessRequest({
+        entityId,
+        module,
+        requestedBy: user.id,
+        requestedByName: user.fullName,
+        reason,
+      });
+      
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Create module access request error:", error);
+      res.status(500).json({ error: "Failed to create access request" });
+    }
+  });
+
+  // Review module access request (admin/consultant only)
+  app.patch("/api/module-access-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin and consultants can review requests
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can review access requests" });
+      }
+      
+      const { status, notes } = req.body;
+      if (!status || !["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+      }
+      
+      const updatedRequest = await storage.reviewModuleAccessRequest(
+        req.params.id,
+        user.id,
+        user.fullName,
+        status,
+        notes
+      );
+      
+      if (!updatedRequest) {
+        return res.status(404).json({ error: "Access request not found" });
+      }
+      
+      res.json(updatedRequest);
+    } catch (error) {
+      console.error("Review module access request error:", error);
+      res.status(500).json({ error: "Failed to review access request" });
+    }
+  });
+
   return httpServer;
 }

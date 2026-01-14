@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { 
   FileText, 
   Clock, 
@@ -13,9 +14,11 @@ import {
   TrendingUp,
   Shield,
   Scale,
+  Lock,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { ModuleSummary } from "@shared/schema";
+import { useModuleAccess } from "@/hooks/use-module-access";
+import type { ModuleSummary, ModuleType } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -221,10 +224,76 @@ function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
   );
 }
 
+function LockedModuleCard({ moduleName, module, onRequest, isPending }: { 
+  moduleName: string; 
+  module: ModuleType; 
+  onRequest?: () => void;
+  isPending?: boolean;
+}) {
+  const isHS = module === "health_safety";
+  const isEL = module === "employment_law";
+  const Icon = isHS ? HardHat : isEL ? Scale : Users;
+  
+  const moduleStyles = isHS 
+    ? "border-t-4 border-t-emerald-500/50 bg-gradient-to-br from-emerald-50/30 to-transparent dark:from-emerald-950/10"
+    : isEL 
+    ? "border-t-4 border-t-pink-500/50 bg-gradient-to-br from-pink-50/30 to-transparent dark:from-pink-950/10"
+    : "border-t-4 border-t-blue-500/50 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-950/10";
+  
+  const iconBgClass = isHS 
+    ? "bg-emerald-100/50 dark:bg-emerald-900/20" 
+    : isEL 
+    ? "bg-pink-100/50 dark:bg-pink-900/20"
+    : "bg-blue-100/50 dark:bg-blue-900/20";
+  
+  const iconColorClass = isHS 
+    ? "text-emerald-600/50 dark:text-emerald-400/50" 
+    : isEL 
+    ? "text-pink-600/50 dark:text-pink-400/50"
+    : "text-blue-600/50 dark:text-blue-400/50";
+
+  return (
+    <Card className={`opacity-75 ${moduleStyles}`} data-testid={`card-module-locked-${module}`}>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBgClass}`}>
+            <Icon className={`h-6 w-6 ${iconColorClass}`} />
+          </div>
+          <div>
+            <CardTitle className="text-lg text-muted-foreground">{moduleName}</CardTitle>
+            <CardDescription>Access not active</CardDescription>
+          </div>
+        </div>
+        <Lock className="h-5 w-5 text-muted-foreground" />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex h-24 items-center justify-center rounded-md border border-dashed bg-muted/30">
+          <p className="text-sm text-muted-foreground">
+            {isPending ? "Access request pending review" : "Request access to view this module"}
+          </p>
+        </div>
+        
+        {isPending ? (
+          <Badge variant="secondary" className="w-full justify-center py-2">
+            <Clock className="mr-2 h-4 w-4" />
+            Request Pending
+          </Badge>
+        ) : (
+          <Button variant="outline" className="w-full" onClick={onRequest}>
+            <Lock className="mr-2 h-4 w-4" />
+            Request Access
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Dashboard() {
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary"],
   });
+  const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
 
   if (isLoading) {
     return (
@@ -243,7 +312,15 @@ export default function Dashboard() {
     );
   }
 
+  const allModules: { module: ModuleType; name: string }[] = [
+    { module: "health_safety", name: "Health & Safety" },
+    { module: "human_resources", name: "Human Resources" },
+    { module: "employment_law", name: "Employment Law" },
+  ];
+
   const summaries = moduleSummaries || [];
+  const activeSummaries = summaries.filter(s => hasActiveAccess(s.module));
+  const visibleLockedModules = allModules.filter(m => !hasActiveAccess(m.module) && !isHidden(m.module));
 
   return (
     <div className="space-y-8 p-8">
@@ -254,13 +331,21 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <OverallComplianceCard summaries={summaries} />
+      <OverallComplianceCard summaries={activeSummaries} />
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Modules</h2>
         <div className="grid gap-6 md:grid-cols-3">
-          {summaries.map((summary) => (
+          {summaries.filter(s => hasActiveAccess(s.module)).map((summary) => (
             <ModuleCard key={summary.module} summary={summary} />
+          ))}
+          {visibleLockedModules.map((m) => (
+            <LockedModuleCard 
+              key={m.module} 
+              moduleName={m.name} 
+              module={m.module}
+              isPending={hasPendingRequest(m.module)}
+            />
           ))}
         </div>
       </div>
@@ -274,18 +359,22 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/health-safety/documents" data-testid="link-hs-documents">
-                <HardHat className="mr-2 h-4 w-4" />
-                H&S Documents
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/human-resources/documents" data-testid="link-hr-documents">
-                <Users className="mr-2 h-4 w-4" />
-                HR Documents
-              </Link>
-            </Button>
+            {hasActiveAccess("health_safety") && (
+              <Button variant="outline" className="justify-start" asChild>
+                <Link href="/health-safety/documents" data-testid="link-hs-documents">
+                  <HardHat className="mr-2 h-4 w-4" />
+                  H&S Documents
+                </Link>
+              </Button>
+            )}
+            {hasActiveAccess("human_resources") && (
+              <Button variant="outline" className="justify-start" asChild>
+                <Link href="/human-resources/documents" data-testid="link-hr-documents">
+                  <Users className="mr-2 h-4 w-4" />
+                  HR Documents
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" className="justify-start" asChild>
               <Link href="/entities" data-testid="link-entities">
                 <FileText className="mr-2 h-4 w-4" />
@@ -298,12 +387,14 @@ export default function Dashboard() {
                 View Reports
               </Link>
             </Button>
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/employment-law" data-testid="link-el-cases">
-                <Scale className="mr-2 h-4 w-4" />
-                EL Cases
-              </Link>
-            </Button>
+            {hasActiveAccess("employment_law") && (
+              <Button variant="outline" className="justify-start" asChild>
+                <Link href="/employment-law" data-testid="link-el-cases">
+                  <Scale className="mr-2 h-4 w-4" />
+                  EL Cases
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
