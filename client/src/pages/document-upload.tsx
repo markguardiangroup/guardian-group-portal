@@ -56,6 +56,12 @@ const moduleLabels: Record<ModuleType, string> = {
   employment_law: "Employment Law",
 };
 
+const modulePaths: Record<ModuleType, string> = {
+  health_safety: "/health-safety/documents",
+  human_resources: "/human-resources/documents",
+  employment_law: "/employment-law",
+};
+
 export default function DocumentUpload() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -107,14 +113,14 @@ export default function DocumentUpload() {
       };
       return apiRequest("POST", "/api/documents", formData);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       toast({
         title: "Document Uploaded",
         description: "Your document has been uploaded successfully.",
       });
-      navigate("/documents");
+      navigate(modulePaths[variables.module as ModuleType] || "/documents");
     },
     onError: () => {
       toast({
@@ -172,10 +178,13 @@ export default function DocumentUpload() {
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild data-testid="button-back">
-          <Link href="/documents">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          data-testid="button-back"
+          onClick={() => navigate(modulePaths[selectedModule] || "/documents")}
+        >
+          <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
           <h1 className="text-3xl font-semibold">Upload Document</h1>
@@ -385,8 +394,12 @@ export default function DocumentUpload() {
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" asChild>
-                      <Link href="/documents">Cancel</Link>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={() => navigate(modulePaths[selectedModule] || "/documents")}
+                    >
+                      Cancel
                     </Button>
                     <Button type="submit" disabled={mutation.isPending} data-testid="button-upload">
                       {mutation.isPending ? (
