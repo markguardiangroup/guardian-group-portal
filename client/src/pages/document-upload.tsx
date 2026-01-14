@@ -323,14 +323,17 @@ export default function DocumentUpload() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Site (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select 
+                              onValueChange={(value) => field.onChange(value === "all" ? "" : value)} 
+                              value={field.value || "all"}
+                            >
                               <FormControl>
                                 <SelectTrigger data-testid="select-site">
                                   <SelectValue placeholder="Select site" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">All Sites</SelectItem>
+                                <SelectItem value="all">All Sites</SelectItem>
                                 {filteredSites.map((site) => (
                                   <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
                                 ))}
