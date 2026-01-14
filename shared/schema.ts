@@ -144,6 +144,7 @@ export type EntityModuleAccess = typeof entityModuleAccess.$inferSelect;
 export const moduleAccessRequests = pgTable("module_access_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   entityId: varchar("entity_id").notNull(),
+  entityName: text("entity_name").notNull(),
   module: text("module").$type<ModuleType>().notNull(),
   requestedBy: varchar("requested_by").notNull(),
   requestedByName: text("requested_by_name").notNull(),

@@ -1,9 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +14,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   CheckCircle, 
   XCircle, 
@@ -20,15 +37,18 @@ import {
   Users, 
   Scale,
   Building2,
-  User,
-  Calendar,
-  MessageSquare,
+  Search,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  CheckSquare,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, differenceInDays } from "date-fns";
 import type { ModuleAccessRequest, ModuleType } from "@shared/schema";
 
 const moduleIcons: Record<ModuleType, typeof HardHat> = {
@@ -55,119 +75,96 @@ const moduleBgColors: Record<ModuleType, string> = {
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
 };
 
-function RequestCard({ 
-  request, 
-  onApprove, 
-  onReject,
-  isProcessing,
-}: { 
-  request: ModuleAccessRequest;
-  onApprove: () => void;
-  onReject: () => void;
-  isProcessing: boolean;
-}) {
-  const Icon = moduleIcons[request.module];
-  const moduleName = moduleNames[request.module];
-  const iconColor = moduleColors[request.module];
-  const iconBg = moduleBgColors[request.module];
+type FilterStatus = "all" | "pending" | "overdue" | "urgent" | "approved" | "rejected";
 
-  const statusBadge = {
-    pending: <Badge variant="outline" className="text-amber-600 border-amber-600"><Clock className="h-3 w-3 mr-1" />Pending</Badge>,
-    approved: <Badge variant="outline" className="text-emerald-600 border-emerald-600"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>,
-    rejected: <Badge variant="outline" className="text-red-600 border-red-600"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>,
-  };
+const OVERDUE_DAYS = 5;
+const URGENT_DAYS = 3;
+const ITEMS_PER_PAGE = 10;
 
+function getRequestUrgency(request: ModuleAccessRequest): "overdue" | "urgent" | "normal" {
+  if (request.status !== "pending") return "normal";
+  const daysPending = differenceInDays(new Date(), new Date(request.createdAt));
+  if (daysPending >= OVERDUE_DAYS) return "overdue";
+  if (daysPending >= URGENT_DAYS) return "urgent";
+  return "normal";
+}
+
+function StatusBadge({ request }: { request: ModuleAccessRequest }) {
+  const urgency = getRequestUrgency(request);
+  
+  if (request.status === "approved") {
+    return (
+      <Badge variant="outline" className="text-emerald-600 border-emerald-600">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Approved
+      </Badge>
+    );
+  }
+  
+  if (request.status === "rejected") {
+    return (
+      <Badge variant="outline" className="text-red-600 border-red-600">
+        <XCircle className="h-3 w-3 mr-1" />
+        Rejected
+      </Badge>
+    );
+  }
+  
+  if (urgency === "overdue") {
+    return (
+      <Badge variant="destructive">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Overdue
+      </Badge>
+    );
+  }
+  
+  if (urgency === "urgent") {
+    return (
+      <Badge className="bg-amber-500 text-white hover:bg-amber-600">
+        <Clock className="h-3 w-3 mr-1" />
+        Urgent
+      </Badge>
+    );
+  }
+  
   return (
-    <Card className="hover-elevate" data-testid={`card-access-request-${request.id}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
-              <Icon className={`h-5 w-5 ${iconColor}`} />
-            </div>
-            <div>
-              <CardTitle className="text-base">{moduleName}</CardTitle>
-              <CardDescription className="flex items-center gap-1">
-                <Building2 className="h-3 w-3" />
-                Entity: {request.entityId}
-              </CardDescription>
-            </div>
-          </div>
-          {statusBadge[request.status]}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>Requested by: <span className="text-foreground font-medium">{request.requestedByName}</span></span>
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>{formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}</span>
-          </div>
-          {request.reason && (
-            <div className="flex items-start gap-2 text-muted-foreground">
-              <MessageSquare className="h-4 w-4 mt-0.5" />
-              <span className="text-foreground">{request.reason}</span>
-            </div>
-          )}
-        </div>
+    <Badge variant="outline" className="text-amber-600 border-amber-600">
+      <Clock className="h-3 w-3 mr-1" />
+      Pending
+    </Badge>
+  );
+}
 
-        {request.status === "pending" && (
-          <div className="flex gap-2 pt-2">
-            <Button 
-              className="flex-1" 
-              onClick={onApprove}
-              disabled={isProcessing}
-              data-testid={`button-approve-${request.id}`}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={onReject}
-              disabled={isProcessing}
-              data-testid={`button-reject-${request.id}`}
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
-            </Button>
-          </div>
-        )}
-
-        {request.status !== "pending" && request.reviewedByName && (
-          <div className="rounded-md bg-muted/50 p-3 text-sm">
-            <p className="text-muted-foreground">
-              {request.status === "approved" ? "Approved" : "Rejected"} by{" "}
-              <span className="font-medium text-foreground">{request.reviewedByName}</span>
-              {request.reviewedAt && (
-                <span className="text-muted-foreground">
-                  {" "}on {format(new Date(request.reviewedAt), "MMM d, yyyy")}
-                </span>
-              )}
-            </p>
-            {request.reviewNotes && (
-              <p className="mt-1 text-foreground">{request.reviewNotes}</p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+function ModuleBadge({ module }: { module: ModuleType }) {
+  const Icon = moduleIcons[module];
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`flex h-7 w-7 items-center justify-center rounded ${moduleBgColors[module]}`}>
+        <Icon className={`h-4 w-4 ${moduleColors[module]}`} />
+      </div>
+      <span className="text-sm font-medium">{moduleNames[module]}</span>
+    </div>
   );
 }
 
 export default function ModuleAccessRequests() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
+  
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [moduleFilter, setModuleFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<"date" | "entity" | "module">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
   const [reviewDialog, setReviewDialog] = useState<{ 
     open: boolean; 
-    request: ModuleAccessRequest | null;
+    requests: ModuleAccessRequest[];
     action: "approve" | "reject" | null;
-  }>({ open: false, request: null, action: null });
+  }>({ open: false, requests: [], action: null });
   const [reviewNotes, setReviewNotes] = useState("");
 
   const { data: requests = [], isLoading } = useQuery<ModuleAccessRequest[]>({
@@ -180,37 +177,157 @@ export default function ModuleAccessRequests() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
-      toast({
-        title: reviewDialog.action === "approve" ? "Access Granted" : "Request Rejected",
-        description: reviewDialog.action === "approve" 
-          ? "The entity now has access to the module."
-          : "The access request has been rejected.",
-      });
-      setReviewDialog({ open: false, request: null, action: null });
-      setReviewNotes("");
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to process the request. Please try again.",
-        variant: "destructive",
-      });
     },
   });
 
-  const handleReview = () => {
-    if (!reviewDialog.request || !reviewDialog.action) return;
-    reviewMutation.mutate({
-      id: reviewDialog.request.id,
-      status: reviewDialog.action === "approve" ? "approved" : "rejected",
-      notes: reviewNotes || undefined,
-    });
-  };
-
-  const openReviewDialog = (request: ModuleAccessRequest, action: "approve" | "reject") => {
-    setReviewDialog({ open: true, request, action });
+  const handleBulkReview = async () => {
+    if (reviewDialog.requests.length === 0 || !reviewDialog.action) return;
+    
+    const status = reviewDialog.action === "approve" ? "approved" : "rejected";
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const request of reviewDialog.requests) {
+      try {
+        await reviewMutation.mutateAsync({ 
+          id: request.id, 
+          status, 
+          notes: reviewNotes || undefined 
+        });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    
+    if (successCount > 0) {
+      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
+    }
+    
+    if (failCount === 0) {
+      toast({
+        title: reviewDialog.action === "approve" ? "Access Granted" : "Requests Rejected",
+        description: `${successCount} request(s) have been ${status}.`,
+      });
+    } else if (successCount > 0) {
+      toast({
+        title: "Partial Success",
+        description: `${successCount} request(s) processed, ${failCount} failed.`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to process requests. Please try again.",
+        variant: "destructive",
+      });
+    }
+    
+    setSelectedRequests(new Set());
+    setReviewDialog({ open: false, requests: [], action: null });
     setReviewNotes("");
   };
+
+  const openReviewDialog = (requests: ModuleAccessRequest[], action: "approve" | "reject") => {
+    setReviewDialog({ open: true, requests, action });
+    setReviewNotes("");
+  };
+
+  const stats = useMemo(() => {
+    const pending = requests.filter(r => r.status === "pending");
+    const overdue = pending.filter(r => getRequestUrgency(r) === "overdue");
+    const urgent = pending.filter(r => getRequestUrgency(r) === "urgent");
+    const approved = requests.filter(r => r.status === "approved");
+    const rejected = requests.filter(r => r.status === "rejected");
+    
+    const byModule = {
+      health_safety: pending.filter(r => r.module === "health_safety").length,
+      human_resources: pending.filter(r => r.module === "human_resources").length,
+      employment_law: pending.filter(r => r.module === "employment_law").length,
+    };
+    
+    return { 
+      total: requests.length,
+      pending: pending.length, 
+      overdue: overdue.length, 
+      urgent: urgent.length,
+      approved: approved.length,
+      rejected: rejected.length,
+      byModule 
+    };
+  }, [requests]);
+
+  const filteredRequests = useMemo(() => {
+    let filtered = [...requests];
+    
+    if (statusFilter === "pending") {
+      filtered = filtered.filter(r => r.status === "pending" && getRequestUrgency(r) === "normal");
+    } else if (statusFilter === "overdue") {
+      filtered = filtered.filter(r => getRequestUrgency(r) === "overdue");
+    } else if (statusFilter === "urgent") {
+      filtered = filtered.filter(r => getRequestUrgency(r) === "urgent");
+    } else if (statusFilter === "approved") {
+      filtered = filtered.filter(r => r.status === "approved");
+    } else if (statusFilter === "rejected") {
+      filtered = filtered.filter(r => r.status === "rejected");
+    }
+    
+    if (moduleFilter !== "all") {
+      filtered = filtered.filter(r => r.module === moduleFilter);
+    }
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.entityName?.toLowerCase().includes(query) ||
+        r.requestedByName.toLowerCase().includes(query)
+      );
+    }
+    
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === "date") {
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === "entity") {
+        comparison = (a.entityName || "").localeCompare(b.entityName || "");
+      } else if (sortBy === "module") {
+        comparison = a.module.localeCompare(b.module);
+      }
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }, [requests, statusFilter, moduleFilter, searchQuery, sortBy, sortOrder]);
+
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredRequests.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredRequests, currentPage]);
+
+  const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
+
+  const handleSelectAll = () => {
+    const pendingOnPage = paginatedRequests.filter(r => r.status === "pending");
+    if (selectedRequests.size === pendingOnPage.length) {
+      setSelectedRequests(new Set());
+    } else {
+      setSelectedRequests(new Set(pendingOnPage.map(r => r.id)));
+    }
+  };
+
+  const handleSelectRequest = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedRequests);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedRequests(newSelected);
+  };
+
+  const selectedPendingRequests = useMemo(() => {
+    return requests.filter(r => selectedRequests.has(r.id) && r.status === "pending");
+  }, [requests, selectedRequests]);
 
   const isAdmin = user?.role === "admin" || user?.role === "consultant";
 
@@ -218,133 +335,398 @@ export default function ModuleAccessRequests() {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium">Access Denied</h3>
+            <p className="text-muted-foreground mt-1">
               Only administrators and consultants can manage access requests.
-            </CardDescription>
-          </CardHeader>
+            </p>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  const filteredRequests = filter === "pending" 
-    ? requests.filter(r => r.status === "pending")
-    : requests;
-
-  const pendingCount = requests.filter(r => r.status === "pending").length;
-
   if (isLoading) {
     return (
       <div className="space-y-6 p-8">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-96" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
+        <div className="grid gap-4 md:grid-cols-4">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
         </div>
+        <Skeleton className="h-96" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">Module Access Requests</h1>
-          <p className="mt-1 text-muted-foreground">
-            Review and manage entity requests for module access
-          </p>
-        </div>
-        {pendingCount > 0 && (
-          <Badge variant="secondary" className="text-lg px-3 py-1">
-            {pendingCount} Pending
-          </Badge>
-        )}
+      <div>
+        <h1 className="text-3xl font-semibold">Access Requests</h1>
+        <p className="mt-1 text-muted-foreground">
+          Manage and review entity requests for module access
+        </p>
       </div>
 
-      <div className="flex gap-2">
-        <Button 
-          variant={filter === "pending" ? "default" : "outline"} 
-          size="sm"
-          onClick={() => setFilter("pending")}
-          data-testid="button-filter-pending"
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card 
+          className={`cursor-pointer transition-all ${statusFilter === "all" ? "ring-2 ring-primary" : "hover-elevate"}`}
+          onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
+          data-testid="stat-card-all"
         >
-          <Clock className="h-4 w-4 mr-2" />
-          Pending ({pendingCount})
-        </Button>
-        <Button 
-          variant={filter === "all" ? "default" : "outline"} 
-          size="sm"
-          onClick={() => setFilter("all")}
-          data-testid="button-filter-all"
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Requests</p>
+                <p className="text-3xl font-bold">{stats.total}</p>
+              </div>
+              <Filter className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className={`cursor-pointer transition-all ${statusFilter === "overdue" ? "ring-2 ring-destructive" : "hover-elevate"}`}
+          onClick={() => { setStatusFilter("overdue"); setCurrentPage(1); }}
+          data-testid="stat-card-overdue"
         >
-          All Requests ({requests.length})
-        </Button>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Overdue</p>
+                <p className="text-3xl font-bold text-destructive">{stats.overdue}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className={`cursor-pointer transition-all ${statusFilter === "urgent" ? "ring-2 ring-amber-500" : "hover-elevate"}`}
+          onClick={() => { setStatusFilter("urgent"); setCurrentPage(1); }}
+          data-testid="stat-card-urgent"
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Urgent</p>
+                <p className="text-3xl font-bold text-amber-500">{stats.urgent}</p>
+              </div>
+              <Clock className="h-8 w-8 text-amber-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className={`cursor-pointer transition-all ${statusFilter === "pending" ? "ring-2 ring-primary" : "hover-elevate"}`}
+          onClick={() => { setStatusFilter("pending"); setCurrentPage(1); }}
+          data-testid="stat-card-pending"
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-3xl font-bold">{stats.pending}</p>
+              </div>
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by entity or requester..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            className="pl-9"
+            data-testid="input-search-requests"
+          />
+        </div>
+        
+        <Select value={moduleFilter} onValueChange={(v) => { setModuleFilter(v); setCurrentPage(1); }}>
+          <SelectTrigger className="w-[180px]" data-testid="select-module-filter">
+            <SelectValue placeholder="All Modules" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Modules</SelectItem>
+            <SelectItem value="health_safety">Health & Safety ({stats.byModule.health_safety})</SelectItem>
+            <SelectItem value="human_resources">Human Resources ({stats.byModule.human_resources})</SelectItem>
+            <SelectItem value="employment_law">Employment Law ({stats.byModule.employment_law})</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={sortBy} onValueChange={(v: "date" | "entity" | "module") => setSortBy(v)}>
+          <SelectTrigger className="w-[140px]" data-testid="select-sort-by">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date">Date</SelectItem>
+            <SelectItem value="entity">Entity</SelectItem>
+            <SelectItem value="module">Module</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+          data-testid="button-toggle-sort"
+        >
+          {sortOrder === "asc" ? "Oldest First" : "Newest First"}
+        </Button>
+
+        <div className="flex gap-2 border-l pl-4">
+          <Button
+            variant={statusFilter === "approved" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setStatusFilter(statusFilter === "approved" ? "all" : "approved"); setCurrentPage(1); }}
+            data-testid="button-filter-approved"
+          >
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Approved ({stats.approved})
+          </Button>
+          <Button
+            variant={statusFilter === "rejected" ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setStatusFilter(statusFilter === "rejected" ? "all" : "rejected"); setCurrentPage(1); }}
+            data-testid="button-filter-rejected"
+          >
+            <XCircle className="h-4 w-4 mr-1" />
+            Rejected ({stats.rejected})
+          </Button>
+        </div>
+      </div>
+
+      {selectedPendingRequests.length > 0 && (
+        <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+          <CheckSquare className="h-5 w-5 text-primary" />
+          <span className="font-medium">{selectedPendingRequests.length} request(s) selected</span>
+          <div className="flex gap-2 ml-auto">
+            <Button
+              size="sm"
+              onClick={() => openReviewDialog(selectedPendingRequests, "approve")}
+              data-testid="button-bulk-approve"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve Selected
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openReviewDialog(selectedPendingRequests, "reject")}
+              data-testid="button-bulk-reject"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Reject Selected
+            </Button>
+          </div>
+        </div>
+      )}
 
       {filteredRequests.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CheckCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No Pending Requests</h3>
+            <h3 className="text-lg font-medium">No Requests Found</h3>
             <p className="text-muted-foreground text-center mt-1">
-              {filter === "pending" 
-                ? "All access requests have been processed."
-                : "No module access requests have been made yet."}
+              {searchQuery 
+                ? "No requests match your search criteria."
+                : "No module access requests to display."}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRequests.map((request) => (
-            <RequestCard
-              key={request.id}
-              request={request}
-              onApprove={() => openReviewDialog(request, "approve")}
-              onReject={() => openReviewDialog(request, "reject")}
-              isProcessing={reviewMutation.isPending}
-            />
-          ))}
-        </div>
+        <>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={
+                        paginatedRequests.filter(r => r.status === "pending").length > 0 &&
+                        paginatedRequests.filter(r => r.status === "pending").every(r => selectedRequests.has(r.id))
+                      }
+                      onCheckedChange={handleSelectAll}
+                      data-testid="checkbox-select-all"
+                    />
+                  </TableHead>
+                  <TableHead>Entity</TableHead>
+                  <TableHead>Module</TableHead>
+                  <TableHead>Requested By</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Review Details</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedRequests.map((request) => (
+                  <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
+                    <TableCell>
+                      {request.status === "pending" && (
+                        <Checkbox
+                          checked={selectedRequests.has(request.id)}
+                          onCheckedChange={(checked) => handleSelectRequest(request.id, !!checked)}
+                          data-testid={`checkbox-request-${request.id}`}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{request.entityName || request.entityId}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <ModuleBadge module={request.module} />
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{request.requestedByName}</p>
+                        {request.reason && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]" title={request.reason}>
+                            {request.reason}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{format(new Date(request.createdAt), "MMM d, yyyy")}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge request={request} />
+                    </TableCell>
+                    <TableCell>
+                      {request.status !== "pending" && request.reviewedByName ? (
+                        <div className="max-w-[200px]">
+                          <p className="text-sm">
+                            <span className="text-muted-foreground">by </span>
+                            <span className="font-medium">{request.reviewedByName}</span>
+                          </p>
+                          {request.reviewedAt && (
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(request.reviewedAt), "MMM d, yyyy")}
+                            </p>
+                          )}
+                          {request.reviewNotes && (
+                            <p className="text-xs text-muted-foreground truncate" title={request.reviewNotes}>
+                              {request.reviewNotes}
+                            </p>
+                          )}
+                        </div>
+                      ) : request.status === "pending" ? (
+                        <span className="text-xs text-muted-foreground">Awaiting review</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {request.status === "pending" && (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openReviewDialog([request], "approve")}
+                            data-testid={`button-approve-${request.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openReviewDialog([request], "reject")}
+                            data-testid={`button-reject-${request.id}`}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} of {filteredRequests.length} requests
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={reviewDialog.open} onOpenChange={(open) => {
-        if (!open) setReviewDialog({ open: false, request: null, action: null });
+        if (!open) setReviewDialog({ open: false, requests: [], action: null });
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {reviewDialog.action === "approve" ? "Approve Access Request" : "Reject Access Request"}
+              {reviewDialog.action === "approve" ? "Approve" : "Reject"} {reviewDialog.requests.length > 1 ? `${reviewDialog.requests.length} Requests` : "Request"}
             </DialogTitle>
             <DialogDescription>
               {reviewDialog.action === "approve" 
-                ? "This will grant the entity access to the requested module."
-                : "This will deny the entity's request for module access."}
+                ? "This will grant the selected entities access to the requested modules."
+                : "This will deny the selected access requests."}
             </DialogDescription>
           </DialogHeader>
           
-          {reviewDialog.request && (
+          {reviewDialog.requests.length > 0 && (
             <div className="space-y-4">
-              <div className="rounded-md bg-muted p-4">
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    const Icon = moduleIcons[reviewDialog.request.module];
-                    return (
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${moduleBgColors[reviewDialog.request.module]}`}>
-                        <Icon className={`h-5 w-5 ${moduleColors[reviewDialog.request.module]}`} />
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {reviewDialog.requests.map(request => (
+                  <div key={request.id} className="rounded-md bg-muted p-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded ${moduleBgColors[request.module]}`}>
+                          {(() => {
+                            const Icon = moduleIcons[request.module];
+                            return <Icon className={`h-4 w-4 ${moduleColors[request.module]}`} />;
+                          })()}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{request.entityName || request.entityId}</p>
+                          <p className="text-xs text-muted-foreground">{moduleNames[request.module]}</p>
+                        </div>
                       </div>
-                    );
-                  })()}
-                  <div>
-                    <p className="font-medium">{moduleNames[reviewDialog.request.module]}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Requested by {reviewDialog.request.requestedByName}
-                    </p>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <div className="space-y-2">
@@ -362,18 +744,20 @@ export default function ModuleAccessRequests() {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setReviewDialog({ open: false, request: null, action: null })}
+              onClick={() => setReviewDialog({ open: false, requests: [], action: null })}
             >
               Cancel
             </Button>
             <Button 
               variant={reviewDialog.action === "approve" ? "default" : "destructive"}
-              onClick={handleReview}
+              onClick={handleBulkReview}
               disabled={reviewMutation.isPending}
               data-testid="button-confirm-review"
             >
               {reviewMutation.isPending ? "Processing..." : (
-                reviewDialog.action === "approve" ? "Approve Access" : "Reject Request"
+                reviewDialog.action === "approve" 
+                  ? `Approve ${reviewDialog.requests.length > 1 ? `(${reviewDialog.requests.length})` : ""}` 
+                  : `Reject ${reviewDialog.requests.length > 1 ? `(${reviewDialog.requests.length})` : ""}`
               )}
             </Button>
           </DialogFooter>

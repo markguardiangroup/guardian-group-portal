@@ -1459,6 +1459,7 @@ export async function registerRoutes(
       
       const request = await storage.createModuleAccessRequest({
         entityId,
+        entityName: entity.name,
         module,
         requestedBy: user.id,
         requestedByName: user.fullName,
