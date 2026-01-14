@@ -627,6 +627,54 @@ export class MemStorage implements IStorage {
     ];
     logs.forEach(log => this.auditLogs.set(log.id, log));
 
+    // Create sample document versions (for documents with version > 1)
+    const docVersions: DocumentVersion[] = [
+      // doc-hs-1 has version 3, so we have versions 1 and 2 in history
+      {
+        id: "ver-hs1-1",
+        documentId: "doc-hs-1",
+        version: 1,
+        fileName: "hs_policy_2024_v1.pdf",
+        fileSize: 220000,
+        uploadedBy: "user-1",
+        changeNote: "Initial version of the H&S Policy",
+        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ver-hs1-2",
+        documentId: "doc-hs-1",
+        version: 2,
+        fileName: "hs_policy_2024_v2.pdf",
+        fileSize: 235000,
+        uploadedBy: "user-1",
+        changeNote: "Updated fire safety section and added PPE requirements",
+        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
+      },
+      // doc-hs-3 has version 2, so we have version 1 in history
+      {
+        id: "ver-hs3-1",
+        documentId: "doc-hs-3",
+        version: 1,
+        fileName: "coshh_chemical_storage_v1.pdf",
+        fileSize: 350000,
+        uploadedBy: "user-1",
+        changeNote: "Initial COSHH assessment for chemical storage area",
+        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+      },
+      // doc-hr-1 has version 2, so we have version 1 in history
+      {
+        id: "ver-hr1-1",
+        documentId: "doc-hr-1",
+        version: 1,
+        fileName: "employee_handbook_2024_v1.pdf",
+        fileSize: 480000,
+        uploadedBy: "user-1",
+        changeNote: "Initial employee handbook for 2024",
+        createdAt: new Date(now.getTime() - 75 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    docVersions.forEach(ver => this.documentVersions.set(ver.id, ver));
+
     // Create sample support requests
     const requests: SupportRequest[] = [
       {
