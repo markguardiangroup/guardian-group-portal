@@ -36,6 +36,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -109,12 +111,16 @@ const statusLabels: Record<ModuleStatus, string> = {
   hidden: "Hidden",
 };
 
-function OverviewTab({ entity, sites }: { entity: Entity; sites: Site[] }) {
+function OverviewTab({ entity, sites, onEditEntity }: { entity: Entity; sites: Site[]; onEditEntity: () => void }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">Company Information</CardTitle>
+          <Button variant="outline" size="sm" onClick={onEditEntity} data-testid="button-edit-entity">
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Details
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -144,6 +150,14 @@ function OverviewTab({ entity, sites }: { entity: Entity; sites: Site[] }) {
               <div>
                 <p className="text-sm text-muted-foreground">Contact Phone</p>
                 <p className="font-medium">{entity.contactPhone}</p>
+              </div>
+            )}
+            {entity.website && (
+              <div>
+                <p className="text-sm text-muted-foreground">Website</p>
+                <a href={entity.website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                  {entity.website}
+                </a>
               </div>
             )}
           </div>
@@ -977,7 +991,17 @@ function AccessRequestsTab({ entityId }: { entityId: string }) {
 export default function EntityDetail() {
   const params = useParams<{ entityId: string }>();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const entityId = params.entityId;
+  const [isEditEntityOpen, setIsEditEntityOpen] = useState(false);
+  const [editEntityData, setEditEntityData] = useState({
+    name: "",
+    companyNumber: "",
+    address: "",
+    contactEmail: "",
+    contactPhone: "",
+    website: "",
+  });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Entity>({
     queryKey: ["/api/entities", entityId],
@@ -988,6 +1012,44 @@ export default function EntityDetail() {
     queryKey: ["/api/entities", entityId, "sites"],
     enabled: !!entityId,
   });
+
+  const updateEntityMutation = useMutation({
+    mutationFn: async (data: typeof editEntityData) => {
+      const response = await apiRequest("PATCH", `/api/entities/${entityId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
+      toast({ title: "Entity updated successfully" });
+      setIsEditEntityOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update entity", variant: "destructive" });
+    },
+  });
+
+  const handleEditEntity = () => {
+    if (entity) {
+      setEditEntityData({
+        name: entity.name || "",
+        companyNumber: entity.companyNumber || "",
+        address: entity.address || "",
+        contactEmail: entity.contactEmail || "",
+        contactPhone: entity.contactPhone || "",
+        website: entity.website || "",
+      });
+      setIsEditEntityOpen(true);
+    }
+  };
+
+  const handleSaveEntity = () => {
+    if (!editEntityData.name.trim()) {
+      toast({ title: "Entity name is required", variant: "destructive" });
+      return;
+    }
+    updateEntityMutation.mutate(editEntityData);
+  };
 
   if (entityLoading) {
     return (
@@ -1069,7 +1131,7 @@ export default function EntityDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} />
+          <OverviewTab entity={entity} sites={sites} onEditEntity={handleEditEntity} />
         </TabsContent>
 
         <TabsContent value="consultants">
@@ -1092,6 +1154,90 @@ export default function EntityDetail() {
           <AccessRequestsTab entityId={entityId!} />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isEditEntityOpen} onOpenChange={setIsEditEntityOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Entity Details</DialogTitle>
+            <DialogDescription>
+              Update the company information for this entity.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="entity-name">Company Name *</Label>
+              <Input
+                id="entity-name"
+                value={editEntityData.name}
+                onChange={(e) => setEditEntityData({ ...editEntityData, name: e.target.value })}
+                placeholder="Enter company name"
+                data-testid="input-entity-name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="entity-company-number">Company Number</Label>
+              <Input
+                id="entity-company-number"
+                value={editEntityData.companyNumber}
+                onChange={(e) => setEditEntityData({ ...editEntityData, companyNumber: e.target.value })}
+                placeholder="Enter company registration number"
+                data-testid="input-entity-company-number"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="entity-address">Address</Label>
+              <Input
+                id="entity-address"
+                value={editEntityData.address}
+                onChange={(e) => setEditEntityData({ ...editEntityData, address: e.target.value })}
+                placeholder="Enter company address"
+                data-testid="input-entity-address"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="entity-email">Contact Email</Label>
+                <Input
+                  id="entity-email"
+                  type="email"
+                  value={editEntityData.contactEmail}
+                  onChange={(e) => setEditEntityData({ ...editEntityData, contactEmail: e.target.value })}
+                  placeholder="email@example.com"
+                  data-testid="input-entity-email"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="entity-phone">Contact Phone</Label>
+                <Input
+                  id="entity-phone"
+                  value={editEntityData.contactPhone}
+                  onChange={(e) => setEditEntityData({ ...editEntityData, contactPhone: e.target.value })}
+                  placeholder="+44 123 456 7890"
+                  data-testid="input-entity-phone"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="entity-website">Website</Label>
+              <Input
+                id="entity-website"
+                value={editEntityData.website}
+                onChange={(e) => setEditEntityData({ ...editEntityData, website: e.target.value })}
+                placeholder="https://www.example.com"
+                data-testid="input-entity-website"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditEntityOpen(false)} data-testid="button-cancel-edit-entity">
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEntity} disabled={updateEntityMutation.isPending} data-testid="button-save-entity">
+              {updateEntityMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

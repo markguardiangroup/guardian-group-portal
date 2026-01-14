@@ -36,6 +36,7 @@ export interface IStorage {
   getEntities(): Promise<EntityWithSites[]>;
   getEntity(id: string): Promise<Entity | undefined>;
   createEntity(entity: InsertEntity): Promise<Entity>;
+  updateEntity(id: string, updates: Partial<Entity>): Promise<Entity | undefined>;
   
   // Sites
   getSites(): Promise<Site[]>;
@@ -1464,6 +1465,19 @@ export class MemStorage implements IStorage {
     };
     this.entities.set(id, entity);
     return entity;
+  }
+
+  async updateEntity(id: string, updates: Partial<Entity>): Promise<Entity | undefined> {
+    const entity = this.entities.get(id);
+    if (!entity) {
+      return undefined;
+    }
+    const updatedEntity: Entity = {
+      ...entity,
+      ...updates,
+    };
+    this.entities.set(id, updatedEntity);
+    return updatedEntity;
   }
 
   private async getEntityComplianceSummary(entityId: string): Promise<ComplianceSummary> {

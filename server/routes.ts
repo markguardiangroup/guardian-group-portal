@@ -630,6 +630,41 @@ export async function registerRoutes(
     }
   });
 
+  // Update entity
+  app.patch("/api/entities/:entityId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can update entities
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update entities" });
+      }
+      
+      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
+      
+      const updates: Record<string, any> = {};
+      if (name !== undefined) updates.name = name;
+      if (companyNumber !== undefined) updates.companyNumber = companyNumber || null;
+      if (address !== undefined) updates.address = address || null;
+      if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
+      if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
+      if (website !== undefined) updates.website = website || null;
+      
+      const entity = await storage.updateEntity(req.params.entityId, updates);
+      if (!entity) {
+        return res.status(404).json({ error: "Entity not found" });
+      }
+      
+      res.json(entity);
+    } catch (error) {
+      console.error("Update entity error:", error);
+      res.status(500).json({ error: "Failed to update entity" });
+    }
+  });
+
   // Get single entity
   app.get("/api/entities/:entityId", requireAuth, async (req, res) => {
     try {
