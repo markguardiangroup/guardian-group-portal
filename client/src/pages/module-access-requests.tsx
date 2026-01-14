@@ -377,7 +377,7 @@ export default function ModuleAccessRequests() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-3xl font-semibold">Access Requests</h1>
+        <h1 className="text-3xl font-semibold">Module Requests</h1>
         <p className="mt-1 text-muted-foreground">
           Manage and review entity requests for module access
         </p>

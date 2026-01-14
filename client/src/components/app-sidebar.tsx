@@ -123,7 +123,7 @@ const adminNavItems = [
     icon: Users,
   },
   {
-    title: "Access Requests",
+    title: "Module Requests",
     url: "/access-requests",
     icon: KeyRound,
   },
