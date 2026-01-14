@@ -205,6 +205,7 @@ export type DocumentVersion = typeof documentVersions.$inferSelect;
 export type AuditAction = 
   | "document_uploaded" 
   | "document_viewed" 
+  | "document_downloaded"
   | "document_approved" 
   | "document_rejected" 
   | "document_updated" 
