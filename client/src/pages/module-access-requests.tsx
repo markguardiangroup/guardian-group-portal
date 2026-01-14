@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ import {
   ChevronUp,
   Filter,
   CheckSquare,
+  ExternalLink,
 } from "lucide-react";
 import { useState, useMemo, Fragment } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -604,7 +606,14 @@ export default function ModuleAccessRequests() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{request.entityName || request.entityId}</span>
+                            <Link href={`/entities/${request.entityId}`}>
+                              <span className="font-medium hover:underline cursor-pointer">
+                                {request.entityName || request.entityId}
+                              </span>
+                            </Link>
+                            <Link href={`/entities/${request.entityId}`}>
+                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            </Link>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -686,6 +695,14 @@ export default function ModuleAccessRequests() {
                                   <p className="text-sm">{differenceInDays(new Date(), new Date(request.createdAt))} days</p>
                                 </div>
                               )}
+                            </div>
+                            <div className="mt-4 px-4">
+                              <Link href={`/entities/${request.entityId}`}>
+                                <Button variant="outline" size="sm" data-testid={`button-view-entity-${request.id}`}>
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  View Entity Details
+                                </Button>
+                              </Link>
                             </div>
                           </TableCell>
                         </TableRow>
