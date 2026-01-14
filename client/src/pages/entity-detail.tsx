@@ -793,6 +793,7 @@ function ModuleAccessTab({ entityId }: { entityId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "module-access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
       toast({ title: "Module access updated" });
     },
     onError: () => {
