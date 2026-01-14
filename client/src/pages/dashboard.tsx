@@ -300,15 +300,16 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   
   const isClientUser = user?.role === "client";
+  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch entities for admin/consultant users
-  const { data: entities } = useQuery<Entity[]>({
+  const { data: entities, isLoading: entitiesLoading } = useQuery<Entity[]>({
     queryKey: ["/api/entities"],
-    enabled: !isClientUser,
+    enabled: canSelectEntities,
   });
   
   // Determine which entity to show data for
@@ -329,9 +330,9 @@ export default function Dashboard() {
   });
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
-  const currentEntityName = !isClientUser && entities?.find(e => e.id === entityId)?.name;
+  const currentEntityName = canSelectEntities && entities?.find(e => e.id === entityId)?.name;
 
-  if (isLoading) {
+  if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -369,7 +370,7 @@ export default function Dashboard() {
           </p>
         </div>
         {/* Entity selector for admin/consultant oversight */}
-        {!isClientUser && entities && entities.length > 0 && (
+        {canSelectEntities && entities && entities.length > 0 && (
           <Select 
             value={entityId || ""} 
             onValueChange={setSelectedEntityId}
