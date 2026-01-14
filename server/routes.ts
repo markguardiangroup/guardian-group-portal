@@ -550,13 +550,23 @@ export async function registerRoutes(
     }
   });
 
-  // Document Type Access routes
-  app.get("/api/document-types/:module/:entityId", async (req, res) => {
+  // Document Type Access routes (protected by auth)
+  app.get("/api/document-types/:module/:entityId", requireAuth, async (req, res) => {
     try {
       const { module, entityId } = req.params;
       if (module !== "health_safety" && module !== "human_resources") {
         return res.status(400).json({ error: "Invalid module" });
       }
+      
+      // Authorization: clients can only view their own entity, consultants/admins can view any
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role === "client" && user.entityId !== entityId) {
+        return res.status(403).json({ error: "Not authorized to view this entity's access" });
+      }
+      
       const documentTypes = await storage.getDocumentTypesWithAccess(entityId, module as ModuleType);
       res.json(documentTypes);
     } catch (error) {
@@ -565,10 +575,20 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/entity-access/:entityId", async (req, res) => {
+  app.get("/api/entity-access/:entityId", requireAuth, async (req, res) => {
     try {
       const { entityId } = req.params;
       const module = req.query.module as ModuleType | undefined;
+      
+      // Authorization check
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role === "client" && user.entityId !== entityId) {
+        return res.status(403).json({ error: "Not authorized to view this entity's access" });
+      }
+      
       const access = await storage.getEntityDocumentTypeAccess(entityId, module);
       res.json(access);
     } catch (error) {
@@ -577,8 +597,14 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/entity-access", async (req, res) => {
+  app.post("/api/entity-access", requireAuth, async (req, res) => {
     try {
+      // Only admins can grant access
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only administrators can grant document type access" });
+      }
+      
       const { entityId, documentType, module, grantedBy } = req.body;
       if (!entityId || !documentType || !module) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -587,7 +613,7 @@ export async function registerRoutes(
         entityId,
         documentType,
         module,
-        grantedBy,
+        grantedBy: grantedBy || user.id,
       });
       res.json(access);
     } catch (error) {
@@ -596,8 +622,14 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/entity-access/:entityId/:documentType", async (req, res) => {
+  app.delete("/api/entity-access/:entityId/:documentType", requireAuth, async (req, res) => {
     try {
+      // Only admins can revoke access
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only administrators can revoke document type access" });
+      }
+      
       const { entityId, documentType } = req.params;
       const success = await storage.revokeDocumentTypeAccess(entityId, documentType as any);
       if (success) {

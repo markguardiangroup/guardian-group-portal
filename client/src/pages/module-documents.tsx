@@ -56,28 +56,75 @@ import {
   History,
   HardHat,
   Users,
+  Lock,
+  Unlock,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType } from "@shared/schema";
+import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface ModuleDocumentsProps {
   module: ModuleType;
+}
+
+interface EntityBasic {
+  id: string;
+  name: string;
 }
 
 function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   
+  const { user } = useAuth();
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
+  
+  // Consultants and admins can view different entities
+  const isClientUser = user?.role === "client";
+  
+  // Fetch entities for consultant/admin users
+  const { data: entities } = useQuery<EntityBasic[]>({
+    queryKey: ["/api/entities"],
+    enabled: !isClientUser,
+  });
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
   });
+
+  // Determine which entity to show access for
+  const entityId = isClientUser 
+    ? (user?.entityId || null)
+    : (selectedEntityId || entities?.[0]?.id || null);
+    
+  const { data: documentTypesWithAccess } = useQuery<DocumentTypeWithAccess[]>({
+    queryKey: ["/api/document-types", module, entityId],
+    enabled: !!entityId,
+  });
+  
+  const accessibleTypes = documentTypesWithAccess?.filter(dt => dt.hasAccess) || [];
+  const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
+  
+  // Get current entity name
+  const currentEntityName = isClientUser 
+    ? null 
+    : entities?.find(e => e.id === entityId)?.name;
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -134,6 +181,133 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       </div>
 
       <div className="space-y-6 p-8">
+
+      {/* Document Type Access Section */}
+      {entityId && documentTypesWithAccess && documentTypesWithAccess.length > 0 && (
+        <Collapsible open={showDocTypeAccess} onOpenChange={setShowDocTypeAccess}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover-elevate pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-5 w-5 text-module-accent" />
+                    <div>
+                      <CardTitle className="text-base">
+                        Document Type Access
+                        {currentEntityName && (
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            for {currentEntityName}
+                          </span>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        {accessibleTypes.length} of {documentTypesWithAccess.length} document types available
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {unavailableTypes.length > 0 && (
+                      <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                        <Sparkles className="mr-1 h-3 w-3" />
+                        {unavailableTypes.length} available to add
+                      </Badge>
+                    )}
+                    {showDocTypeAccess ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                {/* Entity selector for consultants/admins */}
+                {!isClientUser && entities && entities.length > 1 && (
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">View access for:</span>
+                    <Select 
+                      value={entityId || ""} 
+                      onValueChange={setSelectedEntityId}
+                    >
+                      <SelectTrigger className="w-64" data-testid="select-entity-access">
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {entities.map((entity) => (
+                          <SelectItem key={entity.id} value={entity.id}>
+                            {entity.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {documentTypesWithAccess.map((docType) => (
+                    <div
+                      key={docType.value}
+                      className={`flex items-center gap-3 rounded-lg border p-3 ${
+                        docType.hasAccess 
+                          ? "bg-card border-border" 
+                          : "bg-muted/30 border-dashed border-muted-foreground/30"
+                      }`}
+                      data-testid={`doctype-${docType.value}`}
+                    >
+                      {docType.hasAccess ? (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                          <Unlock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        </div>
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className={`truncate text-sm font-medium ${!docType.hasAccess && "text-muted-foreground"}`}>
+                          {docType.label}
+                        </p>
+                        {docType.hasAccess ? (
+                          <p className="text-xs text-muted-foreground">
+                            {docType.documentCount} document{docType.documentCount !== 1 ? "s" : ""}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Contact us to add
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {unavailableTypes.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 p-4">
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <p className="font-medium text-amber-800 dark:text-amber-200">
+                          Expand your compliance coverage
+                        </p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                          {unavailableTypes.length} additional document types are available for your organization
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      className="border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
+                      data-testid="button-request-access"
+                    >
+                      Request Access
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
 
       <Card>
         <CardHeader className="pb-4">

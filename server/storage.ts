@@ -998,14 +998,16 @@ export class MemStorage implements IStorage {
     const entityAccess = await this.getEntityDocumentTypeAccess(entityId, module);
     const accessibleTypes = new Set(entityAccess.map(a => a.documentType));
     
+    // Filter documents by both module AND entity
     const docs = Array.from(this.documents.values())
-      .filter(d => d.module === module && !d.isArchived);
+      .filter(d => d.module === module && d.entityId === entityId && !d.isArchived);
     
     return config.documentTypes.map(dt => ({
       value: dt.value,
       label: dt.label,
       module,
       hasAccess: accessibleTypes.has(dt.value),
+      // Only count documents for this specific entity
       documentCount: docs.filter(d => d.type === dt.value).length,
     }));
   }
