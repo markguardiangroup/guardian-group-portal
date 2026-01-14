@@ -595,6 +595,51 @@ export async function registerRoutes(
     }
   });
 
+  // Get single entity
+  app.get("/api/entities/:entityId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Clients can only access their own entity
+      if (user.role === "client" && user.entityId !== req.params.entityId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const entity = await storage.getEntity(req.params.entityId);
+      if (!entity) {
+        return res.status(404).json({ error: "Entity not found" });
+      }
+      res.json(entity);
+    } catch (error) {
+      console.error("Get entity error:", error);
+      res.status(500).json({ error: "Failed to fetch entity" });
+    }
+  });
+
+  // Get sites for entity
+  app.get("/api/entities/:entityId/sites", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Clients can only access their own entity's sites
+      if (user.role === "client" && user.entityId !== req.params.entityId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const sites = await storage.getSitesByEntity(req.params.entityId);
+      res.json(sites);
+    } catch (error) {
+      console.error("Get entity sites error:", error);
+      res.status(500).json({ error: "Failed to fetch entity sites" });
+    }
+  });
+
   // Sites
   app.get("/api/sites", async (req, res) => {
     try {
@@ -1391,6 +1436,161 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Review module access request error:", error);
       res.status(500).json({ error: "Failed to review access request" });
+    }
+  });
+
+  // Entity Users Routes
+  
+  // Get users for an entity
+  app.get("/api/entities/:entityId/users", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Clients can only see users from their own entity
+      if (user.role === "client" && user.entityId !== req.params.entityId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const users = await storage.getUsersByEntity(req.params.entityId);
+      // Remove passwords from response
+      const safeUsers = users.map(({ password, ...u }) => u);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get entity users error:", error);
+      res.status(500).json({ error: "Failed to fetch entity users" });
+    }
+  });
+
+  // Consultant Assignment Routes
+  
+  // Get all consultants
+  app.get("/api/consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can see all consultants
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const consultants = await storage.getConsultants();
+      const safeConsultants = consultants.map(({ password, ...c }) => c);
+      res.json(safeConsultants);
+    } catch (error) {
+      console.error("Get consultants error:", error);
+      res.status(500).json({ error: "Failed to fetch consultants" });
+    }
+  });
+
+  // Get consultant assignments for an entity
+  app.get("/api/entities/:entityId/consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Clients can only access their own entity's consultants
+      if (user.role === "client" && user.entityId !== req.params.entityId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const assignments = await storage.getConsultantAssignments(req.params.entityId);
+      
+      // Enhance with consultant details
+      const enhancedAssignments = await Promise.all(
+        assignments.map(async (a) => {
+          const consultant = await storage.getUser(a.consultantId);
+          return {
+            ...a,
+            consultantName: consultant?.fullName || "Unknown",
+            consultantEmail: consultant?.email || "",
+            consultantTier: consultant?.consultantTier || null,
+          };
+        })
+      );
+      
+      res.json(enhancedAssignments);
+    } catch (error) {
+      console.error("Get entity consultants error:", error);
+      res.status(500).json({ error: "Failed to fetch entity consultants" });
+    }
+  });
+
+  // Assign consultant to entity
+  app.post("/api/entities/:entityId/consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can assign consultants
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can assign consultants" });
+      }
+      
+      const { consultantId, isPrimary } = req.body;
+      if (!consultantId) {
+        return res.status(400).json({ error: "Consultant ID is required" });
+      }
+      
+      // Verify consultant exists
+      const consultant = await storage.getUser(consultantId);
+      if (!consultant || consultant.role !== "consultant") {
+        return res.status(400).json({ error: "Invalid consultant" });
+      }
+      
+      const assignment = await storage.assignConsultant({
+        consultantId,
+        entityId: req.params.entityId,
+        isPrimary: isPrimary || false,
+      });
+      
+      res.status(201).json({
+        ...assignment,
+        consultantName: consultant.fullName,
+        consultantEmail: consultant.email,
+        consultantTier: consultant.consultantTier,
+      });
+    } catch (error) {
+      console.error("Assign consultant error:", error);
+      res.status(500).json({ error: "Failed to assign consultant" });
+    }
+  });
+
+  // Remove consultant assignment
+  app.delete("/api/entities/:entityId/consultants/:consultantId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can remove consultant assignments
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can remove consultant assignments" });
+      }
+      
+      const removed = await storage.removeConsultantAssignment(
+        req.params.consultantId,
+        req.params.entityId
+      );
+      
+      if (!removed) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove consultant assignment error:", error);
+      res.status(500).json({ error: "Failed to remove consultant assignment" });
     }
   });
 

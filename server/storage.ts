@@ -19,6 +19,7 @@ import {
   type CaseStatus,
   type EntityModuleAccess, type InsertEntityModuleAccess, type ModuleAccessStatus,
   type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
+  type ConsultantAssignment, type InsertConsultantAssignment,
   moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -89,6 +90,16 @@ export interface IStorage {
   getModuleAccessRequests(entityId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
   createModuleAccessRequest(request: InsertModuleAccessRequest): Promise<ModuleAccessRequest>;
   reviewModuleAccessRequest(id: string, reviewedBy: string, reviewedByName: string, status: ModuleAccessRequestStatus, notes?: string): Promise<ModuleAccessRequest | undefined>;
+  
+  // Consultant Assignments
+  getConsultantAssignments(entityId: string): Promise<ConsultantAssignment[]>;
+  getConsultantEntities(consultantId: string): Promise<ConsultantAssignment[]>;
+  assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment>;
+  removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean>;
+  
+  // Users by Entity
+  getUsersByEntity(entityId: string): Promise<User[]>;
+  getConsultants(): Promise<User[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -104,6 +115,7 @@ export class MemStorage implements IStorage {
   private caseMilestones: Map<string, CaseMilestone>;
   private entityModuleAccess: Map<string, EntityModuleAccess>;
   private moduleAccessRequests: Map<string, ModuleAccessRequest>;
+  private consultantAssignments: Map<string, ConsultantAssignment>;
 
   constructor() {
     this.users = new Map();
@@ -118,6 +130,7 @@ export class MemStorage implements IStorage {
     this.caseMilestones = new Map();
     this.entityModuleAccess = new Map();
     this.moduleAccessRequests = new Map();
+    this.consultantAssignments = new Map();
     
     this.initializeSampleData();
   }
@@ -142,7 +155,7 @@ export class MemStorage implements IStorage {
     };
     this.users.set(admin.id, admin);
 
-    const consultant: User = {
+    const consultant1: User = {
       id: "user-1",
       username: "john.doe",
       password: "consultant123",
@@ -156,7 +169,23 @@ export class MemStorage implements IStorage {
       lastLoginAt: null,
       createdAt: now,
     };
-    this.users.set(consultant.id, consultant);
+    this.users.set(consultant1.id, consultant1);
+
+    const consultant2: User = {
+      id: "user-consultant-2",
+      username: "jane.smith",
+      password: "consultant123",
+      email: "jane.smith@guardiangroup.com",
+      fullName: "Jane Smith",
+      role: "consultant",
+      entityId: null,
+      status: "active",
+      consultantTier: "standard",
+      clientPermissionRole: null,
+      lastLoginAt: null,
+      createdAt: now,
+    };
+    this.users.set(consultant2.id, consultant2);
 
     const client1: User = {
       id: "user-client-1",
@@ -1328,6 +1357,32 @@ export class MemStorage implements IStorage {
       reviewedAt: null,
     };
     this.moduleAccessRequests.set(sampleAccessRequest.id, sampleAccessRequest);
+
+    // Sample consultant assignments
+    const consultantAssignments: ConsultantAssignment[] = [
+      {
+        id: "ca-1",
+        consultantId: "user-1",
+        entityId: "entity-1",
+        isPrimary: true,
+        assignedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ca-2",
+        consultantId: "user-consultant-2",
+        entityId: "entity-1",
+        isPrimary: false,
+        assignedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "ca-3",
+        consultantId: "user-consultant-2",
+        entityId: "entity-2",
+        isPrimary: true,
+        assignedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    consultantAssignments.forEach(ca => this.consultantAssignments.set(ca.id, ca));
   }
 
   // Users
@@ -1866,6 +1921,58 @@ export class MemStorage implements IStorage {
     }
     
     return updated;
+  }
+
+  // Consultant Assignments
+  async getConsultantAssignments(entityId: string): Promise<ConsultantAssignment[]> {
+    return Array.from(this.consultantAssignments.values())
+      .filter(a => a.entityId === entityId);
+  }
+
+  async getConsultantEntities(consultantId: string): Promise<ConsultantAssignment[]> {
+    return Array.from(this.consultantAssignments.values())
+      .filter(a => a.consultantId === consultantId);
+  }
+
+  async assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment> {
+    // Check if already assigned
+    const existing = Array.from(this.consultantAssignments.values())
+      .find(a => a.consultantId === assignment.consultantId && a.entityId === assignment.entityId);
+    if (existing) {
+      return existing;
+    }
+
+    const id = randomUUID();
+    const newAssignment: ConsultantAssignment = {
+      id,
+      consultantId: assignment.consultantId,
+      entityId: assignment.entityId,
+      isPrimary: assignment.isPrimary ?? false,
+      assignedAt: new Date(),
+    };
+    this.consultantAssignments.set(id, newAssignment);
+    return newAssignment;
+  }
+
+  async removeConsultantAssignment(consultantId: string, entityId: string): Promise<boolean> {
+    const assignment = Array.from(this.consultantAssignments.entries())
+      .find(([_, a]) => a.consultantId === consultantId && a.entityId === entityId);
+    if (assignment) {
+      this.consultantAssignments.delete(assignment[0]);
+      return true;
+    }
+    return false;
+  }
+
+  // Users by Entity
+  async getUsersByEntity(entityId: string): Promise<User[]> {
+    return Array.from(this.users.values())
+      .filter(u => u.entityId === entityId);
+  }
+
+  async getConsultants(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .filter(u => u.role === "consultant");
   }
 }
 

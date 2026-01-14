@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
+  Settings,
 } from "lucide-react";
 import type { EntityWithSites, Site, ComplianceSummary } from "@shared/schema";
 
@@ -106,37 +108,38 @@ function SiteCard({ site, entityId }: { site: Site; entityId: string }) {
   );
 }
 
-function EntityCard({ entity }: { entity: EntityWithSites }) {
+function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (id: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="pb-3">
-          <CollapsibleTrigger asChild>
-            <button className="flex w-full items-start gap-4 text-left" data-testid={`entity-${entity.id}`}>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-lg">{entity.name}</CardTitle>
-                    {entity.companyNumber && (
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        Company No: {entity.companyNumber}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <ComplianceIndicator summary={entity.complianceSummary} />
-                    {isOpen ? (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform" />
-                    )}
-                  </div>
+          <div className="flex w-full items-start gap-4">
+            <CollapsibleTrigger asChild>
+              <button className="flex flex-1 items-start gap-4 text-left" data-testid={`entity-${entity.id}`}>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <Building2 className="h-6 w-6 text-primary" />
                 </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg">{entity.name}</CardTitle>
+                      {entity.companyNumber && (
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          Company No: {entity.companyNumber}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <ComplianceIndicator summary={entity.complianceSummary} />
+                      {isOpen ? (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform" />
+                      )}
+                    </div>
+                  </div>
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5" />
@@ -154,10 +157,21 @@ function EntityCard({ entity }: { entity: EntityWithSites }) {
                       {entity.contactPhone}
                     </span>
                   )}
+                  </div>
                 </div>
-              </div>
-            </button>
-          </CollapsibleTrigger>
+              </button>
+            </CollapsibleTrigger>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onManage(entity.id)}
+              className="ml-2 shrink-0"
+              data-testid={`button-manage-entity-${entity.id}`}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Manage
+            </Button>
+          </div>
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="pt-0">
@@ -233,10 +247,15 @@ function EntityCard({ entity }: { entity: EntityWithSites }) {
 
 export default function Entities() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [, navigate] = useLocation();
 
   const { data: entities, isLoading } = useQuery<EntityWithSites[]>({
     queryKey: ["/api/entities"],
   });
+
+  const handleManageEntity = (entityId: string) => {
+    navigate(`/entities/${entityId}`);
+  };
 
   const filteredEntities = entities?.filter((entity) =>
     entity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -290,7 +309,7 @@ export default function Entities() {
       {filteredEntities && filteredEntities.length > 0 ? (
         <div className="space-y-4">
           {filteredEntities.map((entity) => (
-            <EntityCard key={entity.id} entity={entity} />
+            <EntityCard key={entity.id} entity={entity} onManage={handleManageEntity} />
           ))}
         </div>
       ) : (
