@@ -12,9 +12,11 @@ import {
   Users,
   TrendingUp,
   Shield,
+  Scale,
+  Briefcase,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { ModuleSummary } from "@shared/schema";
+import type { ModuleSummary, Case } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -96,6 +98,66 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
 
         <Button className={`w-full ${isHS ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
+            View Module
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmploymentLawCard({ cases }: { cases: Case[] }) {
+  const activeCases = cases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const resolvedCases = cases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const totalCases = cases.length;
+
+  return (
+    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/40">
+            <Scale className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Employment Law</CardTitle>
+            <CardDescription>{totalCases} cases</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+            {activeCases}
+          </span>
+          <p className="text-xs text-muted-foreground">Active</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-pink-600 dark:text-pink-400">
+              <Briefcase className="h-4 w-4" />
+              <span className="text-lg font-semibold">{activeCases}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Active</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{resolvedCases}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Resolved</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-muted-foreground">
+              <FileText className="h-4 w-4" />
+              <span className="text-lg font-semibold">{totalCases}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </div>
+        </div>
+
+        <Button className="w-full border-pink-500 text-pink-600 hover:bg-pink-50 dark:text-pink-400 dark:hover:bg-pink-950/30" variant="outline" asChild>
+          <Link href="/employment-law" data-testid="link-module-employment_law">
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -200,9 +262,15 @@ function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
 }
 
 export default function Dashboard() {
-  const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
+  const { data: moduleSummaries, isLoading: isLoadingSummaries } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary"],
   });
+
+  const { data: cases, isLoading: isLoadingCases } = useQuery<Case[]>({
+    queryKey: ["/api/cases"],
+  });
+
+  const isLoading = isLoadingSummaries || isLoadingCases;
 
   if (isLoading) {
     return (
@@ -212,7 +280,8 @@ export default function Dashboard() {
           <Skeleton className="mt-2 h-4 w-64" />
         </div>
         <Skeleton className="h-64 w-full" />
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-64 w-full" />
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-64 w-full" />
         </div>
@@ -221,6 +290,7 @@ export default function Dashboard() {
   }
 
   const summaries = moduleSummaries || [];
+  const caseList = cases || [];
 
   return (
     <div className="space-y-8 p-8">
@@ -235,10 +305,11 @@ export default function Dashboard() {
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Modules</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
           {summaries.map((summary) => (
             <ModuleCard key={summary.module} summary={summary} />
           ))}
+          <EmploymentLawCard cases={caseList} />
         </div>
       </div>
 
@@ -273,6 +344,12 @@ export default function Dashboard() {
               <Link href="/reports" data-testid="link-reports">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 View Reports
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start" asChild>
+              <Link href="/employment-law" data-testid="link-el-cases">
+                <Scale className="mr-2 h-4 w-4" />
+                EL Cases
               </Link>
             </Button>
           </CardContent>
