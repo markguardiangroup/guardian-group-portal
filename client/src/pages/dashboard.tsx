@@ -4,13 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/entity-combobox";
 import { 
   FileText, 
   Clock, 
@@ -23,7 +17,6 @@ import {
   Shield,
   Scale,
   Lock,
-  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -374,23 +367,13 @@ export default function Dashboard() {
         </div>
         {/* Entity selector for admin/consultant oversight */}
         {canSelectEntities && entities && entities.length > 0 && (
-          <Select 
-            value={selectedEntityId || "all"} 
+          <EntityCombobox
+            entities={entities}
+            value={selectedEntityId}
             onValueChange={setSelectedEntityId}
-          >
-            <SelectTrigger className="w-64" data-testid="select-entity-dashboard">
-              <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder="Select client" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Entities</SelectItem>
-              {entities.map((entity) => (
-                <SelectItem key={entity.id} value={entity.id}>
-                  {entity.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            className="w-64"
+            testId="select-entity-dashboard"
+          />
         )}
       </div>
 

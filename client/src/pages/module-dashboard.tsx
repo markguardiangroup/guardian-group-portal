@@ -4,13 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { EntityCombobox } from "@/components/entity-combobox";
 import { 
   FileText, 
   Clock, 
@@ -22,7 +16,6 @@ import {
   Upload,
   HardHat,
   Users,
-  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -227,23 +220,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <div className="flex flex-wrap items-center gap-3">
             {/* Entity selector for admin/consultant oversight */}
             {canSelectEntities && entities && entities.length > 0 && (
-              <Select 
-                value={selectedEntityId || "all"} 
+              <EntityCombobox
+                entities={entities}
+                value={selectedEntityId}
                 onValueChange={setSelectedEntityId}
-              >
-                <SelectTrigger className="w-56" data-testid="select-entity-module-dashboard">
-                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Entities</SelectItem>
-                  {entities.map((entity) => (
-                    <SelectItem key={entity.id} value={entity.id}>
-                      {entity.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="w-56"
+                testId="select-entity-module-dashboard"
+              />
             )}
             <Button variant="outline" asChild>
               <Link href={`${basePath}/documents`} data-testid="link-view-documents">

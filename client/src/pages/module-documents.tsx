@@ -38,6 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import { EntityCombobox } from "@/components/entity-combobox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -216,23 +217,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Entity selector for admin/consultant oversight */}
             {canSelectEntities && entities && entities.length > 0 && (
-              <Select 
-                value={selectedEntityId || "all"} 
+              <EntityCombobox
+                entities={entities}
+                value={selectedEntityId}
                 onValueChange={setSelectedEntityId}
-              >
-                <SelectTrigger className="w-64 bg-background" data-testid="select-entity-header">
-                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Entities</SelectItem>
-                  {entities.map((entity) => (
-                    <SelectItem key={entity.id} value={entity.id}>
-                      {entity.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="w-64"
+                testId="select-entity-header"
+              />
             )}
             <Button className="bg-module-accent text-module-accent-foreground" asChild>
               <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
