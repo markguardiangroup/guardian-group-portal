@@ -250,7 +250,8 @@ export async function registerRoutes(
   // Module summaries for overview dashboard
   app.get("/api/modules/summary", async (req, res) => {
     try {
-      const summaries = await storage.getModuleSummaries();
+      const entityId = req.query.entityId as string | undefined;
+      const summaries = await storage.getModuleSummaries(entityId);
       res.json(summaries);
     } catch (error) {
       console.error("Module summaries error:", error);

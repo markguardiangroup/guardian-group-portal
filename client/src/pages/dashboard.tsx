@@ -1,8 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   FileText, 
   Clock, 
@@ -15,10 +23,12 @@ import {
   Shield,
   Scale,
   Lock,
+  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
-import type { ModuleSummary, ModuleType } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import type { ModuleSummary, ModuleType, Entity } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -290,10 +300,36 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  
+  const isClientUser = user?.role === "client";
+  
+  // Fetch entities for admin/consultant users
+  const { data: entities } = useQuery<Entity[]>({
+    queryKey: ["/api/entities"],
+    enabled: !isClientUser,
+  });
+  
+  // Determine which entity to show data for
+  const entityId = isClientUser 
+    ? user?.entityId 
+    : (selectedEntityId || entities?.[0]?.id || null);
+  
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary"],
+    queryKey: ["/api/modules/summary", entityId],
+    queryFn: async () => {
+      const url = entityId 
+        ? `/api/modules/summary?entityId=${entityId}`
+        : "/api/modules/summary";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
+  
+  const currentEntityName = !isClientUser && entities?.find(e => e.id === entityId)?.name;
 
   if (isLoading) {
     return (
@@ -324,11 +360,33 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 p-8">
-      <div>
-        <h1 className="text-3xl font-semibold">Compliance Overview</h1>
-        <p className="mt-1 text-muted-foreground">
-          Monitor compliance across all modules
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold">Compliance Overview</h1>
+          <p className="mt-1 text-muted-foreground">
+            Monitor compliance across all modules
+            {currentEntityName && <span className="font-medium"> - {currentEntityName}</span>}
+          </p>
+        </div>
+        {/* Entity selector for admin/consultant oversight */}
+        {!isClientUser && entities && entities.length > 0 && (
+          <Select 
+            value={entityId || ""} 
+            onValueChange={setSelectedEntityId}
+          >
+            <SelectTrigger className="w-64" data-testid="select-entity-dashboard">
+              <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+              <SelectValue placeholder="Select client" />
+            </SelectTrigger>
+            <SelectContent>
+              {entities.map((entity) => (
+                <SelectItem key={entity.id} value={entity.id}>
+                  {entity.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <OverallComplianceCard summaries={activeSummaries} />

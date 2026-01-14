@@ -65,7 +65,7 @@ export interface IStorage {
   
   // Dashboard
   getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
-  getModuleSummaries(): Promise<ModuleSummary[]>;
+  getModuleSummaries(entityId?: string): Promise<ModuleSummary[]>;
   
   // Entity Document Type Access
   getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]>;
@@ -1840,10 +1840,13 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard
-  async getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary> {
+  async getComplianceSummary(module?: ModuleType, entityId?: string): Promise<ComplianceSummary> {
     let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
     if (module) {
       docs = docs.filter(d => d.module === module);
+    }
+    if (entityId) {
+      docs = docs.filter(d => d.entityId === entityId);
     }
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
@@ -1861,7 +1864,7 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getModuleSummaries(): Promise<ModuleSummary[]> {
+  async getModuleSummaries(entityId?: string): Promise<ModuleSummary[]> {
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
@@ -1870,7 +1873,7 @@ export class MemStorage implements IStorage {
     };
     
     return Promise.all(modules.map(async (module) => {
-      const summary = await this.getComplianceSummary(module);
+      const summary = await this.getComplianceSummary(module, entityId);
       return {
         ...summary,
         module,
