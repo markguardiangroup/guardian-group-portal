@@ -57,6 +57,7 @@ export const entities = pgTable("entities", {
   address: text("address"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
+  website: text("website"),
   status: text("status").$type<EntityStatus>().notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

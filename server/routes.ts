@@ -608,7 +608,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create entities" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Entity name is required" });
@@ -620,6 +620,7 @@ export async function registerRoutes(
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
+        website: website || null,
       });
       
       res.status(201).json(entity);

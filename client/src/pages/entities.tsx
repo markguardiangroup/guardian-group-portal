@@ -268,6 +268,7 @@ export default function Entities() {
     address: "",
     contactEmail: "",
     contactPhone: "",
+    website: "",
   });
   const { toast } = useToast();
 
@@ -290,6 +291,7 @@ export default function Entities() {
         address: "",
         contactEmail: "",
         contactPhone: "",
+        website: "",
       });
     },
     onError: () => {
@@ -448,6 +450,17 @@ export default function Entities() {
                   data-testid="input-contact-phone"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                placeholder="https://www.example.com"
+                value={newEntity.website}
+                onChange={(e) => setNewEntity({ ...newEntity, website: e.target.value })}
+                data-testid="input-website"
+              />
             </div>
           </div>
           <DialogFooter>

@@ -230,6 +230,7 @@ export class MemStorage implements IStorage {
       address: "123 Industrial Way, Manchester M1 2AB",
       contactEmail: "safety@acme-mfg.com",
       contactPhone: "+44 161 123 4567",
+      website: "https://www.acme-mfg.com",
       status: "active",
       createdAt: now,
     };
@@ -240,6 +241,7 @@ export class MemStorage implements IStorage {
       address: "456 Tech Park, London EC2A 4NE",
       contactEmail: "compliance@techcorp.co.uk",
       contactPhone: "+44 20 7123 4567",
+      website: "https://www.techcorp.co.uk",
       status: "active",
       createdAt: now,
     };
@@ -1457,6 +1459,7 @@ export class MemStorage implements IStorage {
       address: insertEntity.address ?? null,
       contactEmail: insertEntity.contactEmail ?? null,
       contactPhone: insertEntity.contactPhone ?? null,
+      website: insertEntity.website ?? null,
       createdAt: new Date(),
     };
     this.entities.set(id, entity);
