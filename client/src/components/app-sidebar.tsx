@@ -123,11 +123,6 @@ const adminNavItems = [
     icon: Users,
   },
   {
-    title: "Entity Access",
-    url: "/entity-access",
-    icon: Building2,
-  },
-  {
     title: "Access Requests",
     url: "/access-requests",
     icon: KeyRound,
