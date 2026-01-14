@@ -680,7 +680,8 @@ export class MemStorage implements IStorage {
       },
     ];
 
-    [...hsDocs, ...hrDocs].forEach(doc => this.documents.set(doc.id, doc));
+    // Seed documents disabled for clean testing
+    // [...hsDocs, ...hrDocs].forEach(doc => this.documents.set(doc.id, doc));
 
     // Create sample audit logs with all action types
     const logs: AuditLog[] = [
@@ -856,7 +857,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
       },
     ];
-    logs.forEach(log => this.auditLogs.set(log.id, log));
+    // Seed audit logs disabled for clean testing
+    // logs.forEach(log => this.auditLogs.set(log.id, log));
 
     // Create sample document versions (for documents with version > 1)
     const docVersions: DocumentVersion[] = [
@@ -904,7 +906,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(now.getTime() - 75 * 24 * 60 * 60 * 1000),
       },
     ];
-    docVersions.forEach(ver => this.documentVersions.set(ver.id, ver));
+    // Seed document versions disabled for clean testing
+    // docVersions.forEach(ver => this.documentVersions.set(ver.id, ver));
 
     // Create sample support requests
     const requests: SupportRequest[] = [
@@ -1238,7 +1241,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
       },
     ];
-    elDocs.forEach(doc => this.documents.set(doc.id, doc));
+    // Seed EL documents disabled for clean testing
+    // elDocs.forEach(doc => this.documents.set(doc.id, doc));
     
     // Employment Law audit logs
     const elAuditLogs: AuditLog[] = [
@@ -1299,7 +1303,8 @@ export class MemStorage implements IStorage {
         createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
       },
     ];
-    elAuditLogs.forEach(log => this.auditLogs.set(log.id, log));
+    // Seed EL audit logs disabled for clean testing
+    // elAuditLogs.forEach(log => this.auditLogs.set(log.id, log));
     
     // Entity Module Access - Entity 1 has all modules active
     const entity1ModuleAccess: EntityModuleAccess[] = [
