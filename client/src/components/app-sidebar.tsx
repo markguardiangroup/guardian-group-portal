@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Lock,
   Clock,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -115,6 +116,14 @@ const settingsNavItems = [
   },
 ];
 
+const adminNavItems = [
+  {
+    title: "Access Requests",
+    url: "/access-requests",
+    icon: KeyRound,
+  },
+];
+
 interface AuthUser {
   id: string;
   username: string;
@@ -137,7 +146,8 @@ const roleLabels: Record<UserRole, string> = {
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
   const { logout, isLoggingOut } = useAuth();
-  const { hasActiveAccess, hasVisibleAccess, isHidden, hasPendingRequest, canRequestAccess } = useModuleAccess();
+  const { hasActiveAccess, hasVisibleAccess, isHidden, hasPendingRequest, canRequestAccess, accessRequests } = useModuleAccess();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
   const getInitials = (name: string) => {
     return name
@@ -324,6 +334,45 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isPrivilegedUser && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminNavItems.map((item) => {
+                  const isActive = location === item.url || 
+                    (item.url !== "/" && location.startsWith(item.url));
+                  const pendingCount = accessRequests.filter(r => r.status === "pending").length;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        className={cn(
+                          "transition-colors",
+                          isActive && "bg-sidebar-accent font-medium"
+                        )}
+                      >
+                        <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                          {pendingCount > 0 && (
+                            <Badge variant="secondary" className="h-5 min-w-5 justify-center text-xs">
+                              {pendingCount}
+                            </Badge>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>

@@ -22,6 +22,7 @@ import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
+import ModuleAccessRequests from "@/pages/module-access-requests";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/reports" component={Reports} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
+      <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route component={NotFound} />
     </Switch>
   );
