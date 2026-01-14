@@ -67,6 +67,35 @@ import { format } from "date-fns";
 import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess, DocumentTypeRecord } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+
+const downloadDocument = async (documentId: string, fileName: string, version?: number) => {
+  try {
+    const url = version 
+      ? `/api/documents/${documentId}/download?version=${version}`
+      : `/api/documents/${documentId}/download`;
+    
+    const response = await fetch(url, {
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Download failed');
+    }
+    
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = fileName.replace(/\.[^/.]+$/, '') + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(downloadUrl);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Download error:', error);
+    throw error;
+  }
+};
 import {
   Collapsible,
   CollapsibleContent,
@@ -418,7 +447,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               View Details
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => window.open(`/api/documents/${doc.id}/download`, '_blank')}>
+                          <DropdownMenuItem onClick={() => downloadDocument(doc.id, doc.fileName)}>
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
@@ -762,7 +791,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 variant="outline" 
                 className="w-full justify-start" 
                 data-testid="button-download"
-                onClick={() => window.open(`/api/documents/${id}/download`, '_blank')}
+                onClick={() => downloadDocument(id, document.fileName)}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download Document
@@ -792,7 +821,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => window.open(`/api/documents/${id}/download?version=${version.version}`, '_blank')}
+                        onClick={() => downloadDocument(id, version.fileName, version.version)}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
