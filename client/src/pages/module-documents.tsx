@@ -408,7 +408,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               View Details
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => window.open(`/api/documents/${doc.id}/download`, '_blank')}>
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
@@ -661,7 +661,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" data-testid="button-download">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                data-testid="button-download"
+                onClick={() => window.open(`/api/documents/${id}/download`, '_blank')}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download Document
               </Button>
@@ -687,7 +692,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           {format(new Date(version.createdAt), "MMM d, yyyy")}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => window.open(`/api/documents/${id}/download?version=${version.version}`, '_blank')}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                     </div>

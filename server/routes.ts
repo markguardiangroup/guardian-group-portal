@@ -264,6 +264,47 @@ export async function registerRoutes(
     }
   });
 
+  // Document download endpoint
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Generate a placeholder text file with document info
+      // In production, this would serve the actual file from storage
+      const content = `
+Guardian Group H&S Portal - Document Download
+==============================================
+
+Document: ${document.title}
+Type: ${document.type}
+Version: ${document.version}
+Status: ${document.status}
+Approval Status: ${document.approvalStatus}
+
+File Name: ${document.fileName}
+File Size: ${document.fileSize} bytes
+MIME Type: ${document.mimeType}
+
+Description:
+${document.description || 'No description provided'}
+
+---
+This is a placeholder document. In production, the actual file would be served from object storage.
+Generated: ${new Date().toISOString()}
+      `.trim();
+
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.fileName.replace(/\.[^/.]+$/, '')}_placeholder.txt"`);
+      res.send(content);
+    } catch (error) {
+      console.error("Document download error:", error);
+      res.status(500).json({ error: "Failed to download document" });
+    }
+  });
+
   app.post("/api/documents", async (req, res) => {
     try {
       const parseResult = createDocumentSchema.safeParse(req.body);
