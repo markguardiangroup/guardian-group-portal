@@ -13,6 +13,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ModuleDashboard from "@/pages/module-dashboard";
 import ModuleDocuments from "@/pages/module-documents";
+import EmploymentLawPage from "@/pages/employment-law";
 import Documents from "@/pages/documents";
 import DocumentUpload from "@/pages/document-upload";
 import Entities from "@/pages/entities";
@@ -53,6 +54,9 @@ function Router() {
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
+      
+      <Route path="/employment-law" component={EmploymentLawPage} />
+      <Route path="/employment-law/cases/:id" component={EmploymentLawPage} />
       
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />

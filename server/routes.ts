@@ -8,10 +8,11 @@ import PDFDocument from "pdfkit";
 const createDocumentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  module: z.enum(["health_safety", "human_resources"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law"]),
   type: z.string().min(1),
   entityId: z.string().min(1),
   siteId: z.string().optional(),
+  caseId: z.string().optional(),
   fileName: z.string().min(1),
   fileSize: z.number().positive(),
   mimeType: z.string().min(1),
@@ -19,12 +20,43 @@ const createDocumentSchema = z.object({
   expiryDate: z.string().optional(),
 });
 
+const createCaseSchema = z.object({
+  entityId: z.string().min(1),
+  caseReference: z.string().min(1),
+  employeeName: z.string().min(1),
+  employeeId: z.string().optional(),
+  caseType: z.enum(["disciplinary", "grievance", "tupe", "redundancy", "tribunal_claim", "settlement", "appeal", "investigation"]),
+  description: z.string().optional(),
+  isConfidential: z.boolean().optional(),
+  restrictedToUsers: z.array(z.string()).optional(),
+  hearingDate: z.string().optional(),
+  responseDeadline: z.string().optional(),
+});
+
+const updateCaseSchema = z.object({
+  status: z.enum(["open", "under_investigation", "hearing_scheduled", "resolved", "closed"]).optional(),
+  description: z.string().optional(),
+  isConfidential: z.boolean().optional(),
+  restrictedToUsers: z.array(z.string()).optional(),
+  hearingDate: z.string().optional(),
+  responseDeadline: z.string().optional(),
+  resolutionDate: z.string().optional(),
+  assignedConsultant: z.string().optional(),
+});
+
+const createMilestoneSchema = z.object({
+  caseId: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  dueDate: z.string().optional(),
+});
+
 const createSupportRequestSchema = z.object({
   subject: z.string().min(5),
   description: z.string().min(20),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   category: z.string().min(1),
-  module: z.enum(["health_safety", "human_resources"]).optional(),
+  module: z.enum(["health_safety", "human_resources", "employment_law"]).optional(),
 });
 
 const approvalSchema = z.object({
@@ -727,7 +759,7 @@ export async function registerRoutes(
   app.get("/api/document-types/:module/:entityId", requireAuth, async (req, res) => {
     try {
       const { module, entityId } = req.params;
-      if (module !== "health_safety" && module !== "human_resources") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
         return res.status(400).json({ error: "Invalid module" });
       }
       
@@ -813,6 +845,366 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Revoke access error:", error);
       res.status(500).json({ error: "Failed to revoke access" });
+    }
+  });
+
+  // ============ CASE ROUTES (Employment Law) ============
+
+  // Get all cases (with optional filters)
+  app.get("/api/cases", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const entityId = req.query.entityId as string | undefined;
+      const status = req.query.status as any;
+
+      // Clients can only see cases for their entity
+      if (user.role === "client" && entityId && user.entityId !== entityId) {
+        return res.status(403).json({ error: "Not authorized to view these cases" });
+      }
+
+      const filterEntityId = user.role === "client" ? user.entityId! : entityId;
+      const cases = await storage.getCases(filterEntityId, status);
+      
+      // Filter out confidential cases for non-privileged users
+      const filteredCases = cases.filter(c => {
+        if (!c.isConfidential) return true;
+        if (user.role === "admin") return true;
+        if (c.createdBy === user.id) return true;
+        if (c.assignedConsultant === user.id) return true;
+        if (c.restrictedToUsers && c.restrictedToUsers.includes(user.id)) return true;
+        return false;
+      });
+
+      res.json(filteredCases);
+    } catch (error) {
+      console.error("Get cases error:", error);
+      res.status(500).json({ error: "Failed to fetch cases" });
+    }
+  });
+
+  // Get single case
+  app.get("/api/cases/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Authorization check
+      if (user.role === "client" && user.entityId !== caseData.entityId) {
+        return res.status(403).json({ error: "Not authorized to view this case" });
+      }
+
+      // Check confidentiality
+      if (caseData.isConfidential) {
+        const canAccess = user.role === "admin" || 
+          caseData.createdBy === user.id || 
+          caseData.assignedConsultant === user.id ||
+          (caseData.restrictedToUsers && caseData.restrictedToUsers.includes(user.id));
+        
+        if (!canAccess) {
+          return res.status(403).json({ error: "Not authorized to view this confidential case" });
+        }
+      }
+
+      res.json(caseData);
+    } catch (error) {
+      console.error("Get case error:", error);
+      res.status(500).json({ error: "Failed to fetch case" });
+    }
+  });
+
+  // Create case
+  app.post("/api/cases", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admins and consultants can create cases
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot create employment law cases" });
+      }
+
+      const parseResult = createCaseSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid case data", details: parseResult.error.format() });
+      }
+
+      const caseData = await storage.createCase({
+        ...parseResult.data,
+        hearingDate: parseResult.data.hearingDate ? new Date(parseResult.data.hearingDate) : undefined,
+        responseDeadline: parseResult.data.responseDeadline ? new Date(parseResult.data.responseDeadline) : undefined,
+        createdBy: user.id,
+        assignedConsultant: user.role === "consultant" ? user.id : undefined,
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "case_created",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: caseData.entityId,
+        caseId: caseData.id,
+        module: "employment_law",
+        details: `Case ${caseData.caseReference} created for ${caseData.employeeName}`,
+      });
+
+      res.status(201).json(caseData);
+    } catch (error) {
+      console.error("Create case error:", error);
+      res.status(500).json({ error: "Failed to create case" });
+    }
+  });
+
+  // Update case
+  app.patch("/api/cases/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const existingCase = await storage.getCase(req.params.id);
+      if (!existingCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Only admins and assigned consultants can update cases
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update employment law cases" });
+      }
+
+      const parseResult = updateCaseSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid update data", details: parseResult.error.format() });
+      }
+
+      const updates: any = { ...parseResult.data };
+      if (updates.hearingDate) updates.hearingDate = new Date(updates.hearingDate);
+      if (updates.responseDeadline) updates.responseDeadline = new Date(updates.responseDeadline);
+      if (updates.resolutionDate) updates.resolutionDate = new Date(updates.resolutionDate);
+
+      const updatedCase = await storage.updateCase(req.params.id, updates);
+
+      // Create audit log for status changes
+      if (parseResult.data.status && parseResult.data.status !== existingCase.status) {
+        await storage.createAuditLog({
+          action: "case_status_changed",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: existingCase.entityId,
+          caseId: existingCase.id,
+          module: "employment_law",
+          details: `Case status changed from ${existingCase.status} to ${parseResult.data.status}`,
+        });
+      }
+
+      res.json(updatedCase);
+    } catch (error) {
+      console.error("Update case error:", error);
+      res.status(500).json({ error: "Failed to update case" });
+    }
+  });
+
+  // Helper function to check case confidentiality access
+  const canAccessConfidentialCase = (caseData: any, user: any): boolean => {
+    if (!caseData.isConfidential) return true;
+    if (user.role === "admin") return true;
+    if (caseData.createdBy === user.id) return true;
+    if (caseData.assignedConsultant === user.id) return true;
+    if (caseData.restrictedToUsers) {
+      const restrictedUsers = typeof caseData.restrictedToUsers === 'string' 
+        ? JSON.parse(caseData.restrictedToUsers) 
+        : caseData.restrictedToUsers;
+      if (Array.isArray(restrictedUsers) && restrictedUsers.includes(user.id)) return true;
+    }
+    return false;
+  };
+
+  // Get case documents
+  app.get("/api/cases/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Authorization check
+      if (user.role === "client" && user.entityId !== caseData.entityId) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Check confidentiality access
+      if (!canAccessConfidentialCase(caseData, user)) {
+        return res.status(403).json({ error: "Not authorized to access confidential case documents" });
+      }
+
+      const documents = await storage.getCaseDocuments(req.params.id);
+      res.json(documents);
+    } catch (error) {
+      console.error("Get case documents error:", error);
+      res.status(500).json({ error: "Failed to fetch case documents" });
+    }
+  });
+
+  // Get case milestones
+  app.get("/api/cases/:id/milestones", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Check confidentiality access
+      if (!canAccessConfidentialCase(caseData, user)) {
+        return res.status(403).json({ error: "Not authorized to access confidential case milestones" });
+      }
+
+      const milestones = await storage.getCaseMilestones(req.params.id);
+      res.json(milestones);
+    } catch (error) {
+      console.error("Get milestones error:", error);
+      res.status(500).json({ error: "Failed to fetch milestones" });
+    }
+  });
+
+  // Create milestone
+  app.post("/api/milestones", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot create milestones" });
+      }
+
+      const parseResult = createMilestoneSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid milestone data", details: parseResult.error.format() });
+      }
+
+      const caseData = await storage.getCase(parseResult.data.caseId);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const milestone = await storage.createCaseMilestone({
+        ...parseResult.data,
+        dueDate: parseResult.data.dueDate ? new Date(parseResult.data.dueDate) : undefined,
+        createdBy: user.id,
+      });
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "milestone_added",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: caseData.entityId,
+        caseId: caseData.id,
+        module: "employment_law",
+        details: `Milestone "${milestone.title}" added to case ${caseData.caseReference}`,
+      });
+
+      res.status(201).json(milestone);
+    } catch (error) {
+      console.error("Create milestone error:", error);
+      res.status(500).json({ error: "Failed to create milestone" });
+    }
+  });
+
+  // Update milestone (mark complete)
+  app.patch("/api/milestones/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const { isCompleted } = req.body;
+      const updates: any = {};
+      
+      if (typeof isCompleted === "boolean") {
+        updates.isCompleted = isCompleted;
+        if (isCompleted) {
+          updates.completedDate = new Date();
+        }
+      }
+
+      const milestone = await storage.updateCaseMilestone(req.params.id, updates);
+      if (!milestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+
+      // Create audit log if completing (with case context)
+      if (isCompleted) {
+        const caseData = await storage.getCase(milestone.caseId);
+        await storage.createAuditLog({
+          action: "milestone_completed",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: caseData?.entityId,
+          caseId: milestone.caseId,
+          module: "employment_law",
+          details: `Milestone "${milestone.title}" marked as completed`,
+        });
+      }
+
+      res.json(milestone);
+    } catch (error) {
+      console.error("Update milestone error:", error);
+      res.status(500).json({ error: "Failed to update milestone" });
+    }
+  });
+
+  // Get case audit logs
+  app.get("/api/cases/:id/audit", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Check confidentiality access
+      if (!canAccessConfidentialCase(caseData, user)) {
+        return res.status(403).json({ error: "Not authorized to access confidential case audit logs" });
+      }
+
+      // Get all audit logs for this case
+      const allLogs = await storage.getAuditLogs(undefined, "employment_law");
+      const caseLogs = allLogs.filter(log => log.caseId === req.params.id);
+      
+      res.json(caseLogs);
+    } catch (error) {
+      console.error("Get case audit error:", error);
+      res.status(500).json({ error: "Failed to fetch case audit logs" });
     }
   });
 

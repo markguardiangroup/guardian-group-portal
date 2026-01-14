@@ -10,6 +10,7 @@ import {
   LogOut,
   HardHat,
   Users,
+  Scale,
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,6 +62,15 @@ const moduleNavItems = [
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
+    ],
+  },
+  {
+    title: "Employment Law",
+    icon: Scale,
+    url: "/employment-law",
+    themeClass: "theme-el",
+    subItems: [
+      { title: "Cases", url: "/employment-law" },
     ],
   },
 ];

@@ -51,6 +51,9 @@
   --module-hr: 210 85% 32%;
   --module-hr-foreground: 210 20% 98%;
   --module-hr-muted: 210 30% 92%;
+  --module-el: 330 65% 45%;
+  --module-el-foreground: 330 20% 98%;
+  --module-el-muted: 330 30% 92%;
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, Menlo, monospace;
@@ -143,6 +146,9 @@
   --module-hr: 210 85% 50%;
   --module-hr-foreground: 210 20% 98%;
   --module-hr-muted: 210 30% 18%;
+  --module-el: 330 65% 55%;
+  --module-el-foreground: 330 20% 98%;
+  --module-el-muted: 330 30% 18%;
   --shadow-2xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(210 6% 8% / 0.00), 0px 1px 2px -1px hsl(210 6% 8% / 0.00);
@@ -224,6 +230,12 @@
     --module-accent: var(--module-hr);
     --module-accent-foreground: var(--module-hr-foreground);
     --module-accent-muted: var(--module-hr-muted);
+  }
+  
+  .theme-el {
+    --module-accent: var(--module-el);
+    --module-accent-foreground: var(--module-el-foreground);
+    --module-accent-muted: var(--module-el-muted);
   }
   
   .bg-module-accent {

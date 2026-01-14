@@ -6,6 +6,8 @@ import {
   type DocumentVersion, type InsertDocumentVersion,
   type AuditLog, type InsertAuditLog,
   type SupportRequest, type InsertSupportRequest,
+  type Case, type InsertCase,
+  type CaseMilestone, type InsertCaseMilestone,
   type ComplianceSummary,
   type EntityWithSites,
   type DocumentWithDetails,
@@ -14,6 +16,7 @@ import {
   type EntityDocumentTypeAccess, type InsertEntityDocumentTypeAccess,
   type DocumentTypeWithAccess,
   type DocumentType,
+  type CaseStatus,
   moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -62,6 +65,18 @@ export interface IStorage {
   getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]>;
   grantDocumentTypeAccess(access: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess>;
   revokeDocumentTypeAccess(entityId: string, documentType: DocumentType): Promise<boolean>;
+  
+  // Cases (Employment Law)
+  getCases(entityId?: string, status?: CaseStatus): Promise<Case[]>;
+  getCase(id: string): Promise<Case | undefined>;
+  createCase(caseData: InsertCase): Promise<Case>;
+  updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined>;
+  getCaseDocuments(caseId: string): Promise<Document[]>;
+  
+  // Case Milestones
+  getCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
+  createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
+  updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,6 +88,8 @@ export class MemStorage implements IStorage {
   private auditLogs: Map<string, AuditLog>;
   private supportRequests: Map<string, SupportRequest>;
   private entityDocumentTypeAccess: Map<string, EntityDocumentTypeAccess>;
+  private cases: Map<string, Case>;
+  private caseMilestones: Map<string, CaseMilestone>;
 
   constructor() {
     this.users = new Map();
@@ -83,6 +100,8 @@ export class MemStorage implements IStorage {
     this.auditLogs = new Map();
     this.supportRequests = new Map();
     this.entityDocumentTypeAccess = new Map();
+    this.cases = new Map();
+    this.caseMilestones = new Map();
     
     this.initializeSampleData();
   }
@@ -218,6 +237,7 @@ export class MemStorage implements IStorage {
         type: "hs_policy",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "hs_policy_2024.pdf",
         fileSize: 245760,
         mimeType: "application/pdf",
@@ -240,6 +260,7 @@ export class MemStorage implements IStorage {
         type: "fire_safety",
         entityId: "entity-1",
         siteId: "site-1",
+        caseId: null,
         fileName: "fire_risk_main_factory.pdf",
         fileSize: 512000,
         mimeType: "application/pdf",
@@ -262,6 +283,7 @@ export class MemStorage implements IStorage {
         type: "coshh_assessment",
         entityId: "entity-1",
         siteId: "site-1",
+        caseId: null,
         fileName: "coshh_chemical_storage.pdf",
         fileSize: 384000,
         mimeType: "application/pdf",
@@ -284,6 +306,7 @@ export class MemStorage implements IStorage {
         type: "risk_assessment",
         entityId: "entity-2",
         siteId: "site-3",
+        caseId: null,
         fileName: "dse_assessment.pdf",
         fileSize: 256000,
         mimeType: "application/pdf",
@@ -310,6 +333,7 @@ export class MemStorage implements IStorage {
         type: "employee_handbook",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "employee_handbook_2024.pdf",
         fileSize: 1024000,
         mimeType: "application/pdf",
@@ -332,6 +356,7 @@ export class MemStorage implements IStorage {
         type: "disciplinary_procedure",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "disciplinary_procedure.pdf",
         fileSize: 320000,
         mimeType: "application/pdf",
@@ -354,6 +379,7 @@ export class MemStorage implements IStorage {
         type: "training_record",
         entityId: "entity-1",
         siteId: "site-1",
+        caseId: null,
         fileName: "training_john_smith.pdf",
         fileSize: 128000,
         mimeType: "application/pdf",
@@ -376,6 +402,7 @@ export class MemStorage implements IStorage {
         type: "hr_policy",
         entityId: "entity-2",
         siteId: null,
+        caseId: null,
         fileName: "remote_working_policy.pdf",
         fileSize: 192000,
         mimeType: "application/pdf",
@@ -398,6 +425,7 @@ export class MemStorage implements IStorage {
         type: "employment_contract",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "employment_contract_template.pdf",
         fileSize: 285000,
         mimeType: "application/pdf",
@@ -420,6 +448,7 @@ export class MemStorage implements IStorage {
         type: "grievance_procedure",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "grievance_procedure.pdf",
         fileSize: 198000,
         mimeType: "application/pdf",
@@ -442,6 +471,7 @@ export class MemStorage implements IStorage {
         type: "performance_review",
         entityId: "entity-1",
         siteId: "site-1",
+        caseId: null,
         fileName: "performance_review_q4_2024.pdf",
         fileSize: 156000,
         mimeType: "application/pdf",
@@ -464,6 +494,7 @@ export class MemStorage implements IStorage {
         type: "hr_policy",
         entityId: "entity-2",
         siteId: null,
+        caseId: null,
         fileName: "absence_management_policy.pdf",
         fileSize: 245000,
         mimeType: "application/pdf",
@@ -486,6 +517,7 @@ export class MemStorage implements IStorage {
         type: "training_record",
         entityId: "entity-1",
         siteId: "site-1",
+        caseId: null,
         fileName: "training_sarah_johnson.pdf",
         fileSize: 142000,
         mimeType: "application/pdf",
@@ -508,6 +540,7 @@ export class MemStorage implements IStorage {
         type: "absence_record",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "absence_record_jan_2025.pdf",
         fileSize: 98000,
         mimeType: "application/pdf",
@@ -530,6 +563,7 @@ export class MemStorage implements IStorage {
         type: "employment_contract",
         entityId: "entity-2",
         siteId: null,
+        caseId: null,
         fileName: "employment_contract_parttime.pdf",
         fileSize: 265000,
         mimeType: "application/pdf",
@@ -552,6 +586,7 @@ export class MemStorage implements IStorage {
         type: "hr_policy",
         entityId: "entity-1",
         siteId: null,
+        caseId: null,
         fileName: "equal_opportunities_policy.pdf",
         fileSize: 178000,
         mimeType: "application/pdf",
@@ -580,6 +615,7 @@ export class MemStorage implements IStorage {
         userName: "John Doe",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Uploaded Health & Safety Policy 2024 v1",
@@ -593,6 +629,7 @@ export class MemStorage implements IStorage {
         userName: "Sarah Mitchell",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Rejected - Missing fire safety procedures section",
@@ -606,6 +643,7 @@ export class MemStorage implements IStorage {
         userName: "John Doe",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Uploaded Health & Safety Policy 2024 v2",
@@ -619,6 +657,7 @@ export class MemStorage implements IStorage {
         userName: "Sarah Mitchell",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Requested minor updates to PPE requirements",
@@ -632,6 +671,7 @@ export class MemStorage implements IStorage {
         userName: "John Doe",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Uploaded Health & Safety Policy 2024 v3",
@@ -645,6 +685,7 @@ export class MemStorage implements IStorage {
         userName: "Sarah Mitchell",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Approved Health & Safety Policy 2024 v3",
@@ -658,6 +699,7 @@ export class MemStorage implements IStorage {
         userName: "Mike Thompson",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Downloaded Health & Safety Policy 2024",
@@ -671,6 +713,7 @@ export class MemStorage implements IStorage {
         userName: "Emma Wilson",
         entityId: "entity-1",
         documentId: "doc-hs-1",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Viewed Health & Safety Policy 2024",
@@ -685,6 +728,7 @@ export class MemStorage implements IStorage {
         userName: "John Doe",
         entityId: "entity-1",
         documentId: "doc-hs-2",
+        caseId: null,
         supportRequestId: null,
         module: "health_safety",
         details: "Uploaded Fire Risk Assessment - Main Factory",
@@ -699,6 +743,7 @@ export class MemStorage implements IStorage {
         userName: "John Doe",
         entityId: "entity-1",
         documentId: "doc-hr-1",
+        caseId: null,
         supportRequestId: null,
         module: "human_resources",
         details: "Uploaded Employee Handbook 2024",
@@ -712,6 +757,7 @@ export class MemStorage implements IStorage {
         userName: "James Anderson",
         entityId: "entity-1",
         documentId: "doc-hr-1",
+        caseId: null,
         supportRequestId: null,
         module: "human_resources",
         details: "Approved Employee Handbook 2024",
@@ -725,6 +771,7 @@ export class MemStorage implements IStorage {
         userName: "James Anderson",
         entityId: "entity-2",
         documentId: "doc-hr-4",
+        caseId: null,
         supportRequestId: null,
         module: "human_resources",
         details: "Requested updates to remote working policy",
@@ -850,6 +897,328 @@ export class MemStorage implements IStorage {
       { id: "access-25", entityId: "entity-2", documentType: "hr_policy" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
     entity2Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    
+    // Employment Law document type access for Entity 1
+    const entity1ELAccess: EntityDocumentTypeAccess[] = [
+      { id: "access-30", entityId: "entity-1", documentType: "tupe_consultation" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-31", entityId: "entity-1", documentType: "investigation_report" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-32", entityId: "entity-1", documentType: "disciplinary_hearing" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-33", entityId: "entity-1", documentType: "settlement_agreement" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-34", entityId: "entity-1", documentType: "grievance_outcome" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-35", entityId: "entity-1", documentType: "witness_statement" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-36", entityId: "entity-1", documentType: "case_notes" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+    entity1ELAccess.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
+    
+    // Sample Employment Law Cases
+    const sampleCases: Case[] = [
+      {
+        id: "case-1",
+        entityId: "entity-1",
+        caseReference: "EL-2024-001",
+        employeeName: "John Smith",
+        employeeId: "EMP-1234",
+        caseType: "disciplinary",
+        status: "under_investigation",
+        description: "Investigation into alleged misconduct relating to expenses claims",
+        isConfidential: true,
+        restrictedToUsers: null,
+        hearingDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+        responseDeadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        resolutionDate: null,
+        assignedConsultant: "user-1",
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "case-2",
+        entityId: "entity-1",
+        caseReference: "EL-2024-002",
+        employeeName: "Sarah Johnson",
+        employeeId: "EMP-5678",
+        caseType: "grievance",
+        status: "open",
+        description: "Grievance raised regarding workplace bullying allegations",
+        isConfidential: true,
+        restrictedToUsers: null,
+        hearingDate: null,
+        responseDeadline: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+        resolutionDate: null,
+        assignedConsultant: "user-1",
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "case-3",
+        entityId: "entity-1",
+        caseReference: "EL-2023-015",
+        employeeName: "Michael Brown",
+        employeeId: "EMP-9012",
+        caseType: "settlement",
+        status: "resolved",
+        description: "Settlement agreement following redundancy consultation",
+        isConfidential: true,
+        restrictedToUsers: null,
+        hearingDate: null,
+        responseDeadline: null,
+        resolutionDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+        assignedConsultant: "user-1",
+        createdBy: "user-admin",
+        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "case-4",
+        entityId: "entity-1",
+        caseReference: "EL-2024-003",
+        employeeName: "Emma Wilson",
+        employeeId: "EMP-3456",
+        caseType: "tribunal_claim",
+        status: "hearing_scheduled",
+        description: "ET1 received - unfair dismissal claim",
+        isConfidential: true,
+        restrictedToUsers: null,
+        hearingDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
+        responseDeadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        resolutionDate: null,
+        assignedConsultant: "user-1",
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    sampleCases.forEach(c => this.cases.set(c.id, c));
+    
+    // Sample Case Milestones
+    const sampleMilestones: CaseMilestone[] = [
+      {
+        id: "milestone-1",
+        caseId: "case-1",
+        title: "Investigation meeting with employee",
+        description: "Initial investigation meeting to gather facts",
+        dueDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+        completedDate: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+        isCompleted: true,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "milestone-2",
+        caseId: "case-1",
+        title: "Gather witness statements",
+        description: "Collect statements from relevant witnesses",
+        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+        completedDate: null,
+        isCompleted: false,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "milestone-3",
+        caseId: "case-1",
+        title: "Disciplinary hearing",
+        description: "Formal disciplinary hearing",
+        dueDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+        completedDate: null,
+        isCompleted: false,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "milestone-4",
+        caseId: "case-2",
+        title: "Acknowledge grievance",
+        description: "Send formal acknowledgment letter",
+        dueDate: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        completedDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        isCompleted: true,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "milestone-5",
+        caseId: "case-2",
+        title: "Schedule grievance meeting",
+        description: "Arrange formal grievance hearing",
+        dueDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+        completedDate: null,
+        isCompleted: false,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "milestone-6",
+        caseId: "case-4",
+        title: "Submit ET3 response",
+        description: "File response to Employment Tribunal",
+        dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        completedDate: null,
+        isCompleted: false,
+        createdBy: "user-1",
+        createdAt: new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    sampleMilestones.forEach(m => this.caseMilestones.set(m.id, m));
+    
+    // Sample Employment Law Documents linked to cases
+    const elDocs: Document[] = [
+      {
+        id: "doc-el-1",
+        title: "Investigation Report - J. Smith",
+        description: "Summary of investigation findings",
+        module: "employment_law",
+        type: "investigation_report",
+        entityId: "entity-1",
+        siteId: null,
+        caseId: "case-1",
+        fileName: "investigation_report_jsmith.pdf",
+        fileSize: 156000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "review_required",
+        approvalStatus: "pending",
+        reviewDate: null,
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-el-2",
+        title: "Witness Statement - A. Davis",
+        description: "Witness statement from colleague",
+        module: "employment_law",
+        type: "witness_statement",
+        entityId: "entity-1",
+        siteId: null,
+        caseId: "case-1",
+        fileName: "witness_statement_adavis.pdf",
+        fileSize: 78000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: null,
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-el-3",
+        title: "Grievance Letter - S. Johnson",
+        description: "Original grievance submission",
+        module: "employment_law",
+        type: "case_notes",
+        entityId: "entity-1",
+        siteId: null,
+        caseId: "case-2",
+        fileName: "grievance_letter_sjohnson.pdf",
+        fileSize: 45000,
+        mimeType: "application/pdf",
+        version: 1,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: null,
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "doc-el-4",
+        title: "Settlement Agreement - M. Brown",
+        description: "Final signed settlement agreement",
+        module: "employment_law",
+        type: "settlement_agreement",
+        entityId: "entity-1",
+        siteId: null,
+        caseId: "case-3",
+        fileName: "settlement_mbrown.pdf",
+        fileSize: 234000,
+        mimeType: "application/pdf",
+        version: 2,
+        status: "compliant",
+        approvalStatus: "approved",
+        reviewDate: null,
+        expiryDate: null,
+        uploadedBy: "user-1",
+        assignedTo: null,
+        isArchived: false,
+        createdAt: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000),
+        updatedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    elDocs.forEach(doc => this.documents.set(doc.id, doc));
+    
+    // Employment Law audit logs
+    const elAuditLogs: AuditLog[] = [
+      {
+        id: "audit-el-1",
+        action: "case_created",
+        userId: "user-1",
+        userName: "Sarah Johnson",
+        entityId: "entity-1",
+        documentId: null,
+        caseId: "case-1",
+        supportRequestId: null,
+        module: "employment_law",
+        details: "Case EL-2024-001 created for John Smith",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "audit-el-2",
+        action: "document_uploaded",
+        userId: "user-1",
+        userName: "Sarah Johnson",
+        entityId: "entity-1",
+        documentId: "doc-el-1",
+        caseId: "case-1",
+        supportRequestId: null,
+        module: "employment_law",
+        details: "Investigation Report uploaded",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "audit-el-3",
+        action: "milestone_completed",
+        userId: "user-1",
+        userName: "Sarah Johnson",
+        entityId: "entity-1",
+        documentId: null,
+        caseId: "case-1",
+        supportRequestId: null,
+        module: "employment_law",
+        details: "Milestone 'Investigation meeting with employee' completed",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: "audit-el-4",
+        action: "case_status_changed",
+        userId: "user-1",
+        userName: "Sarah Johnson",
+        entityId: "entity-1",
+        documentId: null,
+        caseId: "case-1",
+        supportRequestId: null,
+        module: "employment_law",
+        details: "Case status changed from open to under_investigation",
+        metadata: null,
+        createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+      },
+    ];
+    elAuditLogs.forEach(log => this.auditLogs.set(log.id, log));
   }
 
   // Users
@@ -989,6 +1358,7 @@ export class MemStorage implements IStorage {
       type: insertDocument.type as any,
       description: insertDocument.description ?? null,
       siteId: insertDocument.siteId ?? null,
+      caseId: insertDocument.caseId ?? null,
       version: insertDocument.version ?? 1,
       status: (insertDocument.status ?? "review_required") as any,
       approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
@@ -1052,6 +1422,7 @@ export class MemStorage implements IStorage {
       module: (insertLog.module ?? null) as any,
       entityId: insertLog.entityId ?? null,
       documentId: insertLog.documentId ?? null,
+      caseId: insertLog.caseId ?? null,
       supportRequestId: insertLog.supportRequestId ?? null,
       details: insertLog.details ?? null,
       metadata: insertLog.metadata ?? null,
@@ -1120,10 +1491,11 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummaries(): Promise<ModuleSummary[]> {
-    const modules: ModuleType[] = ["health_safety", "human_resources"];
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
+      employment_law: "Employment Law",
     };
     
     return Promise.all(modules.map(async (module) => {
@@ -1189,6 +1561,94 @@ export class MemStorage implements IStorage {
       return true;
     }
     return false;
+  }
+
+  // Cases (Employment Law)
+  async getCases(entityId?: string, status?: CaseStatus): Promise<Case[]> {
+    let cases = Array.from(this.cases.values());
+    if (entityId) {
+      cases = cases.filter(c => c.entityId === entityId);
+    }
+    if (status) {
+      cases = cases.filter(c => c.status === status);
+    }
+    return cases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getCase(id: string): Promise<Case | undefined> {
+    return this.cases.get(id);
+  }
+
+  async createCase(insertCase: InsertCase): Promise<Case> {
+    const id = randomUUID();
+    const now = new Date();
+    const newCase: Case = {
+      ...insertCase,
+      id,
+      caseType: insertCase.caseType as any,
+      status: (insertCase.status ?? "open") as any,
+      description: insertCase.description ?? null,
+      employeeId: insertCase.employeeId ?? null,
+      isConfidential: insertCase.isConfidential ?? true,
+      restrictedToUsers: insertCase.restrictedToUsers ?? null,
+      hearingDate: insertCase.hearingDate ?? null,
+      responseDeadline: insertCase.responseDeadline ?? null,
+      resolutionDate: insertCase.resolutionDate ?? null,
+      assignedConsultant: insertCase.assignedConsultant ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.cases.set(id, newCase);
+    return newCase;
+  }
+
+  async updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined> {
+    const existing = this.cases.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...updates, updatedAt: new Date() };
+    this.cases.set(id, updated);
+    return updated;
+  }
+
+  async getCaseDocuments(caseId: string): Promise<Document[]> {
+    return Array.from(this.documents.values())
+      .filter(d => d.caseId === caseId && !d.isArchived)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // Case Milestones
+  async getCaseMilestones(caseId: string): Promise<CaseMilestone[]> {
+    return Array.from(this.caseMilestones.values())
+      .filter(m => m.caseId === caseId)
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+  }
+
+  async createCaseMilestone(insertMilestone: InsertCaseMilestone): Promise<CaseMilestone> {
+    const id = randomUUID();
+    const milestone: CaseMilestone = {
+      ...insertMilestone,
+      id,
+      description: insertMilestone.description ?? null,
+      dueDate: insertMilestone.dueDate ?? null,
+      completedDate: insertMilestone.completedDate ?? null,
+      isCompleted: insertMilestone.isCompleted ?? false,
+      createdAt: new Date(),
+    };
+    this.caseMilestones.set(id, milestone);
+    return milestone;
+  }
+
+  async updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined> {
+    const existing = this.caseMilestones.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...updates };
+    this.caseMilestones.set(id, updated);
+    return updated;
   }
 }
 

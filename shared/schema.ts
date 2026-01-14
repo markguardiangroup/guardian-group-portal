@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Modules
-export type ModuleType = "health_safety" | "human_resources";
+export type ModuleType = "health_safety" | "human_resources" | "employment_law";
 
 // User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
@@ -147,8 +147,84 @@ export type HRDocumentType =
   | "hr_policy" 
   | "absence_record";
 
+// Employment Law document types
+export type ELDocumentType = 
+  | "tupe_consultation" 
+  | "investigation_report" 
+  | "disciplinary_hearing" 
+  | "cot3_agreement" 
+  | "settlement_agreement" 
+  | "grievance_outcome" 
+  | "appeal_hearing" 
+  | "witness_statement"
+  | "case_notes"
+  | "legal_correspondence";
+
 // Combined document type
-export type DocumentType = HSDocumentType | HRDocumentType;
+export type DocumentType = HSDocumentType | HRDocumentType | ELDocumentType;
+
+// Case status for Employment Law module
+export type CaseStatus = "open" | "under_investigation" | "hearing_scheduled" | "resolved" | "closed";
+
+// Case type for Employment Law
+export type CaseType = 
+  | "disciplinary" 
+  | "grievance" 
+  | "tupe" 
+  | "redundancy" 
+  | "tribunal_claim" 
+  | "settlement" 
+  | "appeal"
+  | "investigation";
+
+// Employment Law Cases (Individual files linked to specific people)
+export const cases = pgTable("cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: varchar("entity_id").notNull(),
+  caseReference: text("case_reference").notNull(),
+  employeeName: text("employee_name").notNull(),
+  employeeId: text("employee_id"),
+  caseType: text("case_type").$type<CaseType>().notNull(),
+  status: text("status").$type<CaseStatus>().notNull().default("open"),
+  description: text("description"),
+  isConfidential: boolean("is_confidential").notNull().default(true),
+  restrictedToUsers: text("restricted_to_users"),
+  hearingDate: timestamp("hearing_date"),
+  responseDeadline: timestamp("response_deadline"),
+  resolutionDate: timestamp("resolution_date"),
+  assignedConsultant: varchar("assigned_consultant"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCaseSchema = createInsertSchema(cases).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertCase = z.infer<typeof insertCaseSchema>;
+export type Case = typeof cases.$inferSelect;
+
+// Case Milestones (key dates and events for cases)
+export const caseMilestones = pgTable("case_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  completedDate: timestamp("completed_date"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCaseMilestoneSchema = createInsertSchema(caseMilestones).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertCaseMilestone = z.infer<typeof insertCaseMilestoneSchema>;
+export type CaseMilestone = typeof caseMilestones.$inferSelect;
 
 // Documents
 export const documents = pgTable("documents", {
@@ -159,6 +235,7 @@ export const documents = pgTable("documents", {
   type: text("type").$type<DocumentType>().notNull(),
   entityId: varchar("entity_id").notNull(),
   siteId: varchar("site_id"),
+  caseId: varchar("case_id"),
   fileName: text("file_name").notNull(),
   fileSize: integer("file_size").notNull(),
   mimeType: text("mime_type").notNull(),
@@ -213,7 +290,13 @@ export type AuditAction =
   | "changes_requested"
   | "comment_added"
   | "support_request_created"
-  | "support_request_resolved";
+  | "support_request_resolved"
+  | "case_created"
+  | "case_updated"
+  | "case_status_changed"
+  | "case_closed"
+  | "milestone_added"
+  | "milestone_completed";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
@@ -223,6 +306,7 @@ export const auditLogs = pgTable("audit_logs", {
   userName: text("user_name").notNull(),
   entityId: varchar("entity_id"),
   documentId: varchar("document_id"),
+  caseId: varchar("case_id"),
   supportRequestId: varchar("support_request_id"),
   module: text("module").$type<ModuleType>(),
   details: text("details"),
@@ -358,6 +442,22 @@ export const moduleConfig: Record<ModuleType, {
       { value: "performance_review", label: "Performance Review" },
       { value: "hr_policy", label: "HR Policy" },
       { value: "absence_record", label: "Absence Record" },
+    ],
+  },
+  employment_law: {
+    name: "Employment Law",
+    shortName: "EL",
+    documentTypes: [
+      { value: "tupe_consultation", label: "TUPE Consultation" },
+      { value: "investigation_report", label: "Investigation Report" },
+      { value: "disciplinary_hearing", label: "Disciplinary Hearing" },
+      { value: "cot3_agreement", label: "COT3 Agreement" },
+      { value: "settlement_agreement", label: "Settlement Agreement" },
+      { value: "grievance_outcome", label: "Grievance Outcome" },
+      { value: "appeal_hearing", label: "Appeal Hearing" },
+      { value: "witness_statement", label: "Witness Statement" },
+      { value: "case_notes", label: "Case Notes" },
+      { value: "legal_correspondence", label: "Legal Correspondence" },
     ],
   },
 };
