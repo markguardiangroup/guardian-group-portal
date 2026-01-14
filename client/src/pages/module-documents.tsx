@@ -62,6 +62,7 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess, DocumentTypeRecord } from "@shared/schema";
@@ -210,12 +211,33 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </p>
             </div>
           </div>
-          <Button className="bg-module-accent text-module-accent-foreground" asChild>
-            <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Document
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Entity selector for admin/consultant oversight */}
+            {!isClientUser && entities && entities.length > 0 && (
+              <Select 
+                value={entityId || ""} 
+                onValueChange={setSelectedEntityId}
+              >
+                <SelectTrigger className="w-64 bg-background" data-testid="select-entity-header">
+                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {entities.map((entity) => (
+                    <SelectItem key={entity.id} value={entity.id}>
+                      {entity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button className="bg-module-accent text-module-accent-foreground" asChild>
+              <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Document
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
