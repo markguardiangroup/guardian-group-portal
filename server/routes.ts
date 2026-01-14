@@ -188,11 +188,12 @@ export async function registerRoutes(
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
       const module = req.params.module as ModuleType;
+      const entityId = req.query.entityId as string | undefined;
       if (module !== "health_safety" && module !== "human_resources") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const summary = await storage.getComplianceSummary(module);
-      const documents = await storage.getDocuments(module);
+      const summary = await storage.getComplianceSummary(module, entityId);
+      const documents = await storage.getDocuments(module, entityId);
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
       const recentDocuments = documents.slice(0, 5);

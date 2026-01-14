@@ -1,8 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   FileText, 
   Clock, 
@@ -14,10 +22,12 @@ import {
   Upload,
   HardHat,
   Users,
+  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import type { ComplianceSummary, Document, AuditLog, ModuleType } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import type { ComplianceSummary, Document, AuditLog, ModuleType, Entity } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 
 interface ModuleDashboardData {
@@ -121,16 +131,42 @@ interface ModuleDashboardProps {
 }
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
+  
+  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
+  
+  // Fetch entities for admin/consultant users
+  const { data: entities, isLoading: entitiesLoading } = useQuery<Entity[]>({
+    queryKey: ["/api/entities"],
+    enabled: canSelectEntities,
+  });
+  
+  // Determine which entity to show data for
+  const entityId = user?.role === "client" 
+    ? user?.entityId 
+    : (selectedEntityId || entities?.[0]?.id || null);
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
-    queryKey: ["/api/dashboard", module],
+    queryKey: ["/api/dashboard", module, entityId],
+    queryFn: async () => {
+      const url = entityId 
+        ? `/api/dashboard/${module}?entityId=${entityId}`
+        : `/api/dashboard/${module}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+  
+  const currentEntityName = canSelectEntities && entities?.find(e => e.id === entityId)?.name;
 
-  if (isLoading) {
+  if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -181,10 +217,30 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <h1 className="text-3xl font-semibold">{config.name}</h1>
               <p className="text-muted-foreground">
                 Module compliance overview
+                {currentEntityName && <span className="font-medium"> - {currentEntityName}</span>}
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Entity selector for admin/consultant oversight */}
+            {canSelectEntities && entities && entities.length > 0 && (
+              <Select 
+                value={entityId || ""} 
+                onValueChange={setSelectedEntityId}
+              >
+                <SelectTrigger className="w-56" data-testid="select-entity-module-dashboard">
+                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {entities.map((entity) => (
+                    <SelectItem key={entity.id} value={entity.id}>
+                      {entity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="outline" asChild>
               <Link href={`${basePath}/documents`} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />
