@@ -64,7 +64,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess } from "@shared/schema";
+import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess, DocumentTypeRecord } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -108,6 +108,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/documents/module", module],
   });
 
+  const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
+    queryKey: ["/api/document-types"],
+  });
+
   // Determine which entity to show access for
   const entityId = isClientUser 
     ? (user?.entityId || null)
@@ -134,7 +138,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return matchesSearch && matchesType && matchesStatus && !doc.isArchived;
   });
 
-  const getDocTypeLabel = (type: string) => {
+  const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
+    if (documentTypeId && allDocumentTypes) {
+      const apiDocType = allDocumentTypes.find(dt => dt.id === documentTypeId);
+      if (apiDocType) return apiDocType.name;
+    }
+    const apiDocTypeByCode = allDocumentTypes?.find(dt => dt.code === type);
+    if (apiDocTypeByCode) return apiDocTypeByCode.name;
     const docType = config.documentTypes.find(dt => dt.value === type);
     return docType?.label || type.replace(/_/g, " ");
   };
@@ -382,7 +392,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-normal">
-                        {getDocTypeLabel(doc.type)}
+                        {getDocTypeLabel(doc.type, (doc as any).documentTypeId)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -498,7 +508,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     approvalMutation.mutate({ action: approvalAction, feedback });
   };
 
-  const getDocTypeLabel = (type: string) => {
+  const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
+    if (documentTypeId) {
+      return type.replace(/_/g, " ");
+    }
     const docType = config.documentTypes.find(dt => dt.value === type);
     return docType?.label || type.replace(/_/g, " ");
   };
@@ -540,7 +553,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         <div className="flex-1">
           <h1 className="text-2xl font-semibold">{document.title}</h1>
           <p className="text-muted-foreground">
-            Version {document.version} - {getDocTypeLabel(document.type)}
+            Version {document.version} - {getDocTypeLabel(document.type, (document as any).documentTypeId)}
           </p>
         </div>
         <div className="flex items-center gap-3">

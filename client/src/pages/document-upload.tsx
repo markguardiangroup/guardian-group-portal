@@ -35,12 +35,13 @@ import {
   Calendar,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Entity, Site, DocumentType } from "@shared/schema";
+import type { Entity, Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  type: z.enum(["policy", "risk_assessment", "audit", "assessment", "compliance", "incident_log", "checklist", "template"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  documentTypeId: z.string().min(1, "Please select a document type"),
   entityId: z.string().min(1, "Please select an entity"),
   siteId: z.string().optional(),
   reviewDate: z.string().optional(),
@@ -49,15 +50,10 @@ const documentUploadSchema = z.object({
 
 type DocumentUploadForm = z.infer<typeof documentUploadSchema>;
 
-const documentTypeLabels: Record<DocumentType, string> = {
-  policy: "Policy",
-  risk_assessment: "Risk Assessment",
-  audit: "Audit",
-  assessment: "Assessment",
-  compliance: "Compliance",
-  incident_log: "Incident Log",
-  checklist: "Checklist",
-  template: "Template",
+const moduleLabels: Record<ModuleType, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
 };
 
 export default function DocumentUpload() {
@@ -74,12 +70,17 @@ export default function DocumentUpload() {
     queryKey: ["/api/sites"],
   });
 
+  const { data: documentTypes } = useQuery<DocumentTypeRecord[]>({
+    queryKey: ["/api/document-types"],
+  });
+
   const form = useForm<DocumentUploadForm>({
     resolver: zodResolver(documentUploadSchema),
     defaultValues: {
       title: "",
       description: "",
-      type: "policy",
+      module: "health_safety",
+      documentTypeId: "",
       entityId: "",
       siteId: "",
       reviewDate: "",
@@ -88,12 +89,18 @@ export default function DocumentUpload() {
   });
 
   const selectedEntityId = form.watch("entityId");
+  const selectedModule = form.watch("module");
   const filteredSites = sites?.filter((site) => site.entityId === selectedEntityId);
+  const filteredDocumentTypes = documentTypes?.filter(
+    (dt) => dt.module === selectedModule && dt.isActive
+  );
 
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
+      const selectedDocType = documentTypes?.find((dt) => dt.id === data.documentTypeId);
       const formData = {
         ...data,
+        type: selectedDocType?.code || "policy",
         fileName: selectedFile?.name || "document.pdf",
         fileSize: selectedFile?.size || 0,
         mimeType: selectedFile?.type || "application/pdf",
@@ -223,18 +230,24 @@ export default function DocumentUpload() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField
                       control={form.control}
-                      name="type"
+                      name="module"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Document Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <FormLabel>Module</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("documentTypeId", "");
+                            }} 
+                            value={field.value}
+                          >
                             <FormControl>
-                              <SelectTrigger data-testid="select-type">
-                                <SelectValue placeholder="Select type" />
+                              <SelectTrigger data-testid="select-module">
+                                <SelectValue placeholder="Select module" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Object.entries(documentTypeLabels).map(([value, label]) => (
+                              {Object.entries(moduleLabels).map(([value, label]) => (
                                 <SelectItem key={value} value={value}>{label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -244,6 +257,42 @@ export default function DocumentUpload() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="documentTypeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Document Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-document-type">
+                                <SelectValue placeholder="Select document type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {filteredDocumentTypes?.map((docType) => (
+                                <SelectItem key={docType.id} value={docType.id}>
+                                  {docType.name}
+                                  {docType.isRequired && " *"}
+                                </SelectItem>
+                              ))}
+                              {(!filteredDocumentTypes || filteredDocumentTypes.length === 0) && (
+                                <SelectItem value="" disabled>
+                                  No document types available
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Document types marked with * are required for compliance
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="entityId"
