@@ -595,6 +595,40 @@ export async function registerRoutes(
     }
   });
 
+  // Create entity
+  app.post("/api/entities", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can create entities
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create entities" });
+      }
+      
+      const { name, companyNumber, address, contactEmail, contactPhone } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Entity name is required" });
+      }
+      
+      const entity = await storage.createEntity({
+        name: name.trim(),
+        companyNumber: companyNumber || null,
+        address: address || null,
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+      });
+      
+      res.status(201).json(entity);
+    } catch (error) {
+      console.error("Create entity error:", error);
+      res.status(500).json({ error: "Failed to create entity" });
+    }
+  });
+
   // Get single entity
   app.get("/api/entities/:entityId", requireAuth, async (req, res) => {
     try {

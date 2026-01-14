@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +12,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import {
   Building2,
@@ -28,6 +37,8 @@ import {
   XCircle,
   Settings,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { EntityWithSites, Site, ComplianceSummary } from "@shared/schema";
 
 function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
@@ -124,9 +135,9 @@ function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <CardTitle className="text-lg">{entity.name}</CardTitle>
+                      <h3 className="text-lg font-semibold">{entity.name}</h3>
                       {entity.companyNumber && (
-                        <p className="mt-0.5 text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           Company No: {entity.companyNumber}
                         </p>
                       )}
@@ -134,17 +145,19 @@ function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (
                     <div className="flex items-center gap-3">
                       <ComplianceIndicator summary={entity.complianceSummary} />
                       {isOpen ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       )}
                     </div>
                   </div>
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {entity.sites?.length || 0} site{entity.sites?.length !== 1 ? "s" : ""}
-                  </span>
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  {entity.sites && (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {entity.sites.length} {entity.sites.length === 1 ? "site" : "sites"}
+                    </span>
+                  )}
                   {entity.contactEmail && (
                     <span className="flex items-center gap-1.5">
                       <Mail className="h-3.5 w-3.5" />
@@ -248,13 +261,52 @@ function EntityCard({ entity, onManage }: { entity: EntityWithSites; onManage: (
 export default function Entities() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, navigate] = useLocation();
+  const [isAddEntityOpen, setIsAddEntityOpen] = useState(false);
+  const [newEntity, setNewEntity] = useState({
+    name: "",
+    companyNumber: "",
+    address: "",
+    contactEmail: "",
+    contactPhone: "",
+  });
+  const { toast } = useToast();
 
   const { data: entities, isLoading } = useQuery<EntityWithSites[]>({
     queryKey: ["/api/entities"],
   });
 
+  const createEntityMutation = useMutation({
+    mutationFn: async (data: typeof newEntity) => {
+      const response = await apiRequest("POST", "/api/entities", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/entities"] });
+      toast({ title: "Entity created successfully" });
+      setIsAddEntityOpen(false);
+      setNewEntity({
+        name: "",
+        companyNumber: "",
+        address: "",
+        contactEmail: "",
+        contactPhone: "",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to create entity", variant: "destructive" });
+    },
+  });
+
   const handleManageEntity = (entityId: string) => {
     navigate(`/entities/${entityId}`);
+  };
+
+  const handleCreateEntity = () => {
+    if (!newEntity.name.trim()) {
+      toast({ title: "Entity name is required", variant: "destructive" });
+      return;
+    }
+    createEntityMutation.mutate(newEntity);
   };
 
   const filteredEntities = entities?.filter((entity) =>
@@ -287,7 +339,7 @@ export default function Entities() {
             Manage your organization structure
           </p>
         </div>
-        <Button data-testid="button-add-entity">
+        <Button onClick={() => setIsAddEntityOpen(true)} data-testid="button-add-entity">
           <Plus className="mr-2 h-4 w-4" />
           Add Entity
         </Button>
@@ -325,7 +377,7 @@ export default function Entities() {
                 : "Add your first entity to get started"}
             </p>
             {!searchQuery && (
-              <Button className="mt-4">
+              <Button className="mt-4" onClick={() => setIsAddEntityOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Entity
               </Button>
@@ -333,6 +385,85 @@ export default function Entities() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isAddEntityOpen} onOpenChange={setIsAddEntityOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Entity</DialogTitle>
+            <DialogDescription>
+              Create a new client organization
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="entity-name">Entity Name *</Label>
+              <Input
+                id="entity-name"
+                placeholder="Enter organization name"
+                value={newEntity.name}
+                onChange={(e) => setNewEntity({ ...newEntity, name: e.target.value })}
+                data-testid="input-entity-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-number">Company Number</Label>
+              <Input
+                id="company-number"
+                placeholder="e.g., 12345678"
+                value={newEntity.companyNumber}
+                onChange={(e) => setNewEntity({ ...newEntity, companyNumber: e.target.value })}
+                data-testid="input-company-number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                placeholder="Enter full address"
+                value={newEntity.address}
+                onChange={(e) => setNewEntity({ ...newEntity, address: e.target.value })}
+                data-testid="input-address"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contact-email">Contact Email</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={newEntity.contactEmail}
+                  onChange={(e) => setNewEntity({ ...newEntity, contactEmail: e.target.value })}
+                  data-testid="input-contact-email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-phone">Contact Phone</Label>
+                <Input
+                  id="contact-phone"
+                  type="tel"
+                  placeholder="+44 xxx xxx xxxx"
+                  value={newEntity.contactPhone}
+                  onChange={(e) => setNewEntity({ ...newEntity, contactPhone: e.target.value })}
+                  data-testid="input-contact-phone"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddEntityOpen(false)} data-testid="button-cancel-entity">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateEntity} 
+              disabled={createEntityMutation.isPending}
+              data-testid="button-create-entity"
+            >
+              {createEntityMutation.isPending ? "Creating..." : "Create Entity"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
