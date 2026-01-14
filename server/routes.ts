@@ -69,6 +69,26 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const createDocumentTypeSchema = z.object({
+  name: z.string().min(1),
+  code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
+  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  description: z.string().optional(),
+  isRequired: z.boolean().optional(),
+  renewalPeriodMonths: z.number().positive().optional().nullable(),
+  sortOrder: z.number().optional(),
+  isActive: z.boolean().optional(),
+});
+
+const updateDocumentTypeSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  isRequired: z.boolean().optional(),
+  renewalPeriodMonths: z.number().positive().optional().nullable(),
+  sortOrder: z.number().optional(),
+  isActive: z.boolean().optional(),
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -770,6 +790,121 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create support request error:", error);
       res.status(500).json({ error: "Failed to create support request" });
+    }
+  });
+
+  // Document Types (Admin-managed master list)
+  app.get("/api/document-types", async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const documentTypes = await storage.getDocumentTypes(module);
+      res.json(documentTypes);
+    } catch (error) {
+      console.error("Get document types error:", error);
+      res.status(500).json({ error: "Failed to fetch document types" });
+    }
+  });
+
+  app.get("/api/document-types/:id", async (req, res) => {
+    try {
+      const documentType = await storage.getDocumentType(req.params.id);
+      if (!documentType) {
+        return res.status(404).json({ error: "Document type not found" });
+      }
+      res.json(documentType);
+    } catch (error) {
+      console.error("Get document type error:", error);
+      res.status(500).json({ error: "Failed to fetch document type" });
+    }
+  });
+
+  app.post("/api/document-types", async (req, res) => {
+    try {
+      // Check admin role
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const parseResult = createDocumentTypeSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
+      }
+
+      const body = parseResult.data;
+      const documentType = await storage.createDocumentType({
+        name: body.name,
+        code: body.code,
+        module: body.module,
+        description: body.description || null,
+        isRequired: body.isRequired ?? false,
+        renewalPeriodMonths: body.renewalPeriodMonths ?? null,
+        sortOrder: body.sortOrder ?? 0,
+        isActive: body.isActive ?? true,
+        createdBy: userId,
+      });
+
+      res.status(201).json(documentType);
+    } catch (error) {
+      console.error("Create document type error:", error);
+      res.status(500).json({ error: "Failed to create document type" });
+    }
+  });
+
+  app.patch("/api/document-types/:id", async (req, res) => {
+    try {
+      // Check admin role
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const parseResult = updateDocumentTypeSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
+      }
+
+      const updated = await storage.updateDocumentType(req.params.id, parseResult.data);
+      if (!updated) {
+        return res.status(404).json({ error: "Document type not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update document type error:", error);
+      res.status(500).json({ error: "Failed to update document type" });
+    }
+  });
+
+  app.delete("/api/document-types/:id", async (req, res) => {
+    try {
+      // Check admin role
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const deleted = await storage.deleteDocumentType(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Document type not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete document type error:", error);
+      res.status(500).json({ error: "Failed to delete document type" });
     }
   });
 
