@@ -439,7 +439,7 @@ export type SupportRequest = typeof supportRequests.$inferSelect;
 export const entityDocumentTypeAccess = pgTable("entity_document_type_access", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   entityId: varchar("entity_id").notNull(),
-  documentType: text("document_type").$type<DocumentType>().notNull(),
+  documentTypeId: varchar("document_type_id").notNull(), // Links to documentTypes.id
   module: text("module").$type<ModuleType>().notNull(),
   grantedAt: timestamp("granted_at").notNull().defaultNow(),
   grantedBy: varchar("granted_by"),
@@ -454,11 +454,14 @@ export type EntityDocumentTypeAccess = typeof entityDocumentTypeAccess.$inferSel
 
 // Document type with access status for display
 export interface DocumentTypeWithAccess {
-  value: DocumentType;
-  label: string;
+  id: string; // documentTypeId from master list
+  code: string; // document type code
+  name: string; // display name
   module: ModuleType;
   hasAccess: boolean;
   documentCount: number;
+  isRequired: boolean;
+  renewalPeriodMonths: number | null;
 }
 
 // Compliance summary (computed/cached data for dashboard)

@@ -944,49 +944,49 @@ export class MemStorage implements IStorage {
     ];
     requests.forEach(req => this.supportRequests.set(req.id, req));
     
-    // Create sample entity document type access
+    // Create sample entity document type access - now linked to document type IDs from master list
     // Entity 1 (Acme Manufacturing) - has access to most document types but not all
     const entity1Access: EntityDocumentTypeAccess[] = [
-      // H&S document types - missing method_statement and hs_checklist for upsell opportunity
-      { id: "access-1", entityId: "entity-1", documentType: "hs_policy" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-2", entityId: "entity-1", documentType: "risk_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-3", entityId: "entity-1", documentType: "safety_audit" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-4", entityId: "entity-1", documentType: "coshh_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-5", entityId: "entity-1", documentType: "fire_safety" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-6", entityId: "entity-1", documentType: "incident_report" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      // HR document types - missing absence_record for upsell opportunity
-      { id: "access-7", entityId: "entity-1", documentType: "employment_contract" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-8", entityId: "entity-1", documentType: "employee_handbook" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-9", entityId: "entity-1", documentType: "disciplinary_procedure" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-10", entityId: "entity-1", documentType: "grievance_procedure" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-11", entityId: "entity-1", documentType: "training_record" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-12", entityId: "entity-1", documentType: "performance_review" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-13", entityId: "entity-1", documentType: "hr_policy" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // H&S document types (doctype-1 to doctype-8) - missing doctype-7 (method_statement) and doctype-8 (hs_checklist) for upsell
+      { id: "access-1", entityId: "entity-1", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-2", entityId: "entity-1", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-3", entityId: "entity-1", documentTypeId: "doctype-3", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-4", entityId: "entity-1", documentTypeId: "doctype-4", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-5", entityId: "entity-1", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-6", entityId: "entity-1", documentTypeId: "doctype-6", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // HR document types (doctype-9 to doctype-16) - missing doctype-16 (absence_record) for upsell
+      { id: "access-7", entityId: "entity-1", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-8", entityId: "entity-1", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-9", entityId: "entity-1", documentTypeId: "doctype-11", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-10", entityId: "entity-1", documentTypeId: "doctype-12", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-11", entityId: "entity-1", documentTypeId: "doctype-13", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-12", entityId: "entity-1", documentTypeId: "doctype-14", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-13", entityId: "entity-1", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
     entity1Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
     
     // Entity 2 (TechStart Solutions) - smaller package, fewer document types
     const entity2Access: EntityDocumentTypeAccess[] = [
-      // H&S - basic package only
-      { id: "access-20", entityId: "entity-2", documentType: "hs_policy" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-21", entityId: "entity-2", documentType: "risk_assessment" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-22", entityId: "entity-2", documentType: "fire_safety" as DocumentType, module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      // HR - basic package only
-      { id: "access-23", entityId: "entity-2", documentType: "employment_contract" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-24", entityId: "entity-2", documentType: "employee_handbook" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-25", entityId: "entity-2", documentType: "hr_policy" as DocumentType, module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // H&S - basic package only (doctype-1, doctype-2, doctype-5)
+      { id: "access-20", entityId: "entity-2", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-21", entityId: "entity-2", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-22", entityId: "entity-2", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      // HR - basic package only (doctype-9, doctype-10, doctype-15)
+      { id: "access-23", entityId: "entity-2", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-24", entityId: "entity-2", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-25", entityId: "entity-2", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
     entity2Access.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
     
-    // Employment Law document type access for Entity 1
+    // Employment Law document type access for Entity 1 (doctype-17 to doctype-26)
     const entity1ELAccess: EntityDocumentTypeAccess[] = [
-      { id: "access-30", entityId: "entity-1", documentType: "tupe_consultation" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-31", entityId: "entity-1", documentType: "investigation_report" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-32", entityId: "entity-1", documentType: "disciplinary_hearing" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-33", entityId: "entity-1", documentType: "settlement_agreement" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-34", entityId: "entity-1", documentType: "grievance_outcome" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-35", entityId: "entity-1", documentType: "witness_statement" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-36", entityId: "entity-1", documentType: "case_notes" as DocumentType, module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-30", entityId: "entity-1", documentTypeId: "doctype-17", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-31", entityId: "entity-1", documentTypeId: "doctype-18", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-32", entityId: "entity-1", documentTypeId: "doctype-19", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-33", entityId: "entity-1", documentTypeId: "doctype-21", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-34", entityId: "entity-1", documentTypeId: "doctype-22", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-35", entityId: "entity-1", documentTypeId: "doctype-24", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-36", entityId: "entity-1", documentTypeId: "doctype-25", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
     ];
     entity1ELAccess.forEach(access => this.entityDocumentTypeAccess.set(access.id, access));
     
