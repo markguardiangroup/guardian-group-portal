@@ -448,6 +448,20 @@ export default function ModuleAccessRequests() {
           />
         </div>
         
+        <Select value={statusFilter} onValueChange={(v: FilterStatus) => { setStatusFilter(v); setCurrentPage(1); }}>
+          <SelectTrigger className="w-[180px]" data-testid="select-status-filter">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses ({stats.total})</SelectItem>
+            <SelectItem value="pending">Pending ({stats.pending})</SelectItem>
+            <SelectItem value="overdue">Overdue ({stats.overdue})</SelectItem>
+            <SelectItem value="urgent">Urgent ({stats.urgent})</SelectItem>
+            <SelectItem value="approved">Approved ({stats.approved})</SelectItem>
+            <SelectItem value="rejected">Rejected ({stats.rejected})</SelectItem>
+          </SelectContent>
+        </Select>
+        
         <Select value={moduleFilter} onValueChange={(v) => { setModuleFilter(v); setCurrentPage(1); }}>
           <SelectTrigger className="w-[180px]" data-testid="select-module-filter">
             <SelectValue placeholder="All Modules" />
@@ -479,27 +493,6 @@ export default function ModuleAccessRequests() {
         >
           {sortOrder === "asc" ? "Oldest First" : "Newest First"}
         </Button>
-
-        <div className="flex gap-2 border-l pl-4">
-          <Button
-            variant={statusFilter === "approved" ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setStatusFilter(statusFilter === "approved" ? "all" : "approved"); setCurrentPage(1); }}
-            data-testid="button-filter-approved"
-          >
-            <CheckCircle className="h-4 w-4 mr-1" />
-            Approved ({stats.approved})
-          </Button>
-          <Button
-            variant={statusFilter === "rejected" ? "default" : "outline"}
-            size="sm"
-            onClick={() => { setStatusFilter(statusFilter === "rejected" ? "all" : "rejected"); setCurrentPage(1); }}
-            data-testid="button-filter-rejected"
-          >
-            <XCircle className="h-4 w-4 mr-1" />
-            Rejected ({stats.rejected})
-          </Button>
-        </div>
       </div>
 
       {selectedPendingRequests.length > 0 && (
