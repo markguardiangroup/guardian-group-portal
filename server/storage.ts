@@ -20,6 +20,7 @@ import {
   type EntityModuleAccess, type InsertEntityModuleAccess, type ModuleAccessStatus,
   type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
   type ConsultantAssignment, type InsertConsultantAssignment,
+  type DocumentTypeRecord, type InsertDocumentType,
   moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -104,6 +105,13 @@ export interface IStorage {
   // Users by Entity
   getUsersByEntity(entityId: string): Promise<User[]>;
   getConsultants(): Promise<User[]>;
+  
+  // Document Types (Admin-managed)
+  getDocumentTypes(module?: ModuleType): Promise<DocumentTypeRecord[]>;
+  getDocumentType(id: string): Promise<DocumentTypeRecord | undefined>;
+  createDocumentType(docType: InsertDocumentType): Promise<DocumentTypeRecord>;
+  updateDocumentType(id: string, updates: Partial<DocumentTypeRecord>): Promise<DocumentTypeRecord | undefined>;
+  deleteDocumentType(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -120,6 +128,7 @@ export class MemStorage implements IStorage {
   private entityModuleAccess: Map<string, EntityModuleAccess>;
   private moduleAccessRequests: Map<string, ModuleAccessRequest>;
   private consultantAssignments: Map<string, ConsultantAssignment>;
+  private documentTypesMap: Map<string, DocumentTypeRecord>;
 
   constructor() {
     this.users = new Map();
@@ -135,6 +144,7 @@ export class MemStorage implements IStorage {
     this.entityModuleAccess = new Map();
     this.moduleAccessRequests = new Map();
     this.consultantAssignments = new Map();
+    this.documentTypesMap = new Map();
     
     this.initializeSampleData();
   }
@@ -289,6 +299,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "hs_policy_2024.pdf",
         fileSize: 245760,
         mimeType: "application/pdf",
@@ -312,6 +323,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
+        documentTypeId: null,
         fileName: "fire_risk_main_factory.pdf",
         fileSize: 512000,
         mimeType: "application/pdf",
@@ -335,6 +347,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
+        documentTypeId: null,
         fileName: "coshh_chemical_storage.pdf",
         fileSize: 384000,
         mimeType: "application/pdf",
@@ -358,6 +371,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-2",
         siteId: "site-3",
         caseId: null,
+        documentTypeId: null,
         fileName: "dse_assessment.pdf",
         fileSize: 256000,
         mimeType: "application/pdf",
@@ -385,6 +399,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "employee_handbook_2024.pdf",
         fileSize: 1024000,
         mimeType: "application/pdf",
@@ -408,6 +423,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "disciplinary_procedure.pdf",
         fileSize: 320000,
         mimeType: "application/pdf",
@@ -431,6 +447,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
+        documentTypeId: null,
         fileName: "training_john_smith.pdf",
         fileSize: 128000,
         mimeType: "application/pdf",
@@ -454,6 +471,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-2",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "remote_working_policy.pdf",
         fileSize: 192000,
         mimeType: "application/pdf",
@@ -477,6 +495,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "employment_contract_template.pdf",
         fileSize: 285000,
         mimeType: "application/pdf",
@@ -500,6 +519,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "grievance_procedure.pdf",
         fileSize: 198000,
         mimeType: "application/pdf",
@@ -523,6 +543,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
+        documentTypeId: null,
         fileName: "performance_review_q4_2024.pdf",
         fileSize: 156000,
         mimeType: "application/pdf",
@@ -546,6 +567,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-2",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "absence_management_policy.pdf",
         fileSize: 245000,
         mimeType: "application/pdf",
@@ -569,6 +591,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: "site-1",
         caseId: null,
+        documentTypeId: null,
         fileName: "training_sarah_johnson.pdf",
         fileSize: 142000,
         mimeType: "application/pdf",
@@ -592,6 +615,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "absence_record_jan_2025.pdf",
         fileSize: 98000,
         mimeType: "application/pdf",
@@ -615,6 +639,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-2",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "employment_contract_parttime.pdf",
         fileSize: 265000,
         mimeType: "application/pdf",
@@ -638,6 +663,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: null,
+        documentTypeId: null,
         fileName: "equal_opportunities_policy.pdf",
         fileSize: 178000,
         mimeType: "application/pdf",
@@ -1124,6 +1150,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: "case-1",
+        documentTypeId: null,
         fileName: "investigation_report_jsmith.pdf",
         fileSize: 156000,
         mimeType: "application/pdf",
@@ -1147,6 +1174,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: "case-1",
+        documentTypeId: null,
         fileName: "witness_statement_adavis.pdf",
         fileSize: 78000,
         mimeType: "application/pdf",
@@ -1170,6 +1198,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: "case-2",
+        documentTypeId: null,
         fileName: "grievance_letter_sjohnson.pdf",
         fileSize: 45000,
         mimeType: "application/pdf",
@@ -1193,6 +1222,7 @@ export class MemStorage implements IStorage {
         entityId: "entity-1",
         siteId: null,
         caseId: "case-3",
+        documentTypeId: null,
         fileName: "settlement_mbrown.pdf",
         fileSize: 234000,
         mimeType: "application/pdf",
@@ -1669,6 +1699,7 @@ export class MemStorage implements IStorage {
       description: insertDocument.description ?? null,
       siteId: insertDocument.siteId ?? null,
       caseId: insertDocument.caseId ?? null,
+      documentTypeId: insertDocument.documentTypeId ?? null,
       version: insertDocument.version ?? 1,
       status: (insertDocument.status ?? "review_required") as any,
       approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
@@ -2134,6 +2165,58 @@ export class MemStorage implements IStorage {
   async getConsultants(): Promise<User[]> {
     return Array.from(this.users.values())
       .filter(u => u.role === "consultant");
+  }
+
+  // Document Types (Admin-managed)
+  async getDocumentTypes(module?: ModuleType): Promise<DocumentTypeRecord[]> {
+    let types = Array.from(this.documentTypesMap.values());
+    if (module) {
+      types = types.filter(t => t.module === module);
+    }
+    return types.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async getDocumentType(id: string): Promise<DocumentTypeRecord | undefined> {
+    return this.documentTypesMap.get(id);
+  }
+
+  async createDocumentType(docType: InsertDocumentType): Promise<DocumentTypeRecord> {
+    const id = randomUUID();
+    const now = new Date();
+    const newDocType: DocumentTypeRecord = {
+      id,
+      name: docType.name,
+      code: docType.code,
+      module: docType.module as ModuleType,
+      description: docType.description ?? null,
+      isRequired: docType.isRequired ?? false,
+      renewalPeriodMonths: docType.renewalPeriodMonths ?? null,
+      sortOrder: docType.sortOrder ?? 0,
+      isActive: docType.isActive ?? true,
+      createdBy: docType.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.documentTypesMap.set(id, newDocType);
+    return newDocType;
+  }
+
+  async updateDocumentType(id: string, updates: Partial<DocumentTypeRecord>): Promise<DocumentTypeRecord | undefined> {
+    const existing = this.documentTypesMap.get(id);
+    if (!existing) {
+      return undefined;
+    }
+    const updated: DocumentTypeRecord = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.documentTypesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteDocumentType(id: string): Promise<boolean> {
+    return this.documentTypesMap.delete(id);
   }
 }
 

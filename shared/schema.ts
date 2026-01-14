@@ -283,6 +283,30 @@ export const insertCaseMilestoneSchema = createInsertSchema(caseMilestones).omit
 export type InsertCaseMilestone = z.infer<typeof insertCaseMilestoneSchema>;
 export type CaseMilestone = typeof caseMilestones.$inferSelect;
 
+// Document Types (Admin-managed master list)
+export const documentTypes = pgTable("document_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(), // Unique identifier like "fire_risk_assessment"
+  module: text("module").$type<ModuleType>().notNull(),
+  description: text("description"), // Guidance for clients
+  isRequired: boolean("is_required").notNull().default(false),
+  renewalPeriodMonths: integer("renewal_period_months"), // null = no renewal needed
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentTypeSchema = createInsertSchema(documentTypes).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertDocumentType = z.infer<typeof insertDocumentTypeSchema>;
+export type DocumentTypeRecord = typeof documentTypes.$inferSelect;
+
 // Documents
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -290,6 +314,7 @@ export const documents = pgTable("documents", {
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
   type: text("type").$type<DocumentType>().notNull(),
+  documentTypeId: varchar("document_type_id"), // Reference to admin-managed document types
   entityId: varchar("entity_id").notNull(),
   siteId: varchar("site_id"),
   caseId: varchar("case_id"),
