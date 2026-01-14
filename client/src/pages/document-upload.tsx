@@ -410,7 +410,7 @@ export default function DocumentUpload() {
             </CardHeader>
             <CardContent>
               <div
-                className={`flex flex-col items-center justify-center rounded-md border-2 border-dashed p-8 transition-colors ${
+                className={`relative flex flex-col items-center justify-center rounded-md border-2 border-dashed p-8 transition-colors ${
                   isDragging
                     ? "border-primary bg-primary/5"
                     : selectedFile
@@ -447,13 +447,15 @@ export default function DocumentUpload() {
                     </div>
                     <p className="mt-3 font-medium">Drop file here</p>
                     <p className="text-sm text-muted-foreground">or click to browse</p>
-                    <input
-                      type="file"
-                      className="absolute inset-0 cursor-pointer opacity-0"
-                      onChange={handleFileSelect}
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                      data-testid="input-file"
-                    />
+                    <label className="absolute inset-0 cursor-pointer">
+                      <input
+                        type="file"
+                        className="sr-only"
+                        onChange={handleFileSelect}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                        data-testid="input-file"
+                      />
+                    </label>
                   </>
                 )}
               </div>
