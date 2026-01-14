@@ -554,7 +554,7 @@ export default function ModuleAccessRequests() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={
                         paginatedRequests.filter(r => r.status === "pending").length > 0 &&
@@ -564,10 +564,9 @@ export default function ModuleAccessRequests() {
                       data-testid="checkbox-select-all"
                     />
                   </TableHead>
-                  <TableHead className="w-10"></TableHead>
                   <TableHead>Entity</TableHead>
-                  <TableHead>Module</TableHead>
-                  <TableHead>Requested By</TableHead>
+                  <TableHead>Request Type</TableHead>
+                  <TableHead>Requester</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -578,131 +577,111 @@ export default function ModuleAccessRequests() {
                   const isExpanded = expandedRows.has(request.id);
                   return (
                     <Fragment key={request.id}>
-                      <TableRow key={request.id} data-testid={`row-request-${request.id}`}>
-                        <TableCell>
-                          {request.status === "pending" && (
-                            <Checkbox
-                              checked={selectedRequests.has(request.id)}
-                              onCheckedChange={(checked) => handleSelectRequest(request.id, !!checked)}
-                              data-testid={`checkbox-request-${request.id}`}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => toggleRowExpansion(request.id)}
-                            data-testid={`button-expand-${request.id}`}
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
+                      <TableRow data-testid={`row-request-${request.id}`} className="group">
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1">
+                            {request.status === "pending" && (
+                              <Checkbox
+                                checked={selectedRequests.has(request.id)}
+                                onCheckedChange={(checked) => handleSelectRequest(request.id, !!checked)}
+                                data-testid={`checkbox-request-${request.id}`}
+                              />
                             )}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <Link href={`/entities/${request.entityId}`}>
-                              <span className="font-medium hover:underline cursor-pointer">
-                                {request.entityName || request.entityId}
-                              </span>
-                            </Link>
-                            <Link href={`/entities/${request.entityId}`}>
-                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => toggleRowExpansion(request.id)}
+                              data-testid={`button-expand-${request.id}`}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3" />
+                              )}
+                            </Button>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2">
+                          <span className="font-medium text-sm">{request.entityName || request.entityId}</span>
+                        </TableCell>
+                        <TableCell className="py-2">
                           <ModuleBadge module={request.module} />
                         </TableCell>
-                        <TableCell>
-                          <p className="font-medium">{request.requestedByName}</p>
+                        <TableCell className="py-2">
+                          <span className="text-sm">{request.requestedByName}</span>
                         </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm">{format(new Date(request.createdAt), "MMM d, yyyy")}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
-                            </p>
-                          </div>
+                        <TableCell className="py-2">
+                          <span className="text-sm text-muted-foreground">{format(new Date(request.createdAt), "MMM d")}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2">
                           <StatusBadge request={request} />
                         </TableCell>
-                        <TableCell className="text-right">
-                          {request.status === "pending" && (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => openReviewDialog([request], "approve")}
-                                data-testid={`button-approve-${request.id}`}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
+                        <TableCell className="py-2 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Link href={`/entities/${request.entityId}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => openReviewDialog([request], "reject")}
-                                data-testid={`button-reject-${request.id}`}
+                                data-testid={`button-view-entity-${request.id}`}
                               >
-                                <XCircle className="h-4 w-4" />
+                                View
                               </Button>
-                            </div>
-                          )}
+                            </Link>
+                            {request.status === "pending" && (
+                              <>
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => openReviewDialog([request], "approve")}
+                                  data-testid={`button-approve-${request.id}`}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => openReviewDialog([request], "reject")}
+                                  data-testid={`button-reject-${request.id}`}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
-                        <TableRow key={`${request.id}-expanded`} className="bg-muted/50">
-                          <TableCell colSpan={8} className="py-4">
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 px-4">
+                        <TableRow key={`${request.id}-expanded`} className="bg-muted/30">
+                          <TableCell colSpan={7} className="py-3 px-6">
+                            <div className="grid gap-x-8 gap-y-2 md:grid-cols-3 lg:grid-cols-4 text-sm">
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Request Reason</p>
-                                <p className="text-sm">{request.reason || "No reason provided"}</p>
+                                <span className="text-muted-foreground">Reason: </span>
+                                <span>{request.reason || "Not provided"}</span>
                               </div>
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Entity ID</p>
-                                <p className="text-sm font-mono">{request.entityId}</p>
+                                <span className="text-muted-foreground">Submitted: </span>
+                                <span>{format(new Date(request.createdAt), "PPP")}</span>
                               </div>
-                              <div>
-                                <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Request Date</p>
-                                <p className="text-sm">{format(new Date(request.createdAt), "PPP 'at' p")}</p>
-                              </div>
+                              {request.status === "pending" && (
+                                <div>
+                                  <span className="text-muted-foreground">Pending: </span>
+                                  <span>{differenceInDays(new Date(), new Date(request.createdAt))} days</span>
+                                </div>
+                              )}
                               {request.status !== "pending" && (
                                 <>
                                   <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Reviewed By</p>
-                                    <p className="text-sm">{request.reviewedByName || "Unknown"}</p>
+                                    <span className="text-muted-foreground">Reviewed by: </span>
+                                    <span>{request.reviewedByName || "Unknown"}</span>
                                   </div>
                                   <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Review Date</p>
-                                    <p className="text-sm">
-                                      {request.reviewedAt ? format(new Date(request.reviewedAt), "PPP 'at' p") : "N/A"}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Review Notes</p>
-                                    <p className="text-sm">{request.reviewNotes || "No notes"}</p>
+                                    <span className="text-muted-foreground">Notes: </span>
+                                    <span>{request.reviewNotes || "None"}</span>
                                   </div>
                                 </>
                               )}
-                              {request.status === "pending" && (
-                                <div>
-                                  <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Days Pending</p>
-                                  <p className="text-sm">{differenceInDays(new Date(), new Date(request.createdAt))} days</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="mt-4 px-4">
-                              <Link href={`/entities/${request.entityId}`}>
-                                <Button variant="outline" size="sm" data-testid={`button-view-entity-${request.id}`}>
-                                  <Building2 className="h-4 w-4 mr-2" />
-                                  View Entity Details
-                                </Button>
-                              </Link>
                             </div>
                           </TableCell>
                         </TableRow>
