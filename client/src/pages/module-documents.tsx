@@ -454,6 +454,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
+  const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
@@ -626,89 +627,116 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Card>
           )}
 
-          {auditLogs && auditLogs.length > 0 && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4">
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Audit Trail
-                </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    // Generate audit report CSV
-                    const headers = ['Date', 'Time', 'User', 'Action', 'Details'];
-                    const rows = auditLogs.map(log => [
-                      format(new Date(log.createdAt), 'yyyy-MM-dd'),
-                      format(new Date(log.createdAt), 'HH:mm:ss'),
-                      log.userName,
-                      log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                      log.details
-                    ]);
-                    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = window.document.createElement('a');
-                    a.href = url;
-                    a.download = `audit_trail_${document?.title?.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  data-testid="button-export-audit"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {auditLogs.map((log) => {
-                    // Action-specific icon and color
-                    const getActionStyle = (action: string) => {
-                      switch (action) {
-                        case 'document_uploaded':
-                          return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
-                        case 'document_approved':
-                          return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
-                        case 'document_rejected':
-                          return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
-                        case 'changes_requested':
-                          return { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400' };
-                        case 'document_viewed':
-                          return { icon: Eye, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400' };
-                        case 'document_downloaded':
-                          return { icon: Download, bg: 'bg-purple-100 dark:bg-purple-900/40', color: 'text-purple-600 dark:text-purple-400' };
-                        default:
-                          return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground' };
-                      }
-                    };
-                    const style = getActionStyle(log.action);
-                    const ActionIcon = style.icon;
-                    
-                    return (
-                      <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
-                          <ActionIcon className={`h-4 w-4 ${style.color}`} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium">{log.details}</p>
-                            <Badge variant="secondary" className="shrink-0 text-xs">
-                              {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                            </Badge>
+          {auditLogs && auditLogs.length > 0 && (() => {
+            const INITIAL_DISPLAY_COUNT = 3;
+            const displayedLogs = showAllAuditLogs ? auditLogs : auditLogs.slice(0, INITIAL_DISPLAY_COUNT);
+            const hasMoreLogs = auditLogs.length > INITIAL_DISPLAY_COUNT;
+            
+            const getActionStyle = (action: string) => {
+              switch (action) {
+                case 'document_uploaded':
+                  return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
+                case 'document_approved':
+                  return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
+                case 'document_rejected':
+                  return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
+                case 'changes_requested':
+                  return { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400' };
+                case 'document_viewed':
+                  return { icon: Eye, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400' };
+                case 'document_downloaded':
+                  return { icon: Download, bg: 'bg-purple-100 dark:bg-purple-900/40', color: 'text-purple-600 dark:text-purple-400' };
+                default:
+                  return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground' };
+              }
+            };
+
+            return (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Audit Trail
+                    <Badge variant="secondary" className="text-xs">{auditLogs.length}</Badge>
+                  </CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      const headers = ['Date', 'Time', 'User', 'Action', 'Details'];
+                      const rows = auditLogs.map(log => [
+                        format(new Date(log.createdAt), 'yyyy-MM-dd'),
+                        format(new Date(log.createdAt), 'HH:mm:ss'),
+                        log.userName,
+                        log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                        log.details
+                      ]);
+                      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = window.document.createElement('a');
+                      a.href = url;
+                      a.download = `audit_trail_${document?.title?.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    data-testid="button-export-audit"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {displayedLogs.map((log) => {
+                      const style = getActionStyle(log.action);
+                      const ActionIcon = style.icon;
+                      
+                      return (
+                        <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
+                            <ActionIcon className={`h-4 w-4 ${style.color}`} />
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {log.userName} - {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                          </p>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium">{log.details}</p>
+                              <Badge variant="secondary" className="shrink-0 text-xs">
+                                {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {log.userName} - {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                      );
+                    })}
+                  </div>
+                  {hasMoreLogs && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4 w-full"
+                      onClick={() => setShowAllAuditLogs(!showAllAuditLogs)}
+                      data-testid="button-toggle-audit-logs"
+                    >
+                      {showAllAuditLogs ? (
+                        <>
+                          <ChevronUp className="mr-2 h-4 w-4" />
+                          Show Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-2 h-4 w-4" />
+                          Show {auditLogs.length - INITIAL_DISPLAY_COUNT} More
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         <div className="space-y-6">
