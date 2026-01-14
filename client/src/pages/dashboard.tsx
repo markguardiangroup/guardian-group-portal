@@ -38,12 +38,17 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     return "bg-red-500";
   };
 
+  // Module-specific styling
+  const moduleStyles = isHS 
+    ? "border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20"
+    : "border-t-4 border-t-blue-500 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20";
+
   return (
-    <Card className={`hover-elevate ${themeClass}`} data-testid={`card-module-${summary.module}`}>
+    <Card className={`hover-elevate ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-module-accent-muted">
-            <Icon className="h-6 w-6 text-module-accent" />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${isHS ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
+            <Icon className={`h-6 w-6 ${isHS ? "text-emerald-600 dark:text-emerald-400" : "text-blue-600 dark:text-blue-400"}`} />
           </div>
           <div>
             <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
@@ -89,7 +94,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        <Button className="w-full border-module-accent text-module-accent" variant="outline" asChild>
+        <Button className={`w-full ${isHS ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
