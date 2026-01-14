@@ -71,7 +71,7 @@ export interface IStorage {
   getEntityDocumentTypeAccess(entityId: string, module?: ModuleType): Promise<EntityDocumentTypeAccess[]>;
   getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]>;
   grantDocumentTypeAccess(access: InsertEntityDocumentTypeAccess): Promise<EntityDocumentTypeAccess>;
-  revokeDocumentTypeAccess(entityId: string, documentType: DocumentType): Promise<boolean>;
+  revokeDocumentTypeAccess(entityId: string, documentTypeId: string): Promise<boolean>;
   
   // Cases (Employment Law)
   getCases(entityId?: string, status?: CaseStatus): Promise<Case[]>;
@@ -1890,23 +1890,27 @@ export class MemStorage implements IStorage {
   }
 
   async getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
-    const config = moduleConfig[module];
-    if (!config) return [];
+    // Get document types from master list for this module
+    const masterDocTypes = Array.from(this.documentTypes.values())
+      .filter(dt => dt.module === module && dt.isActive);
     
     const entityAccess = await this.getEntityDocumentTypeAccess(entityId, module);
-    const accessibleTypes = new Set(entityAccess.map(a => a.documentType));
+    const accessibleTypeIds = new Set(entityAccess.map(a => a.documentTypeId));
     
     // Filter documents by both module AND entity
     const docs = Array.from(this.documents.values())
       .filter(d => d.module === module && d.entityId === entityId && !d.isArchived);
     
-    return config.documentTypes.map(dt => ({
-      value: dt.value,
-      label: dt.label,
-      module,
-      hasAccess: accessibleTypes.has(dt.value),
-      // Only count documents for this specific entity
-      documentCount: docs.filter(d => d.type === dt.value).length,
+    return masterDocTypes.map(dt => ({
+      id: dt.id,
+      code: dt.code,
+      name: dt.name,
+      module: dt.module as ModuleType,
+      hasAccess: accessibleTypeIds.has(dt.id),
+      // Count documents for this specific entity matching this document type code
+      documentCount: docs.filter(d => d.type === dt.code).length,
+      isRequired: dt.isRequired,
+      renewalPeriodMonths: dt.renewalPeriodMonths,
     }));
   }
 
@@ -1915,7 +1919,7 @@ export class MemStorage implements IStorage {
     const access: EntityDocumentTypeAccess = {
       ...insertAccess,
       id,
-      documentType: insertAccess.documentType as DocumentType,
+      documentTypeId: insertAccess.documentTypeId,
       module: insertAccess.module as ModuleType,
       grantedAt: new Date(),
       grantedBy: insertAccess.grantedBy ?? null,
@@ -1924,9 +1928,9 @@ export class MemStorage implements IStorage {
     return access;
   }
 
-  async revokeDocumentTypeAccess(entityId: string, documentType: DocumentType): Promise<boolean> {
+  async revokeDocumentTypeAccess(entityId: string, documentTypeId: string): Promise<boolean> {
     const toRemove = Array.from(this.entityDocumentTypeAccess.values())
-      .find(a => a.entityId === entityId && a.documentType === documentType);
+      .find(a => a.entityId === entityId && a.documentTypeId === documentTypeId);
     if (toRemove) {
       this.entityDocumentTypeAccess.delete(toRemove.id);
       return true;

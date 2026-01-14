@@ -288,13 +288,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {documentTypesWithAccess.map((docType) => (
                     <div
-                      key={docType.value}
+                      key={docType.id}
                       className={`flex items-center gap-3 rounded-lg border p-3 ${
                         docType.hasAccess 
                           ? "bg-card border-border" 
                           : "bg-muted/30 border-dashed border-muted-foreground/30"
                       }`}
-                      data-testid={`doctype-${docType.value}`}
+                      data-testid={`doctype-${docType.code}`}
                     >
                       {docType.hasAccess ? (
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
@@ -307,7 +307,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className={`truncate text-sm font-medium ${!docType.hasAccess && "text-muted-foreground"}`}>
-                          {docType.label}
+                          {docType.name}
                         </p>
                         {docType.hasAccess ? (
                           <p className="text-xs text-muted-foreground">

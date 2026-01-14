@@ -1062,13 +1062,13 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only administrators can grant document type access" });
       }
       
-      const { entityId, documentType, module, grantedBy } = req.body;
-      if (!entityId || !documentType || !module) {
+      const { entityId, documentTypeId, module, grantedBy } = req.body;
+      if (!entityId || !documentTypeId || !module) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       const access = await storage.grantDocumentTypeAccess({
         entityId,
-        documentType,
+        documentTypeId,
         module,
         grantedBy: grantedBy || user.id,
       });
@@ -1079,7 +1079,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/entity-access/:entityId/:documentType", requireAuth, async (req, res) => {
+  app.delete("/api/entity-access/:entityId/:documentTypeId", requireAuth, async (req, res) => {
     try {
       // Only admins can revoke access
       const user = await storage.getUser((req.session as any).userId);
@@ -1087,8 +1087,8 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only administrators can revoke document type access" });
       }
       
-      const { entityId, documentType } = req.params;
-      const success = await storage.revokeDocumentTypeAccess(entityId, documentType as any);
+      const { entityId, documentTypeId } = req.params;
+      const success = await storage.revokeDocumentTypeAccess(entityId, documentTypeId);
       if (success) {
         res.json({ message: "Access revoked successfully" });
       } else {
