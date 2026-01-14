@@ -261,11 +261,11 @@ export default function ModuleAccessRequests() {
     let filtered = [...requests];
     
     if (statusFilter === "pending") {
-      filtered = filtered.filter(r => r.status === "pending" && getRequestUrgency(r) === "normal");
+      filtered = filtered.filter(r => r.status === "pending");
     } else if (statusFilter === "overdue") {
-      filtered = filtered.filter(r => getRequestUrgency(r) === "overdue");
+      filtered = filtered.filter(r => r.status === "pending" && getRequestUrgency(r) === "overdue");
     } else if (statusFilter === "urgent") {
-      filtered = filtered.filter(r => getRequestUrgency(r) === "urgent");
+      filtered = filtered.filter(r => r.status === "pending" && getRequestUrgency(r) === "urgent");
     } else if (statusFilter === "approved") {
       filtered = filtered.filter(r => r.status === "approved");
     } else if (statusFilter === "rejected") {
