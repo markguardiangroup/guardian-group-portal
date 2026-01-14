@@ -86,7 +86,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showDocTypeAccess, setShowDocTypeAccess] = useState(true);
+  const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   
   const { user } = useAuth();
