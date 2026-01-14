@@ -1891,7 +1891,7 @@ export class MemStorage implements IStorage {
 
   async getDocumentTypesWithAccess(entityId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
     // Get document types from master list for this module
-    const masterDocTypes = Array.from(this.documentTypes.values())
+    const masterDocTypes = Array.from(this.documentTypesMap.values())
       .filter(dt => dt.module === module && dt.isActive);
     
     const entityAccess = await this.getEntityDocumentTypeAccess(entityId, module);
