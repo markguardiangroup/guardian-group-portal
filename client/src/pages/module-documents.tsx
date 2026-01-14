@@ -143,9 +143,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   });
 
   // Determine which entity to show access for
+  // "all" means show data across all entities
+  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
   const entityId = isClientUser 
     ? (user?.entityId || null)
-    : (selectedEntityId || entities?.[0]?.id || null);
+    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
     
   const { data: documentTypesWithAccess } = useQuery<DocumentTypeWithAccess[]>({
     queryKey: ["/api/document-types", module, entityId],
@@ -156,9 +158,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
   
   // Get current entity name
-  const currentEntityName = isClientUser 
-    ? null 
-    : entities?.find(e => e.id === entityId)?.name;
+  const currentEntityName = canSelectEntities 
+    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    : null;
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -213,9 +215,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Entity selector for admin/consultant oversight */}
-            {!isClientUser && entities && entities.length > 0 && (
+            {canSelectEntities && entities && entities.length > 0 && (
               <Select 
-                value={entityId || ""} 
+                value={selectedEntityId || "all"} 
                 onValueChange={setSelectedEntityId}
               >
                 <SelectTrigger className="w-64 bg-background" data-testid="select-entity-header">
@@ -223,6 +225,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Entities</SelectItem>
                   {entities.map((entity) => (
                     <SelectItem key={entity.id} value={entity.id}>
                       {entity.name}

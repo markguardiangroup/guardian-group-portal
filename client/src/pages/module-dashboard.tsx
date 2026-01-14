@@ -148,9 +148,10 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   });
   
   // Determine which entity to show data for
+  // "all" means show data across all entities
   const entityId = user?.role === "client" 
     ? user?.entityId 
-    : (selectedEntityId || entities?.[0]?.id || null);
+    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
     queryKey: ["/api/dashboard", module, entityId],
@@ -164,7 +165,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     },
   });
   
-  const currentEntityName = canSelectEntities && entities?.find(e => e.id === entityId)?.name;
+  const currentEntityName = canSelectEntities 
+    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    : null;
 
   if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
     return (
@@ -225,7 +228,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             {/* Entity selector for admin/consultant oversight */}
             {canSelectEntities && entities && entities.length > 0 && (
               <Select 
-                value={entityId || ""} 
+                value={selectedEntityId || "all"} 
                 onValueChange={setSelectedEntityId}
               >
                 <SelectTrigger className="w-56" data-testid="select-entity-module-dashboard">
@@ -233,6 +236,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Entities</SelectItem>
                   {entities.map((entity) => (
                     <SelectItem key={entity.id} value={entity.id}>
                       {entity.name}

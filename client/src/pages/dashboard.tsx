@@ -313,9 +313,10 @@ export default function Dashboard() {
   });
   
   // Determine which entity to show data for
+  // "all" means show data across all entities
   const entityId = isClientUser 
     ? user?.entityId 
-    : (selectedEntityId || entities?.[0]?.id || null);
+    : (selectedEntityId === "all" ? null : (selectedEntityId || null));
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary", entityId],
@@ -330,7 +331,9 @@ export default function Dashboard() {
   });
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
-  const currentEntityName = canSelectEntities && entities?.find(e => e.id === entityId)?.name;
+  const currentEntityName = canSelectEntities 
+    ? (selectedEntityId === "all" || !selectedEntityId ? "All Clients" : entities?.find(e => e.id === entityId)?.name)
+    : null;
 
   if (isLoading || isAuthLoading || (canSelectEntities && entitiesLoading)) {
     return (
@@ -372,7 +375,7 @@ export default function Dashboard() {
         {/* Entity selector for admin/consultant oversight */}
         {canSelectEntities && entities && entities.length > 0 && (
           <Select 
-            value={entityId || ""} 
+            value={selectedEntityId || "all"} 
             onValueChange={setSelectedEntityId}
           >
             <SelectTrigger className="w-64" data-testid="select-entity-dashboard">
@@ -380,6 +383,7 @@ export default function Dashboard() {
               <SelectValue placeholder="Select client" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Entities</SelectItem>
               {entities.map((entity) => (
                 <SelectItem key={entity.id} value={entity.id}>
                   {entity.name}
