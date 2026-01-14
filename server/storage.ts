@@ -1497,6 +1497,31 @@ export class MemStorage implements IStorage {
       },
     ];
     consultantAssignments.forEach(ca => this.consultantAssignments.set(ca.id, ca));
+
+    // Initialize document types from module config
+    let docTypeId = 1;
+    const modules = ["health_safety", "human_resources", "employment_law"] as ModuleType[];
+    modules.forEach(module => {
+      const config = moduleConfig[module];
+      config.documentTypes.forEach((dt, index) => {
+        const id = `doctype-${docTypeId++}`;
+        const docType: DocumentTypeRecord = {
+          id,
+          name: dt.label,
+          code: dt.value,
+          module,
+          description: null,
+          isRequired: index < 3,
+          renewalPeriodMonths: index < 2 ? 12 : null,
+          sortOrder: index,
+          isActive: true,
+          createdBy: "user-admin",
+          createdAt: now,
+          updatedAt: now,
+        };
+        this.documentTypesMap.set(id, docType);
+      });
+    });
   }
 
   // Users
