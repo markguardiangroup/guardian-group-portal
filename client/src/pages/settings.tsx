@@ -23,7 +23,18 @@ import {
   Key,
   Smartphone,
   History,
+  UserCog,
+  Check,
+  X,
 } from "lucide-react";
+import {
+  clientPermissionCapabilities,
+  consultantTierCapabilities,
+  type ClientCapabilities,
+  type ConsultantCapabilities,
+  type ClientPermissionRole,
+  type ConsultantTier,
+} from "@shared/schema";
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -83,6 +94,10 @@ export default function Settings() {
           <TabsTrigger value="security" className="gap-2" data-testid="tab-security">
             <Shield className="h-4 w-4" />
             Security
+          </TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-2" data-testid="tab-permissions">
+            <UserCog className="h-4 w-4" />
+            Permissions
           </TabsTrigger>
         </TabsList>
 
@@ -430,6 +445,131 @@ export default function Settings() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="permissions">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Role Permissions Reference</CardTitle>
+                <CardDescription>
+                  Overview of what each role can do in the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Client Permission Roles</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    These roles determine what client users can do within their organization.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2 font-medium">Capability</th>
+                          {(["owner", "approver", "contributor", "viewer"] as ClientPermissionRole[]).map(role => (
+                            <th key={role} className="text-center py-3 px-2 font-medium capitalize">{role}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { key: "canApproveDocuments", label: "Approve Documents" },
+                          { key: "canSubmitDocuments", label: "Submit Documents" },
+                          { key: "canComment", label: "Add Comments" },
+                          { key: "canView", label: "View Documents" },
+                          { key: "canRequestSupport", label: "Request Support" },
+                          { key: "canManageTeam", label: "Manage Team Members" },
+                        ].map(({ key, label }) => (
+                          <tr key={key} className="border-b">
+                            <td className="py-3 px-2">{label}</td>
+                            {(["owner", "approver", "contributor", "viewer"] as ClientPermissionRole[]).map(role => (
+                              <td key={role} className="text-center py-3 px-2">
+                                {clientPermissionCapabilities[role][key as keyof ClientCapabilities] ? (
+                                  <Check className="h-4 w-4 text-emerald-600 mx-auto" />
+                                ) : (
+                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Consultant Tiers</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    These tiers determine what consultants can do across the platform.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2 font-medium">Capability</th>
+                          {(["senior", "standard", "junior"] as ConsultantTier[]).map(tier => (
+                            <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { key: "canAccessAllClients", label: "Access All Clients" },
+                          { key: "canRequestEntities", label: "Request New Entities" },
+                          { key: "canManageClientUsers", label: "Manage Client Users" },
+                          { key: "canEditDocuments", label: "Edit Documents" },
+                          { key: "canViewDocuments", label: "View Documents" },
+                          { key: "canManageChecklists", label: "Manage Checklists" },
+                          { key: "canManageIncidents", label: "Manage Incidents" },
+                        ].map(({ key, label }) => (
+                          <tr key={key} className="border-b">
+                            <td className="py-3 px-2">{label}</td>
+                            {(["senior", "standard", "junior"] as ConsultantTier[]).map(tier => (
+                              <td key={tier} className="text-center py-3 px-2">
+                                {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
+                                  <Check className="h-4 w-4 text-emerald-600 mx-auto" />
+                                ) : (
+                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Permissions</CardTitle>
+                <CardDescription>
+                  Based on your current role
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <Badge variant="outline" className="text-base px-3 py-1 capitalize">
+                    {user?.role || "client"}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {user?.role === "admin" && "Full system access"}
+                    {user?.role === "consultant" && "Can manage clients and documents"}
+                    {user?.role === "client" && "Access to your organization's content"}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Contact your administrator if you need different permissions.
+                </p>
               </CardContent>
             </Card>
           </div>
