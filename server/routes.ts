@@ -273,6 +273,29 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
 
+      // Check if a specific version is requested
+      const requestedVersion = req.query.version ? parseInt(req.query.version as string) : null;
+      let versionInfo = null;
+      let displayVersion = document.version;
+      let displayFileName = document.fileName;
+      let displayFileSize = document.fileSize;
+      let versionDate = document.updatedAt;
+      let changeNote = null;
+
+      if (requestedVersion && requestedVersion !== document.version) {
+        // Get the specific version from history
+        const versions = await storage.getDocumentVersions(req.params.id);
+        versionInfo = versions.find(v => v.version === requestedVersion);
+        if (!versionInfo) {
+          return res.status(404).json({ error: "Version not found" });
+        }
+        displayVersion = versionInfo.version;
+        displayFileName = versionInfo.fileName;
+        displayFileSize = versionInfo.fileSize;
+        versionDate = versionInfo.createdAt;
+        changeNote = versionInfo.changeNote;
+      }
+
       // Get entity name for the PDF
       const entity = await storage.getEntity(document.entityId);
       const entityName = entity?.name || 'Unknown Entity';
@@ -281,7 +304,7 @@ export async function registerRoutes(
       const doc = new PDFDocument({ margin: 50 });
 
       // Set response headers for PDF download
-      const fileName = document.fileName.replace(/\.[^/.]+$/, '') + '.pdf';
+      const fileName = displayFileName.replace(/\.[^/.]+$/, '') + '.pdf';
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
@@ -293,8 +316,12 @@ export async function registerRoutes(
       doc.fontSize(12).fillColor('#666').text('Health & Safety | Human Resources', { align: 'center' });
       doc.moveDown(2);
 
-      // Document title
+      // Document title with version
       doc.fontSize(20).fillColor('#000').text(document.title, { align: 'center' });
+      doc.fontSize(12).fillColor('#666').text(`Version ${displayVersion}`, { align: 'center' });
+      if (requestedVersion && requestedVersion !== document.version) {
+        doc.fontSize(10).fillColor('#999').text('(Historical Version)', { align: 'center' });
+      }
       doc.moveDown();
 
       // Horizontal line
@@ -308,12 +335,18 @@ export async function registerRoutes(
 
       const details = [
         ['Type', document.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],
-        ['Version', `${document.version}`],
-        ['Status', document.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],
-        ['Approval Status', document.approvalStatus.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],
+        ['Version', `${displayVersion}${displayVersion === document.version ? ' (Current)' : ' (Historical)'}`],
+        ['File Name', displayFileName],
+        ['File Size', `${Math.round(displayFileSize / 1024)} KB`],
         ['Entity', entityName],
         ['Module', document.module === 'health_safety' ? 'Health & Safety' : 'Human Resources'],
       ];
+
+      // Only show status for current version
+      if (displayVersion === document.version) {
+        details.push(['Status', document.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())]);
+        details.push(['Approval Status', document.approvalStatus.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())]);
+      }
 
       doc.fontSize(11);
       details.forEach(([label, value]) => {
@@ -322,6 +355,14 @@ export async function registerRoutes(
       });
 
       doc.moveDown();
+
+      // Change note for historical versions
+      if (changeNote) {
+        doc.fontSize(14).fillColor('#1a365d').text('Version Notes');
+        doc.moveDown(0.5);
+        doc.fontSize(11).fillColor('#000').text(changeNote);
+        doc.moveDown();
+      }
 
       // Description
       if (document.description) {
@@ -332,20 +373,22 @@ export async function registerRoutes(
       }
 
       // Dates section
-      doc.fontSize(14).fillColor('#1a365d').text('Important Dates');
+      doc.fontSize(14).fillColor('#1a365d').text('Version Date');
       doc.moveDown(0.5);
       doc.fontSize(11);
-      
-      if (document.reviewDate) {
-        doc.fillColor('#666').text('Review Date: ', { continued: true });
-        doc.fillColor('#000').text(new Date(document.reviewDate).toLocaleDateString('en-GB'));
+      doc.fillColor('#666').text('Created: ', { continued: true });
+      doc.fillColor('#000').text(versionDate ? new Date(versionDate).toLocaleDateString('en-GB') : 'N/A');
+
+      if (displayVersion === document.version) {
+        if (document.reviewDate) {
+          doc.fillColor('#666').text('Review Date: ', { continued: true });
+          doc.fillColor('#000').text(new Date(document.reviewDate).toLocaleDateString('en-GB'));
+        }
+        if (document.expiryDate) {
+          doc.fillColor('#666').text('Expiry Date: ', { continued: true });
+          doc.fillColor('#000').text(new Date(document.expiryDate).toLocaleDateString('en-GB'));
+        }
       }
-      if (document.expiryDate) {
-        doc.fillColor('#666').text('Expiry Date: ', { continued: true });
-        doc.fillColor('#000').text(new Date(document.expiryDate).toLocaleDateString('en-GB'));
-      }
-      doc.fillColor('#666').text('Last Updated: ', { continued: true });
-      doc.fillColor('#000').text(document.updatedAt ? new Date(document.updatedAt).toLocaleDateString('en-GB') : 'N/A');
 
       // Footer
       doc.moveDown(3);
