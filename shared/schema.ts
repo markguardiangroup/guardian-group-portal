@@ -268,6 +268,32 @@ export const insertSupportRequestSchema = createInsertSchema(supportRequests).om
 export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
 export type SupportRequest = typeof supportRequests.$inferSelect;
 
+// Entity document type access - tracks which document types each entity has access to
+export const entityDocumentTypeAccess = pgTable("entity_document_type_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: varchar("entity_id").notNull(),
+  documentType: text("document_type").$type<DocumentType>().notNull(),
+  module: text("module").$type<ModuleType>().notNull(),
+  grantedAt: timestamp("granted_at").notNull().defaultNow(),
+  grantedBy: varchar("granted_by"),
+});
+
+export const insertEntityDocumentTypeAccessSchema = createInsertSchema(entityDocumentTypeAccess).omit({ 
+  id: true, 
+  grantedAt: true 
+});
+export type InsertEntityDocumentTypeAccess = z.infer<typeof insertEntityDocumentTypeAccessSchema>;
+export type EntityDocumentTypeAccess = typeof entityDocumentTypeAccess.$inferSelect;
+
+// Document type with access status for display
+export interface DocumentTypeWithAccess {
+  value: DocumentType;
+  label: string;
+  module: ModuleType;
+  hasAccess: boolean;
+  documentCount: number;
+}
+
 // Compliance summary (computed/cached data for dashboard)
 export interface ComplianceSummary {
   totalDocuments: number;
