@@ -10,7 +10,6 @@ import {
   LogOut,
   HardHat,
   Users,
-  UserCog,
   Scale,
   ChevronDown,
   Lock,
@@ -122,11 +121,6 @@ const adminNavItems = [
     title: "User Management",
     url: "/users",
     icon: Users,
-  },
-  {
-    title: "Consultant Management",
-    url: "/consultants",
-    icon: UserCog,
   },
   {
     title: "Entity Access",
