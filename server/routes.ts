@@ -1439,6 +1439,30 @@ export async function registerRoutes(
     }
   });
 
+  // All Users Routes
+  
+  // Get all users (admin only)
+  app.get("/api/users", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can see all users
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const allUsers = await storage.getAllUsers();
+      const safeUsers = allUsers.map(({ password, ...u }) => u);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get all users error:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
   // Entity Users Routes
   
   // Get users for an entity

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import {
   Users,
@@ -54,105 +60,30 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole, ClientPermissionRole, ConsultantTier } from "@shared/schema";
 
-interface MockUser {
+interface EntityAssignment {
+  entityId: string;
+  entityName: string;
+  isPrimary: boolean;
+}
+
+interface UserWithAssignments {
   id: string;
   username: string;
   email: string;
   fullName: string;
   role: UserRole;
   entityId: string | null;
-  entityName: string | null;
   status: "active" | "inactive";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
+  entityAssignments?: EntityAssignment[];
 }
 
-const mockUsers: MockUser[] = [
-  {
-    id: "1",
-    username: "admin",
-    email: "admin@guardiangroup.com",
-    fullName: "System Administrator",
-    role: "admin",
-    entityId: null,
-    entityName: null,
-    status: "active",
-    lastLogin: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "2",
-    username: "consultant1",
-    email: "john.doe@guardiangroup.com",
-    fullName: "John Doe",
-    role: "consultant",
-    entityId: null,
-    entityName: null,
-    status: "active",
-    lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    consultantTier: "senior",
-  },
-  {
-    id: "3",
-    username: "consultant2",
-    email: "sarah.connor@guardiangroup.com",
-    fullName: "Sarah Connor",
-    role: "consultant",
-    entityId: null,
-    entityName: null,
-    status: "active",
-    lastLogin: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    consultantTier: "senior",
-  },
-  {
-    id: "4",
-    username: "client.acme",
-    email: "safety@acme-mfg.com",
-    fullName: "Robert Chen",
-    role: "client",
-    entityId: "entity-1",
-    entityName: "Acme Manufacturing Ltd",
-    status: "active",
-    lastLogin: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    clientPermissionRole: "owner",
-  },
-  {
-    id: "5",
-    username: "client.acme2",
-    email: "hr@acme-mfg.com",
-    fullName: "Lisa Wong",
-    role: "client",
-    entityId: "entity-1",
-    entityName: "Acme Manufacturing Ltd",
-    status: "active",
-    lastLogin: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    clientPermissionRole: "contributor",
-  },
-  {
-    id: "6",
-    username: "client.techcorp",
-    email: "compliance@techcorp.co.uk",
-    fullName: "James Miller",
-    role: "client",
-    entityId: "entity-2",
-    entityName: "TechCorp Solutions",
-    status: "active",
-    lastLogin: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    clientPermissionRole: "viewer",
-  },
-  {
-    id: "7",
-    username: "inactive.user",
-    email: "old@example.com",
-    fullName: "Former Employee",
-    role: "consultant",
-    entityId: null,
-    entityName: null,
-    status: "inactive",
-    lastLogin: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-    consultantTier: "standard",
-  },
-];
+interface Entity {
+  id: string;
+  name: string;
+}
 
 const ITEMS_PER_PAGE = 15;
 
@@ -190,11 +121,44 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
   const [page, setPage] = useState(1);
-  const [editingUser, setEditingUser] = useState<MockUser | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
+
+  const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
+    queryKey: ["/api/users"],
+    enabled: isAdmin || isConsultant,
+  });
+
+  const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
+    queryKey: ["/api/consultants"],
+    enabled: isAdmin,
+  });
+
+  const { data: entities = [] } = useQuery<Entity[]>({
+    queryKey: ["/api/entities"],
+    enabled: isAdmin || isConsultant,
+  });
+
+  const usersWithEntityInfo = allUsers.map((u) => {
+    if (u.role === "consultant") {
+      const consultantData = consultantsWithAssignments.find((c) => c.id === u.id);
+      return {
+        ...u,
+        entityAssignments: consultantData?.entityAssignments || [],
+      };
+    }
+    if (u.role === "client" && u.entityId) {
+      const entity = entities.find((e) => e.id === u.entityId);
+      return {
+        ...u,
+        entityName: entity?.name || null,
+      };
+    }
+    return u;
+  });
 
   if (!isAdmin && !isConsultant) {
     return (
@@ -212,12 +176,12 @@ export default function UserManagement() {
   }
 
   const getVisibleUsers = () => {
-    if (isAdmin) return mockUsers;
-    if (isConsultant) return mockUsers.filter(u => u.role === "client");
+    if (isAdmin) return usersWithEntityInfo;
+    if (isConsultant) return usersWithEntityInfo.filter((u) => u.role === "client");
     return [];
   };
 
-  const filteredUsers = getVisibleUsers().filter(u => {
+  const filteredUsers = getVisibleUsers().filter((u) => {
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -233,7 +197,7 @@ export default function UserManagement() {
     page * ITEMS_PER_PAGE
   );
 
-  const handleEditUser = (updatedUser: MockUser) => {
+  const handleEditUser = (updatedUser: UserWithAssignments) => {
     toast({
       title: "User Updated",
       description: `${updatedUser.fullName}'s profile has been updated.`,
@@ -249,13 +213,122 @@ export default function UserManagement() {
     setIsAddUserOpen(false);
   };
 
-  const handleToggleStatus = (targetUser: MockUser) => {
+  const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
     toast({
       title: newStatus === "active" ? "User Activated" : "User Deactivated",
       description: `${targetUser.fullName} has been ${newStatus === "active" ? "activated" : "deactivated"}.`,
     });
   };
+
+  const renderEntityAssignments = (u: UserWithAssignments & { entityName?: string | null }) => {
+    if (u.role === "consultant" && u.entityAssignments && u.entityAssignments.length > 0) {
+      const primaryAssignment = u.entityAssignments.find((a) => a.isPrimary);
+      const otherAssignments = u.entityAssignments.filter((a) => !a.isPrimary);
+      const displayCount = 2;
+      const visibleAssignments = u.entityAssignments.slice(0, displayCount);
+      const remainingCount = u.entityAssignments.length - displayCount;
+
+      return (
+        <div className="flex flex-wrap items-center gap-1">
+          {visibleAssignments.map((a) => (
+            <Badge
+              key={a.entityId}
+              variant="outline"
+              className="text-xs"
+              data-testid={`badge-entity-${a.entityId}`}
+            >
+              {a.isPrimary && <Shield className="h-3 w-3 mr-1" />}
+              {a.entityName}
+            </Badge>
+          ))}
+          {remainingCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="text-xs cursor-default">
+                  +{remainingCount} more
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1">
+                  {u.entityAssignments.slice(displayCount).map((a) => (
+                    <div key={a.entityId} className="text-xs">
+                      {a.isPrimary && "(Primary) "}
+                      {a.entityName}
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
+
+    if (u.role === "consultant") {
+      return <span className="text-sm text-muted-foreground">No assignments</span>;
+    }
+
+    if (u.role === "client" && u.entityName) {
+      return (
+        <div className="flex items-center gap-1.5 text-sm">
+          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+          {u.entityName}
+        </div>
+      );
+    }
+
+    if (u.role === "client" && u.entityId) {
+      const entity = entities.find((e) => e.id === u.entityId);
+      return (
+        <div className="flex items-center gap-1.5 text-sm">
+          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+          {entity?.name || "Unknown Entity"}
+        </div>
+      );
+    }
+
+    return <span className="text-sm text-muted-foreground">Guardian Group</span>;
+  };
+
+  if (isLoadingUsers) {
+    return (
+      <div className="space-y-6 p-8">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="mt-2 h-5 w-64" />
+          </div>
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Assigned Entities</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Login</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-10 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-8">
@@ -321,7 +394,7 @@ export default function UserManagement() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Organization</TableHead>
+              <TableHead>Assigned Entities</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -337,12 +410,12 @@ export default function UserManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedUsers.map(u => (
+              paginatedUsers.map((u) => (
                 <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                        {u.fullName.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                        {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
                       <div>
                         <p className="font-medium">{u.fullName}</p>
@@ -366,14 +439,7 @@ export default function UserManagement() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {u.entityName ? (
-                      <div className="flex items-center gap-1.5 text-sm">
-                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        {u.entityName}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Guardian Group</span>
-                    )}
+                    {renderEntityAssignments(u as UserWithAssignments & { entityName?: string | null })}
                   </TableCell>
                   <TableCell>
                     <Badge variant={u.status === "active" ? "default" : "secondary"}>
@@ -437,7 +503,7 @@ export default function UserManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               data-testid="button-prev-page"
             >
@@ -450,7 +516,7 @@ export default function UserManagement() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               data-testid="button-next-page"
             >
@@ -492,11 +558,28 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
               </div>
+              {editingUser.role === "consultant" && (
+                <div className="space-y-2">
+                  <Label>Consultant Tier</Label>
+                  <Select defaultValue={editingUser.consultantTier || "standard"}>
+                    <SelectTrigger data-testid="select-edit-tier">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="senior">Senior</SelectItem>
+                      <SelectItem value="lead">Lead</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button onClick={() => editingUser && handleEditUser(editingUser)} data-testid="button-save-user">
+            <Button variant="outline" onClick={() => setEditingUser(null)} data-testid="button-cancel-edit">
+              Cancel
+            </Button>
+            <Button onClick={() => editingUser && handleEditUser(editingUser)} data-testid="button-save-edit">
               Save Changes
             </Button>
           </DialogFooter>
@@ -508,7 +591,7 @@ export default function UserManagement() {
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
-              Create a new user account and send an invitation
+              Create a new user account
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -518,7 +601,11 @@ export default function UserManagement() {
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input placeholder="Enter email address" type="email" data-testid="input-new-email" />
+              <Input type="email" placeholder="Enter email address" data-testid="input-new-email" />
+            </div>
+            <div className="space-y-2">
+              <Label>Username</Label>
+              <Input placeholder="Enter username" data-testid="input-new-username" />
             </div>
             <div className="space-y-2">
               <Label>Role</Label>
@@ -535,9 +622,10 @@ export default function UserManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsAddUserOpen(false)} data-testid="button-cancel-add">
+              Cancel
+            </Button>
             <Button onClick={handleAddUser} data-testid="button-create-user">
-              <Plus className="h-4 w-4 mr-2" />
               Create User
             </Button>
           </DialogFooter>
