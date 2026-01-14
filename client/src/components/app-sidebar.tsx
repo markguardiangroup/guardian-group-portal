@@ -91,11 +91,6 @@ const moduleNavItems: {
 
 const sharedNavItems = [
   {
-    title: "Entities & Sites",
-    url: "/entities",
-    icon: Building2,
-  },
-  {
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
@@ -117,6 +112,11 @@ const settingsNavItems = [
 ];
 
 const adminNavItems = [
+  {
+    title: "Entities & Sites",
+    url: "/entities",
+    icon: Building2,
+  },
   {
     title: "User Management",
     url: "/users",
