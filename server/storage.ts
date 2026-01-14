@@ -1460,7 +1460,20 @@ export class MemStorage implements IStorage {
         }
       }
       
-      return { ...entity, sites, complianceSummary: summary, moduleAccess };
+      // Get assigned consultants
+      const assignments = await this.getConsultantAssignments(entity.id);
+      const assignedConsultants = await Promise.all(
+        assignments.map(async (assignment: ConsultantAssignment) => {
+          const user = await this.getUser(assignment.consultantId);
+          return {
+            id: assignment.consultantId,
+            name: user?.fullName || "Unknown",
+            isPrimary: assignment.isPrimary,
+          };
+        })
+      );
+      
+      return { ...entity, sites, complianceSummary: summary, moduleAccess, assignedConsultants };
     }));
   }
 

@@ -458,11 +458,19 @@ export interface EntityModuleAccessSummary {
   employment_law: "active" | "visible" | "hidden";
 }
 
+// Assigned consultant summary for entity list view
+export interface AssignedConsultantSummary {
+  id: string;
+  name: string;
+  isPrimary: boolean;
+}
+
 // Entity with sites for hierarchy view
 export interface EntityWithSites extends Entity {
   sites: Site[];
   complianceSummary?: ComplianceSummary;
   moduleAccess?: EntityModuleAccessSummary;
+  assignedConsultants?: AssignedConsultantSummary[];
 }
 
 // Document with related data

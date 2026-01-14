@@ -438,6 +438,7 @@ export default function Reports() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Entity</TableHead>
+                  <TableHead>Assigned Consultants</TableHead>
                   <TableHead>Sites</TableHead>
                   <TableHead className="text-center">Health & Safety</TableHead>
                   <TableHead className="text-center">Human Resources</TableHead>
@@ -452,6 +453,22 @@ export default function Reports() {
                       <div className="font-medium">{entity.name}</div>
                       {entity.companyNumber && (
                         <div className="text-xs text-muted-foreground">#{entity.companyNumber}</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {entity.assignedConsultants && entity.assignedConsultants.length > 0 ? (
+                        <div className="space-y-1">
+                          {entity.assignedConsultants.map((consultant) => (
+                            <div key={consultant.id} className="flex items-center gap-1">
+                              <span className="text-sm">{consultant.name}</span>
+                              {consultant.isPrimary && (
+                                <Badge variant="outline" className="text-xs px-1 py-0">Primary</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">None assigned</span>
                       )}
                     </TableCell>
                     <TableCell>{entity.sites?.length || 0}</TableCell>
@@ -508,16 +525,22 @@ export default function Reports() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const headers = ["Entity", "Company Number", "Sites", "Health & Safety", "Human Resources", "Employment Law", "Compliance Score"];
-                    const rows = entitiesWithModules.map(entity => [
-                      entity.name,
-                      entity.companyNumber || "",
-                      entity.sites?.length || 0,
-                      entity.moduleAccess?.health_safety || "hidden",
-                      entity.moduleAccess?.human_resources || "hidden",
-                      entity.moduleAccess?.employment_law || "hidden",
-                      `${entity.complianceSummary?.complianceScore || 0}%`
-                    ]);
+                    const headers = ["Entity", "Company Number", "Assigned Consultants", "Primary Consultant", "Sites", "Health & Safety", "Human Resources", "Employment Law", "Compliance Score"];
+                    const rows = entitiesWithModules.map(entity => {
+                      const consultantNames = entity.assignedConsultants?.map(c => c.name).join("; ") || "";
+                      const primaryConsultant = entity.assignedConsultants?.find(c => c.isPrimary)?.name || "";
+                      return [
+                        entity.name,
+                        entity.companyNumber || "",
+                        consultantNames,
+                        primaryConsultant,
+                        entity.sites?.length || 0,
+                        entity.moduleAccess?.health_safety || "hidden",
+                        entity.moduleAccess?.human_resources || "hidden",
+                        entity.moduleAccess?.employment_law || "hidden",
+                        `${entity.complianceSummary?.complianceScore || 0}%`
+                      ];
+                    });
                     const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
                     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
                     const url = URL.createObjectURL(blob);
