@@ -54,8 +54,11 @@ import {
   Trash2,
   Star,
   Crown,
+  MessageSquare,
+  Clock,
 } from "lucide-react";
-import type { Entity, Site, User, ConsultantAssignment, EntityModuleAccess } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
+import type { Entity, Site, User, ConsultantAssignment, EntityModuleAccess, ModuleAccessRequest } from "@shared/schema";
 
 type ModuleStatus = "active" | "visible" | "hidden";
 
@@ -652,6 +655,155 @@ function ComplianceTab({ entityId }: { entityId: string }) {
   );
 }
 
+function AccessRequestsTab({ entityId }: { entityId: string }) {
+  const { toast } = useToast();
+
+  const { data: requests = [], isLoading } = useQuery<ModuleAccessRequest[]>({
+    queryKey: ["/api/module-access-requests", { entityId }],
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
+      const response = await apiRequest("PATCH", `/api/module-access-requests/${id}`, {
+        status,
+        notes,
+      });
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/entities", entityId, "module-access"] });
+      toast({ title: `Request ${variables.status}` });
+    },
+    onError: () => {
+      toast({ title: "Failed to review request", variant: "destructive" });
+    },
+  });
+
+  const pendingRequests = requests.filter((r) => r.status === "pending");
+  const reviewedRequests = requests.filter((r) => r.status !== "pending");
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Approved</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-500/10 text-red-600 border-red-200">Rejected</Badge>;
+      default:
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-200">Pending</Badge>;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map((i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Pending Requests ({pendingRequests.length})</CardTitle>
+          <CardDescription>Module access requests awaiting review</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {pendingRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending access requests.</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-md border p-4"
+                  data-testid={`request-${request.id}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
+                        <MessageSquare className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{moduleLabels[request.module]}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Requested by {request.requestedByName}
+                        </p>
+                        {request.reason && (
+                          <p className="mt-2 text-sm">{request.reason}</p>
+                        )}
+                        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => reviewMutation.mutate({ id: request.id, status: "rejected" })}
+                        disabled={reviewMutation.isPending}
+                        data-testid={`button-reject-${request.id}`}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => reviewMutation.mutate({ id: request.id, status: "approved" })}
+                        disabled={reviewMutation.isPending}
+                        data-testid={`button-approve-${request.id}`}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {reviewedRequests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Request History ({reviewedRequests.length})</CardTitle>
+            <CardDescription>Previously reviewed requests</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {reviewedRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between rounded-md border p-3"
+                  data-testid={`request-history-${request.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{moduleLabels[request.module]}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {request.requestedByName} • Reviewed by {request.reviewedByName}
+                      </p>
+                    </div>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function EntityDetail() {
   const params = useParams<{ entityId: string }>();
   const [, navigate] = useLocation();
@@ -740,6 +892,10 @@ export default function EntityDetail() {
             <FileText className="mr-2 h-4 w-4" />
             Compliance
           </TabsTrigger>
+          <TabsTrigger value="access-requests" data-testid="tab-access-requests">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Requests
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -760,6 +916,10 @@ export default function EntityDetail() {
 
         <TabsContent value="compliance">
           <ComplianceTab entityId={entityId!} />
+        </TabsContent>
+
+        <TabsContent value="access-requests">
+          <AccessRequestsTab entityId={entityId!} />
         </TabsContent>
       </Tabs>
     </div>
