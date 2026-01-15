@@ -20,6 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
   Building2,
@@ -30,7 +37,6 @@ import {
   Plus,
   Users,
   Phone,
-  Mail,
   CheckCircle,
   AlertTriangle,
   XCircle,
@@ -41,7 +47,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SiteWithDetails, ComplianceSummary, SiteModuleAccessSummary } from "@shared/schema";
+import type { SiteWithDetails, ComplianceSummary, SiteModuleAccessSummary, Company } from "@shared/schema";
 
 function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: SiteModuleAccessSummary }) {
   if (!moduleAccess) return null;
@@ -158,12 +164,6 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
                 <span className="flex items-center gap-1.5">
                   <Phone className="h-3.5 w-3.5" />
                   {site.contactPhone}
-                </span>
-              )}
-              {site.contactEmail && (
-                <span className="flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5" />
-                  {site.contactEmail}
                 </span>
               )}
               {site.assignedConsultants && site.assignedConsultants.length > 0 && (
@@ -305,18 +305,19 @@ export default function Sites() {
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   const [newSite, setNewSite] = useState({
     name: "",
-    companyName: "",
-    companyNumber: "",
+    companyId: "",
     address: "",
-    contactEmail: "",
     contactPhone: "",
-    website: "",
     siteManager: "",
   });
   const { toast } = useToast();
 
   const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
+  });
+
+  const { data: companies } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
   });
 
   const createSiteMutation = useMutation({
@@ -330,12 +331,9 @@ export default function Sites() {
       setIsAddSiteOpen(false);
       setNewSite({
         name: "",
-        companyName: "",
-        companyNumber: "",
+        companyId: "",
         address: "",
-        contactEmail: "",
         contactPhone: "",
-        website: "",
         siteManager: "",
       });
     },
@@ -353,8 +351,8 @@ export default function Sites() {
       toast({ title: "Site name is required", variant: "destructive" });
       return;
     }
-    if (!newSite.companyName.trim()) {
-      toast({ title: "Company name is required", variant: "destructive" });
+    if (!newSite.companyId) {
+      toast({ title: "Please select a company", variant: "destructive" });
       return;
     }
     createSiteMutation.mutate(newSite);
@@ -470,6 +468,24 @@ export default function Sites() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="company">Company *</Label>
+              <Select
+                value={newSite.companyId}
+                onValueChange={(value) => setNewSite({ ...newSite, companyId: value })}
+              >
+                <SelectTrigger data-testid="select-company">
+                  <SelectValue placeholder="Select a company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies?.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="site-name">Site Name *</Label>
               <Input
                 id="site-name"
@@ -477,26 +493,6 @@ export default function Sites() {
                 value={newSite.name}
                 onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
                 data-testid="input-site-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-name">Company Name *</Label>
-              <Input
-                id="company-name"
-                placeholder="Enter company name"
-                value={newSite.companyName}
-                onChange={(e) => setNewSite({ ...newSite, companyName: e.target.value })}
-                data-testid="input-company-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="company-number">Company Number</Label>
-              <Input
-                id="company-number"
-                placeholder="e.g., 12345678"
-                value={newSite.companyNumber}
-                onChange={(e) => setNewSite({ ...newSite, companyNumber: e.target.value })}
-                data-testid="input-company-number"
               />
             </div>
             <div className="space-y-2">
@@ -519,39 +515,15 @@ export default function Sites() {
                 data-testid="input-address"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contact-email">Contact Email</Label>
-                <Input
-                  id="contact-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={newSite.contactEmail}
-                  onChange={(e) => setNewSite({ ...newSite, contactEmail: e.target.value })}
-                  data-testid="input-contact-email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-phone">Contact Phone</Label>
-                <Input
-                  id="contact-phone"
-                  type="tel"
-                  placeholder="+44 xxx xxx xxxx"
-                  value={newSite.contactPhone}
-                  onChange={(e) => setNewSite({ ...newSite, contactPhone: e.target.value })}
-                  data-testid="input-contact-phone"
-                />
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="contact-phone">Contact Phone</Label>
               <Input
-                id="website"
-                type="url"
-                placeholder="https://www.example.com"
-                value={newSite.website}
-                onChange={(e) => setNewSite({ ...newSite, website: e.target.value })}
-                data-testid="input-website"
+                id="contact-phone"
+                type="tel"
+                placeholder="+44 xxx xxx xxxx"
+                value={newSite.contactPhone}
+                onChange={(e) => setNewSite({ ...newSite, contactPhone: e.target.value })}
+                data-testid="input-contact-phone"
               />
             </div>
           </div>

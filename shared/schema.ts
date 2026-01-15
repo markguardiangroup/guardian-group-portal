@@ -27,6 +27,25 @@ export type DocumentStatus = "compliant" | "review_required" | "overdue";
 // Approval status
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "changes_requested";
 
+// Company status
+export type CompanyStatus = "active" | "inactive" | "pending";
+
+// Companies table (parent of sites) - uses "entities" table name for database compatibility
+export const companies = pgTable("entities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  companyNumber: text("company_number"),
+  address: text("address"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  status: text("status").$type<CompanyStatus>().notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -35,10 +54,11 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").$type<UserRole>().notNull().default("client"),
-  siteId: varchar("site_id"),
+  // Company-level access (user can access all sites in this company)
+  companyId: varchar("entity_id"),
   // Consultant-specific: tier level
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
-  // Client-specific: permission role within their site
+  // Client-specific: permission role within their site/company
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
   status: text("status").$type<"active" | "inactive">().notNull().default("active"),
   lastLoginAt: timestamp("last_login_at"),
@@ -49,30 +69,30 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// Sites (Client locations - primary unit of management)
+// Sites (Client locations - belong to a company)
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("entity_id").notNull(),
   name: text("name").notNull(),
-  companyName: text("company_name").notNull(),
-  companyNumber: text("company_number"),
   address: text("address"),
-  contactEmail: text("contact_email"),
-  contactPhone: text("contact_phone"),
   siteManager: text("site_manager"),
-  website: text("website"),
-  status: text("status").$type<SiteStatus>().notNull().default("active"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  contactPhone: text("contact_phone"),
 });
 
-export const insertSiteSchema = createInsertSchema(sites).omit({ id: true, createdAt: true });
+export const insertSiteSchema = createInsertSchema(sites).omit({ id: true });
 export type InsertSite = z.infer<typeof insertSiteSchema>;
 export type Site = typeof sites.$inferSelect;
 
-// Site Requests (consultants request, admins approve)
-export const siteRequests = pgTable("site_requests", {
+// Extended site type with company details (for queries that join company data)
+export type SiteWithCompany = Site & {
+  companyName?: string;
+  companyNumber?: string | null;
+};
+
+// Site Requests (consultants request, admins approve) - uses entity_requests table
+export const siteRequests = pgTable("entity_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   proposedName: text("proposed_name").notNull(),
-  companyName: text("company_name").notNull(),
   companyNumber: text("company_number"),
   address: text("address"),
   contactEmail: text("contact_email"),
@@ -83,7 +103,7 @@ export const siteRequests = pgTable("site_requests", {
   requestedBy: varchar("requested_by").notNull(),
   reviewedBy: varchar("reviewed_by"),
   adminNotes: text("admin_notes"),
-  approvedSiteId: varchar("approved_site_id"),
+  approvedEntityId: varchar("approved_entity_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -484,6 +504,8 @@ export interface AssignedConsultantSummary {
 
 // Site with extended data for list view
 export interface SiteWithDetails extends Site {
+  companyName?: string;
+  companyNumber?: string;
   complianceSummary?: ComplianceSummary;
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];

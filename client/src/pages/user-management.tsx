@@ -72,7 +72,7 @@ interface UserWithAssignments {
   email: string;
   fullName: string;
   role: UserRole;
-  siteId: string | null;
+  companyId: string | null;
   status: "active" | "inactive";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
@@ -142,6 +142,11 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
+  const { data: companies = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies"],
+    enabled: isAdmin || isConsultant,
+  });
+
   const usersWithSiteInfo = allUsers.map((u) => {
     if (u.role === "consultant") {
       const consultantData = consultantsWithAssignments.find((c) => c.id === u.id);
@@ -150,11 +155,11 @@ export default function UserManagement() {
         siteAssignments: consultantData?.siteAssignments || [],
       };
     }
-    if (u.role === "client" && u.siteId) {
-      const site = sites.find((s) => s.id === u.siteId);
+    if (u.role === "client" && u.companyId) {
+      const company = companies.find((c) => c.id === u.companyId);
       return {
         ...u,
-        companyName: site?.name || null,
+        companyName: company?.name || null,
       };
     }
     return u;
@@ -278,12 +283,12 @@ export default function UserManagement() {
       );
     }
 
-    if (u.role === "client" && u.siteId) {
-      const site = sites.find((s) => s.id === u.siteId);
+    if (u.role === "client" && u.companyId) {
+      const company = companies.find((c) => c.id === u.companyId);
       return (
         <div className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          {site?.name || "Unknown Site"}
+          {company?.name || "Unknown Company"}
         </div>
       );
     }

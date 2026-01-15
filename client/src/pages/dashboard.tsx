@@ -22,7 +22,7 @@ import {
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, Site } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -302,7 +302,7 @@ export default function Dashboard() {
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for admin/consultant users
-  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+  const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
     enabled: canSelectSites,
   });
@@ -336,19 +336,23 @@ export default function Dashboard() {
   
   // Determine which site to show data for
   // "all" means show data across all sites
+  // For client users, they see data from their company (backend handles filtering)
   const siteId = isClientUser 
-    ? user?.siteId 
+    ? null  // Client users see all sites in their company (filtered by backend)
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary", siteId, companySiteIdsKey],
+    queryKey: ["/api/modules/summary", siteId, companySiteIdsKey, isClientUser],
     queryFn: async () => {
+      // For client users, the backend will filter by their company from session
+      // No need to send companyId from client side (more secure)
       let url = "/api/modules/summary";
       if (siteId) {
         url = `/api/modules/summary?siteId=${siteId}`;
       } else if (companySiteIds && companySiteIds.length > 0) {
         url = `/api/modules/summary?siteIds=${companySiteIds.join(",")}`;
       }
+      // Client users get company-scoped data automatically from backend
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();

@@ -3,6 +3,8 @@ import {
   LayoutDashboard,
   FileText,
   Building2,
+  Landmark,
+  MapPin,
   ClipboardCheck,
   BarChart3,
   HelpCircle,
@@ -115,9 +117,14 @@ const settingsNavItems = [
 
 const adminNavItems = [
   {
+    title: "Companies",
+    url: "/companies",
+    icon: Landmark,
+  },
+  {
     title: "Sites",
     url: "/sites",
-    icon: Building2,
+    icon: MapPin,
   },
   {
     title: "User Management",
@@ -142,7 +149,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   role: UserRole;
-  siteId: string | null;
+  companyId: string | null;
 }
 
 interface AppSidebarProps {

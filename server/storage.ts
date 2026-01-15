@@ -1,6 +1,7 @@
 import { 
   type User, type InsertUser,
   type Site, type InsertSite,
+  type Company, type InsertCompany,
   type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
   type AuditLog, type InsertAuditLog,
@@ -9,6 +10,7 @@ import {
   type CaseMilestone, type InsertCaseMilestone,
   type ComplianceSummary,
   type SiteWithDetails,
+  type SiteWithCompany,
   type DocumentWithDetails,
   type ModuleType,
   type ModuleSummary,
@@ -32,14 +34,20 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
+  // Companies
+  getCompanies(): Promise<Company[]>;
+  getCompany(id: string): Promise<Company | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+  updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
+  
   // Sites
   getSites(): Promise<Site[]>;
+  getSitesWithCompany(): Promise<SiteWithCompany[]>;
   getSitesWithDetails(): Promise<SiteWithDetails[]>;
   getSite(id: string): Promise<Site | undefined>;
-  getSitesByCompany(companyName: string): Promise<Site[]>;
+  getSitesByCompanyId(companyId: string): Promise<Site[]>;
   createSite(site: InsertSite): Promise<Site>;
   updateSite(id: string, updates: Partial<Site>): Promise<Site | undefined>;
-  getCompanyNames(): Promise<string[]>;
   
   // Documents
   getDocuments(module?: ModuleType): Promise<Document[]>;
@@ -63,6 +71,7 @@ export interface IStorage {
   // Dashboard
   getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
   getModuleSummaries(siteId?: string): Promise<ModuleSummary[]>;
+  getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]>;
   
   // Site Document Type Access
   getSiteDocumentTypeAccess(siteId: string, module?: ModuleType): Promise<SiteDocumentTypeAccess[]>;
@@ -113,6 +122,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private companies: Map<string, Company>;
   private sites: Map<string, Site>;
   private documents: Map<string, Document>;
   private documentVersions: Map<string, DocumentVersion>;
@@ -128,6 +138,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.companies = new Map();
     this.sites = new Map();
     this.documents = new Map();
     this.documentVersions = new Map();
@@ -155,7 +166,7 @@ export class MemStorage implements IStorage {
       email: "admin@guardiangroup.com",
       fullName: "System Administrator",
       role: "admin",
-      siteId: null,
+      companyId: null,
       status: "active",
       consultantTier: null,
       clientPermissionRole: null,
@@ -171,7 +182,7 @@ export class MemStorage implements IStorage {
       email: "john.doe@guardiangroup.com",
       fullName: "John Doe",
       role: "consultant",
-      siteId: null,
+      companyId: null,
       status: "active",
       consultantTier: "senior",
       clientPermissionRole: null,
@@ -187,7 +198,7 @@ export class MemStorage implements IStorage {
       email: "jane.smith@guardiangroup.com",
       fullName: "Jane Smith",
       role: "consultant",
-      siteId: null,
+      companyId: null,
       status: "active",
       consultantTier: "standard",
       clientPermissionRole: null,
@@ -203,7 +214,7 @@ export class MemStorage implements IStorage {
       email: "sarah@acme-mfg.com",
       fullName: "Sarah Johnson",
       role: "client",
-      siteId: "site-1",
+      companyId: "company-1",
       status: "active",
       consultantTier: null,
       clientPermissionRole: "owner",
@@ -219,7 +230,7 @@ export class MemStorage implements IStorage {
       email: "emma@techcorp.co.uk",
       fullName: "Emma Davis",
       role: "client",
-      siteId: "site-3",
+      companyId: "company-2",
       status: "active",
       consultantTier: null,
       clientPermissionRole: "approver",
@@ -228,46 +239,56 @@ export class MemStorage implements IStorage {
     };
     this.users.set(client2.id, client2);
 
-    // Create sample sites (with companyName for grouping)
-    const sampleSites: Site[] = [
+    // Create sample companies
+    const sampleCompanies: Company[] = [
       {
-        id: "site-1",
-        name: "Main Factory",
-        companyName: "Acme Manufacturing Ltd",
+        id: "company-1",
+        name: "Acme Manufacturing Ltd",
         companyNumber: "12345678",
         address: "123 Industrial Way, Manchester M1 2AB",
         contactEmail: "safety@acme-mfg.com",
         contactPhone: "+44 161 123 4567",
-        website: "https://www.acme-mfg.com",
-        siteManager: "Sarah Johnson",
         status: "active",
         createdAt: now,
       },
       {
-        id: "site-2",
-        name: "Warehouse North",
-        companyName: "Acme Manufacturing Ltd",
-        companyNumber: "12345678",
-        address: "789 Logistics Road, Manchester M3 4CD",
-        contactEmail: "safety@acme-mfg.com",
-        contactPhone: "+44 161 123 4569",
-        website: "https://www.acme-mfg.com",
-        siteManager: "Mike Williams",
-        status: "active",
-        createdAt: now,
-      },
-      {
-        id: "site-3",
-        name: "London Office",
-        companyName: "TechCorp Solutions",
+        id: "company-2",
+        name: "TechCorp Solutions",
         companyNumber: "87654321",
         address: "456 Tech Park, London EC2A 4NE",
         contactEmail: "compliance@techcorp.co.uk",
         contactPhone: "+44 20 7123 4567",
-        website: "https://www.techcorp.co.uk",
-        siteManager: "Emma Davis",
         status: "active",
         createdAt: now,
+      },
+    ];
+    sampleCompanies.forEach(company => this.companies.set(company.id, company));
+
+    // Create sample sites (linked to companies via companyId)
+    const sampleSites: Site[] = [
+      {
+        id: "site-1",
+        companyId: "company-1",
+        name: "Main Factory",
+        address: "123 Industrial Way, Manchester M1 2AB",
+        siteManager: "Sarah Johnson",
+        contactPhone: "+44 161 123 4567",
+      },
+      {
+        id: "site-2",
+        companyId: "company-1",
+        name: "Warehouse North",
+        address: "789 Logistics Road, Manchester M3 4CD",
+        siteManager: "Mike Williams",
+        contactPhone: "+44 161 123 4569",
+      },
+      {
+        id: "site-3",
+        companyId: "company-2",
+        name: "London Office",
+        address: "456 Tech Park, London EC2A 4NE",
+        siteManager: "Emma Davis",
+        contactPhone: "+44 20 7123 4567",
       },
     ];
     sampleSites.forEach(site => this.sites.set(site.id, site));
@@ -1484,7 +1505,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       role: (insertUser.role ?? "client") as any,
-      siteId: insertUser.siteId ?? null,
+      companyId: insertUser.companyId ?? null,
       status: (insertUser.status ?? "active") as any,
       consultantTier: (insertUser.consultantTier ?? null) as any,
       clientPermissionRole: (insertUser.clientPermissionRole ?? null) as any,
@@ -1548,7 +1569,17 @@ export class MemStorage implements IStorage {
         })
       );
       
-      return { ...site, complianceSummary: summary, moduleAccess, assignedConsultants };
+      // Get company info
+      const company = this.companies.get(site.companyId);
+      
+      return { 
+        ...site, 
+        companyName: company?.name,
+        companyNumber: company?.companyNumber ?? undefined,
+        complianceSummary: summary, 
+        moduleAccess, 
+        assignedConsultants 
+      };
     }));
   }
 
@@ -1556,8 +1587,19 @@ export class MemStorage implements IStorage {
     return this.sites.get(id);
   }
 
-  async getSitesByCompany(companyName: string): Promise<Site[]> {
-    return Array.from(this.sites.values()).filter(site => site.companyName === companyName);
+  async getSitesByCompanyId(companyId: string): Promise<Site[]> {
+    return Array.from(this.sites.values()).filter(site => site.companyId === companyId);
+  }
+
+  async getSitesWithCompany(): Promise<SiteWithCompany[]> {
+    return Array.from(this.sites.values()).map(site => {
+      const company = this.companies.get(site.companyId);
+      return {
+        ...site,
+        companyName: company?.name,
+        companyNumber: company?.companyNumber,
+      };
+    });
   }
 
   async createSite(insertSite: InsertSite): Promise<Site> {
@@ -1565,14 +1607,9 @@ export class MemStorage implements IStorage {
     const site: Site = { 
       ...insertSite, 
       id,
-      status: (insertSite.status ?? "active") as any,
-      companyNumber: insertSite.companyNumber ?? null,
       address: insertSite.address ?? null,
-      contactEmail: insertSite.contactEmail ?? null,
-      contactPhone: insertSite.contactPhone ?? null,
       siteManager: insertSite.siteManager ?? null,
-      website: insertSite.website ?? null,
-      createdAt: new Date(),
+      contactPhone: insertSite.contactPhone ?? null,
     };
     this.sites.set(id, site);
     return site;
@@ -1591,10 +1628,42 @@ export class MemStorage implements IStorage {
     return updatedSite;
   }
 
-  async getCompanyNames(): Promise<string[]> {
-    const sites = Array.from(this.sites.values());
-    const companyNames = new Set(sites.map(s => s.companyName));
-    return Array.from(companyNames);
+  // Company CRUD
+  async getCompanies(): Promise<Company[]> {
+    return Array.from(this.companies.values());
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    return this.companies.get(id);
+  }
+
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const id = randomUUID();
+    const company: Company = {
+      ...insertCompany,
+      id,
+      companyNumber: insertCompany.companyNumber ?? null,
+      address: insertCompany.address ?? null,
+      contactEmail: insertCompany.contactEmail ?? null,
+      contactPhone: insertCompany.contactPhone ?? null,
+      status: (insertCompany.status ?? "active") as any,
+      createdAt: new Date(),
+    };
+    this.companies.set(id, company);
+    return company;
+  }
+
+  async updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined> {
+    const company = this.companies.get(id);
+    if (!company) {
+      return undefined;
+    }
+    const updatedCompany: Company = {
+      ...company,
+      ...updates,
+    };
+    this.companies.set(id, updatedCompany);
+    return updatedCompany;
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
@@ -1629,6 +1698,7 @@ export class MemStorage implements IStorage {
     if (!doc) return undefined;
     
     const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
+    const company = site?.companyId ? this.companies.get(site.companyId) : undefined;
     const uploader = doc.uploadedBy ? this.users.get(doc.uploadedBy) : undefined;
     const assignee = doc.assignedTo ? this.users.get(doc.assignedTo) : undefined;
     const versions = await this.getDocumentVersions(id);
@@ -1636,7 +1706,7 @@ export class MemStorage implements IStorage {
     return {
       ...doc,
       siteName: site?.name,
-      companyName: site?.companyName,
+      companyName: company?.name,
       uploadedByName: uploader?.fullName,
       assignedToName: assignee?.fullName,
       versions,
@@ -1803,6 +1873,39 @@ export class MemStorage implements IStorage {
         ...summary,
         module,
         moduleName: moduleNames[module],
+      };
+    }));
+  }
+
+  async getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]> {
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+    const moduleNames: Record<ModuleType, string> = {
+      health_safety: "Health & Safety",
+      human_resources: "Human Resources",
+      employment_law: "Employment Law",
+    };
+    
+    // Aggregate compliance summary across multiple sites
+    return Promise.all(modules.map(async (module) => {
+      // Get documents from all specified sites
+      const docs = Array.from(this.documents.values())
+        .filter(d => !d.isArchived && d.module === module && siteIds.includes(d.siteId));
+      
+      const total = docs.length;
+      const compliant = docs.filter(d => d.status === "compliant").length;
+      const review = docs.filter(d => d.status === "review_required").length;
+      const overdue = docs.filter(d => d.status === "overdue").length;
+      const pending = docs.filter(d => d.approvalStatus === "pending").length;
+      
+      return {
+        module,
+        moduleName: moduleNames[module],
+        totalDocuments: total,
+        compliantDocuments: compliant,
+        reviewRequired: review,
+        overdueDocuments: overdue,
+        pendingApprovals: pending,
+        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
       };
     }));
   }
@@ -2118,10 +2221,14 @@ export class MemStorage implements IStorage {
     return false;
   }
 
-  // Users by Entity
+  // Users by Company (get all users associated with a company)
   async getUsersBySite(siteId: string): Promise<User[]> {
+    // First get the site to find its company
+    const site = this.sites.get(siteId);
+    if (!site) return [];
+    // Return users that have access to this company
     return Array.from(this.users.values())
-      .filter(u => u.siteId === siteId);
+      .filter(u => u.companyId === site.companyId);
   }
 
   async getConsultants(): Promise<User[]> {

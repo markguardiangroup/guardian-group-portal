@@ -117,7 +117,7 @@ export async function registerRoutes(
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        siteId: user.siteId,
+        companyId: user.companyId,
       };
 
       res.json({
@@ -126,7 +126,7 @@ export async function registerRoutes(
         email: user.email,
         fullName: user.fullName,
         role: user.role,
-        siteId: user.siteId,
+        companyId: user.companyId,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -161,7 +161,7 @@ export async function registerRoutes(
       email: user.email,
       fullName: user.fullName,
       role: user.role,
-      siteId: user.siteId,
+      companyId: user.companyId,
     });
   });
 
@@ -172,6 +172,28 @@ export async function registerRoutes(
       return res.status(401).json({ error: "Authentication required" });
     }
     next();
+  };
+
+  // Helper to check if a client user can access a site (based on companyId)
+  const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null }, siteId: string): Promise<boolean> => {
+    // Admins have unrestricted access to all sites
+    if (user.role === "admin") return true;
+    
+    // Consultants can only access sites they are assigned to
+    if (user.role === "consultant" && user.id) {
+      const assignments = await storage.getConsultantSites(user.id);
+      return assignments.some(a => a.siteId === siteId);
+    }
+    
+    // Clients can only access sites in their company
+    if (user.role === "client") {
+      if (!user.companyId) return false;
+      const site = await storage.getSite(siteId);
+      if (!site) return false;
+      return site.companyId === user.companyId;
+    }
+    
+    return false;
   };
 
   // Apply auth middleware to all routes below this point
@@ -191,8 +213,8 @@ export async function registerRoutes(
       if (module !== "health_safety" && module !== "human_resources") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const summary = await storage.getComplianceSummary(module, siteId);
-      const documents = await storage.getDocuments(module, siteId);
+      const summary = await storage.getComplianceSummary(module);
+      const documents = await storage.getDocuments(module);
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
       const recentDocuments = documents.slice(0, 5);
@@ -248,9 +270,126 @@ export async function registerRoutes(
   });
 
   // Module summaries for overview dashboard
-  app.get("/api/modules/summary", async (req, res) => {
+  app.get("/api/modules/summary", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const siteId = req.query.siteId as string | undefined;
+      const requestedCompanyId = req.query.companyId as string | undefined;
+      const requestedSiteIds = req.query.siteIds as string | undefined;
+      
+      // Authorization: client users can only see their own company's data
+      if (user.role === "client") {
+        // Client users can only access their own company's data
+        if (!user.companyId) {
+          return res.json([]);
+        }
+        // Ignore any requested companyId/siteId - use the user's company only
+        const companySites = await storage.getSitesByCompanyId(user.companyId);
+        if (companySites.length === 0) {
+          res.json([]);
+          return;
+        }
+        const siteIds = companySites.map(s => s.id);
+        const summaries = await storage.getModuleSummariesForSites(siteIds);
+        res.json(summaries);
+        return;
+      }
+      
+      // Admin can see everything without restrictions
+      if (user.role === "admin") {
+        if (requestedCompanyId) {
+          const companySites = await storage.getSitesByCompanyId(requestedCompanyId);
+          if (companySites.length === 0) {
+            res.json([]);
+            return;
+          }
+          const siteIds = companySites.map(s => s.id);
+          const summaries = await storage.getModuleSummariesForSites(siteIds);
+          res.json(summaries);
+          return;
+        }
+        
+        if (requestedSiteIds) {
+          const siteIds = requestedSiteIds.split(",");
+          const summaries = await storage.getModuleSummariesForSites(siteIds);
+          res.json(summaries);
+          return;
+        }
+        
+        const summaries = await storage.getModuleSummaries(siteId);
+        res.json(summaries);
+        return;
+      }
+      
+      // Consultants need authorization for any sites they access
+      if (user.role === "consultant") {
+        if (requestedCompanyId) {
+          // Consultants can only access companies they have site assignments for
+          const companySites = await storage.getSitesByCompanyId(requestedCompanyId);
+          // Filter to only sites the consultant has access to
+          const accessibleSites = await Promise.all(
+            companySites.map(async (site) => {
+              const canAccess = await canUserAccessSite(user, site.id);
+              return canAccess ? site : null;
+            })
+          );
+          const filteredSites = accessibleSites.filter((s): s is NonNullable<typeof s> => s !== null);
+          if (filteredSites.length === 0) {
+            res.json([]);
+            return;
+          }
+          const siteIds = filteredSites.map(s => s.id);
+          const summaries = await storage.getModuleSummariesForSites(siteIds);
+          res.json(summaries);
+          return;
+        }
+        
+        if (requestedSiteIds) {
+          const siteIds = requestedSiteIds.split(",");
+          // Validate access to each site
+          const accessibleSiteIds = await Promise.all(
+            siteIds.map(async (id) => {
+              const canAccess = await canUserAccessSite(user, id);
+              return canAccess ? id : null;
+            })
+          );
+          const filteredSiteIds = accessibleSiteIds.filter((id): id is string => id !== null);
+          if (filteredSiteIds.length === 0) {
+            res.json([]);
+            return;
+          }
+          const summaries = await storage.getModuleSummariesForSites(filteredSiteIds);
+          res.json(summaries);
+          return;
+        }
+        
+        if (siteId) {
+          const canAccess = await canUserAccessSite(user, siteId);
+          if (!canAccess) {
+            return res.status(403).json({ error: "Access denied to this site" });
+          }
+          const summaries = await storage.getModuleSummaries(siteId);
+          res.json(summaries);
+          return;
+        }
+        
+        // Consultant without filters - show all their assigned sites
+        const assignments = await storage.getConsultantSites(user.id);
+        if (assignments.length === 0) {
+          res.json([]);
+          return;
+        }
+        const assignedSiteIds = assignments.map(a => a.siteId);
+        const summaries = await storage.getModuleSummariesForSites(assignedSiteIds);
+        res.json(summaries);
+        return;
+      }
+      
+      // Fallback (shouldn't reach here)
       const summaries = await storage.getModuleSummaries(siteId);
       res.json(summaries);
     } catch (error) {
@@ -507,7 +646,7 @@ export async function registerRoutes(
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,
         siteId: body.siteId,
-        siteId: body.siteId || null,
+        caseId: body.caseId || null,
         fileName: body.fileName,
         fileSize: body.fileSize,
         mimeType: body.mimeType,
@@ -607,7 +746,88 @@ export async function registerRoutes(
     }
   });
 
-  // Entities
+  // Companies
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await storage.getCompanies();
+      res.json(companies);
+    } catch (error) {
+      console.error("Companies error:", error);
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  // Create company
+  app.post("/api/companies", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create companies" });
+      }
+      
+      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Company name is required" });
+      }
+      
+      const company = await storage.createCompany({
+        name: name.trim(),
+        companyNumber: companyNumber || null,
+        address: address || null,
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+        website: website || null,
+      });
+      
+      res.status(201).json(company);
+    } catch (error) {
+      console.error("Create company error:", error);
+      res.status(500).json({ error: "Failed to create company" });
+    }
+  });
+
+  // Update company
+  app.patch("/api/companies/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update companies" });
+      }
+      
+      const { name, companyNumber, address, contactEmail, contactPhone, website, status } = req.body;
+      
+      const updates: Record<string, any> = {};
+      if (name !== undefined) updates.name = name;
+      if (companyNumber !== undefined) updates.companyNumber = companyNumber || null;
+      if (address !== undefined) updates.address = address || null;
+      if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
+      if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
+      if (website !== undefined) updates.website = website || null;
+      if (status !== undefined) updates.status = status;
+      
+      const company = await storage.updateCompany(req.params.id, updates);
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json(company);
+    } catch (error) {
+      console.error("Update company error:", error);
+      res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  // Sites
   app.get("/api/sites", async (req, res) => {
     try {
       const entities = await storage.getSitesWithDetails();
@@ -631,19 +851,22 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create entities" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
+      const { name, companyId, address, siteManager, contactPhone } = req.body;
       
       if (!name || !name.trim()) {
-        return res.status(400).json({ error: "Entity name is required" });
+        return res.status(400).json({ error: "Site name is required" });
+      }
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Company ID is required" });
       }
       
       const entity = await storage.createSite({
         name: name.trim(),
-        companyNumber: companyNumber || null,
+        companyId,
         address: address || null,
-        contactEmail: contactEmail || null,
+        siteManager: siteManager || null,
         contactPhone: contactPhone || null,
-        website: website || null,
       });
       
       res.status(201).json(entity);
@@ -696,8 +919,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Clients can only access their own entity
-      if (user.role === "client" && user.siteId !== req.params.siteId) {
+      // Clients can only access sites in their company
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -720,27 +944,22 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Clients can only access their own entity's sites
-      if (user.role === "client" && user.siteId !== req.params.siteId) {
+      // Clients can only access their own company's sites
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
       
-      const sites = await storage.getSitesByCompany(req.params.siteId);
+      // Get the site to find its companyId, then get all sites in that company
+      const currentSite = await storage.getSite(req.params.siteId);
+      if (!currentSite) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      const sites = await storage.getSitesByCompanyId(currentSite.companyId);
       res.json(sites);
     } catch (error) {
       console.error("Get entity sites error:", error);
       res.status(500).json({ error: "Failed to fetch entity sites" });
-    }
-  });
-
-  // Sites
-  app.get("/api/sites", async (req, res) => {
-    try {
-      const sites = await storage.getSites();
-      res.json(sites);
-    } catch (error) {
-      console.error("Sites error:", error);
-      res.status(500).json({ error: "Failed to fetch sites" });
     }
   });
 
@@ -951,8 +1170,8 @@ export async function registerRoutes(
           title: "Annual Fire Safety Assessment",
           type: "Fire Safety",
           module: "health_safety" as ModuleType,
-          siteId: "entity-1",
-          entityName: "Acme Manufacturing Ltd",
+          companyId: "company-1",
+          companyName: "Acme Manufacturing Ltd",
           siteId: "site-1",
           siteName: "Main Factory",
           assignedTo: "user-1",
@@ -967,8 +1186,8 @@ export async function registerRoutes(
           title: "Workplace Ergonomics Review",
           type: "Ergonomics",
           module: "health_safety" as ModuleType,
-          siteId: "entity-2",
-          entityName: "TechCorp Solutions",
+          companyId: "company-2",
+          companyName: "TechCorp Solutions",
           siteId: "site-3",
           siteName: "London Office",
           assignedTo: "user-1",
@@ -983,8 +1202,8 @@ export async function registerRoutes(
           title: "Employee Training Compliance Audit",
           type: "Training Audit",
           module: "human_resources" as ModuleType,
-          siteId: "entity-1",
-          entityName: "Acme Manufacturing Ltd",
+          companyId: "company-1",
+          companyName: "Acme Manufacturing Ltd",
           siteId: null,
           siteName: null,
           assignedTo: "user-1",
@@ -1021,7 +1240,8 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role === "client" && user.siteId !== siteId) {
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Not authorized to view this entity's access" });
       }
       
@@ -1043,7 +1263,8 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role === "client" && user.siteId !== siteId) {
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Not authorized to view this entity's access" });
       }
       
@@ -1114,12 +1335,21 @@ export async function registerRoutes(
       const siteId = req.query.siteId as string | undefined;
       const status = req.query.status as any;
 
-      // Clients can only see cases for their entity
-      if (user.role === "client" && siteId && user.siteId !== siteId) {
-        return res.status(403).json({ error: "Not authorized to view these cases" });
+      // Clients can only see cases for their company's sites
+      if (user.role === "client" && siteId) {
+        const canAccess = await canUserAccessSite(user, siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Not authorized to view these cases" });
+        }
       }
 
-      const filterEntityId = user.role === "client" ? user.siteId! : siteId;
+      // For clients, get all sites in their company; for others, filter by siteId if provided
+      let filterSiteIds: string[] | undefined;
+      if (user.role === "client" && user.companyId) {
+        const companySites = await storage.getSitesByCompanyId(user.companyId);
+        filterSiteIds = companySites.map(s => s.id);
+      }
+      const filterEntityId = siteId;
       const cases = await storage.getCases(filterEntityId, status);
       
       // Filter out confidential cases for non-privileged users
@@ -1152,8 +1382,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Case not found" });
       }
 
-      // Authorization check
-      if (user.role === "client" && user.siteId !== caseData.siteId) {
+      // Authorization check - clients can only access cases for their company's sites
+      const canAccessCase = await canUserAccessSite(user, caseData.siteId);
+      if (!canAccessCase) {
         return res.status(403).json({ error: "Not authorized to view this case" });
       }
 
@@ -1194,12 +1425,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid case data", details: parseResult.error.format() });
       }
 
+      const { restrictedToUsers, ...restData } = parseResult.data;
       const caseData = await storage.createCase({
-        ...parseResult.data,
+        ...restData,
         hearingDate: parseResult.data.hearingDate ? new Date(parseResult.data.hearingDate) : undefined,
         responseDeadline: parseResult.data.responseDeadline ? new Date(parseResult.data.responseDeadline) : undefined,
         createdBy: user.id,
         assignedConsultant: user.role === "consultant" ? user.id : undefined,
+        restrictedToUsers: restrictedToUsers ? JSON.stringify(restrictedToUsers) : null,
       });
 
       // Create audit log
@@ -1298,8 +1531,9 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Case not found" });
       }
 
-      // Authorization check
-      if (user.role === "client" && user.siteId !== caseData.siteId) {
+      // Authorization check - clients can only access cases for their company's sites
+      const canAccessCase = await canUserAccessSite(user, caseData.siteId);
+      if (!canAccessCase) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1471,8 +1705,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Authorization: clients can only view their own entity's access
-      if (user.role === "client" && user.siteId !== req.params.siteId) {
+      // Authorization: clients can only view their own company's sites' access
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Not authorized to view this entity's module access" });
       }
       
@@ -1514,7 +1749,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
       }
       
-      const access = await storage.setEntityModuleAccess(
+      const access = await storage.setSiteModuleAccess(
         req.params.siteId,
         module,
         status,
@@ -1542,10 +1777,16 @@ export async function registerRoutes(
       let siteId: string | undefined;
       const status = req.query.status as string | undefined;
       
-      // Clients can only see their own entity's requests
-      if (user.role === "client" && user.siteId) {
-        siteId = user.siteId;
-      } else if (req.query.siteId) {
+      // Clients can only see their own company's sites' requests
+      if (user.role === "client" && user.companyId) {
+        // Get all sites in their company
+        const companySites = await storage.getSitesByCompanyId(user.companyId);
+        // If no specific siteId provided, we'll filter by company sites later
+        if (!req.query.siteId) {
+          siteId = undefined; // Will need to filter by company sites
+        }
+      }
+      if (req.query.siteId) {
         siteId = req.query.siteId as string;
       }
       
@@ -1597,7 +1838,7 @@ export async function registerRoutes(
       
       const request = await storage.createModuleAccessRequest({
         siteId,
-        entityName: entity.name,
+        siteName: entity.name,
         module,
         requestedBy: user.id,
         requestedByName: user.fullName,
@@ -1702,13 +1943,19 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email already exists" });
       }
       
+      // Get the site to find its companyId
+      const targetSite = await storage.getSite(req.params.siteId);
+      if (!targetSite) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
       const newUser = await storage.createUser({
         username,
         email,
         fullName,
         password,
         role: "client",
-        siteId: req.params.siteId,
+        companyId: targetSite.companyId, // Users get company-level access
         status: "active",
         clientPermissionRole: clientPermissionRole || "viewer",
       });
@@ -1729,8 +1976,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Clients can only see users from their own entity
-      if (user.role === "client" && user.siteId !== req.params.siteId) {
+      // Clients can only see users from their own company's sites
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -1843,8 +2091,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Clients can only access their own entity's consultants
-      if (user.role === "client" && user.siteId !== req.params.siteId) {
+      // Clients can only access their own company's sites' consultants
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -1995,10 +2244,19 @@ export async function registerRoutes(
       }
       
       if (currentUser.role !== "admin") {
-        // Consultants can only update users in their assigned entities
-        if (currentUser.role === "consultant" && targetUser.siteId) {
-          const assignments = await storage.getConsultantAssignments(targetUser.siteId);
-          if (!assignments.some(a => a.consultantId === currentUser.id)) {
+        // Consultants can only update users in their assigned companies
+        if (currentUser.role === "consultant" && targetUser.companyId) {
+          // Get all sites in the user's company and check if consultant is assigned to any
+          const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
+          let hasAccess = false;
+          for (const site of companySites) {
+            const assignments = await storage.getConsultantAssignments(site.id);
+            if (assignments.some(a => a.consultantId === currentUser.id)) {
+              hasAccess = true;
+              break;
+            }
+          }
+          if (!hasAccess) {
             return res.status(403).json({ error: "Access denied" });
           }
         } else {
