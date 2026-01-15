@@ -63,14 +63,35 @@ import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog } from "@shared/schema";
 
 const documentTypeLabels: Record<DocumentType, string> = {
-  policy: "Policy",
+  // Health & Safety
+  hs_policy: "H&S Policy",
   risk_assessment: "Risk Assessment",
-  audit: "Audit",
-  assessment: "Assessment",
-  compliance: "Compliance",
-  incident_log: "Incident Log",
-  checklist: "Checklist",
-  template: "Template",
+  safety_audit: "Safety Audit",
+  coshh_assessment: "COSHH Assessment",
+  fire_safety: "Fire Safety",
+  incident_report: "Incident Report",
+  method_statement: "Method Statement",
+  hs_checklist: "H&S Checklist",
+  // Human Resources
+  employment_contract: "Employment Contract",
+  employee_handbook: "Employee Handbook",
+  disciplinary_procedure: "Disciplinary Procedure",
+  grievance_procedure: "Grievance Procedure",
+  training_record: "Training Record",
+  performance_review: "Performance Review",
+  hr_policy: "HR Policy",
+  absence_record: "Absence Record",
+  // Employment Law
+  tupe_consultation: "TUPE Consultation",
+  investigation_report: "Investigation Report",
+  disciplinary_hearing: "Disciplinary Hearing",
+  cot3_agreement: "COT3 Agreement",
+  settlement_agreement: "Settlement Agreement",
+  grievance_outcome: "Grievance Outcome",
+  appeal_hearing: "Appeal Hearing",
+  witness_statement: "Witness Statement",
+  case_notes: "Case Notes",
+  legal_correspondence: "Legal Correspondence",
 };
 
 function DocumentsListView() {
