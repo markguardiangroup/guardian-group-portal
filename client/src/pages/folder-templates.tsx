@@ -214,6 +214,7 @@ export default function FolderTemplatesPage() {
     },
     onSuccess: () => {
       refetchRules();
+      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
       setSelectedDocTypeId("");
       setIsRuleRequired(false);
       toast({
@@ -236,6 +237,7 @@ export default function FolderTemplatesPage() {
     },
     onSuccess: () => {
       refetchRules();
+      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
       toast({
         title: "Document type unlinked",
         description: "The document type has been removed from this folder template.",
