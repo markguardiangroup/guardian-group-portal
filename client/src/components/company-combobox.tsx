@@ -1,0 +1,124 @@
+import { useState, useMemo } from "react";
+import { Check, ChevronsUpDown, Building } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+interface SiteWithCompany {
+  id: string;
+  name: string;
+  companyName?: string | null;
+}
+
+interface CompanyComboboxProps {
+  sites: SiteWithCompany[];
+  value: string | null;
+  onValueChange: (value: string | null) => void;
+  placeholder?: string;
+  className?: string;
+  includeAllOption?: boolean;
+  testId?: string;
+}
+
+export function CompanyCombobox({
+  sites,
+  value,
+  onValueChange,
+  placeholder = "Select company...",
+  className,
+  includeAllOption = true,
+  testId,
+}: CompanyComboboxProps) {
+  const [open, setOpen] = useState(false);
+
+  const companies = useMemo(() => {
+    const uniqueCompanies = new Set<string>();
+    sites.forEach((site) => {
+      if (site.companyName) {
+        uniqueCompanies.add(site.companyName);
+      }
+    });
+    return Array.from(uniqueCompanies).sort();
+  }, [sites]);
+
+  const displayValue = !value || value === "all"
+    ? "All Companies"
+    : value;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("justify-between", className)}
+          data-testid={testId}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Building className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{displayValue}</span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[280px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search companies..." />
+          <CommandList>
+            <CommandEmpty>No company found.</CommandEmpty>
+            <CommandGroup>
+              {includeAllOption && (
+                <CommandItem
+                  value="all-companies"
+                  onSelect={() => {
+                    onValueChange("all");
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      (!value || value === "all") ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  All Companies
+                </CommandItem>
+              )}
+              {companies.map((company) => (
+                <CommandItem
+                  key={company}
+                  value={company}
+                  onSelect={() => {
+                    onValueChange(company);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === company ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {company}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}

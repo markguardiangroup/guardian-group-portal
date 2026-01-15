@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
+import { CompanyCombobox } from "@/components/company-combobox";
 import { 
   FileText, 
   Clock, 
@@ -125,6 +126,7 @@ interface ModuleDashboardProps {
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
@@ -139,17 +141,53 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     enabled: canSelectSites,
   });
   
-  // Determine which site to show data for
-  // "all" means show data across all sites
+  // Filter sites by selected company
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+  
+  // Handle company selection - only clear site if not in new company
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    // Only clear site if the current site is not in the new company
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites?.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
+  
+  // Determine which site(s) to show data for
+  // If a specific site is selected, use that
+  // If a company is selected (no specific site), we'll pass company name to filter
   const siteId = user?.role === "client" 
     ? user?.siteId 
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
+  
+  // Get site IDs for selected company (for API filtering)
+  // Use full sites list to get all sites for selected company
+  const companySiteIds = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    if (selectedSiteId && selectedSiteId !== "all") return null; // Use specific site instead
+    const companySites = sites.filter(s => s.companyName === selectedCompany);
+    return companySites.map(s => s.id);
+  }, [sites, selectedCompany, selectedSiteId]);
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
-    queryKey: ["/api/dashboard", module, siteId],
+    queryKey: ["/api/dashboard", module, siteId, companySiteIds],
     queryFn: async () => {
-      const url = siteId 
-        ? `/api/dashboard/${module}?siteId=${siteId}`
+      const params = new URLSearchParams();
+      if (siteId) {
+        params.set("siteId", siteId);
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        params.set("siteIds", companySiteIds.join(","));
+      }
+      const queryString = params.toString();
+      const url = queryString 
+        ? `/api/dashboard/${module}?${queryString}`
         : `/api/dashboard/${module}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
@@ -157,9 +195,29 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     },
   });
   
-  const currentSiteName = canSelectSites 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find((s: Site) => s.id === siteId)?.name)
-    : null;
+  // Build context description for display
+  const currentContextName = useMemo(() => {
+    if (!canSelectSites) return null;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find((s: Site) => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      return `${selectedCompany} (all sites)`;
+    }
+    return "All Clients";
+  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+  
+  // Build URL for View Documents with filter context
+  const viewDocumentsUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedSiteId && selectedSiteId !== "all") {
+      params.set("siteId", selectedSiteId);
+    } else if (selectedCompany && selectedCompany !== "all") {
+      params.set("company", selectedCompany);
+    }
+    const queryString = params.toString();
+    return queryString ? `${basePath}/documents?${queryString}` : `${basePath}/documents`;
+  }, [basePath, selectedSiteId, selectedCompany]);
 
   if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
     return (
@@ -212,23 +270,32 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <h1 className="text-3xl font-semibold">{config.name}</h1>
               <p className="text-muted-foreground">
                 Module compliance overview
-                {currentSiteName && <span className="font-medium"> - {currentSiteName}</span>}
+                {currentContextName && <span className="font-medium"> - {currentContextName}</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {/* Site selector for admin/consultant oversight */}
+            {/* Company and Site selectors for admin/consultant oversight */}
             {canSelectSites && sites && sites.length > 0 && (
-              <SiteCombobox
-                sites={sites}
-                value={selectedSiteId}
-                onValueChange={setSelectedSiteId}
-                className="w-56"
-                testId="select-site-module-dashboard"
-              />
+              <>
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-module-dashboard"
+                />
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-48"
+                  testId="select-site-module-dashboard"
+                />
+              </>
             )}
             <Button variant="outline" asChild>
-              <Link href={`${basePath}/documents`} data-testid="link-view-documents">
+              <Link href={viewDocumentsUrl} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />
                 View Documents
               </Link>

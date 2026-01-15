@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation, Link, useRoute } from "wouter";
+import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
+import { CompanyCombobox } from "@/components/company-combobox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -113,12 +114,22 @@ interface SiteBasic {
   name: string;
 }
 
+interface SiteWithCompany extends SiteBasic {
+  companyName?: string | null;
+}
+
 function ModuleDocumentsListView({ module }: { module: ModuleType }) {
+  const searchParams = useSearch();
+  const urlParams = new URLSearchParams(searchParams);
+  const urlSiteId = urlParams.get("siteId");
+  const urlCompany = urlParams.get("company");
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   
   const { user } = useAuth();
   const config = moduleConfig[module];
@@ -130,10 +141,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const isClientUser = user?.role === "client";
   
   // Fetch sites for consultant/admin users
-  const { data: sites } = useQuery<SiteBasic[]>({
+  const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
     enabled: !isClientUser,
   });
+  
+  // Filter sites by selected company
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+  
+  // Handle company selection - only clear site if not in new company
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    // Only clear site if the current site is not in the new company
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites?.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
@@ -158,10 +188,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const accessibleTypes = documentTypesWithAccess?.filter(dt => dt.hasAccess) || [];
   const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
   
-  // Get current site name
-  const currentSiteName = canSelectSites 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find((s: SiteBasic) => s.id === siteId)?.name)
-    : null;
+  // Build context description for display
+  const currentContextName = useMemo(() => {
+    if (!canSelectSites) return null;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find((s: SiteWithCompany) => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      return `${selectedCompany} (all sites)`;
+    }
+    return "All Clients";
+  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -215,15 +252,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Site selector for admin/consultant oversight */}
+            {/* Company and Site selectors for admin/consultant oversight */}
             {canSelectSites && sites && sites.length > 0 && (
-              <SiteCombobox
-                sites={sites}
-                value={selectedSiteId}
-                onValueChange={setSelectedSiteId}
-                className="w-64"
-                testId="select-site-header"
-              />
+              <>
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-documents"
+                />
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-48"
+                  testId="select-site-documents"
+                />
+              </>
             )}
             <Button className="bg-module-accent text-module-accent-foreground" asChild>
               <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
@@ -251,9 +297,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <div>
                       <CardTitle className="text-base flex items-center gap-2">
                         Your Document Type Access
-                        {currentSiteName && (
+                        {currentContextName && (
                           <span className="text-sm font-normal text-muted-foreground">
-                            ({currentSiteName})
+                            ({currentContextName})
                           </span>
                         )}
                       </CardTitle>
