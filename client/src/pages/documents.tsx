@@ -68,6 +68,7 @@ import {
   FolderOpen,
   ChevronRight,
   MoveRight,
+  FolderTree,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site } from "@shared/schema";
@@ -113,6 +114,8 @@ function DocumentsListView() {
   const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+  const [showProvisionDialog, setShowProvisionDialog] = useState(false);
+  const [provisionModule, setProvisionModule] = useState<string>("health_safety");
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderDescription, setNewFolderDescription] = useState("");
   const [newFolderModule, setNewFolderModule] = useState<string>("health_safety");
@@ -163,6 +166,27 @@ function DocumentsListView() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to move document", variant: "destructive" });
+    },
+  });
+
+  const provisionFoldersMutation = useMutation({
+    mutationFn: async (data: { module: string }) => {
+      return apiRequest("POST", `/api/sites/${selectedSiteId}/provision-folders`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      setShowProvisionDialog(false);
+      toast({ 
+        title: "Folders provisioned", 
+        description: "Folder structure from templates has been created for this site" 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to provision folders from templates", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -262,12 +286,60 @@ function DocumentsListView() {
         )}
 
         {canManageFolders && selectedSiteId !== "all" && (
-          <Button variant="outline" size="sm" onClick={() => setShowCreateFolderDialog(true)} data-testid="button-create-folder">
-            <FolderPlus className="mr-2 h-4 w-4" />
-            New Folder
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCreateFolderDialog(true)} data-testid="button-create-folder">
+              <FolderPlus className="mr-2 h-4 w-4" />
+              New Folder
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowProvisionDialog(true)} data-testid="button-provision-folders">
+              <FolderTree className="mr-2 h-4 w-4" />
+              Apply Templates
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Provision Folders from Templates Dialog */}
+      <Dialog open={showProvisionDialog} onOpenChange={setShowProvisionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply Folder Templates</DialogTitle>
+            <DialogDescription>
+              Create folders from master templates for this site. This will create all active folder templates for the selected module.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="provision-module">Module</Label>
+              <Select value={provisionModule} onValueChange={setProvisionModule}>
+                <SelectTrigger data-testid="select-provision-module">
+                  <SelectValue placeholder="Select module" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="health_safety">Health &amp; Safety</SelectItem>
+                  <SelectItem value="human_resources">Human Resources</SelectItem>
+                  <SelectItem value="employment_law">Employment Law</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Select which module's folder templates to apply to this site.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProvisionDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => provisionFoldersMutation.mutate({ module: provisionModule })} 
+              disabled={provisionFoldersMutation.isPending} 
+              data-testid="button-confirm-provision"
+            >
+              {provisionFoldersMutation.isPending ? "Applying..." : "Apply Templates"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Folder Dialog */}
       <Dialog open={showCreateFolderDialog} onOpenChange={setShowCreateFolderDialog}>

@@ -17,6 +17,7 @@ import {
   Lock,
   Clock,
   KeyRound,
+  FolderTree,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -135,6 +136,11 @@ const adminNavItems = [
     title: "Document Types",
     url: "/document-types",
     icon: FileText,
+  },
+  {
+    title: "Folder Templates",
+    url: "/folder-templates",
+    icon: FolderTree,
   },
   {
     title: "Module Requests",

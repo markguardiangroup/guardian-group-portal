@@ -1019,7 +1019,7 @@ export async function registerRoutes(
         code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
         module: z.enum(["health_safety", "human_resources", "employment_law"]),
         description: z.string().optional(),
-        parentId: z.string().optional(),
+        parentId: z.string().nullable().optional(),
         isRequired: z.boolean().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
@@ -1030,10 +1030,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
       
-      const template = await storage.createFolderTemplate({
+      // Convert null parentId to undefined for storage
+      const dataForStorage = {
         ...parsed.data,
+        parentId: parsed.data.parentId ?? undefined,
         createdBy: user.id,
-      });
+      };
+      
+      const template = await storage.createFolderTemplate(dataForStorage);
       
       res.status(201).json(template);
     } catch (error) {

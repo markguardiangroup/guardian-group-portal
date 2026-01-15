@@ -2532,42 +2532,39 @@ export class MemStorage implements IStorage {
   // Provision folder structure from templates for a site
   async provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]> {
     const templates = await this.getFolderTemplates(module);
+    const activeTemplates = templates.filter(t => t.isActive);
     const createdFolders: DocumentFolder[] = [];
     const templateIdToFolderId = new Map<string, string>();
 
-    // First pass: create folders for top-level templates (no parent)
-    for (const template of templates.filter(t => !t.parentId && t.isActive)) {
+    // Recursive helper to create folders and their children
+    const createFolderWithChildren = async (
+      template: FolderTemplate, 
+      parentFolderId: string | undefined
+    ): Promise<void> => {
       const folder = await this.createDocumentFolder({
         name: template.name,
         description: template.description ?? undefined,
         module: template.module,
         siteId,
-        parentId: undefined,
+        parentId: parentFolderId,
         templateId: template.id,
         sortOrder: template.sortOrder,
         createdBy,
       });
       templateIdToFolderId.set(template.id, folder.id);
       createdFolders.push(folder);
-    }
 
-    // Second pass: create folders for child templates
-    for (const template of templates.filter(t => t.parentId && t.isActive)) {
-      const parentFolderId = templateIdToFolderId.get(template.parentId!);
-      if (parentFolderId) {
-        const folder = await this.createDocumentFolder({
-          name: template.name,
-          description: template.description ?? undefined,
-          module: template.module,
-          siteId,
-          parentId: parentFolderId,
-          templateId: template.id,
-          sortOrder: template.sortOrder,
-          createdBy,
-        });
-        templateIdToFolderId.set(template.id, folder.id);
-        createdFolders.push(folder);
+      // Find and create all children of this template
+      const children = activeTemplates.filter(t => t.parentId === template.id);
+      for (const child of children.sort((a, b) => a.sortOrder - b.sortOrder)) {
+        await createFolderWithChildren(child, folder.id);
       }
+    };
+
+    // Start with root templates (no parent)
+    const rootTemplates = activeTemplates.filter(t => !t.parentId);
+    for (const template of rootTemplates.sort((a, b) => a.sortOrder - b.sortOrder)) {
+      await createFolderWithChildren(template, undefined);
     }
 
     return createdFolders;
