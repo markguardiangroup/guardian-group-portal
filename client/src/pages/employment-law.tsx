@@ -106,16 +106,83 @@ function CaseTypeBadge({ type }: { type: CaseType }) {
 
 // Cases list component (reused by cases tab)
 function CasesList() {
+  const searchParams = useSearch();
+  const urlParams = new URLSearchParams(searchParams);
+  const urlSiteId = urlParams.get("siteId");
+  const urlCompany = urlParams.get("company");
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  
+  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
+    enabled: canSelectSites,
+  });
+  
+  // Filter sites by selected company
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+  
+  // Get site IDs for the selected company
+  const companySiteIds = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+  }, [sites, selectedCompany]);
+  
+  // Handle company selection
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites?.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
+  
+  // Determine site filter for API
+  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
+  
+  // Create stable string key for company site IDs
+  const companySiteIdsKey = companySiteIds?.join(",") || null;
 
   const { data: cases, isLoading } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
+    queryKey: ["/api/cases", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/cases";
+      if (siteId) {
+        url = `${url}?siteId=${siteId}`;
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        url = `${url}?siteIds=${companySiteIds.join(",")}`;
+      }
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+  
+  // Build current context label
+  const currentContextLabel = useMemo(() => {
+    if (!canSelectSites) return null;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      return selectedCompany;
+    }
+    return "All Clients";
+  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -147,35 +214,75 @@ function CasesList() {
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length || 0;
 
-  if (isLoading) {
+  if (isLoading || (canSelectSites && sitesLoading)) {
     return (
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="theme-el">
+        <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+          <Skeleton className="h-14 w-96" />
         </div>
-        <Skeleton className="h-96" />
+        <div className="space-y-6 p-8">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+          <Skeleton className="h-96" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold">Case Files</h2>
-        {(user?.role === "admin" || user?.role === "consultant") && (
-          <Button 
-            onClick={() => setShowCreateDialog(true)}
-            className="bg-pink-600 hover:bg-pink-700"
-            data-testid="button-create-case"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Case
-          </Button>
-        )}
+    <div className="theme-el">
+      {/* Module Header with tinted background */}
+      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <Briefcase className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">Case Files</h1>
+              <p className="text-muted-foreground">
+                Employment law case management
+                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {canSelectSites && sites && sites.length > 0 && (
+              <>
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-cases"
+                />
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-48"
+                  testId="select-site-cases"
+                />
+              </>
+            )}
+            {(user?.role === "admin" || user?.role === "consultant") && (
+              <Button 
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-pink-600 hover:bg-pink-700"
+                data-testid="button-create-case"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Case
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
       
+      <div className="space-y-6 p-8">
       <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-pink-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -346,6 +453,7 @@ function CasesList() {
         onSubmit={(data) => createCaseMutation.mutate(data)}
         isLoading={createCaseMutation.isPending}
       />
+      </div>
     </div>
   );
 }
@@ -1077,6 +1185,18 @@ function EmploymentLawDashboardView() {
     const queryString = params.toString();
     return queryString ? `/employment-law/documents?${queryString}` : "/employment-law/documents";
   }, [selectedSiteId, selectedCompany]);
+  
+  // Build URL for View Cases with filter context
+  const viewCasesUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedSiteId && selectedSiteId !== "all") {
+      params.set("siteId", selectedSiteId);
+    } else if (selectedCompany && selectedCompany !== "all") {
+      params.set("company", selectedCompany);
+    }
+    const queryString = params.toString();
+    return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
+  }, [selectedSiteId, selectedCompany]);
 
   if (isLoading) {
     return (
@@ -1136,6 +1256,12 @@ function EmploymentLawDashboardView() {
               <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
                 <FileText className="mr-2 h-4 w-4" />
                 View Documents
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={viewCasesUrl} data-testid="link-view-cases-el">
+                <Briefcase className="mr-2 h-4 w-4" />
+                View Cases
               </Link>
             </Button>
           </div>
@@ -1201,15 +1327,6 @@ function EmploymentLawDashboardView() {
           </CardContent>
         </Card>
       </div>
-      
-      <div className="flex gap-4">
-        <Button asChild variant="outline">
-          <Link href="/employment-law/cases" data-testid="link-view-el-cases">
-            <Briefcase className="mr-2 h-4 w-4" />
-            View Cases
-          </Link>
-        </Button>
-      </div>
       </div>
     </div>
   );
@@ -1238,11 +1355,7 @@ export default function EmploymentLawPage() {
 
   // Cases list view
   if (matchCases) {
-    return (
-      <div className="p-6">
-        <EmploymentLawCasesView />
-      </div>
-    );
+    return <EmploymentLawCasesView />;
   }
 
   // Dashboard view (default)
