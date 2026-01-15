@@ -978,6 +978,263 @@ export async function registerRoutes(
     }
   });
 
+  // Folder Templates (Admin-managed master folder structure)
+  app.get("/api/folder-templates", requireAuth, async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const templates = await storage.getFolderTemplates(module);
+      res.json(templates);
+    } catch (error) {
+      console.error("Get folder templates error:", error);
+      res.status(500).json({ error: "Failed to fetch folder templates" });
+    }
+  });
+
+  app.get("/api/folder-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getFolderTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Get folder template error:", error);
+      res.status(500).json({ error: "Failed to fetch folder template" });
+    }
+  });
+
+  app.post("/api/folder-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create folder templates" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1),
+        code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
+        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        description: z.string().optional(),
+        parentId: z.string().optional(),
+        isRequired: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+        isActive: z.boolean().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const template = await storage.createFolderTemplate({
+        ...parsed.data,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Create folder template error:", error);
+      res.status(500).json({ error: "Failed to create folder template" });
+    }
+  });
+
+  app.patch("/api/folder-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update folder templates" });
+      }
+      
+      const template = await storage.getFolderTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only").optional(),
+        description: z.string().optional(),
+        parentId: z.string().nullable().optional(),
+        isRequired: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+        isActive: z.boolean().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updated = await storage.updateFolderTemplate(req.params.id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update folder template error:", error);
+      res.status(500).json({ error: "Failed to update folder template" });
+    }
+  });
+
+  app.delete("/api/folder-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete folder templates" });
+      }
+      
+      const template = await storage.getFolderTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      
+      await storage.deleteFolderTemplate(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete folder template error:", error);
+      res.status(500).json({ error: "Failed to delete folder template" });
+    }
+  });
+
+  // Folder-Document Type Rules
+  app.get("/api/folder-templates/:id/rules", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getFolderTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      
+      const rules = await storage.getDocumentTypeRulesForTemplate(req.params.id);
+      res.json(rules);
+    } catch (error) {
+      console.error("Get folder template rules error:", error);
+      res.status(500).json({ error: "Failed to fetch folder template rules" });
+    }
+  });
+
+  app.post("/api/folder-templates/:id/rules", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can add folder template rules" });
+      }
+      
+      const template = await storage.getFolderTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      
+      const schema = z.object({
+        documentTypeId: z.string().min(1),
+        isRequired: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      // Verify document type exists
+      const docType = await storage.getDocumentType(parsed.data.documentTypeId);
+      if (!docType) {
+        return res.status(404).json({ error: "Document type not found" });
+      }
+      
+      // Verify document type module matches template module
+      if (docType.module !== template.module) {
+        return res.status(400).json({ error: "Document type module must match folder template module" });
+      }
+      
+      const rule = await storage.createFolderDocumentTypeRule({
+        folderTemplateId: req.params.id,
+        ...parsed.data,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(rule);
+    } catch (error) {
+      console.error("Create folder template rule error:", error);
+      res.status(500).json({ error: "Failed to create folder template rule" });
+    }
+  });
+
+  app.delete("/api/folder-template-rules/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete folder template rules" });
+      }
+      
+      await storage.deleteFolderDocumentTypeRule(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete folder template rule error:", error);
+      res.status(500).json({ error: "Failed to delete folder template rule" });
+    }
+  });
+
+  // Provision folders from templates for a site
+  app.post("/api/sites/:siteId/provision-folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot provision folders" });
+      }
+      
+      const site = await storage.getSite(req.params.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const schema = z.object({
+        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const folders = await storage.provisionFoldersFromTemplates(
+        req.params.siteId,
+        parsed.data.module,
+        user.id
+      );
+      
+      res.status(201).json(folders);
+    } catch (error) {
+      console.error("Provision folders error:", error);
+      res.status(500).json({ error: "Failed to provision folders" });
+    }
+  });
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
