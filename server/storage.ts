@@ -4,6 +4,7 @@ import {
   type Company, type InsertCompany,
   type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
+  type DocumentFolder, type InsertDocumentFolder,
   type AuditLog, type InsertAuditLog,
   type SupportRequest, type InsertSupportRequest,
   type Case, type InsertCase,
@@ -118,6 +119,15 @@ export interface IStorage {
   createDocumentType(docType: InsertDocumentType): Promise<DocumentTypeRecord>;
   updateDocumentType(id: string, updates: Partial<DocumentTypeRecord>): Promise<DocumentTypeRecord | undefined>;
   deleteDocumentType(id: string): Promise<boolean>;
+  
+  // Document Folders
+  getDocumentFolders(siteId: string, module?: ModuleType): Promise<DocumentFolder[]>;
+  getDocumentFolder(id: string): Promise<DocumentFolder | undefined>;
+  createDocumentFolder(folder: InsertDocumentFolder): Promise<DocumentFolder>;
+  updateDocumentFolder(id: string, updates: Partial<DocumentFolder>): Promise<DocumentFolder | undefined>;
+  deleteDocumentFolder(id: string): Promise<boolean>;
+  getDocumentsByFolder(folderId: string): Promise<Document[]>;
+  moveDocumentToFolder(documentId: string, folderId: string | null): Promise<Document | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -126,6 +136,7 @@ export class MemStorage implements IStorage {
   private sites: Map<string, Site>;
   private documents: Map<string, Document>;
   private documentVersions: Map<string, DocumentVersion>;
+  private documentFolders: Map<string, DocumentFolder>;
   private auditLogs: Map<string, AuditLog>;
   private supportRequests: Map<string, SupportRequest>;
   private siteDocumentTypeAccess: Map<string, SiteDocumentTypeAccess>;
@@ -142,6 +153,7 @@ export class MemStorage implements IStorage {
     this.sites = new Map();
     this.documents = new Map();
     this.documentVersions = new Map();
+    this.documentFolders = new Map();
     this.auditLogs = new Map();
     this.supportRequests = new Map();
     this.siteDocumentTypeAccess = new Map();
@@ -2286,6 +2298,88 @@ export class MemStorage implements IStorage {
 
   async deleteDocumentType(id: string): Promise<boolean> {
     return this.documentTypesMap.delete(id);
+  }
+
+  // Document Folders
+  async getDocumentFolders(siteId: string, module?: ModuleType): Promise<DocumentFolder[]> {
+    let folders = Array.from(this.documentFolders.values())
+      .filter(f => f.siteId === siteId);
+    if (module) {
+      folders = folders.filter(f => f.module === module);
+    }
+    return folders.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async getDocumentFolder(id: string): Promise<DocumentFolder | undefined> {
+    return this.documentFolders.get(id);
+  }
+
+  async createDocumentFolder(folder: InsertDocumentFolder): Promise<DocumentFolder> {
+    const id = randomUUID();
+    const now = new Date();
+    const newFolder: DocumentFolder = {
+      id,
+      name: folder.name,
+      description: folder.description ?? null,
+      module: folder.module as ModuleType,
+      siteId: folder.siteId,
+      parentId: folder.parentId ?? null,
+      sortOrder: folder.sortOrder ?? 0,
+      createdBy: folder.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.documentFolders.set(id, newFolder);
+    return newFolder;
+  }
+
+  async updateDocumentFolder(id: string, updates: Partial<DocumentFolder>): Promise<DocumentFolder | undefined> {
+    const existing = this.documentFolders.get(id);
+    if (!existing) {
+      return undefined;
+    }
+    const updated: DocumentFolder = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.documentFolders.set(id, updated);
+    return updated;
+  }
+
+  async deleteDocumentFolder(id: string): Promise<boolean> {
+    // Move all documents in this folder to no folder
+    for (const [docId, doc] of this.documents.entries()) {
+      if (doc.folderId === id) {
+        this.documents.set(docId, { ...doc, folderId: null });
+      }
+    }
+    // Delete child folders recursively
+    for (const folder of this.documentFolders.values()) {
+      if (folder.parentId === id) {
+        await this.deleteDocumentFolder(folder.id);
+      }
+    }
+    return this.documentFolders.delete(id);
+  }
+
+  async getDocumentsByFolder(folderId: string): Promise<Document[]> {
+    return Array.from(this.documents.values())
+      .filter(d => d.folderId === folderId);
+  }
+
+  async moveDocumentToFolder(documentId: string, folderId: string | null): Promise<Document | undefined> {
+    const doc = this.documents.get(documentId);
+    if (!doc) {
+      return undefined;
+    }
+    const updated: Document = {
+      ...doc,
+      folderId,
+      updatedAt: new Date(),
+    };
+    this.documents.set(documentId, updated);
+    return updated;
   }
 }
 
