@@ -1253,13 +1253,6 @@ export default function EmploymentLawPage() {
   if (matchCases) {
     return (
       <div className="p-6">
-        <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
-          <div className="flex items-center gap-2">
-            <Scale className="h-6 w-6 text-white" />
-            <h1 className="text-2xl font-bold text-white">Employment Law</h1>
-          </div>
-          <p className="text-pink-100 mt-1">Manage employment law compliance and case files</p>
-        </div>
         <EmploymentLawCasesView />
       </div>
     );
@@ -1268,13 +1261,6 @@ export default function EmploymentLawPage() {
   // Dashboard view (default)
   return (
     <div className="p-6">
-      <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
-        <div className="flex items-center gap-2">
-          <Scale className="h-6 w-6 text-white" />
-          <h1 className="text-2xl font-bold text-white">Employment Law</h1>
-        </div>
-        <p className="text-pink-100 mt-1">Manage employment law compliance and case files</p>
-      </div>
       <EmploymentLawDashboardView />
     </div>
   );
