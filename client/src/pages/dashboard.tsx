@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { SiteCombobox } from "@/components/site-combobox";
+import { CompanyCombobox } from "@/components/company-combobox";
 import { 
   FileText, 
   Clock, 
@@ -295,6 +296,7 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   
   const isClientUser = user?.role === "client";
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
@@ -305,6 +307,30 @@ export default function Dashboard() {
     enabled: canSelectSites,
   });
   
+  // Filter sites by selected company for the site dropdown
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+  
+  // Get site IDs for the selected company (for API query)
+  const companySiteIds = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+  }, [sites, selectedCompany]);
+  
+  // Handle company selection - preserve site if it belongs to new company
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites?.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
+  
   // Determine which site to show data for
   // "all" means show data across all sites
   const siteId = isClientUser 
@@ -312,11 +338,14 @@ export default function Dashboard() {
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary", siteId],
+    queryKey: ["/api/modules/summary", siteId, companySiteIds],
     queryFn: async () => {
-      const url = siteId 
-        ? `/api/modules/summary?siteId=${siteId}`
-        : "/api/modules/summary";
+      let url = "/api/modules/summary";
+      if (siteId) {
+        url = `/api/modules/summary?siteId=${siteId}`;
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        url = `/api/modules/summary?siteIds=${companySiteIds.join(",")}`;
+      }
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -324,9 +353,17 @@ export default function Dashboard() {
   });
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
-  const currentSiteName = canSelectSites 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(s => s.id === siteId)?.name)
-    : null;
+  // Build current context label
+  const currentContextLabel = useMemo(() => {
+    if (!canSelectSites) return null;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      return selectedCompany;
+    }
+    return "All Clients";
+  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
 
   if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
     return (
@@ -362,18 +399,27 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold">Compliance Overview</h1>
           <p className="mt-1 text-muted-foreground">
             Monitor compliance across all modules
-            {currentSiteName && <span className="font-medium"> - {currentSiteName}</span>}
+            {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
           </p>
         </div>
-        {/* Site selector for admin/consultant oversight */}
+        {/* Company and Site selectors for admin/consultant oversight */}
         {canSelectSites && sites && sites.length > 0 && (
-          <SiteCombobox
-            sites={sites}
-            value={selectedSiteId}
-            onValueChange={setSelectedSiteId}
-            className="w-64"
-            testId="select-site-dashboard"
-          />
+          <div className="flex items-center gap-2">
+            <CompanyCombobox
+              sites={sites}
+              value={selectedCompany}
+              onValueChange={handleCompanyChange}
+              className="w-48"
+              testId="select-company-dashboard"
+            />
+            <SiteCombobox
+              sites={filteredSites}
+              value={selectedSiteId}
+              onValueChange={setSelectedSiteId}
+              className="w-48"
+              testId="select-site-dashboard"
+            />
+          </div>
         )}
       </div>
 
