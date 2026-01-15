@@ -76,6 +76,13 @@ The platform uses a hierarchical model: Companies → Sites → Users
 - **Module Access**: Control which modules (H&S, HR, Employment Law) each site can access
 - **Compliance Tracking**: Track document compliance per site with aggregation by company
 
+### Companies and Sites Navigation
+Designed for scalability with thousands of companies and sites:
+- **Companies page** (`/companies`): Paginated list with server-side search, shows site counts per company
+- **Company Detail page** (`/companies/:companyId`): Shows company info, compliance overview, and lists sites
+- **Site Detail page** (`/sites/:siteId`): Full site management with tabs for Documents, Folders, Users, etc.
+- **Sites page** (`/sites`): Global view of all sites grouped by company (secondary navigation)
+
 Key API Routes for Site Management:
 - `GET /api/sites` - Get all sites with details
 - `GET /api/sites/:siteId` - Get single site
