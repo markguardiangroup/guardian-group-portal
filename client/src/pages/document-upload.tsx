@@ -43,6 +43,7 @@ const documentUploadSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law"]),
   documentTypeId: z.string().min(1, "Please select a document type"),
   siteId: z.string().min(1, "Please select a site"),
+  folderId: z.string().optional(),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
 });
@@ -61,18 +62,53 @@ const modulePaths: Record<ModuleType, string> = {
   employment_law: "/employment-law",
 };
 
+interface FolderTemplate {
+  id: string;
+  name: string;
+  code: string;
+  module: string;
+  parentId: string | null;
+  isActive: boolean;
+}
+
+interface FolderDocumentTypeRule {
+  id: string;
+  folderTemplateId: string;
+  documentTypeId: string;
+}
+
+interface DocumentFolder {
+  id: string;
+  name: string;
+  siteId: string;
+  module: string;
+}
+
 export default function DocumentUpload() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<string>("all");
 
-  const { data: sites } = useQuery<Site[]>({
+  interface SiteWithCompany extends Site {
+    companyName?: string | null;
+  }
+
+  const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
 
   const { data: documentTypes } = useQuery<DocumentTypeRecord[]>({
     queryKey: ["/api/document-types"],
+  });
+
+  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+
+  const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
+    queryKey: ["/api/folder-document-type-rules"],
   });
 
   const form = useForm<DocumentUploadForm>({
@@ -83,15 +119,61 @@ export default function DocumentUpload() {
       module: "health_safety",
       documentTypeId: "",
       siteId: "",
+      folderId: "",
       reviewDate: "",
       expiryDate: "",
     },
   });
 
   const selectedModule = form.watch("module");
+  const selectedSiteId = form.watch("siteId");
+  const selectedDocTypeId = form.watch("documentTypeId");
+
+  // Get unique companies from sites
+  const companies = sites 
+    ? Array.from(new Set(sites.map(s => s.companyName).filter((c): c is string => !!c)))
+    : [];
+
+  // Filter sites by selected company
+  const filteredSites = sites?.filter(site => 
+    selectedCompany === "all" || site.companyName === selectedCompany
+  );
+
   const filteredDocumentTypes = documentTypes?.filter(
     (dt) => dt.module === selectedModule && dt.isActive
   );
+
+  // Fetch folders for selected site
+  const { data: siteFolders } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", selectedSiteId],
+    queryFn: async () => {
+      if (!selectedSiteId) return [];
+      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!selectedSiteId,
+  });
+
+  // Filter folders by selected module
+  const moduleFolders = siteFolders?.filter(f => f.module === selectedModule) || [];
+
+  // Auto-select folder based on document type's assigned folder
+  const suggestedFolderId = (() => {
+    if (!selectedDocTypeId || !folderRules || !folderTemplates || !siteFolders) return null;
+    
+    // Find rule for this document type
+    const rule = folderRules.find(r => r.documentTypeId === selectedDocTypeId);
+    if (!rule) return null;
+    
+    // Find template name
+    const template = folderTemplates.find(t => t.id === rule.folderTemplateId);
+    if (!template) return null;
+    
+    // Find matching site folder by name
+    const matchingFolder = siteFolders.find(f => f.name === template.name && f.module === selectedModule);
+    return matchingFolder?.id || null;
+  })();
 
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
@@ -293,30 +375,109 @@ export default function DocumentUpload() {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="siteId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Site</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-site">
-                              <SelectValue placeholder="Select site" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {sites?.map((site) => (
-                              <SelectItem key={site.id} value={site.id}>
-                                {site.name} ({site.companyName})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <FormItem>
+                      <FormLabel>Company</FormLabel>
+                      <Select 
+                        value={selectedCompany} 
+                        onValueChange={(value) => {
+                          setSelectedCompany(value);
+                          form.setValue("siteId", "");
+                          form.setValue("folderId", "");
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-company">
+                            <SelectValue placeholder="All companies" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">All Companies</SelectItem>
+                          {companies.map((company) => (
+                            <SelectItem key={company} value={company as string}>
+                              {company}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Filter sites by company
+                      </FormDescription>
+                    </FormItem>
+
+                    <FormField
+                      control={form.control}
+                      name="siteId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Site</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("folderId", "");
+                            }} 
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-site">
+                                <SelectValue placeholder="Select site" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {filteredSites?.map((site) => (
+                                <SelectItem key={site.id} value={site.id}>
+                                  {site.name} {selectedCompany === "all" && site.companyName ? `(${site.companyName})` : ""}
+                                </SelectItem>
+                              ))}
+                              {(!filteredSites || filteredSites.length === 0) && (
+                                <SelectItem value="" disabled>
+                                  No sites available
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {selectedSiteId && moduleFolders.length > 0 && (
+                    <FormField
+                      control={form.control}
+                      name="folderId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Folder</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || suggestedFolderId || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-folder">
+                                <SelectValue placeholder="Select folder (optional)" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="">No folder</SelectItem>
+                              {moduleFolders.map((folder) => (
+                                <SelectItem key={folder.id} value={folder.id}>
+                                  {folder.name}
+                                  {suggestedFolderId === folder.id && " (suggested)"}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            {suggestedFolderId 
+                              ? "Folder auto-selected based on document type assignment" 
+                              : "Optionally organize this document in a folder"}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField
