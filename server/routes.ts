@@ -1120,6 +1120,58 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/folder-document-type-rules", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can add folder document type rules" });
+      }
+      
+      const schema = z.object({
+        folderTemplateId: z.string().min(1),
+        documentTypeId: z.string().min(1),
+        isRequired: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const template = await storage.getFolderTemplate(parsed.data.folderTemplateId);
+      if (!template) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      
+      const docType = await storage.getDocumentType(parsed.data.documentTypeId);
+      if (!docType) {
+        return res.status(404).json({ error: "Document type not found" });
+      }
+      
+      if (docType.module !== template.module) {
+        return res.status(400).json({ error: "Document type module must match folder template module" });
+      }
+      
+      const rule = await storage.createFolderDocumentTypeRule({
+        folderTemplateId: parsed.data.folderTemplateId,
+        documentTypeId: parsed.data.documentTypeId,
+        isRequired: parsed.data.isRequired ?? false,
+        sortOrder: parsed.data.sortOrder ?? 0,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(rule);
+    } catch (error) {
+      console.error("Create folder document type rule error:", error);
+      res.status(500).json({ error: "Failed to create folder document type rule" });
+    }
+  });
+
   app.get("/api/folder-templates/:id/rules", requireAuth, async (req, res) => {
     try {
       const template = await storage.getFolderTemplate(req.params.id);
