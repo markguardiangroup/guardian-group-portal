@@ -747,10 +747,42 @@ export async function registerRoutes(
   });
 
   // Companies
-  app.get("/api/companies", async (req, res) => {
+  app.get("/api/companies", requireAuth, async (req, res) => {
     try {
-      const companies = await storage.getCompanies();
-      res.json(companies);
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const allCompanies = await storage.getCompanies();
+      
+      // Admin sees all companies
+      if (user.role === "admin") {
+        res.json(allCompanies);
+        return;
+      }
+      
+      // Consultant sees only companies of their assigned sites
+      if (user.role === "consultant") {
+        const assignments = await storage.getConsultantSites(user.id);
+        const siteCompanyIds = new Set<string>();
+        for (const a of assignments) {
+          const site = await storage.getSite(a.siteId);
+          if (site) siteCompanyIds.add(site.companyId);
+        }
+        const filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
+        res.json(filteredCompanies);
+        return;
+      }
+      
+      // Client sees only their company
+      if (user.role === "client" && user.companyId) {
+        const filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
+        res.json(filteredCompanies);
+        return;
+      }
+      
+      res.json([]);
     } catch (error) {
       console.error("Companies error:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
@@ -769,7 +801,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -781,7 +813,6 @@ export async function registerRoutes(
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
-        website: website || null,
       });
       
       res.status(201).json(company);
@@ -803,7 +834,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, website, status } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, status } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -811,7 +842,6 @@ export async function registerRoutes(
       if (address !== undefined) updates.address = address || null;
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
-      if (website !== undefined) updates.website = website || null;
       if (status !== undefined) updates.status = status;
       
       const company = await storage.updateCompany(req.params.id, updates);
@@ -828,10 +858,39 @@ export async function registerRoutes(
   });
 
   // Sites
-  app.get("/api/sites", async (req, res) => {
+  app.get("/api/sites", requireAuth, async (req, res) => {
     try {
-      const entities = await storage.getSitesWithDetails();
-      res.json(entities);
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const allSites = await storage.getSitesWithDetails();
+      
+      // Admin sees all sites
+      if (user.role === "admin") {
+        res.json(allSites);
+        return;
+      }
+      
+      // Consultant sees only assigned sites
+      if (user.role === "consultant") {
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        const filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
+        res.json(filteredSites);
+        return;
+      }
+      
+      // Client sees only sites in their company
+      if (user.role === "client" && user.companyId) {
+        const filteredSites = allSites.filter(site => site.companyId === user.companyId);
+        res.json(filteredSites);
+        return;
+      }
+      
+      // Fallback: return empty if no match
+      res.json([]);
     } catch (error) {
       console.error("Entities error:", error);
       res.status(500).json({ error: "Failed to fetch entities" });
