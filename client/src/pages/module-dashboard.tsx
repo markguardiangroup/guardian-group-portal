@@ -13,7 +13,6 @@ import {
   TrendingUp,
   ArrowRight,
   Calendar,
-  Upload,
   HardHat,
   Users,
 } from "lucide-react";
@@ -232,12 +231,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <Link href={`${basePath}/documents`} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />
                 View Documents
-              </Link>
-            </Button>
-            <Button className="bg-module-accent text-module-accent-foreground" asChild>
-              <Link href={`${basePath}/documents/upload`} data-testid="link-upload-document">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
               </Link>
             </Button>
           </div>
