@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -29,6 +30,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -41,6 +45,7 @@ import {
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import {
   FileText,
   Search,
@@ -58,9 +63,14 @@ import {
   History,
   MessageSquare,
   Send,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  ChevronRight,
+  MoveRight,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import type { Document, DocumentType, DocumentVersion, AuditLog } from "@shared/schema";
+import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site } from "@shared/schema";
 
 const documentTypeLabels: Record<DocumentType, string> = {
   // Health & Safety
@@ -95,20 +105,87 @@ const documentTypeLabels: Record<DocumentType, string> = {
 };
 
 function DocumentsListView() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderDescription, setNewFolderDescription] = useState("");
+  const [newFolderModule, setNewFolderModule] = useState<string>("health_safety");
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
   });
+
+  const { data: sites } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
+  });
+
+  const { data: folders } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", selectedSiteId],
+    queryFn: async () => {
+      if (selectedSiteId === "all") return [];
+      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: selectedSiteId !== "all",
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: async (data: { name: string; description: string; siteId: string; module: string }) => {
+      return apiRequest("POST", "/api/folders", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      setShowCreateFolderDialog(false);
+      setNewFolderName("");
+      setNewFolderDescription("");
+      setNewFolderModule("health_safety");
+      toast({ title: "Folder created", description: "The folder has been created successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to create folder", variant: "destructive" });
+    },
+  });
+
+  const moveDocumentMutation = useMutation({
+    mutationFn: async ({ documentId, folderId }: { documentId: string; folderId: string | null }) => {
+      return apiRequest("POST", `/api/documents/${documentId}/move`, { folderId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      toast({ title: "Document moved", description: "The document has been moved successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to move document", variant: "destructive" });
+    },
+  });
+
+  const handleCreateFolder = () => {
+    if (!newFolderName.trim() || selectedSiteId === "all") return;
+    createFolderMutation.mutate({
+      name: newFolderName.trim(),
+      description: newFolderDescription.trim(),
+      siteId: selectedSiteId,
+      module: newFolderModule,
+    });
+  };
+
+  const canManageFolders = user?.role === "admin" || user?.role === "consultant";
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus && !doc.isArchived;
+    const matchesSite = selectedSiteId === "all" || doc.siteId === selectedSiteId;
+    const matchesFolder = selectedFolderId === null || doc.folderId === selectedFolderId;
+    return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && !doc.isArchived;
   });
 
   if (isLoading) {
@@ -144,6 +221,109 @@ function DocumentsListView() {
         </Button>
       </div>
 
+      {/* Site and Folder Selection */}
+      <div className="flex flex-wrap items-center gap-4">
+        <Select value={selectedSiteId} onValueChange={(value) => { setSelectedSiteId(value); setSelectedFolderId(null); }}>
+          <SelectTrigger className="w-52" data-testid="select-site">
+            <SelectValue placeholder="Select Site" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sites</SelectItem>
+            {sites?.map((site) => (
+              <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {selectedSiteId !== "all" && folders && folders.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant={selectedFolderId === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedFolderId(null)}
+              data-testid="button-all-documents"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              All Documents
+            </Button>
+            {folders.map((folder) => (
+              <Button
+                key={folder.id}
+                variant={selectedFolderId === folder.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedFolderId(folder.id)}
+                data-testid={`button-folder-${folder.id}`}
+              >
+                <Folder className="mr-2 h-4 w-4" />
+                {folder.name}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {canManageFolders && selectedSiteId !== "all" && (
+          <Button variant="outline" size="sm" onClick={() => setShowCreateFolderDialog(true)} data-testid="button-create-folder">
+            <FolderPlus className="mr-2 h-4 w-4" />
+            New Folder
+          </Button>
+        )}
+      </div>
+
+      {/* Create Folder Dialog */}
+      <Dialog open={showCreateFolderDialog} onOpenChange={setShowCreateFolderDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Create a folder to organize your documents for this site.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="folder-name">Folder Name</Label>
+              <Input
+                id="folder-name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Enter folder name"
+                data-testid="input-folder-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="folder-module">Module</Label>
+              <Select value={newFolderModule} onValueChange={setNewFolderModule}>
+                <SelectTrigger data-testid="select-folder-module">
+                  <SelectValue placeholder="Select module" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="health_safety">Health &amp; Safety</SelectItem>
+                  <SelectItem value="human_resources">Human Resources</SelectItem>
+                  <SelectItem value="employment_law">Employment Law</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="folder-description">Description (optional)</Label>
+              <Input
+                id="folder-description"
+                value={newFolderDescription}
+                onChange={(e) => setNewFolderDescription(e.target.value)}
+                placeholder="Brief description of folder contents"
+                data-testid="input-folder-description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateFolderDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim() || createFolderMutation.isPending} data-testid="button-confirm-create-folder">
+              {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -157,7 +337,7 @@ function DocumentsListView() {
                 data-testid="input-search-documents"
               />
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-40" data-testid="select-document-type">
                   <Filter className="mr-2 h-4 w-4" />
@@ -245,6 +425,33 @@ function DocumentsListView() {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
+                          {canManageFolders && folders && folders.length > 0 && (
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <MoveRight className="mr-2 h-4 w-4" />
+                                Move to Folder
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuItem 
+                                  onClick={() => moveDocumentMutation.mutate({ documentId: doc.id, folderId: null })}
+                                  data-testid={`button-move-to-root-${doc.id}`}
+                                >
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  No Folder
+                                </DropdownMenuItem>
+                                {folders.map((folder) => (
+                                  <DropdownMenuItem 
+                                    key={folder.id}
+                                    onClick={() => moveDocumentMutation.mutate({ documentId: doc.id, folderId: folder.id })}
+                                    data-testid={`button-move-to-folder-${folder.id}-${doc.id}`}
+                                  >
+                                    <Folder className="mr-2 h-4 w-4" />
+                                    {folder.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive">
                             <Archive className="mr-2 h-4 w-4" />
