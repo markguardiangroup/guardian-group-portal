@@ -51,6 +51,7 @@ import {
   Clock,
   Filter,
   FolderOpen,
+  FolderPlus,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -112,7 +113,9 @@ export default function DocumentTypesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAssignFolderDialog, setShowAssignFolderDialog] = useState(false);
   const [selectedType, setSelectedType] = useState<DocumentTypeRecord | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
   const { data: documentTypes, isLoading } = useQuery<DocumentTypeRecord[]>({
@@ -211,6 +214,40 @@ export default function DocumentTypesPage() {
     },
   });
 
+  const assignFolderMutation = useMutation({
+    mutationFn: async ({ folderTemplateId, documentTypeId }: { folderTemplateId: string; documentTypeId: string }) => {
+      return apiRequest("POST", "/api/folder-document-type-rules", {
+        folderTemplateId,
+        documentTypeId,
+        isRequired: false,
+        sortOrder: 0,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      setShowAssignFolderDialog(false);
+      setSelectedType(null);
+      setSelectedFolderId("");
+      toast({
+        title: "Folder assigned",
+        description: "The document type has been assigned to the folder.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign folder",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Get folders available for the selected document type's module
+  const availableFolders = useMemo(() => {
+    if (!selectedType || !folderTemplates) return [];
+    return folderTemplates.filter(t => t.module === selectedType.module && t.isActive);
+  }, [selectedType, folderTemplates]);
+
   const filteredTypes = useMemo(() => {
     if (!documentTypes) return [];
     
@@ -249,6 +286,12 @@ export default function DocumentTypesPage() {
   const handleDelete = (type: DocumentTypeRecord) => {
     setSelectedType(type);
     setShowDeleteDialog(true);
+  };
+
+  const handleAssignFolder = (type: DocumentTypeRecord) => {
+    setSelectedType(type);
+    setSelectedFolderId("");
+    setShowAssignFolderDialog(true);
   };
 
   const generateCode = (name: string) => {
@@ -435,6 +478,10 @@ export default function DocumentTypesPage() {
                             <DropdownMenuItem onClick={() => handleEdit(type)} data-testid={`button-edit-${type.id}`}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAssignFolder(type)} data-testid={`button-assign-folder-${type.id}`}>
+                              <FolderPlus className="h-4 w-4 mr-2" />
+                              Assign to Folder
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleDelete(type)}
@@ -743,6 +790,65 @@ export default function DocumentTypesPage() {
               data-testid="button-confirm-delete"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAssignFolderDialog} onOpenChange={setShowAssignFolderDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign to Folder</DialogTitle>
+            <DialogDescription>
+              Choose a folder template to assign "{selectedType?.name}" to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {availableFolders.length === 0 ? (
+              <div className="text-center py-6">
+                <FolderOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  No folder templates available for {selectedType?.module ? moduleNames[selectedType.module] : "this module"}.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Create folder templates first in the Folder Templates page.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Select Folder</Label>
+                <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
+                  <SelectTrigger data-testid="select-folder">
+                    <SelectValue placeholder="Choose a folder..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableFolders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignFolderDialog(false)} data-testid="button-cancel-assign">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedType && selectedFolderId) {
+                  assignFolderMutation.mutate({
+                    folderTemplateId: selectedFolderId,
+                    documentTypeId: selectedType.id,
+                  });
+                }
+              }}
+              disabled={!selectedFolderId || assignFolderMutation.isPending}
+              data-testid="button-confirm-assign"
+            >
+              {assignFolderMutation.isPending ? "Assigning..." : "Assign"}
             </Button>
           </DialogFooter>
         </DialogContent>
