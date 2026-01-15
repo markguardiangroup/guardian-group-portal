@@ -778,7 +778,9 @@ export default function FolderTemplatesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {availableDocTypes.length === 0 ? (
-                          <SelectItem value="" disabled>No available document types</SelectItem>
+                          <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                            No available document types
+                          </div>
                         ) : (
                           availableDocTypes.map((dt) => (
                             <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>
