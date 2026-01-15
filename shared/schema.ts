@@ -114,7 +114,7 @@ export const insertSiteRequestSchema = createInsertSchema(siteRequests).omit({
   updatedAt: true,
   reviewedBy: true,
   adminNotes: true,
-  approvedSiteId: true
+  approvedEntityId: true
 });
 export type InsertSiteRequest = z.infer<typeof insertSiteRequestSchema>;
 export type SiteRequest = typeof siteRequests.$inferSelect;

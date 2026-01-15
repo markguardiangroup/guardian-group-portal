@@ -746,6 +746,238 @@ export async function registerRoutes(
     }
   });
 
+  // Document Folders
+  app.get("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const siteId = req.query.siteId as string;
+      const module = req.query.module as ModuleType | undefined;
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "siteId is required" });
+      }
+      
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this site" });
+      }
+      
+      const folders = await storage.getDocumentFolders(siteId, module);
+      res.json(folders);
+    } catch (error) {
+      console.error("Folders error:", error);
+      res.status(500).json({ error: "Failed to fetch folders" });
+    }
+  });
+
+  app.get("/api/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const folder = await storage.getDocumentFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+      
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, folder.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json(folder);
+    } catch (error) {
+      console.error("Get folder error:", error);
+      res.status(500).json({ error: "Failed to fetch folder" });
+    }
+  });
+
+  app.post("/api/folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot create folders" });
+      }
+      
+      const { name, description, module, siteId, parentId } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Folder name is required" });
+      }
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "Site ID is required" });
+      }
+      
+      if (!module) {
+        return res.status(400).json({ error: "Module is required" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this site" });
+      }
+      
+      const folder = await storage.createDocumentFolder({
+        name: name.trim(),
+        description: description || null,
+        module,
+        siteId,
+        parentId: parentId || null,
+        sortOrder: 0,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error("Create folder error:", error);
+      res.status(500).json({ error: "Failed to create folder" });
+    }
+  });
+
+  app.patch("/api/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update folders" });
+      }
+      
+      const folder = await storage.getDocumentFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, folder.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { name, description, parentId, sortOrder } = req.body;
+      
+      const updates: Record<string, any> = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (parentId !== undefined) updates.parentId = parentId;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      
+      const updated = await storage.updateDocumentFolder(req.params.id, updates);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update folder error:", error);
+      res.status(500).json({ error: "Failed to update folder" });
+    }
+  });
+
+  app.delete("/api/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot delete folders" });
+      }
+      
+      const folder = await storage.getDocumentFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, folder.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteDocumentFolder(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete folder error:", error);
+      res.status(500).json({ error: "Failed to delete folder" });
+    }
+  });
+
+  app.get("/api/folders/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const folder = await storage.getDocumentFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+      
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, folder.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const documents = await storage.getDocumentsByFolder(req.params.id);
+      res.json(documents);
+    } catch (error) {
+      console.error("Get folder documents error:", error);
+      res.status(500).json({ error: "Failed to fetch folder documents" });
+    }
+  });
+
+  app.post("/api/documents/:id/move", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot move documents" });
+      }
+      
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const { folderId } = req.body;
+      
+      // Validate folder exists and belongs to same site if specified
+      if (folderId) {
+        const folder = await storage.getDocumentFolder(folderId);
+        if (!folder) {
+          return res.status(404).json({ error: "Target folder not found" });
+        }
+        if (folder.siteId !== document.siteId) {
+          return res.status(400).json({ error: "Cannot move document to folder in different site" });
+        }
+      }
+      
+      const updated = await storage.moveDocumentToFolder(req.params.id, folderId || null);
+      res.json(updated);
+    } catch (error) {
+      console.error("Move document error:", error);
+      res.status(500).json({ error: "Failed to move document" });
+    }
+  });
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {

@@ -316,6 +316,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "hs_policy_2024.pdf",
         fileSize: 245760,
         mimeType: "application/pdf",
@@ -339,6 +340,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "fire_risk_main_factory.pdf",
         fileSize: 512000,
         mimeType: "application/pdf",
@@ -362,6 +364,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "coshh_chemical_storage.pdf",
         fileSize: 384000,
         mimeType: "application/pdf",
@@ -385,6 +388,7 @@ export class MemStorage implements IStorage {
         siteId: "site-3",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "dse_assessment.pdf",
         fileSize: 256000,
         mimeType: "application/pdf",
@@ -412,6 +416,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "employee_handbook_2024.pdf",
         fileSize: 1024000,
         mimeType: "application/pdf",
@@ -435,6 +440,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "disciplinary_procedure.pdf",
         fileSize: 320000,
         mimeType: "application/pdf",
@@ -458,6 +464,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "training_john_smith.pdf",
         fileSize: 128000,
         mimeType: "application/pdf",
@@ -481,6 +488,7 @@ export class MemStorage implements IStorage {
         siteId: "site-3",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "remote_working_policy.pdf",
         fileSize: 192000,
         mimeType: "application/pdf",
@@ -504,6 +512,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "employment_contract_template.pdf",
         fileSize: 285000,
         mimeType: "application/pdf",
@@ -527,6 +536,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "grievance_procedure.pdf",
         fileSize: 198000,
         mimeType: "application/pdf",
@@ -550,6 +560,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "performance_review_q4_2024.pdf",
         fileSize: 156000,
         mimeType: "application/pdf",
@@ -573,6 +584,7 @@ export class MemStorage implements IStorage {
         siteId: "site-3",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "absence_management_policy.pdf",
         fileSize: 245000,
         mimeType: "application/pdf",
@@ -596,6 +608,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "training_sarah_johnson.pdf",
         fileSize: 142000,
         mimeType: "application/pdf",
@@ -619,6 +632,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "absence_record_jan_2025.pdf",
         fileSize: 98000,
         mimeType: "application/pdf",
@@ -642,6 +656,7 @@ export class MemStorage implements IStorage {
         siteId: "site-3",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "employment_contract_parttime.pdf",
         fileSize: 265000,
         mimeType: "application/pdf",
@@ -665,6 +680,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: null,
         documentTypeId: null,
+        folderId: null,
         fileName: "equal_opportunities_policy.pdf",
         fileSize: 178000,
         mimeType: "application/pdf",
@@ -1154,6 +1170,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: "case-1",
         documentTypeId: null,
+        folderId: null,
         fileName: "investigation_report_jsmith.pdf",
         fileSize: 156000,
         mimeType: "application/pdf",
@@ -1177,6 +1194,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: "case-1",
         documentTypeId: null,
+        folderId: null,
         fileName: "witness_statement_adavis.pdf",
         fileSize: 78000,
         mimeType: "application/pdf",
@@ -1200,6 +1218,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: "case-2",
         documentTypeId: null,
+        folderId: null,
         fileName: "grievance_letter_sjohnson.pdf",
         fileSize: 45000,
         mimeType: "application/pdf",
@@ -1223,6 +1242,7 @@ export class MemStorage implements IStorage {
         siteId: "site-1",
         caseId: "case-3",
         documentTypeId: null,
+        folderId: null,
         fileName: "settlement_mbrown.pdf",
         fileSize: 234000,
         mimeType: "application/pdf",
@@ -1737,6 +1757,7 @@ export class MemStorage implements IStorage {
       siteId: insertDocument.siteId ?? null,
       caseId: insertDocument.caseId ?? null,
       documentTypeId: insertDocument.documentTypeId ?? null,
+      folderId: insertDocument.folderId ?? null,
       version: insertDocument.version ?? 1,
       status: (insertDocument.status ?? "review_required") as any,
       approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
@@ -2349,13 +2370,15 @@ export class MemStorage implements IStorage {
 
   async deleteDocumentFolder(id: string): Promise<boolean> {
     // Move all documents in this folder to no folder
-    for (const [docId, doc] of this.documents.entries()) {
+    const docEntries = Array.from(this.documents.entries());
+    for (const [docId, doc] of docEntries) {
       if (doc.folderId === id) {
         this.documents.set(docId, { ...doc, folderId: null });
       }
     }
     // Delete child folders recursively
-    for (const folder of this.documentFolders.values()) {
+    const folders = Array.from(this.documentFolders.values());
+    for (const folder of folders) {
       if (folder.parentId === id) {
         await this.deleteDocumentFolder(folder.id);
       }
