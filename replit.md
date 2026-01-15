@@ -34,8 +34,9 @@ The server uses a single entry point that registers API routes and serves the st
 
 ### Data Model
 Core entities include:
-- **Users**: Role-based (admin, consultant, client) with site association
-- **Sites**: Physical locations with company grouping via `companyName` field - the primary management unit
+- **Users**: Role-based (admin, consultant, client) with company association (companyId)
+- **Companies**: Stored as "entities" table for backward compatibility - parent organizations that group sites
+- **Sites**: Physical locations linked to companies via `entity_id`/`companyId` foreign key
 - **Document Types**: Admin-managed master list defining required/optional document types per module with renewal periods
 - **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to document types and sites
 - **Document Versions**: Version history for document changes
@@ -45,11 +46,20 @@ Core entities include:
 - **Audit Logs**: Activity tracking with timestamps and user attribution
 - **Support Requests**: Client support ticket system
 
-### Site-Centric Architecture
-The platform uses a site-centric management model where sites serve as the primary unit:
-- **Company Grouping**: Sites are grouped by `companyName` field for organizational hierarchy
-- **Consultant Management**: Assign multiple consultants to sites with primary designation
-- **User Management**: Manage client users scoped to their site
+### Authorization Model
+Role-based access control with tenant isolation:
+- **Admin**: Unrestricted access to all companies, sites, and data
+- **Consultant**: Access only to sites they are explicitly assigned to via consultant_assignments table
+- **Client**: Access only to sites within their company (companyId match)
+
+The `canUserAccessSite` helper function enforces these rules across all API endpoints. Client company filtering is derived server-side from session to prevent tenant isolation bypass.
+
+### Company-Site-User Hierarchy
+The platform uses a hierarchical model: Companies → Sites → Users
+- **Companies (entities table)**: Parent organizations with business details
+- **Sites**: Physical locations belonging to a company via entity_id/companyId
+- **User Access**: Users have companyId granting access to all sites within their company
+- **Consultant Management**: Assign multiple consultants to specific sites with primary designation
 - **Module Access**: Control which modules (H&S, HR, Employment Law) each site can access
 - **Compliance Tracking**: Track document compliance per site with aggregation by company
 
