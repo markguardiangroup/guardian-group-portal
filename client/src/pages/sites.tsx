@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -27,16 +22,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import {
-  Building2,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   MapPin,
-  ChevronDown,
-  ChevronRight,
   Search,
   Plus,
-  Users,
-  Phone,
   CheckCircle,
   AlertTriangle,
   XCircle,
@@ -84,7 +81,7 @@ function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: SiteModuleAccessS
   );
 }
 
-function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
+function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
     return <Badge variant="secondary">No data</Badge>;
   }
@@ -93,209 +90,27 @@ function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
 
   if (score >= 90) {
     return (
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-4 w-4 text-emerald-500" />
-        <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          {score}% Compliant
-        </span>
-      </div>
+      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+        <CheckCircle className="mr-1 h-3 w-3" />
+        {score}%
+      </Badge>
     );
   }
 
   if (score >= 70) {
     return (
-      <div className="flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
-          {score}% Compliant
-        </span>
-      </div>
+      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+        <AlertTriangle className="mr-1 h-3 w-3" />
+        {score}%
+      </Badge>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <XCircle className="h-4 w-4 text-red-500" />
-      <span className="text-sm font-medium text-red-600 dark:text-red-400">
-        {score}% Compliant
-      </span>
-    </div>
-  );
-}
-
-function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: string) => void }) {
-  return (
-    <Card className="hover-elevate">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-            <MapPin className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4 className="font-medium">{site.name}</h4>
-                {site.address && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{site.address}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <ModuleStatusBadges moduleAccess={site.moduleAccess} />
-                <ComplianceIndicator summary={site.complianceSummary} />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onManage(site.id)}
-                  data-testid={`button-manage-site-${site.id}`}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Manage
-                </Button>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {site.siteManager && (
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  {site.siteManager}
-                </span>
-              )}
-              {site.contactPhone && (
-                <span className="flex items-center gap-1.5">
-                  <Phone className="h-3.5 w-3.5" />
-                  {site.contactPhone}
-                </span>
-              )}
-              {site.assignedConsultants && site.assignedConsultants.length > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  {site.assignedConsultants.length} consultant{site.assignedConsultants.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface CompanyGroup {
-  companyName: string;
-  companyNumber?: string;
-  sites: SiteWithDetails[];
-}
-
-function CompanyGroupCard({ group, onManageSite }: { group: CompanyGroup; onManageSite: (id: string) => void }) {
-  const [isOpen, setIsOpen] = useState(true);
-
-  const aggregatedCompliance = group.sites.reduce(
-    (acc, site) => {
-      if (site.complianceSummary) {
-        acc.totalDocuments += site.complianceSummary.totalDocuments;
-        acc.compliantDocuments += site.complianceSummary.compliantDocuments;
-        acc.reviewRequired += site.complianceSummary.reviewRequired;
-        acc.overdueDocuments += site.complianceSummary.overdueDocuments;
-      }
-      return acc;
-    },
-    { totalDocuments: 0, compliantDocuments: 0, reviewRequired: 0, overdueDocuments: 0 }
-  );
-
-  const complianceScore = aggregatedCompliance.totalDocuments > 0
-    ? Math.round((aggregatedCompliance.compliantDocuments / aggregatedCompliance.totalDocuments) * 100)
-    : 100;
-
-  return (
-    <Card>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="pb-3">
-          <div className="flex w-full items-start gap-4">
-            <CollapsibleTrigger asChild>
-              <button className="flex flex-1 items-start gap-4 text-left" data-testid={`company-${group.companyName}`}>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                  <Building2 className="h-6 w-6 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold">{group.companyName}</h3>
-                      {group.companyNumber && (
-                        <p className="text-sm text-muted-foreground">
-                          Company No: {group.companyNumber}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <ComplianceIndicator summary={{ ...aggregatedCompliance, complianceScore, pendingApprovals: 0 }} />
-                      {isOpen ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {group.sites.length} {group.sites.length === 1 ? "site" : "sites"}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            </CollapsibleTrigger>
-          </div>
-        </CardHeader>
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            {aggregatedCompliance.totalDocuments > 0 && (
-              <div className="mb-6 rounded-md bg-muted/50 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-medium">Company Compliance Overview</span>
-                  <span className="text-sm text-muted-foreground">{complianceScore}%</span>
-                </div>
-                <Progress value={complianceScore} className="h-2" />
-                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div>
-                    <p className="text-2xl font-semibold">{aggregatedCompliance.totalDocuments}</p>
-                    <p className="text-xs text-muted-foreground">Total Documents</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
-                      {aggregatedCompliance.compliantDocuments}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Compliant</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400">
-                      {aggregatedCompliance.reviewRequired}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Review Required</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-                      {aggregatedCompliance.overdueDocuments}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Overdue</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Sites</h4>
-              </div>
-              <div className="space-y-3">
-                {group.sites.map((site) => (
-                  <SiteCard key={site.id} site={site} onManage={onManageSite} />
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+    <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+      <XCircle className="mr-1 h-3 w-3" />
+      {score}%
+    </Badge>
   );
 }
 
@@ -362,30 +177,9 @@ export default function Sites() {
   const filteredSites = sites?.filter((site) =>
     site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     site.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.companyNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+    site.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    site.siteManager?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const groupedByCompany: CompanyGroup[] = [];
-  if (filteredSites) {
-    const companyMap = new Map<string, SiteWithDetails[]>();
-    filteredSites.forEach((site) => {
-      const companyName = site.companyName || "Unassigned";
-      if (!companyMap.has(companyName)) {
-        companyMap.set(companyName, []);
-      }
-      companyMap.get(companyName)!.push(site);
-    });
-
-    companyMap.forEach((companySites, companyName) => {
-      groupedByCompany.push({
-        companyName,
-        companyNumber: companySites[0]?.companyNumber ?? undefined,
-        sites: companySites,
-      });
-    });
-
-    groupedByCompany.sort((a, b) => a.companyName.localeCompare(b.companyName));
-  }
 
   if (isLoading) {
     return (
@@ -394,11 +188,8 @@ export default function Sites() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -409,7 +200,7 @@ export default function Sites() {
         <div>
           <h1 className="text-3xl font-semibold">Sites</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage sites grouped by company
+            {filteredSites?.length || 0} sites total
           </p>
         </div>
         <Button onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
@@ -422,7 +213,7 @@ export default function Sites() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search sites or companies..."
+            placeholder="Search sites, companies, addresses..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -431,12 +222,74 @@ export default function Sites() {
         </div>
       </div>
 
-      {groupedByCompany.length > 0 ? (
-        <div className="space-y-4">
-          {groupedByCompany.map((group) => (
-            <CompanyGroupCard key={group.companyName} group={group} onManageSite={handleManageSite} />
-          ))}
-        </div>
+      {filteredSites && filteredSites.length > 0 ? (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Site Name</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead className="hidden md:table-cell">Address</TableHead>
+                <TableHead className="hidden lg:table-cell">Site Manager</TableHead>
+                <TableHead>Modules</TableHead>
+                <TableHead>Compliance</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSites.map((site) => (
+                <TableRow 
+                  key={site.id} 
+                  className="cursor-pointer hover-elevate"
+                  onClick={() => handleManageSite(site.id)}
+                  data-testid={`row-site-${site.id}`}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium">{site.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{site.companyName || "—"}</span>
+                    {site.companyNumber && (
+                      <span className="block text-xs text-muted-foreground">
+                        #{site.companyNumber}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <span className="text-sm text-muted-foreground">
+                      {site.address || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <span className="text-sm">{site.siteManager || "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <ModuleStatusBadges moduleAccess={site.moduleAccess} />
+                  </TableCell>
+                  <TableCell>
+                    <ComplianceBadge summary={site.complianceSummary} />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleManageSite(site.id);
+                      }}
+                      data-testid={`button-manage-site-${site.id}`}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
