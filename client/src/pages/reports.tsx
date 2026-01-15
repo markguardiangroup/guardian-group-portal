@@ -43,11 +43,11 @@ import {
   EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ComplianceSummary, Entity, SiteWithDetails } from "@shared/schema";
+import type { ComplianceSummary, Site, SiteWithDetails } from "@shared/schema";
 
 interface ReportData {
   summary: ComplianceSummary;
-  sites: Entity[];
+  sites: Site[];
   monthlyTrend: { month: string; score: number }[];
 }
 
@@ -471,7 +471,7 @@ export default function Reports() {
                         <span className="text-sm text-muted-foreground">None assigned</span>
                       )}
                     </TableCell>
-                    <TableCell>{entity.sites?.length || 0}</TableCell>
+                    <TableCell>1</TableCell>
                     <TableCell className="text-center">
                       <Badge
                         variant="outline"
@@ -534,7 +534,7 @@ export default function Reports() {
                         entity.companyNumber || "",
                         consultantNames,
                         primaryConsultant,
-                        entity.sites?.length || 0,
+                        1,
                         entity.moduleAccess?.health_safety || "hidden",
                         entity.moduleAccess?.human_resources || "hidden",
                         entity.moduleAccess?.employment_law || "hidden",

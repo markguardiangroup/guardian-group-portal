@@ -69,7 +69,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
-import type { Entity, Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest } from "@shared/schema";
+import type { Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest } from "@shared/schema";
 
 type ModuleStatus = "active" | "visible" | "hidden";
 
@@ -111,13 +111,13 @@ const statusLabels: Record<ModuleStatus, string> = {
   hidden: "Hidden",
 };
 
-function OverviewTab({ entity, sites, onEditEntity }: { entity: Entity; sites: Site[]; onEditEntity: () => void }) {
+function OverviewTab({ entity, sites, onEditSite }: { entity: Site; sites: Site[]; onEditSite: () => void }) {
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">Company Information</CardTitle>
-          <Button variant="outline" size="sm" onClick={onEditEntity} data-testid="button-edit-entity">
+          <Button variant="outline" size="sm" onClick={onEditSite} data-testid="button-edit-site">
             <Pencil className="mr-2 h-4 w-4" />
             Edit Details
           </Button>
@@ -426,7 +426,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Remove from Entity
+                            Remove from Site
                           </DropdownMenuItem>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -1111,13 +1111,13 @@ function AccessRequestsTab({ siteId }: { siteId: string }) {
   );
 }
 
-export default function EntityDetail() {
+export default function SiteDetail() {
   const params = useParams<{ siteId: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const siteId = params.siteId;
-  const [isEditEntityOpen, setIsEditEntityOpen] = useState(false);
-  const [editEntityData, setEditEntityData] = useState({
+  const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
+  const [editSiteData, setEditSiteData] = useState({
     name: "",
     companyNumber: "",
     address: "",
@@ -1126,7 +1126,7 @@ export default function EntityDetail() {
     website: "",
   });
 
-  const { data: entity, isLoading: entityLoading } = useQuery<Entity>({
+  const { data: entity, isLoading: entityLoading } = useQuery<Site>({
     queryKey: ["/api/sites", siteId],
     enabled: !!siteId,
   });
@@ -1136,25 +1136,25 @@ export default function EntityDetail() {
     enabled: !!siteId,
   });
 
-  const updateEntityMutation = useMutation({
-    mutationFn: async (data: typeof editEntityData) => {
+  const updateSiteMutation = useMutation({
+    mutationFn: async (data: typeof editSiteData) => {
       const response = await apiRequest("PATCH", `/api/sites/${siteId}`, data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Entity updated successfully" });
-      setIsEditEntityOpen(false);
+      toast({ title: "Site updated successfully" });
+      setIsEditSiteOpen(false);
     },
     onError: () => {
-      toast({ title: "Failed to update entity", variant: "destructive" });
+      toast({ title: "Failed to update site", variant: "destructive" });
     },
   });
 
-  const handleEditEntity = () => {
+  const handleEditSite = () => {
     if (entity) {
-      setEditEntityData({
+      setEditSiteData({
         name: entity.name || "",
         companyNumber: entity.companyNumber || "",
         address: entity.address || "",
@@ -1162,16 +1162,16 @@ export default function EntityDetail() {
         contactPhone: entity.contactPhone || "",
         website: entity.website || "",
       });
-      setIsEditEntityOpen(true);
+      setIsEditSiteOpen(true);
     }
   };
 
-  const handleSaveEntity = () => {
-    if (!editEntityData.name.trim()) {
-      toast({ title: "Entity name is required", variant: "destructive" });
+  const handleSaveSite = () => {
+    if (!editSiteData.name.trim()) {
+      toast({ title: "Site name is required", variant: "destructive" });
       return;
     }
-    updateEntityMutation.mutate(editEntityData);
+    updateSiteMutation.mutate(editSiteData);
   };
 
   if (entityLoading) {
@@ -1188,10 +1188,10 @@ export default function EntityDetail() {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold">Entity Not Found</h2>
-          <p className="mt-2 text-muted-foreground">The entity you're looking for doesn't exist.</p>
-          <Button className="mt-4" onClick={() => navigate("/entities")}>
-            Back to Entities
+          <h2 className="text-xl font-semibold">Site Not Found</h2>
+          <p className="mt-2 text-muted-foreground">The site you're looking for doesn't exist.</p>
+          <Button className="mt-4" onClick={() => navigate("/sites")}>
+            Back to Sites
           </Button>
         </div>
       </div>
@@ -1204,7 +1204,7 @@ export default function EntityDetail() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/entities")}
+          onClick={() => navigate("/sites")}
           data-testid="button-back"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -1254,7 +1254,7 @@ export default function EntityDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} onEditEntity={handleEditEntity} />
+          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} />
         </TabsContent>
 
         <TabsContent value="consultants">
@@ -1278,85 +1278,85 @@ export default function EntityDetail() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isEditEntityOpen} onOpenChange={setIsEditEntityOpen}>
+      <Dialog open={isEditSiteOpen} onOpenChange={setIsEditSiteOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Entity Details</DialogTitle>
+            <DialogTitle>Edit Site Details</DialogTitle>
             <DialogDescription>
-              Update the company information for this entity.
+              Update the company information for this site.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="entity-name">Company Name *</Label>
+              <Label htmlFor="site-name">Company Name *</Label>
               <Input
-                id="entity-name"
-                value={editEntityData.name}
-                onChange={(e) => setEditEntityData({ ...editEntityData, name: e.target.value })}
+                id="site-name"
+                value={editSiteData.name}
+                onChange={(e) => setEditSiteData({ ...editSiteData, name: e.target.value })}
                 placeholder="Enter company name"
-                data-testid="input-entity-name"
+                data-testid="input-site-name"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="entity-company-number">Company Number</Label>
+              <Label htmlFor="site-company-number">Company Number</Label>
               <Input
-                id="entity-company-number"
-                value={editEntityData.companyNumber}
-                onChange={(e) => setEditEntityData({ ...editEntityData, companyNumber: e.target.value })}
+                id="site-company-number"
+                value={editSiteData.companyNumber}
+                onChange={(e) => setEditSiteData({ ...editSiteData, companyNumber: e.target.value })}
                 placeholder="Enter company registration number"
-                data-testid="input-entity-company-number"
+                data-testid="input-site-company-number"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="entity-address">Address</Label>
+              <Label htmlFor="site-address">Address</Label>
               <Input
-                id="entity-address"
-                value={editEntityData.address}
-                onChange={(e) => setEditEntityData({ ...editEntityData, address: e.target.value })}
+                id="site-address"
+                value={editSiteData.address}
+                onChange={(e) => setEditSiteData({ ...editSiteData, address: e.target.value })}
                 placeholder="Enter company address"
-                data-testid="input-entity-address"
+                data-testid="input-site-address"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="entity-email">Contact Email</Label>
+                <Label htmlFor="site-email">Contact Email</Label>
                 <Input
-                  id="entity-email"
+                  id="site-email"
                   type="email"
-                  value={editEntityData.contactEmail}
-                  onChange={(e) => setEditEntityData({ ...editEntityData, contactEmail: e.target.value })}
+                  value={editSiteData.contactEmail}
+                  onChange={(e) => setEditSiteData({ ...editSiteData, contactEmail: e.target.value })}
                   placeholder="email@example.com"
-                  data-testid="input-entity-email"
+                  data-testid="input-site-email"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="entity-phone">Contact Phone</Label>
+                <Label htmlFor="site-phone">Contact Phone</Label>
                 <Input
-                  id="entity-phone"
-                  value={editEntityData.contactPhone}
-                  onChange={(e) => setEditEntityData({ ...editEntityData, contactPhone: e.target.value })}
+                  id="site-phone"
+                  value={editSiteData.contactPhone}
+                  onChange={(e) => setEditSiteData({ ...editSiteData, contactPhone: e.target.value })}
                   placeholder="+44 123 456 7890"
-                  data-testid="input-entity-phone"
+                  data-testid="input-site-phone"
                 />
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="entity-website">Website</Label>
+              <Label htmlFor="site-website">Website</Label>
               <Input
-                id="entity-website"
-                value={editEntityData.website}
-                onChange={(e) => setEditEntityData({ ...editEntityData, website: e.target.value })}
+                id="site-website"
+                value={editSiteData.website}
+                onChange={(e) => setEditSiteData({ ...editSiteData, website: e.target.value })}
                 placeholder="https://www.example.com"
-                data-testid="input-entity-website"
+                data-testid="input-site-website"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditEntityOpen(false)} data-testid="button-cancel-edit-entity">
+            <Button variant="outline" onClick={() => setIsEditSiteOpen(false)} data-testid="button-cancel-edit-site">
               Cancel
             </Button>
-            <Button onClick={handleSaveEntity} disabled={updateEntityMutation.isPending} data-testid="button-save-entity">
-              {updateEntityMutation.isPending ? "Saving..." : "Save Changes"}
+            <Button onClick={handleSaveSite} disabled={updateSiteMutation.isPending} data-testid="button-save-site">
+              {updateSiteMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

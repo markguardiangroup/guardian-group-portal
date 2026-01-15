@@ -148,7 +148,7 @@ export default function SiteModuleAccess() {
   const [page, setPage] = useState(1);
   const [filterModule, setFilterModule] = useState<ModuleType | "all">("all");
   const [filterStatus, setFilterStatus] = useState<ModuleAccessStatus | "all">("all");
-  const [selectedEntities, setSelectedEntities] = useState<Set<string>>(new Set());
+  const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
@@ -194,10 +194,10 @@ export default function SiteModuleAccess() {
       sites.forEach(e => {
         queryClient.invalidateQueries({ queryKey: [`/api/sites/${e.id}/module-access`] });
       });
-      setSelectedEntities(new Set());
+      setSelectedSites(new Set());
       toast({
         title: "Bulk Update Complete",
-        description: `Updated ${selectedEntities.size} sites.`,
+        description: `Updated ${selectedSites.size} sites.`,
       });
     },
     onError: () => {
@@ -211,42 +211,42 @@ export default function SiteModuleAccess() {
 
   const isAdmin = user?.role === "admin" || user?.role === "consultant";
 
-  const filteredEntities = useMemo(() => {
+  const filteredSites = useMemo(() => {
     return sites.filter(entity => {
       if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) {
         return false;
       }
       return true;
     });
-  }, [entities, search]);
+  }, [sites, search]);
 
-  const totalPages = Math.ceil(filteredEntities.length / ITEMS_PER_PAGE);
-  const paginatedEntities = filteredEntities.slice(
+  const totalPages = Math.ceil(filteredSites.length / ITEMS_PER_PAGE);
+  const paginatedSites = filteredSites.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE
   );
 
   const toggleSelectAll = () => {
-    if (selectedEntities.size === paginatedEntities.length) {
-      setSelectedEntities(new Set());
+    if (selectedSites.size === paginatedSites.length) {
+      setSelectedSites(new Set());
     } else {
-      setSelectedEntities(new Set(paginatedEntities.map(e => e.id)));
+      setSelectedSites(new Set(paginatedSites.map(e => e.id)));
     }
   };
 
-  const toggleSelectEntity = (siteId: string) => {
-    const newSelected = new Set(selectedEntities);
+  const toggleSelectSite = (siteId: string) => {
+    const newSelected = new Set(selectedSites);
     if (newSelected.has(siteId)) {
       newSelected.delete(siteId);
     } else {
       newSelected.add(siteId);
     }
-    setSelectedEntities(newSelected);
+    setSelectedSites(newSelected);
   };
 
   const handleBulkUpdate = (module: ModuleType, status: ModuleAccessStatus) => {
     bulkUpdateMutation.mutate({
-      siteIds: Array.from(selectedEntities),
+      siteIds: Array.from(selectedSites),
       module,
       status,
     });
@@ -259,7 +259,7 @@ export default function SiteModuleAccess() {
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              Only administrators and consultants can manage entity module access.
+              Only administrators and consultants can manage site module access.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -280,9 +280,9 @@ export default function SiteModuleAccess() {
   return (
     <div className="space-y-6 p-8">
       <div>
-        <h1 className="text-3xl font-semibold">Entity Module Access</h1>
+        <h1 className="text-3xl font-semibold">Site Module Access</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage which modules each entity can access ({sites.length} entities)
+          Manage which modules each site can access ({sites.length} sites)
         </p>
       </div>
 
@@ -297,16 +297,16 @@ export default function SiteModuleAccess() {
               setPage(1);
             }}
             className="pl-9"
-            data-testid="input-search-entities"
+            data-testid="input-search-sites"
           />
         </div>
 
-        {selectedEntities.size > 0 && (
+        {selectedSites.size > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" data-testid="button-bulk-actions">
                 <Settings2 className="h-4 w-4 mr-2" />
-                Bulk Actions ({selectedEntities.size})
+                Bulk Actions ({selectedSites.size})
                 <ChevronDown className="h-4 w-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
@@ -362,12 +362,12 @@ export default function SiteModuleAccess() {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedEntities.size === paginatedEntities.length && paginatedEntities.length > 0}
+                  checked={selectedSites.size === paginatedSites.length && paginatedSites.length > 0}
                   onCheckedChange={toggleSelectAll}
                   data-testid="checkbox-select-all"
                 />
               </TableHead>
-              <TableHead>Entity</TableHead>
+              <TableHead>Site</TableHead>
               {modules.map(mod => {
                 const Icon = mod.icon;
                 return (
@@ -383,19 +383,19 @@ export default function SiteModuleAccess() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedEntities.length === 0 ? (
+            {paginatedSites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  {search ? "No entities match your search." : "No entities found."}
+                  {search ? "No sites match your search." : "No sites found."}
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedEntities.map(entity => (
-                <EntityRow
+              paginatedSites.map(entity => (
+                <SiteRow
                   key={entity.id}
                   entity={entity}
-                  isSelected={selectedEntities.has(entity.id)}
-                  onToggleSelect={() => toggleSelectEntity(entity.id)}
+                  isSelected={selectedSites.has(entity.id)}
+                  onToggleSelect={() => toggleSelectSite(entity.id)}
                   onUpdateAccess={(module, status) => {
                     updateAccessMutation.mutate({ siteId: entity.id, module, status });
                   }}
@@ -410,7 +410,7 @@ export default function SiteModuleAccess() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, filteredEntities.length)} of {filteredEntities.length} entities
+            Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, filteredSites.length)} of {filteredSites.length} sites
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -443,7 +443,7 @@ export default function SiteModuleAccess() {
   );
 }
 
-function EntityRow({ 
+function SiteRow({ 
   entity, 
   isSelected,
   onToggleSelect,
@@ -466,7 +466,7 @@ function EntityRow({
   };
 
   return (
-    <TableRow data-testid={`row-entity-${entity.id}`}>
+    <TableRow data-testid={`row-site-${entity.id}`}>
       <TableCell>
         <Checkbox
           checked={isSelected}
@@ -481,9 +481,11 @@ function EntityRow({
           </div>
           <div>
             <p className="font-medium">{entity.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {entity.sites?.length || 0} site{entity.sites?.length !== 1 ? "s" : ""}
-            </p>
+            {entity.companyName && (
+              <p className="text-xs text-muted-foreground">
+                {entity.companyName}
+              </p>
+            )}
           </div>
         </div>
       </TableCell>

@@ -297,16 +297,16 @@ export default function Dashboard() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   
   const isClientUser = user?.role === "client";
-  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
+  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for admin/consultant users
   const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectEntities,
+    enabled: canSelectSites,
   });
   
-  // Determine which entity to show data for
-  // "all" means show data across all entities
+  // Determine which site to show data for
+  // "all" means show data across all sites
   const siteId = isClientUser 
     ? user?.siteId 
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
@@ -324,11 +324,11 @@ export default function Dashboard() {
   });
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
-  const currentEntityName = canSelectEntities 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
+  const currentSiteName = canSelectSites 
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(s => s.id === siteId)?.name)
     : null;
 
-  if (isLoading || isAuthLoading || (canSelectEntities && sitesLoading)) {
+  if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -362,11 +362,11 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold">Compliance Overview</h1>
           <p className="mt-1 text-muted-foreground">
             Monitor compliance across all modules
-            {currentEntityName && <span className="font-medium"> - {currentEntityName}</span>}
+            {currentSiteName && <span className="font-medium"> - {currentSiteName}</span>}
           </p>
         </div>
         {/* Site selector for admin/consultant oversight */}
-        {canSelectEntities && sites && sites.length > 0 && (
+        {canSelectSites && sites && sites.length > 0 && (
           <SiteCombobox
             sites={sites}
             value={selectedSiteId}
@@ -422,9 +422,9 @@ export default function Dashboard() {
               </Button>
             )}
             <Button variant="outline" className="justify-start" asChild>
-              <Link href="/entities" data-testid="link-entities">
+              <Link href="/sites" data-testid="link-sites">
                 <FileText className="mr-2 h-4 w-4" />
-                Manage Entities
+                Manage Sites
               </Link>
             </Button>
             <Button variant="outline" className="justify-start" asChild>

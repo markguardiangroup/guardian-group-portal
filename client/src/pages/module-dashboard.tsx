@@ -20,7 +20,7 @@ import {
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
-import type { ComplianceSummary, Document, AuditLog, ModuleType, Entity } from "@shared/schema";
+import type { ComplianceSummary, Document, AuditLog, ModuleType, Site } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 
 interface ModuleDashboardData {
@@ -132,16 +132,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
-  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
+  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch entities for admin/consultant users
-  const { data: entities, isLoading: sitesLoading } = useQuery<Entity[]>({
+  // Fetch sites for admin/consultant users
+  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectEntities,
+    enabled: canSelectSites,
   });
   
-  // Determine which entity to show data for
-  // "all" means show data across all entities
+  // Determine which site to show data for
+  // "all" means show data across all sites
   const siteId = user?.role === "client" 
     ? user?.siteId 
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
@@ -158,11 +158,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     },
   });
   
-  const currentEntityName = canSelectEntities 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
+  const currentSiteName = canSelectSites 
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find((s: Site) => s.id === siteId)?.name)
     : null;
 
-  if (isLoading || isAuthLoading || (canSelectEntities && sitesLoading)) {
+  if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -213,19 +213,19 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <h1 className="text-3xl font-semibold">{config.name}</h1>
               <p className="text-muted-foreground">
                 Module compliance overview
-                {currentEntityName && <span className="font-medium"> - {currentEntityName}</span>}
+                {currentSiteName && <span className="font-medium"> - {currentSiteName}</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {/* Entity selector for admin/consultant oversight */}
-            {canSelectEntities && entities && sites.length > 0 && (
+            {/* Site selector for admin/consultant oversight */}
+            {canSelectSites && sites && sites.length > 0 && (
               <SiteCombobox
-                entities={entities}
+                sites={sites}
                 value={selectedSiteId}
                 onValueChange={setSelectedSiteId}
                 className="w-56"
-                testId="select-entity-module-dashboard"
+                testId="select-site-module-dashboard"
               />
             )}
             <Button variant="outline" asChild>

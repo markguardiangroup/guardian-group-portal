@@ -108,7 +108,7 @@ interface ModuleDocumentsProps {
   module: ModuleType;
 }
 
-interface EntityBasic {
+interface SiteBasic {
   id: string;
   name: string;
 }
@@ -126,11 +126,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
-  // Consultants and admins can view different entities
+  // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
   
-  // Fetch entities for consultant/admin users
-  const { data: entities } = useQuery<EntityBasic[]>({
+  // Fetch sites for consultant/admin users
+  const { data: sites } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
     enabled: !isClientUser,
   });
@@ -143,9 +143,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/document-types"],
   });
 
-  // Determine which entity to show access for
-  // "all" means show data across all entities
-  const canSelectEntities = user?.role === "admin" || user?.role === "consultant";
+  // Determine which site to show access for
+  // "all" means show data across all sites
+  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   const siteId = isClientUser 
     ? (user?.siteId || null)
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
@@ -159,8 +159,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
   
   // Get current site name
-  const currentEntityName = canSelectEntities 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : entities?.find((e: EntityBasic) => e.id === siteId)?.name)
+  const currentSiteName = canSelectSites 
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find((s: SiteBasic) => s.id === siteId)?.name)
     : null;
 
   const filteredDocuments = documents?.filter((doc) => {
@@ -216,9 +216,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {/* Site selector for admin/consultant oversight */}
-            {canSelectEntities && entities && entities.length > 0 && (
+            {canSelectSites && sites && sites.length > 0 && (
               <SiteCombobox
-                sites={entities}
+                sites={sites}
                 value={selectedSiteId}
                 onValueChange={setSelectedSiteId}
                 className="w-64"
@@ -251,9 +251,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <div>
                       <CardTitle className="text-base flex items-center gap-2">
                         Your Document Type Access
-                        {currentEntityName && (
+                        {currentSiteName && (
                           <span className="text-sm font-normal text-muted-foreground">
-                            ({currentEntityName})
+                            ({currentSiteName})
                           </span>
                         )}
                       </CardTitle>
@@ -281,7 +281,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <CollapsibleContent>
               <CardContent className="pt-0">
                 {/* Site selector for consultants/admins */}
-                {!isClientUser && entities && entities.length > 1 && (
+                {!isClientUser && sites && sites.length > 1 && (
                   <div className="mb-4 flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">View access for:</span>
                     <Select 
@@ -292,7 +292,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <SelectValue placeholder="Select site" />
                       </SelectTrigger>
                       <SelectContent>
-                        {entities.map((site: EntityBasic) => (
+                        {sites.map((site: SiteBasic) => (
                           <SelectItem key={site.id} value={site.id}>
                             {site.name}
                           </SelectItem>
@@ -616,7 +616,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Entity</p>
+                  <p className="text-sm font-medium text-muted-foreground">Company</p>
                   <p>{document.companyName || "N/A"}</p>
                 </div>
                 <div>

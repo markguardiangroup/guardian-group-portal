@@ -77,10 +77,10 @@ interface UserWithAssignments {
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
-  entityAssignments?: SiteAssignment[];
+  siteAssignments?: SiteAssignment[];
 }
 
-interface Entity {
+interface SiteBasic {
   id: string;
   name: string;
 }
@@ -137,24 +137,24 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
-  const { data: sites = [] } = useQuery<Entity[]>({
+  const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
     enabled: isAdmin || isConsultant,
   });
 
-  const usersWithEntityInfo = allUsers.map((u) => {
+  const usersWithSiteInfo = allUsers.map((u) => {
     if (u.role === "consultant") {
       const consultantData = consultantsWithAssignments.find((c) => c.id === u.id);
       return {
         ...u,
-        entityAssignments: consultantData?.entityAssignments || [],
+        siteAssignments: consultantData?.siteAssignments || [],
       };
     }
     if (u.role === "client" && u.siteId) {
-      const entity = sites.find((e) => e.id === u.siteId);
+      const site = sites.find((s) => s.id === u.siteId);
       return {
         ...u,
-        companyName: entity?.name || null,
+        companyName: site?.name || null,
       };
     }
     return u;
@@ -176,8 +176,8 @@ export default function UserManagement() {
   }
 
   const getVisibleUsers = () => {
-    if (isAdmin) return usersWithEntityInfo;
-    if (isConsultant) return usersWithEntityInfo.filter((u) => u.role === "client");
+    if (isAdmin) return usersWithSiteInfo;
+    if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
     return [];
   };
 
@@ -222,12 +222,12 @@ export default function UserManagement() {
   };
 
   const renderSiteAssignments = (u: UserWithAssignments & { companyName?: string | null }) => {
-    if (u.role === "consultant" && u.entityAssignments && u.entityAssignments.length > 0) {
-      const primaryAssignment = u.entityAssignments.find((a) => a.isPrimary);
-      const otherAssignments = u.entityAssignments.filter((a) => !a.isPrimary);
+    if (u.role === "consultant" && u.siteAssignments && u.siteAssignments.length > 0) {
+      const primaryAssignment = u.siteAssignments.find((a) => a.isPrimary);
+      const otherAssignments = u.siteAssignments.filter((a) => !a.isPrimary);
       const displayCount = 2;
-      const visibleAssignments = u.entityAssignments.slice(0, displayCount);
-      const remainingCount = u.entityAssignments.length - displayCount;
+      const visibleAssignments = u.siteAssignments.slice(0, displayCount);
+      const remainingCount = u.siteAssignments.length - displayCount;
 
       return (
         <div className="flex flex-wrap items-center gap-1">
@@ -236,7 +236,7 @@ export default function UserManagement() {
               key={a.siteId}
               variant="outline"
               className="text-xs"
-              data-testid={`badge-entity-${a.siteId}`}
+              data-testid={`badge-site-${a.siteId}`}
             >
               {a.isPrimary && <Shield className="h-3 w-3 mr-1" />}
               {a.companyName}
@@ -251,7 +251,7 @@ export default function UserManagement() {
               </TooltipTrigger>
               <TooltipContent>
                 <div className="space-y-1">
-                  {u.entityAssignments.slice(displayCount).map((a) => (
+                  {u.siteAssignments.slice(displayCount).map((a) => (
                     <div key={a.siteId} className="text-xs">
                       {a.isPrimary && "(Primary) "}
                       {a.companyName}
@@ -279,11 +279,11 @@ export default function UserManagement() {
     }
 
     if (u.role === "client" && u.siteId) {
-      const entity = sites.find((e) => e.id === u.siteId);
+      const site = sites.find((s) => s.id === u.siteId);
       return (
         <div className="flex items-center gap-1.5 text-sm">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          {entity?.name || "Unknown Entity"}
+          {site?.name || "Unknown Site"}
         </div>
       );
     }
@@ -306,7 +306,7 @@ export default function UserManagement() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Assigned Entities</TableHead>
+                <TableHead>Assigned Sites</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead className="w-12"></TableHead>
