@@ -46,6 +46,20 @@ export const insertCompanySchema = createInsertSchema(companies).omit({ id: true
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
 
+// Extended company type with site count for listings
+export type CompanyWithSiteCount = Company & {
+  siteCount: number;
+};
+
+// Paginated response for companies
+export type PaginatedCompaniesResponse = {
+  companies: CompanyWithSiteCount[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

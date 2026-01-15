@@ -1,7 +1,7 @@
 import { 
   type User, type InsertUser,
   type Site, type InsertSite,
-  type Company, type InsertCompany,
+  type Company, type InsertCompany, type CompanyWithSiteCount,
   type Document, type InsertDocument,
   type DocumentVersion, type InsertDocumentVersion,
   type DocumentFolder, type InsertDocumentFolder,
@@ -45,6 +45,7 @@ export interface IStorage {
   
   // Companies
   getCompanies(): Promise<Company[]>;
+  getCompaniesWithSiteCount(): Promise<CompanyWithSiteCount[]>;
   getCompany(id: string): Promise<Company | undefined>;
   createCompany(company: InsertCompany): Promise<Company>;
   updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined>;
@@ -53,6 +54,7 @@ export interface IStorage {
   getSites(): Promise<Site[]>;
   getSitesWithCompany(): Promise<SiteWithCompany[]>;
   getSitesWithDetails(): Promise<SiteWithDetails[]>;
+  getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]>;
   getSite(id: string): Promise<Site | undefined>;
   getSitesByCompanyId(companyId: string): Promise<Site[]>;
   createSite(site: InsertSite): Promise<Site>;
@@ -1653,6 +1655,54 @@ export class MemStorage implements IStorage {
     }));
   }
 
+  async getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]> {
+    // Filter sites first to avoid processing unrelated sites
+    const companySites = Array.from(this.sites.values()).filter(s => s.companyId === companyId);
+    const company = this.companies.get(companyId);
+    
+    return Promise.all(companySites.map(async (site) => {
+      const summary = await this.getSiteComplianceSummary(site.id);
+      const moduleAccessList = await this.getSiteModuleAccess(site.id);
+      
+      const moduleAccess: {
+        health_safety: "active" | "visible" | "hidden";
+        human_resources: "active" | "visible" | "hidden";
+        employment_law: "active" | "visible" | "hidden";
+      } = {
+        health_safety: "hidden",
+        human_resources: "hidden",
+        employment_law: "hidden",
+      };
+      
+      for (const access of moduleAccessList) {
+        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law") {
+          moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
+        }
+      }
+      
+      const assignments = await this.getConsultantAssignments(site.id);
+      const assignedConsultants = await Promise.all(
+        assignments.map(async (assignment: ConsultantAssignment) => {
+          const user = await this.getUser(assignment.consultantId);
+          return {
+            id: assignment.consultantId,
+            name: user?.fullName || "Unknown",
+            isPrimary: assignment.isPrimary,
+          };
+        })
+      );
+      
+      return { 
+        ...site, 
+        companyName: company?.name,
+        companyNumber: company?.companyNumber ?? undefined,
+        complianceSummary: summary, 
+        moduleAccess, 
+        assignedConsultants 
+      };
+    }));
+  }
+
   async getSite(id: string): Promise<Site | undefined> {
     return this.sites.get(id);
   }
@@ -1701,6 +1751,22 @@ export class MemStorage implements IStorage {
   // Company CRUD
   async getCompanies(): Promise<Company[]> {
     return Array.from(this.companies.values());
+  }
+
+  async getCompaniesWithSiteCount(): Promise<CompanyWithSiteCount[]> {
+    const companies = Array.from(this.companies.values());
+    const sites = Array.from(this.sites.values());
+    
+    // Single pass to count sites per company - O(sites) instead of O(companies * sites)
+    const siteCountByCompany = new Map<string, number>();
+    for (const site of sites) {
+      siteCountByCompany.set(site.companyId, (siteCountByCompany.get(site.companyId) || 0) + 1);
+    }
+    
+    return companies.map(company => ({
+      ...company,
+      siteCount: siteCountByCompany.get(company.id) || 0
+    }));
   }
 
   async getCompany(id: string): Promise<Company | undefined> {

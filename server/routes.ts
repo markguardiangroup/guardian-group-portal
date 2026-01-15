@@ -1360,15 +1360,16 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      const allCompanies = await storage.getCompanies();
+      // Parse query parameters for pagination and search
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const search = (req.query.search as string || "").toLowerCase();
       
-      // Admin sees all companies
-      if (user.role === "admin") {
-        res.json(allCompanies);
-        return;
-      }
+      const allCompanies = await storage.getCompaniesWithSiteCount();
       
-      // Consultant sees only companies of their assigned sites
+      let filteredCompanies = allCompanies;
+      
+      // Role-based filtering
       if (user.role === "consultant") {
         const assignments = await storage.getConsultantSites(user.id);
         const siteCompanyIds = new Set<string>();
@@ -1376,22 +1377,85 @@ export async function registerRoutes(
           const site = await storage.getSite(a.siteId);
           if (site) siteCompanyIds.add(site.companyId);
         }
-        const filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
-        res.json(filteredCompanies);
-        return;
+        filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
+      } else if (user.role === "client" && user.companyId) {
+        filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
+      } else if (user.role !== "admin") {
+        filteredCompanies = [];
       }
       
-      // Client sees only their company
-      if (user.role === "client" && user.companyId) {
-        const filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
-        res.json(filteredCompanies);
-        return;
+      // Apply search filter
+      if (search) {
+        filteredCompanies = filteredCompanies.filter(c => 
+          c.name.toLowerCase().includes(search) ||
+          c.companyNumber?.toLowerCase().includes(search)
+        );
       }
       
-      res.json([]);
+      // Sort alphabetically
+      filteredCompanies.sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Paginate
+      const total = filteredCompanies.length;
+      const totalPages = Math.ceil(total / limit);
+      const start = (page - 1) * limit;
+      const paginatedCompanies = filteredCompanies.slice(start, start + limit);
+      
+      res.json({
+        companies: paginatedCompanies,
+        total,
+        page,
+        limit,
+        totalPages
+      });
     } catch (error) {
       console.error("Companies error:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+  
+  // Get single company with sites
+  app.get("/api/companies/:companyId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Check access
+      if (user.role === "consultant") {
+        const assignments = await storage.getConsultantSites(user.id);
+        const siteCompanyIds = new Set<string>();
+        for (const a of assignments) {
+          const site = await storage.getSite(a.siteId);
+          if (site) siteCompanyIds.add(site.companyId);
+        }
+        if (!siteCompanyIds.has(company.id)) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } else if (user.role === "client") {
+        if (user.companyId !== company.id) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } else if (user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Get sites for this company (optimized - only fetches this company's sites)
+      const companySites = await storage.getSitesWithDetailsByCompanyId(company.id);
+      
+      res.json({
+        ...company,
+        sites: companySites
+      });
+    } catch (error) {
+      console.error("Company detail error:", error);
+      res.status(500).json({ error: "Failed to fetch company" });
     }
   });
 

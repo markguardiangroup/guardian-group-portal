@@ -19,6 +19,7 @@ import DocumentUpload from "@/pages/document-upload";
 import Sites from "@/pages/sites";
 import SiteDetail from "@/pages/site-detail";
 import Companies from "@/pages/companies";
+import CompanyDetail from "@/pages/company-detail";
 import HSChecklists from "@/pages/hs-checklists";
 import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
@@ -78,6 +79,7 @@ function Router() {
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
       <Route path="/companies" component={Companies} />
+      <Route path="/companies/:companyId" component={CompanyDetail} />
       <Route path="/sites" component={Sites} />
       <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/reports" component={Reports} />

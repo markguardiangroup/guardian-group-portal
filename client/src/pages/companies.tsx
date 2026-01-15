@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,9 @@ import {
   MapPin,
   Edit,
   MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,11 +37,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Company } from "@shared/schema";
+import type { CompanyWithSiteCount, PaginatedCompaniesResponse } from "@shared/schema";
 
-function CompanyCard({ company, onEdit }: { company: Company; onEdit: (company: Company) => void }) {
+function CompanyCard({ 
+  company, 
+  onEdit, 
+  onView 
+}: { 
+  company: CompanyWithSiteCount; 
+  onEdit: (company: CompanyWithSiteCount) => void;
+  onView: (companyId: string) => void;
+}) {
   return (
-    <Card className="hover-elevate">
+    <Card className="hover-elevate cursor-pointer" onClick={() => onView(company.id)}>
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
@@ -54,17 +66,30 @@ function CompanyCard({ company, onEdit }: { company: Company; onEdit: (company: 
                 )}
               </div>
               <div className="flex items-center gap-2">
+                <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
+                  {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
+                </Badge>
                 <Badge variant={company.status === "active" ? "default" : "secondary"}>
                   {company.status}
                 </Badge>
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" data-testid={`button-company-menu-${company.id}`}>
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onEdit(company)} data-testid={`button-edit-company-${company.id}`}>
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.stopPropagation(); onView(company.id); }} 
+                      data-testid={`button-view-company-${company.id}`}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Sites
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => { e.stopPropagation(); onEdit(company); }} 
+                      data-testid={`button-edit-company-${company.id}`}
+                    >
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
@@ -101,8 +126,11 @@ function CompanyCard({ company, onEdit }: { company: Company; onEdit: (company: 
 
 export default function Companies() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editingCompany, setEditingCompany] = useState<CompanyWithSiteCount | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
@@ -112,9 +140,29 @@ export default function Companies() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
+  const limit = 20;
 
-  const { data: companies, isLoading } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
+    queryKey: ["/api/companies", { page, limit, search: debouncedSearch }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(debouncedSearch && { search: debouncedSearch }),
+      });
+      const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch companies");
+      return response.json();
+    },
   });
 
   const createMutation = useMutation({
@@ -159,7 +207,7 @@ export default function Companies() {
     });
   };
 
-  const handleEdit = (company: Company) => {
+  const handleEdit = (company: CompanyWithSiteCount) => {
     setFormData({
       name: company.name,
       companyNumber: company.companyNumber || "",
@@ -169,6 +217,10 @@ export default function Companies() {
     });
     setEditingCompany(company);
   };
+
+  const handleView = useCallback((companyId: string) => {
+    navigate(`/companies/${companyId}`);
+  }, [navigate]);
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
@@ -182,14 +234,12 @@ export default function Companies() {
     }
   };
 
-  const filteredCompanies = companies?.filter((company) =>
-    company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    company.companyNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const isAdmin = user?.role === "admin";
+  const companies = data?.companies || [];
+  const total = data?.total || 0;
+  const totalPages = data?.totalPages || 1;
 
-  if (isLoading) {
+  if (isLoading && page === 1) {
     return (
       <div className="space-y-6 p-8">
         <div className="flex items-center justify-between gap-4">
@@ -211,7 +261,7 @@ export default function Companies() {
         <div>
           <h1 className="text-3xl font-semibold">Companies</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage client companies
+            {total} {total === 1 ? "company" : "companies"} total
           </p>
         </div>
         {isAdmin && (
@@ -235,12 +285,52 @@ export default function Companies() {
         </div>
       </div>
 
-      {filteredCompanies && filteredCompanies.length > 0 ? (
-        <div className="grid gap-4">
-          {filteredCompanies.map((company) => (
-            <CompanyCard key={company.id} company={company} onEdit={handleEdit} />
-          ))}
-        </div>
+      {companies.length > 0 ? (
+        <>
+          <div className="grid gap-4">
+            {companies.map((company) => (
+              <CompanyCard 
+                key={company.id} 
+                company={company} 
+                onEdit={handleEdit}
+                onView={handleView}
+              />
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  data-testid="button-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
