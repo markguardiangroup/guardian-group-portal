@@ -1102,50 +1102,84 @@ function EmploymentLawDashboardView() {
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length || 0;
   
+  // Build URL for View Documents with filter context
+  const viewDocumentsUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedSiteId && selectedSiteId !== "all") {
+      params.set("siteId", selectedSiteId);
+    } else if (selectedCompany && selectedCompany !== "all") {
+      params.set("company", selectedCompany);
+    }
+    const queryString = params.toString();
+    return queryString ? `/employment-law/documents?${queryString}` : "/employment-law/documents";
+  }, [selectedSiteId, selectedCompany]);
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-96" />
-        <div className="grid gap-4 md:grid-cols-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="theme-el">
+        <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+          <Skeleton className="h-14 w-96" />
+        </div>
+        <div className="space-y-6 p-8">
+          <div className="grid gap-4 md:grid-cols-4">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <EmploymentLawTabs activeTab="dashboard" />
-        
-        {canSelectSites && sites && sites.length > 0 && (
-          <div className="flex items-center gap-2">
-            <CompanyCombobox
-              sites={sites}
-              value={selectedCompany}
-              onValueChange={handleCompanyChange}
-              className="w-48"
-              testId="select-company-el"
-            />
-            <SiteCombobox
-              sites={filteredSites}
-              value={selectedSiteId}
-              onValueChange={setSelectedSiteId}
-              className="w-48"
-              testId="select-site-el"
-            />
+    <div className="theme-el">
+      {/* Module Header with tinted background */}
+      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <Scale className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">Employment Law</h1>
+              <p className="text-muted-foreground">
+                Module compliance overview
+                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              </p>
+            </div>
           </div>
-        )}
+          <div className="flex flex-wrap items-center gap-3">
+            {canSelectSites && sites && sites.length > 0 && (
+              <>
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-el"
+                />
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-48"
+                  testId="select-site-el"
+                />
+              </>
+            )}
+            <Button variant="outline" asChild>
+              <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
+                <FileText className="mr-2 h-4 w-4" />
+                View Documents
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
       
-      {currentContextLabel && (
-        <p className="text-muted-foreground">
-          Showing data for <span className="font-medium">{currentContextLabel}</span>
-        </p>
-      )}
+      <div className="space-y-6 p-8">
+        <EmploymentLawTabs activeTab="dashboard" />
       
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-l-4 border-l-pink-500">
@@ -1206,18 +1240,13 @@ function EmploymentLawDashboardView() {
       </div>
       
       <div className="flex gap-4">
-        <Button asChild className="bg-pink-600 hover:bg-pink-700">
-          <Link href="/employment-law/documents" data-testid="link-view-el-documents">
-            <FolderOpen className="mr-2 h-4 w-4" />
-            View Documents
-          </Link>
-        </Button>
         <Button asChild variant="outline">
           <Link href="/employment-law/cases" data-testid="link-view-el-cases">
             <Briefcase className="mr-2 h-4 w-4" />
             View Cases
           </Link>
         </Button>
+      </div>
       </div>
     </div>
   );
