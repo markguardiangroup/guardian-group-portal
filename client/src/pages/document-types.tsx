@@ -110,6 +110,7 @@ export default function DocumentTypesPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [moduleFilter, setModuleFilter] = useState<ModuleType | "all">("all");
+  const [folderFilter, setFolderFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -248,6 +249,16 @@ export default function DocumentTypesPage() {
     return folderTemplates.filter(t => t.module === selectedType.module && t.isActive);
   }, [selectedType, folderTemplates]);
 
+  // Get all unique folder names from folder templates for filtering
+  const allFolderNames = useMemo(() => {
+    if (!folderTemplates) return [];
+    const names = new Set<string>();
+    folderTemplates.forEach(t => {
+      if (t.isActive) names.add(t.name);
+    });
+    return Array.from(names).sort();
+  }, [folderTemplates]);
+
   const filteredTypes = useMemo(() => {
     if (!documentTypes) return [];
     
@@ -259,14 +270,27 @@ export default function DocumentTypesPage() {
       
       const matchesModule = moduleFilter === "all" || type.module === moduleFilter;
       
-      return matchesSearch && matchesModule;
+      // Folder filter - check if doc type is assigned to selected folder
+      let matchesFolder = true;
+      if (folderFilter !== "all") {
+        if (folderFilter === "unassigned") {
+          // Show only document types not assigned to any folder
+          matchesFolder = !docTypeToFolders.has(type.id) || docTypeToFolders.get(type.id)?.length === 0;
+        } else {
+          // Show only document types assigned to the selected folder
+          const folders = docTypeToFolders.get(type.id) || [];
+          matchesFolder = folders.includes(folderFilter);
+        }
+      }
+      
+      return matchesSearch && matchesModule && matchesFolder;
     }).sort((a, b) => {
       if (a.module !== b.module) {
         return a.module.localeCompare(b.module);
       }
       return a.sortOrder - b.sortOrder;
     });
-  }, [documentTypes, searchQuery, moduleFilter]);
+  }, [documentTypes, searchQuery, moduleFilter, folderFilter, docTypeToFolders]);
 
   const handleEdit = (type: DocumentTypeRecord) => {
     setSelectedType(type);
@@ -360,6 +384,19 @@ export default function DocumentTypesPage() {
                 <SelectItem value="employment_law">Employment Law</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={folderFilter} onValueChange={setFolderFilter}>
+              <SelectTrigger className="w-[180px]" data-testid="select-folder-filter">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by folder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Folders</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {allFolderNames.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -374,11 +411,11 @@ export default function DocumentTypesPage() {
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No document types found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchQuery || moduleFilter !== "all"
+                {searchQuery || moduleFilter !== "all" || folderFilter !== "all"
                   ? "Try adjusting your search or filter"
                   : "Get started by adding your first document type"}
               </p>
-              {!searchQuery && moduleFilter === "all" && (
+              {!searchQuery && moduleFilter === "all" && folderFilter === "all" && (
                 <Button onClick={() => setShowCreateDialog(true)} data-testid="button-add-first">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Document Type
