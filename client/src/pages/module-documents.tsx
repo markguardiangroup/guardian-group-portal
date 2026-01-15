@@ -158,9 +158,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const accessibleTypes = documentTypesWithAccess?.filter(dt => dt.hasAccess) || [];
   const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
   
-  // Get current entity name
+  // Get current site name
   const currentEntityName = canSelectEntities 
-    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : sites?.find(e => e.id === siteId)?.name)
+    ? (selectedSiteId === "all" || !selectedSiteId ? "All Clients" : entities?.find((e: EntityBasic) => e.id === siteId)?.name)
     : null;
 
   const filteredDocuments = documents?.filter((doc) => {
@@ -215,14 +215,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Entity selector for admin/consultant oversight */}
-            {canSelectEntities && entities && sites.length > 0 && (
+            {/* Site selector for admin/consultant oversight */}
+            {canSelectEntities && entities && entities.length > 0 && (
               <SiteCombobox
-                entities={entities}
+                sites={entities}
                 value={selectedSiteId}
                 onValueChange={setSelectedSiteId}
                 className="w-64"
-                testId="select-entity-header"
+                testId="select-site-header"
               />
             )}
             <Button className="bg-module-accent text-module-accent-foreground" asChild>
@@ -280,21 +280,21 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <CardContent className="pt-0">
-                {/* Entity selector for consultants/admins */}
-                {!isClientUser && entities && sites.length > 1 && (
+                {/* Site selector for consultants/admins */}
+                {!isClientUser && entities && entities.length > 1 && (
                   <div className="mb-4 flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">View access for:</span>
                     <Select 
                       value={siteId || ""} 
                       onValueChange={setSelectedSiteId}
                     >
-                      <SelectTrigger className="w-64" data-testid="select-entity-access">
-                        <SelectValue placeholder="Select client" />
+                      <SelectTrigger className="w-64" data-testid="select-site-access">
+                        <SelectValue placeholder="Select site" />
                       </SelectTrigger>
                       <SelectContent>
-                        {sites.map((entity) => (
-                          <SelectItem key={entity.id} value={entity.id}>
-                            {entity.name}
+                        {entities.map((site: EntityBasic) => (
+                          <SelectItem key={site.id} value={site.id}>
+                            {site.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
