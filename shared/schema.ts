@@ -316,6 +316,28 @@ export const insertDocumentTypeSchema = createInsertSchema(documentTypes).omit({
 export type InsertDocumentType = z.infer<typeof insertDocumentTypeSchema>;
 export type DocumentTypeRecord = typeof documentTypes.$inferSelect;
 
+// Document Folders (for organizing documents)
+export const documentFolders = pgTable("document_folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: text("module").$type<ModuleType>().notNull(),
+  siteId: varchar("site_id").notNull(),
+  parentId: varchar("parent_id"), // Reference to parent folder for nesting
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentFolderSchema = createInsertSchema(documentFolders).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertDocumentFolder = z.infer<typeof insertDocumentFolderSchema>;
+export type DocumentFolder = typeof documentFolders.$inferSelect;
+
 // Documents
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -324,6 +346,7 @@ export const documents = pgTable("documents", {
   module: text("module").$type<ModuleType>().notNull(),
   type: text("type").$type<DocumentType>().notNull(),
   documentTypeId: varchar("document_type_id"), // Reference to admin-managed document types
+  folderId: varchar("folder_id"), // Reference to folder for organization
   siteId: varchar("site_id").notNull(),
   caseId: varchar("case_id"),
   fileName: text("file_name").notNull(),
