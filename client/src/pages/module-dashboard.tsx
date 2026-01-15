@@ -175,9 +175,12 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     const companySites = sites.filter(s => s.companyName === selectedCompany);
     return companySites.map(s => s.id);
   }, [sites, selectedCompany, selectedSiteId]);
+  
+  // Create stable string key for company site IDs (avoid nested arrays in query keys)
+  const companySiteIdsKey = companySiteIds?.join(",") || null;
 
   const { data, isLoading } = useQuery<ModuleDashboardData>({
-    queryKey: ["/api/dashboard", module, siteId, companySiteIds],
+    queryKey: ["/api/dashboard", module, siteId, companySiteIdsKey],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) {

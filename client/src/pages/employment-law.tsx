@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation, Link, useRoute } from "wouter";
+import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SiteCombobox } from "@/components/site-combobox";
+import { CompanyCombobox } from "@/components/company-combobox";
 import {
   Select,
   SelectContent,
@@ -55,9 +58,11 @@ import {
   Users,
   Upload,
   Download,
+  LayoutDashboard,
+  FolderOpen,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType } from "@shared/schema";
+import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, Site, ComplianceSummary } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -99,7 +104,8 @@ function CaseTypeBadge({ type }: { type: CaseType }) {
   );
 }
 
-function EmploymentLawDashboard() {
+// Cases list component (reused by cases tab)
+function CasesList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -143,8 +149,7 @@ function EmploymentLawDashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
-        <Skeleton className="h-8 w-64" />
+      <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
@@ -157,31 +162,21 @@ function EmploymentLawDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
-              <Scale className="h-6 w-6" />
-              Employment Law
-            </h1>
-            <p className="text-pink-100">Manage individual case files and employment law matters</p>
-          </div>
-          {(user?.role === "admin" || user?.role === "consultant") && (
-            <Button 
-              onClick={() => setShowCreateDialog(true)}
-              variant="secondary"
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-              data-testid="button-create-case"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Case
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold">Case Files</h2>
+        {(user?.role === "admin" || user?.role === "consultant") && (
+          <Button 
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-pink-600 hover:bg-pink-700"
+            data-testid="button-create-case"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Case
+          </Button>
+        )}
       </div>
-
-      <div className="px-6 space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
+      
+      <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-pink-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
@@ -345,13 +340,12 @@ function EmploymentLawDashboard() {
         </CardContent>
       </Card>
 
-        <CreateCaseDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSubmit={(data) => createCaseMutation.mutate(data)}
-          isLoading={createCaseMutation.isPending}
-        />
-      </div>
+      <CreateCaseDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSubmit={(data) => createCaseMutation.mutate(data)}
+        isLoading={createCaseMutation.isPending}
+      />
     </div>
   );
 }
@@ -976,13 +970,312 @@ function CreateMilestoneForm({
   );
 }
 
-export default function EmploymentLawPage() {
-  const [matchCases] = useRoute("/employment-law/cases/:id");
-  const [matchDetail, paramsDetail] = useRoute("/employment-law/cases/:id");
+// Tab navigation component for Employment Law module
+function EmploymentLawTabs({ activeTab }: { activeTab: "dashboard" | "documents" | "cases" }) {
+  const [, setLocation] = useLocation();
+  
+  return (
+    <Tabs value={activeTab} className="w-full">
+      <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsTrigger 
+          value="dashboard" 
+          onClick={() => setLocation("/employment-law")}
+          data-testid="tab-el-dashboard"
+        >
+          <LayoutDashboard className="mr-2 h-4 w-4" />
+          Dashboard
+        </TabsTrigger>
+        <TabsTrigger 
+          value="documents" 
+          onClick={() => setLocation("/employment-law/documents")}
+          data-testid="tab-el-documents"
+        >
+          <FolderOpen className="mr-2 h-4 w-4" />
+          Documents
+        </TabsTrigger>
+        <TabsTrigger 
+          value="cases" 
+          onClick={() => setLocation("/employment-law/cases")}
+          data-testid="tab-el-cases"
+        >
+          <Briefcase className="mr-2 h-4 w-4" />
+          Cases
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+}
 
-  if (matchDetail && paramsDetail?.id) {
+// Employment Law Dashboard with company/site filters
+function EmploymentLawDashboardView() {
+  const { user } = useAuth();
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  
+  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  
+  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
+    enabled: canSelectSites,
+  });
+  
+  // Filter sites by selected company
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+  
+  // Get site IDs for the selected company
+  const companySiteIds = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+  }, [sites, selectedCompany]);
+  
+  // Handle company selection
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites?.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
+  
+  // Build current context label
+  const currentContextLabel = useMemo(() => {
+    if (!canSelectSites) return null;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      return selectedCompany;
+    }
+    return "All Clients";
+  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+  
+  // Determine site filter for API
+  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
+  
+  // Create stable string key for company site IDs
+  const companySiteIdsKey = companySiteIds?.join(",") || null;
+  
+  // Fetch compliance summary for Employment Law
+  const { data: summary, isLoading: summaryLoading } = useQuery<ComplianceSummary>({
+    queryKey: ["/api/modules/employment_law/summary", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/modules/employment_law/summary";
+      if (siteId) {
+        url = `${url}?siteId=${siteId}`;
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        url = `${url}?siteIds=${companySiteIds.join(",")}`;
+      }
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+  
+  // Fetch cases with site filtering
+  const { data: cases, isLoading: casesLoading } = useQuery<Case[]>({
+    queryKey: ["/api/cases", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/cases";
+      if (siteId) {
+        url = `${url}?siteId=${siteId}`;
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        url = `${url}?siteIds=${companySiteIds.join(",")}`;
+      }
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+  
+  const isLoading = summaryLoading || casesLoading || (canSelectSites && sitesLoading);
+  
+  const openCases = cases?.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length || 0;
+  const resolvedCases = cases?.filter(c => c.status === "resolved" || c.status === "closed").length || 0;
+  const urgentCases = cases?.filter(c => {
+    if (!c.responseDeadline) return false;
+    return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
+  }).length || 0;
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-96" />
+        <div className="grid gap-4 md:grid-cols-4">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <EmploymentLawTabs activeTab="dashboard" />
+        
+        {canSelectSites && sites && sites.length > 0 && (
+          <div className="flex items-center gap-2">
+            <CompanyCombobox
+              sites={sites}
+              value={selectedCompany}
+              onValueChange={handleCompanyChange}
+              className="w-48"
+              testId="select-company-el"
+            />
+            <SiteCombobox
+              sites={filteredSites}
+              value={selectedSiteId}
+              onValueChange={setSelectedSiteId}
+              className="w-48"
+              testId="select-site-el"
+            />
+          </div>
+        )}
+      </div>
+      
+      {currentContextLabel && (
+        <p className="text-muted-foreground">
+          Showing data for <span className="font-medium">{currentContextLabel}</span>
+        </p>
+      )}
+      
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="border-l-4 border-l-pink-500">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
+            <div className="rounded-full bg-pink-100 dark:bg-pink-900/40 p-2">
+              <FileText className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+              {summary?.totalDocuments || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Employment law documents</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Compliant</CardTitle>
+            <div className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 p-2">
+              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              {summary?.compliantDocuments || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Up to date</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
+            <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
+              <Briefcase className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{openCases}</div>
+            <p className="text-xs text-muted-foreground">Currently being managed</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Urgent Deadlines</CardTitle>
+            <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{urgentCases}</div>
+            <p className="text-xs text-muted-foreground">Within 7 days</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="flex gap-4">
+        <Button asChild className="bg-pink-600 hover:bg-pink-700">
+          <Link href="/employment-law/documents" data-testid="link-view-el-documents">
+            <FolderOpen className="mr-2 h-4 w-4" />
+            View Documents
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/employment-law/cases" data-testid="link-view-el-cases">
+            <Briefcase className="mr-2 h-4 w-4" />
+            View Cases
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Cases list view (existing functionality, now with tabs)
+function EmploymentLawCasesView() {
+  return (
+    <div className="space-y-6">
+      <EmploymentLawTabs activeTab="cases" />
+      <CasesList />
+    </div>
+  );
+}
+
+export default function EmploymentLawPage() {
+  const [matchDashboard] = useRoute("/employment-law");
+  const [matchDocuments] = useRoute("/employment-law/documents");
+  const [matchCases] = useRoute("/employment-law/cases");
+  const [matchCaseDetail, paramsDetail] = useRoute("/employment-law/cases/:id");
+
+  // Case detail view (no tabs, focused on single case)
+  if (matchCaseDetail && paramsDetail?.id) {
     return <CaseDetailView id={paramsDetail.id} />;
   }
 
-  return <EmploymentLawDashboard />;
+  // Documents view - will be handled by ModuleDocuments
+  if (matchDocuments) {
+    return null; // Handled by separate route
+  }
+
+  // Cases list view
+  if (matchCases) {
+    return (
+      <div className="p-6">
+        <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
+          <div className="flex items-center gap-2">
+            <Scale className="h-6 w-6 text-white" />
+            <h1 className="text-2xl font-bold text-white">Employment Law</h1>
+          </div>
+          <p className="text-pink-100 mt-1">Manage employment law compliance and case files</p>
+        </div>
+        <EmploymentLawCasesView />
+      </div>
+    );
+  }
+
+  // Dashboard view (default)
+  return (
+    <div className="p-6">
+      <div className="bg-gradient-to-r from-pink-600 to-pink-500 dark:from-pink-700 dark:to-pink-600 -mx-6 -mt-6 px-6 py-8 mb-6">
+        <div className="flex items-center gap-2">
+          <Scale className="h-6 w-6 text-white" />
+          <h1 className="text-2xl font-bold text-white">Employment Law</h1>
+        </div>
+        <p className="text-pink-100 mt-1">Manage employment law compliance and case files</p>
+      </div>
+      <EmploymentLawDashboardView />
+    </div>
+  );
 }

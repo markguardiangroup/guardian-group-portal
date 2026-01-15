@@ -320,6 +320,9 @@ export default function Dashboard() {
     return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
   }, [sites, selectedCompany]);
   
+  // Create stable string key for company site IDs (avoid nested arrays in query keys)
+  const companySiteIdsKey = companySiteIds?.join(",") || null;
+  
   // Handle company selection - preserve site if it belongs to new company
   const handleCompanyChange = (company: string | null) => {
     setSelectedCompany(company);
@@ -338,7 +341,7 @@ export default function Dashboard() {
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary", siteId, companySiteIds],
+    queryKey: ["/api/modules/summary", siteId, companySiteIdsKey],
     queryFn: async () => {
       let url = "/api/modules/summary";
       if (siteId) {

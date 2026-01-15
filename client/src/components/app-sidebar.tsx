@@ -84,7 +84,9 @@ const moduleNavItems: {
     themeClass: "theme-el",
     module: "employment_law",
     subItems: [
-      { title: "Cases", url: "/employment-law" },
+      { title: "Dashboard", url: "/employment-law" },
+      { title: "Documents", url: "/employment-law/documents" },
+      { title: "Cases", url: "/employment-law/cases" },
     ],
   },
 ];

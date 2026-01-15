@@ -44,6 +44,10 @@ function HumanResourcesDocuments() {
   return <ModuleDocuments module="human_resources" />;
 }
 
+function EmploymentLawDocuments() {
+  return <ModuleDocuments module="employment_law" />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -62,6 +66,10 @@ function Router() {
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
       
       <Route path="/employment-law" component={EmploymentLawPage} />
+      <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
+      <Route path="/employment-law/documents/upload" component={DocumentUpload} />
+      <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />
+      <Route path="/employment-law/cases" component={EmploymentLawPage} />
       <Route path="/employment-law/cases/:id" component={EmploymentLawPage} />
       
       <Route path="/documents" component={Documents} />
