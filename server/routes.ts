@@ -1110,6 +1110,16 @@ export async function registerRoutes(
   });
 
   // Folder-Document Type Rules
+  app.get("/api/folder-document-type-rules", requireAuth, async (req, res) => {
+    try {
+      const rules = await storage.getAllFolderDocumentTypeRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Get all folder document type rules error:", error);
+      res.status(500).json({ error: "Failed to fetch folder document type rules" });
+    }
+  });
+
   app.get("/api/folder-templates/:id/rules", requireAuth, async (req, res) => {
     try {
       const template = await storage.getFolderTemplate(req.params.id);

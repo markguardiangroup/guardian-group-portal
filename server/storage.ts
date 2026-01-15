@@ -139,6 +139,7 @@ export interface IStorage {
   deleteFolderTemplate(id: string): Promise<boolean>;
   
   // Folder-Document Type Rules
+  getAllFolderDocumentTypeRules(): Promise<FolderDocumentTypeRule[]>;
   getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]>;
   getDocumentTypeRulesForTemplate(folderTemplateId: string): Promise<(FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[]>;
   createFolderDocumentTypeRule(rule: InsertFolderDocumentTypeRule): Promise<FolderDocumentTypeRule>;
@@ -2495,6 +2496,10 @@ export class MemStorage implements IStorage {
   }
 
   // Folder-Document Type Rules
+  async getAllFolderDocumentTypeRules(): Promise<FolderDocumentTypeRule[]> {
+    return Array.from(this.folderDocumentTypeRules.values());
+  }
+
   async getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]> {
     return Array.from(this.folderDocumentTypeRules.values())
       .filter(r => r.folderTemplateId === folderTemplateId)
