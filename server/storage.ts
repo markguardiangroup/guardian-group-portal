@@ -26,8 +26,12 @@ import {
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
   moduleConfig,
+  folderTemplates as folderTemplatesTable,
+  folderDocumentTypeRules as folderDocumentTypeRulesTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, and, asc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -2429,17 +2433,33 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Folder Templates (Admin-managed master folder structure)
+  // Folder Templates (Admin-managed master folder structure - Database-backed)
   async getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]> {
-    let templates = Array.from(this.folderTemplates.values());
-    if (module) {
-      templates = templates.filter(t => t.module === module);
+    try {
+      let query = db.select().from(folderTemplatesTable);
+      if (module) {
+        query = query.where(eq(folderTemplatesTable.module, module)) as typeof query;
+      }
+      const templates = await query.orderBy(asc(folderTemplatesTable.sortOrder));
+      return templates;
+    } catch (error) {
+      console.error("Error fetching folder templates from DB:", error);
+      let templates = Array.from(this.folderTemplates.values());
+      if (module) {
+        templates = templates.filter(t => t.module === module);
+      }
+      return templates.sort((a, b) => a.sortOrder - b.sortOrder);
     }
-    return templates.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async getFolderTemplate(id: string): Promise<FolderTemplate | undefined> {
-    return this.folderTemplates.get(id);
+    try {
+      const [template] = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
+      return template;
+    } catch (error) {
+      console.error("Error fetching folder template from DB:", error);
+      return this.folderTemplates.get(id);
+    }
   }
 
   async createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate> {
@@ -2459,51 +2479,99 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    this.folderTemplates.set(id, newTemplate);
-    return newTemplate;
+    
+    try {
+      const [inserted] = await db.insert(folderTemplatesTable).values(newTemplate).returning();
+      this.folderTemplates.set(inserted.id, inserted);
+      return inserted;
+    } catch (error) {
+      console.error("Error inserting folder template to DB:", error);
+      this.folderTemplates.set(id, newTemplate);
+      return newTemplate;
+    }
   }
 
   async updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined> {
-    const existing = this.folderTemplates.get(id);
-    if (!existing) {
-      return undefined;
+    try {
+      const [updated] = await db.update(folderTemplatesTable)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(folderTemplatesTable.id, id))
+        .returning();
+      if (updated) {
+        this.folderTemplates.set(id, updated);
+      }
+      return updated;
+    } catch (error) {
+      console.error("Error updating folder template in DB:", error);
+      const existing = this.folderTemplates.get(id);
+      if (!existing) {
+        return undefined;
+      }
+      const updated: FolderTemplate = {
+        ...existing,
+        ...updates,
+        updatedAt: new Date(),
+      };
+      this.folderTemplates.set(id, updated);
+      return updated;
     }
-    const updated: FolderTemplate = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.folderTemplates.set(id, updated);
-    return updated;
   }
 
   async deleteFolderTemplate(id: string): Promise<boolean> {
-    // First remove any rules associated with this template
-    const rules = Array.from(this.folderDocumentTypeRules.values());
-    for (const rule of rules) {
-      if (rule.folderTemplateId === id) {
-        this.folderDocumentTypeRules.delete(rule.id);
+    try {
+      // First remove any rules associated with this template
+      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
+      
+      // Delete child templates recursively
+      const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
+      for (const child of children) {
+        await this.deleteFolderTemplate(child.id);
       }
-    }
-    // Delete child templates
-    const templates = Array.from(this.folderTemplates.values());
-    for (const template of templates) {
-      if (template.parentId === id) {
-        await this.deleteFolderTemplate(template.id);
+      
+      // Delete the template
+      await db.delete(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
+      this.folderTemplates.delete(id);
+      return true;
+    } catch (error) {
+      console.error("Error deleting folder template from DB:", error);
+      // Fallback to memory-based deletion
+      const rules = Array.from(this.folderDocumentTypeRules.values());
+      for (const rule of rules) {
+        if (rule.folderTemplateId === id) {
+          this.folderDocumentTypeRules.delete(rule.id);
+        }
       }
+      const templates = Array.from(this.folderTemplates.values());
+      for (const template of templates) {
+        if (template.parentId === id) {
+          await this.deleteFolderTemplate(template.id);
+        }
+      }
+      return this.folderTemplates.delete(id);
     }
-    return this.folderTemplates.delete(id);
   }
 
-  // Folder-Document Type Rules
+  // Folder-Document Type Rules (Database-backed)
   async getAllFolderDocumentTypeRules(): Promise<FolderDocumentTypeRule[]> {
-    return Array.from(this.folderDocumentTypeRules.values());
+    try {
+      return await db.select().from(folderDocumentTypeRulesTable).orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
+    } catch (error) {
+      console.error("Error fetching folder document type rules from DB:", error);
+      return Array.from(this.folderDocumentTypeRules.values());
+    }
   }
 
   async getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]> {
-    return Array.from(this.folderDocumentTypeRules.values())
-      .filter(r => r.folderTemplateId === folderTemplateId)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    try {
+      return await db.select().from(folderDocumentTypeRulesTable)
+        .where(eq(folderDocumentTypeRulesTable.folderTemplateId, folderTemplateId))
+        .orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
+    } catch (error) {
+      console.error("Error fetching folder rules from DB:", error);
+      return Array.from(this.folderDocumentTypeRules.values())
+        .filter(r => r.folderTemplateId === folderTemplateId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    }
   }
 
   async getDocumentTypeRulesForTemplate(folderTemplateId: string): Promise<(FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[]> {
@@ -2526,12 +2594,27 @@ export class MemStorage implements IStorage {
       createdBy: rule.createdBy,
       createdAt: now,
     };
-    this.folderDocumentTypeRules.set(id, newRule);
-    return newRule;
+    
+    try {
+      const [inserted] = await db.insert(folderDocumentTypeRulesTable).values(newRule).returning();
+      this.folderDocumentTypeRules.set(inserted.id, inserted);
+      return inserted;
+    } catch (error) {
+      console.error("Error inserting folder rule to DB, using memory:", error);
+      this.folderDocumentTypeRules.set(id, newRule);
+      return newRule;
+    }
   }
 
   async deleteFolderDocumentTypeRule(id: string): Promise<boolean> {
-    return this.folderDocumentTypeRules.delete(id);
+    try {
+      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.id, id));
+      this.folderDocumentTypeRules.delete(id);
+      return true;
+    } catch (error) {
+      console.error("Error deleting folder rule from DB:", error);
+      return this.folderDocumentTypeRules.delete(id);
+    }
   }
 
   // Provision folder structure from templates for a site
