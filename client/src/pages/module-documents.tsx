@@ -133,9 +133,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   const { user } = useAuth();
   const config = moduleConfig[module];
-  const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
-  const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
+  const themeClass = module === "health_safety" ? "theme-hs" : module === "human_resources" ? "theme-hr" : "theme-el";
   
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
