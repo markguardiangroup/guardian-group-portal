@@ -50,12 +50,13 @@ import {
   CheckCircle,
   Clock,
   Filter,
+  FolderOpen,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { DocumentTypeRecord, ModuleType } from "@shared/schema";
+import type { DocumentTypeRecord, ModuleType, FolderTemplate, FolderDocumentTypeRule } from "@shared/schema";
 
 const moduleIcons: Record<ModuleType, typeof HardHat> = {
   health_safety: HardHat,
@@ -117,6 +118,32 @@ export default function DocumentTypesPage() {
   const { data: documentTypes, isLoading } = useQuery<DocumentTypeRecord[]>({
     queryKey: ["/api/document-types"],
   });
+
+  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+
+  const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
+    queryKey: ["/api/folder-document-type-rules"],
+  });
+
+  // Create lookup: documentTypeId -> folder template name(s)
+  const docTypeToFolders = useMemo(() => {
+    const lookup = new Map<string, string[]>();
+    if (!folderRules || !folderTemplates) return lookup;
+    
+    const templateMap = new Map(folderTemplates.map(t => [t.id, t]));
+    
+    for (const rule of folderRules) {
+      const template = templateMap.get(rule.folderTemplateId);
+      if (template) {
+        const existing = lookup.get(rule.documentTypeId) || [];
+        existing.push(template.name);
+        lookup.set(rule.documentTypeId, existing);
+      }
+    }
+    return lookup;
+  }, [folderRules, folderTemplates]);
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -322,6 +349,7 @@ export default function DocumentTypesPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Code</TableHead>
                   <TableHead>Module</TableHead>
+                  <TableHead>Folder</TableHead>
                   <TableHead>Required</TableHead>
                   <TableHead>Renewal</TableHead>
                   <TableHead>Status</TableHead>
@@ -353,6 +381,16 @@ export default function DocumentTypesPage() {
                           <ModuleIcon className="h-4 w-4" />
                           <span className="text-sm">{moduleNames[type.module]}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {docTypeToFolders.get(type.id)?.length ? (
+                          <div className="flex items-center gap-1 text-sm">
+                            <FolderOpen className="h-3 w-3 text-muted-foreground" />
+                            <span>{docTypeToFolders.get(type.id)!.join(", ")}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Not assigned</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {type.isRequired ? (
