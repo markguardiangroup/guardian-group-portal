@@ -123,7 +123,7 @@ export type SiteRequest = typeof siteRequests.$inferSelect;
 export const consultantAssignments = pgTable("consultant_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   consultantId: varchar("consultant_id").notNull(),
-  siteId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   isPrimary: boolean("is_primary").notNull().default(false),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
 });
@@ -460,7 +460,7 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").$type<AuditAction>().notNull(),
   userId: varchar("user_id").notNull(),
   userName: text("user_name").notNull(),
-  siteId: varchar("entity_id"),
+  siteId: varchar("site_id"),
   documentId: varchar("document_id"),
   caseId: varchar("case_id"),
   supportRequestId: varchar("support_request_id"),
@@ -492,7 +492,7 @@ export const supportRequests = pgTable("support_requests", {
   status: text("status").$type<SupportStatus>().notNull().default("open"),
   category: text("category").notNull(),
   module: text("module").$type<ModuleType>(),
-  siteId: varchar("entity_id").notNull(),
+  siteId: varchar("site_id").notNull(),
   createdBy: varchar("created_by").notNull(),
   assignedTo: varchar("assigned_to"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
