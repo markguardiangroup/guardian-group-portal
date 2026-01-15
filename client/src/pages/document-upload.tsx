@@ -42,10 +42,20 @@ const documentUploadSchema = z.object({
   description: z.string().optional(),
   module: z.enum(["health_safety", "human_resources", "employment_law"]),
   documentTypeId: z.string().min(1, "Please select a document type"),
-  siteId: z.string().min(1, "Please select a site"),
+  uploadScope: z.enum(["site", "company"]),
+  siteId: z.string().optional(),
   folderId: z.string().optional(),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
+}).refine((data) => {
+  // If scope is "site", require siteId
+  if (data.uploadScope === "site" && !data.siteId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select a site",
+  path: ["siteId"],
 });
 
 type DocumentUploadForm = z.infer<typeof documentUploadSchema>;
@@ -118,6 +128,7 @@ export default function DocumentUpload() {
       description: "",
       module: "health_safety",
       documentTypeId: "",
+      uploadScope: "site",
       siteId: "",
       folderId: "",
       reviewDate: "",
@@ -128,6 +139,7 @@ export default function DocumentUpload() {
   const selectedModule = form.watch("module");
   const selectedSiteId = form.watch("siteId");
   const selectedDocTypeId = form.watch("documentTypeId");
+  const uploadScope = form.watch("uploadScope");
 
   // Get unique companies from sites
   const companies = sites 
@@ -143,16 +155,46 @@ export default function DocumentUpload() {
     (dt) => dt.module === selectedModule && dt.isActive
   );
 
+  // Provision folders mutation
+  const provisionFoldersMutation = useMutation({
+    mutationFn: async ({ siteId, module }: { siteId: string; module: string }) => {
+      const res = await fetch("/api/folders/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, module }),
+      });
+      if (!res.ok) throw new Error("Failed to provision folders");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+    },
+  });
+
   // Fetch folders for selected site
-  const { data: siteFolders } = useQuery<DocumentFolder[]>({
+  const { data: siteFolders, refetch: refetchFolders } = useQuery<DocumentFolder[]>({
     queryKey: ["/api/folders", selectedSiteId],
     queryFn: async () => {
       if (!selectedSiteId) return [];
       const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
       if (!res.ok) return [];
-      return res.json();
+      const folders = await res.json();
+      
+      // Auto-provision folders if none exist for this module
+      if (folders.filter((f: DocumentFolder) => f.module === selectedModule).length === 0) {
+        try {
+          await provisionFoldersMutation.mutateAsync({ siteId: selectedSiteId, module: selectedModule });
+          // Refetch after provisioning
+          const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+          if (newRes.ok) return newRes.json();
+        } catch (e) {
+          console.error("Failed to provision folders:", e);
+        }
+      }
+      
+      return folders;
     },
-    enabled: !!selectedSiteId,
+    enabled: !!selectedSiteId && uploadScope === "site",
   });
 
   // Filter folders by selected module
@@ -178,21 +220,61 @@ export default function DocumentUpload() {
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
       const selectedDocType = documentTypes?.find((dt) => dt.id === data.documentTypeId);
-      const formData = {
-        ...data,
-        type: selectedDocType?.code || "policy",
-        fileName: selectedFile?.name || "document.pdf",
-        fileSize: selectedFile?.size || 0,
-        mimeType: selectedFile?.type || "application/pdf",
-      };
-      return apiRequest("POST", "/api/documents", formData);
+      
+      if (data.uploadScope === "company" && selectedCompany !== "all") {
+        // Upload to all sites in the company
+        const companySites = sites?.filter(s => s.companyName === selectedCompany) || [];
+        const results = [];
+        
+        for (const site of companySites) {
+          const formData = {
+            title: data.title,
+            description: data.description,
+            module: data.module,
+            documentTypeId: data.documentTypeId,
+            siteId: site.id,
+            folderId: data.folderId || undefined,
+            reviewDate: data.reviewDate,
+            expiryDate: data.expiryDate,
+            type: selectedDocType?.code || "policy",
+            fileName: selectedFile?.name || "document.pdf",
+            fileSize: selectedFile?.size || 0,
+            mimeType: selectedFile?.type || "application/pdf",
+          };
+          const result = await apiRequest("POST", "/api/documents", formData);
+          results.push(result);
+        }
+        return results;
+      } else {
+        // Upload to single site
+        const formData = {
+          title: data.title,
+          description: data.description,
+          module: data.module,
+          documentTypeId: data.documentTypeId,
+          siteId: data.siteId,
+          folderId: data.folderId || undefined,
+          reviewDate: data.reviewDate,
+          expiryDate: data.expiryDate,
+          type: selectedDocType?.code || "policy",
+          fileName: selectedFile?.name || "document.pdf",
+          fileSize: selectedFile?.size || 0,
+          mimeType: selectedFile?.type || "application/pdf",
+        };
+        return apiRequest("POST", "/api/documents", formData);
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      const siteCount = variables.uploadScope === "company" && selectedCompany !== "all"
+        ? sites?.filter(s => s.companyName === selectedCompany).length || 0
+        : 1;
       toast({
         title: "Document Uploaded",
-        description: "Your document has been uploaded successfully.",
+        description: siteCount > 1 
+          ? `Document uploaded to ${siteCount} sites in ${selectedCompany}.`
+          : "Your document has been uploaded successfully.",
       });
       navigate(modulePaths[variables.module as ModuleType] || "/documents");
     },
@@ -384,11 +466,15 @@ export default function DocumentUpload() {
                           setSelectedCompany(value);
                           form.setValue("siteId", "");
                           form.setValue("folderId", "");
+                          // Reset to site scope if "all" is selected
+                          if (value === "all") {
+                            form.setValue("uploadScope", "site");
+                          }
                         }}
                       >
                         <FormControl>
                           <SelectTrigger data-testid="select-company">
-                            <SelectValue placeholder="All companies" />
+                            <SelectValue placeholder="Select a company" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -401,10 +487,51 @@ export default function DocumentUpload() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Filter sites by company
+                        Select a company to filter sites or upload company-wide
                       </FormDescription>
                     </FormItem>
 
+                    <FormField
+                      control={form.control}
+                      name="uploadScope"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Apply To</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              if (value === "company") {
+                                form.setValue("siteId", "");
+                                form.setValue("folderId", "");
+                              }
+                            }} 
+                            value={field.value}
+                            disabled={selectedCompany === "all"}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-upload-scope">
+                                <SelectValue placeholder="Select scope" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="site">Single Site</SelectItem>
+                              <SelectItem value="company" disabled={selectedCompany === "all"}>
+                                All Sites in Company {selectedCompany !== "all" ? `(${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites)` : ""}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            {uploadScope === "company" && selectedCompany !== "all"
+                              ? `Document will be uploaded to all ${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites in ${selectedCompany}`
+                              : "Upload to a specific site"}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {uploadScope === "site" && (
                     <FormField
                       control={form.control}
                       name="siteId"
@@ -440,9 +567,9 @@ export default function DocumentUpload() {
                         </FormItem>
                       )}
                     />
-                  </div>
+                  )}
 
-                  {selectedSiteId && moduleFolders.length > 0 && (
+                  {uploadScope === "site" && selectedSiteId && moduleFolders.length > 0 && (
                     <FormField
                       control={form.control}
                       name="folderId"

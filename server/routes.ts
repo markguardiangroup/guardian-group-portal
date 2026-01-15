@@ -911,6 +911,44 @@ export async function registerRoutes(
     }
   });
 
+  // Provision folders from templates for a site
+  app.post("/api/folders/provision", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const { siteId, module } = req.body;
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "Site ID is required" });
+      }
+      
+      if (!module) {
+        return res.status(400).json({ error: "Module is required" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this site" });
+      }
+      
+      // Check if folders already exist for this site/module
+      const existingFolders = await storage.getDocumentFolders(siteId, module);
+      if (existingFolders.length > 0) {
+        return res.json({ folders: existingFolders, provisioned: false });
+      }
+      
+      // Provision new folders from templates
+      const folders = await storage.provisionFoldersFromTemplates(siteId, module, user.id);
+      res.status(201).json({ folders, provisioned: true });
+    } catch (error) {
+      console.error("Provision folders error:", error);
+      res.status(500).json({ error: "Failed to provision folders" });
+    }
+  });
+
   app.get("/api/folders/:id/documents", requireAuth, async (req, res) => {
     try {
       const folder = await storage.getDocumentFolder(req.params.id);
