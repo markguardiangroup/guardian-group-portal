@@ -127,6 +127,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [folderFilter, setFolderFilter] = useState<string>("all");
   const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
@@ -173,6 +174,52 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/document-types"],
   });
 
+  // Fetch folder templates for the current module
+  interface FolderTemplate {
+    id: string;
+    name: string;
+    code: string;
+    module: string;
+    parentId: string | null;
+    isActive: boolean;
+  }
+  
+  interface FolderDocumentTypeRule {
+    id: string;
+    folderTemplateId: string;
+    documentTypeId: string;
+  }
+  
+  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+  
+  const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
+    queryKey: ["/api/folder-document-type-rules"],
+  });
+  
+  // Get folder templates for current module
+  const moduleFolderTemplates = useMemo(() => {
+    if (!folderTemplates) return [];
+    return folderTemplates.filter(t => t.module === module && t.isActive);
+  }, [folderTemplates, module]);
+  
+  // Build lookup: documentTypeId -> folder template name
+  const docTypeToFolderName = useMemo(() => {
+    const lookup = new Map<string, string>();
+    if (!folderRules || !folderTemplates) return lookup;
+    
+    const templateMap = new Map(folderTemplates.map(t => [t.id, t]));
+    
+    for (const rule of folderRules) {
+      const template = templateMap.get(rule.folderTemplateId);
+      if (template && template.module === module) {
+        lookup.set(rule.documentTypeId, template.name);
+      }
+    }
+    return lookup;
+  }, [folderRules, folderTemplates, module]);
+
   // Determine which site to show access for
   // "all" means show data across all sites
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
@@ -205,7 +252,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
-    return matchesSearch && matchesType && matchesStatus && !doc.isArchived;
+    
+    // Filter by folder - match documents whose document type is assigned to the selected folder
+    let matchesFolder = true;
+    if (folderFilter !== "all") {
+      const docTypeId = (doc as any).documentTypeId;
+      const docFolderName = docTypeId ? docTypeToFolderName.get(docTypeId) : null;
+      matchesFolder = docFolderName === folderFilter;
+    }
+    
+    return matchesSearch && matchesType && matchesStatus && matchesFolder && !doc.isArchived;
   });
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -449,6 +505,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
               </Select>
+              {moduleFolderTemplates.length > 0 && (
+                <Select value={folderFilter} onValueChange={setFolderFilter}>
+                  <SelectTrigger className="w-44" data-testid="select-folder-filter">
+                    <SelectValue placeholder="Folder" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Folders</SelectItem>
+                    {moduleFolderTemplates.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.name}>{folder.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </CardHeader>
