@@ -135,6 +135,22 @@ export const insertConsultantAssignmentSchema = createInsertSchema(consultantAss
 export type InsertConsultantAssignment = z.infer<typeof insertConsultantAssignmentSchema>;
 export type ConsultantAssignment = typeof consultantAssignments.$inferSelect;
 
+// Client-Site assignments (which clients can access which sites within their company)
+export const clientSiteAssignments = pgTable("client_site_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull(),
+  siteId: varchar("site_id").notNull(),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  assignedBy: varchar("assigned_by"),
+});
+
+export const insertClientSiteAssignmentSchema = createInsertSchema(clientSiteAssignments).omit({ 
+  id: true, 
+  assignedAt: true 
+});
+export type InsertClientSiteAssignment = z.infer<typeof insertClientSiteAssignmentSchema>;
+export type ClientSiteAssignment = typeof clientSiteAssignments.$inferSelect;
+
 // Site Module Access status
 export type ModuleAccessStatus = "active" | "visible" | "hidden";
 

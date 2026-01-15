@@ -69,7 +69,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
-import type { Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest } from "@shared/schema";
+import type { Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest, ClientSiteAssignment } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
+
+type ClientAssignmentWithDetails = ClientSiteAssignment & {
+  clientName: string;
+  clientEmail: string;
+};
 
 type ModuleStatus = "active" | "visible" | "hidden";
 
@@ -477,6 +483,53 @@ function UsersTab({ siteId }: { siteId: string }) {
     queryKey: ["/api/sites", siteId, "users"],
   });
 
+  // Fetch client site assignments for this site
+  const { data: clientAssignments = [] } = useQuery<ClientAssignmentWithDetails[]>({
+    queryKey: ["/api/sites", siteId, "client-assignments"],
+  });
+
+  // Create a set of assigned client IDs for quick lookup
+  const assignedClientIds = new Set(clientAssignments.map(a => a.clientId));
+
+  // Mutation to assign client to site
+  const assignClientMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      const response = await apiRequest("POST", `/api/sites/${siteId}/client-assignments`, { clientId });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      toast({ title: "Client assigned to this site" });
+    },
+    onError: () => {
+      toast({ title: "Failed to assign client", variant: "destructive" });
+    },
+  });
+
+  // Mutation to remove client from site
+  const removeClientAssignmentMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      await apiRequest("DELETE", `/api/sites/${siteId}/client-assignments/${clientId}`);
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      toast({ title: "Client site assignment removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove assignment", variant: "destructive" });
+    },
+  });
+
+  // Helper to check if user has any site assignments
+  const toggleClientSiteAccess = (userId: string) => {
+    if (assignedClientIds.has(userId)) {
+      removeClientAssignmentMutation.mutate(userId);
+    } else {
+      assignClientMutation.mutate(userId);
+    }
+  };
+
   const updateMutation = useMutation({
     mutationFn: async ({ userId, role, status }: { userId: string; role?: string; status?: string }) => {
       const response = await apiRequest("PATCH", `/api/users/${userId}`, {
@@ -600,6 +653,16 @@ function UsersTab({ siteId }: { siteId: string }) {
                     <Badge variant="outline">
                       {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
                     </Badge>
+                    {assignedClientIds.has(user.id) ? (
+                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+                        <Shield className="mr-1 h-3 w-3" />
+                        Site Access
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        All Sites
+                      </Badge>
+                    )}
                     <Badge
                       variant={user.status === "active" ? "secondary" : "outline"}
                       className={user.status === "active" ? "bg-emerald-500/10 text-emerald-600" : ""}
@@ -621,6 +684,14 @@ function UsersTab({ siteId }: { siteId: string }) {
                         <DropdownMenuItem onClick={() => handleEditUser(user)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit User
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => toggleClientSiteAccess(user.id)}
+                          data-testid={`toggle-site-access-${user.id}`}
+                        >
+                          <Shield className="mr-2 h-4 w-4" />
+                          {assignedClientIds.has(user.id) ? "Remove Site Access" : "Grant Site Access"}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

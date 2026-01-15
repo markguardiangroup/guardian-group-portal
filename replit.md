@@ -50,9 +50,22 @@ Core entities include:
 Role-based access control with tenant isolation:
 - **Admin**: Unrestricted access to all companies, sites, and data
 - **Consultant**: Access only to sites they are explicitly assigned to via consultant_assignments table
-- **Client**: Access only to sites within their company (companyId match)
+- **Client**: Access depends on site assignments:
+  - If client has site assignments in `client_site_assignments` table: Access only to assigned sites
+  - If client has NO site assignments: Access all sites within their company (backward compatible)
 
 The `canUserAccessSite` helper function enforces these rules across all API endpoints. Client company filtering is derived server-side from session to prevent tenant isolation bypass.
+
+### Client Site Assignments
+Clients can be restricted to specific sites within their company:
+- **Default**: Clients access all sites in their company
+- **Restricted**: When assigned to specific sites via client_site_assignments, they only access those sites
+- API Routes:
+  - `GET /api/sites/:siteId/client-assignments` - Get clients assigned to this site
+  - `POST /api/sites/:siteId/client-assignments` - Assign client to site
+  - `DELETE /api/sites/:siteId/client-assignments/:clientId` - Remove assignment
+  - `GET /api/users/:clientId/site-assignments` - Get sites assigned to a client
+- UI: Site Detail page → Users tab shows "Site Access" vs "All Sites" badges and menu options to manage
 
 ### Company-Site-User Hierarchy
 The platform uses a hierarchical model: Companies → Sites → Users

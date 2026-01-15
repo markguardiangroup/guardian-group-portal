@@ -22,6 +22,8 @@ import {
   type SiteModuleAccess, type InsertSiteModuleAccess, type ModuleAccessStatus,
   type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
   type ConsultantAssignment, type InsertConsultantAssignment,
+  type ClientSiteAssignment, type InsertClientSiteAssignment,
+  clientSiteAssignments as clientSiteAssignmentsTable,
   type DocumentTypeRecord, type InsertDocumentType,
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
@@ -115,6 +117,13 @@ export interface IStorage {
   updateConsultantAssignment(consultantId: string, siteId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined>;
   removeConsultantAssignment(consultantId: string, siteId: string): Promise<boolean>;
   
+  // Client Site Assignments
+  getClientSiteAssignments(siteId: string): Promise<ClientSiteAssignment[]>;
+  getClientSites(clientId: string): Promise<ClientSiteAssignment[]>;
+  assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment>;
+  removeClientSiteAssignment(clientId: string, siteId: string): Promise<boolean>;
+  hasClientSiteAssignments(clientId: string): Promise<boolean>;
+  
   // Users by Site
   getUsersBySite(siteId: string): Promise<User[]>;
   getConsultants(): Promise<User[]>;
@@ -168,6 +177,7 @@ export class MemStorage implements IStorage {
   private siteModuleAccess: Map<string, SiteModuleAccess>;
   private moduleAccessRequests: Map<string, ModuleAccessRequest>;
   private consultantAssignments: Map<string, ConsultantAssignment>;
+  private clientSiteAssignments: Map<string, ClientSiteAssignment>;
   private documentTypesMap: Map<string, DocumentTypeRecord>;
   private folderTemplates: Map<string, FolderTemplate>;
   private folderDocumentTypeRules: Map<string, FolderDocumentTypeRule>;
@@ -187,6 +197,7 @@ export class MemStorage implements IStorage {
     this.siteModuleAccess = new Map();
     this.moduleAccessRequests = new Map();
     this.consultantAssignments = new Map();
+    this.clientSiteAssignments = new Map();
     this.documentTypesMap = new Map();
     this.folderTemplates = new Map();
     this.folderDocumentTypeRules = new Map();
@@ -2279,6 +2290,97 @@ export class MemStorage implements IStorage {
       return true;
     }
     return false;
+  }
+
+  // Client Site Assignments
+  async getClientSiteAssignments(siteId: string): Promise<ClientSiteAssignment[]> {
+    // Try database first
+    try {
+      const result = await db.select().from(clientSiteAssignmentsTable).where(eq(clientSiteAssignmentsTable.siteId, siteId));
+      return result;
+    } catch {
+      return Array.from(this.clientSiteAssignments.values())
+        .filter(a => a.siteId === siteId);
+    }
+  }
+
+  async getClientSites(clientId: string): Promise<ClientSiteAssignment[]> {
+    // Try database first
+    try {
+      const result = await db.select().from(clientSiteAssignmentsTable).where(eq(clientSiteAssignmentsTable.clientId, clientId));
+      return result;
+    } catch {
+      return Array.from(this.clientSiteAssignments.values())
+        .filter(a => a.clientId === clientId);
+    }
+  }
+
+  async assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment> {
+    // Check if already assigned
+    try {
+      const existing = await db.select().from(clientSiteAssignmentsTable)
+        .where(and(
+          eq(clientSiteAssignmentsTable.clientId, assignment.clientId),
+          eq(clientSiteAssignmentsTable.siteId, assignment.siteId)
+        ));
+      if (existing.length > 0) {
+        return existing[0];
+      }
+      const result = await db.insert(clientSiteAssignmentsTable).values({
+        clientId: assignment.clientId,
+        siteId: assignment.siteId,
+        assignedBy: assignment.assignedBy,
+      }).returning();
+      return result[0];
+    } catch {
+      const existing = Array.from(this.clientSiteAssignments.values())
+        .find(a => a.clientId === assignment.clientId && a.siteId === assignment.siteId);
+      if (existing) {
+        return existing;
+      }
+      const id = randomUUID();
+      const newAssignment: ClientSiteAssignment = {
+        id,
+        clientId: assignment.clientId,
+        siteId: assignment.siteId,
+        assignedAt: new Date(),
+        assignedBy: assignment.assignedBy || null,
+      };
+      this.clientSiteAssignments.set(id, newAssignment);
+      return newAssignment;
+    }
+  }
+
+  async removeClientSiteAssignment(clientId: string, siteId: string): Promise<boolean> {
+    try {
+      const result = await db.delete(clientSiteAssignmentsTable)
+        .where(and(
+          eq(clientSiteAssignmentsTable.clientId, clientId),
+          eq(clientSiteAssignmentsTable.siteId, siteId)
+        ));
+      return true;
+    } catch {
+      const assignment = Array.from(this.clientSiteAssignments.entries())
+        .find(([_, a]) => a.clientId === clientId && a.siteId === siteId);
+      if (assignment) {
+        this.clientSiteAssignments.delete(assignment[0]);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  async hasClientSiteAssignments(clientId: string): Promise<boolean> {
+    try {
+      const result = await db.select().from(clientSiteAssignmentsTable)
+        .where(eq(clientSiteAssignmentsTable.clientId, clientId));
+      const hasAssignments = result.length > 0;
+      return hasAssignments;
+    } catch {
+      const hasAssignments = Array.from(this.clientSiteAssignments.values())
+        .some(a => a.clientId === clientId);
+      return hasAssignments;
+    }
   }
 
   // Users by Company (get all users associated with a company)

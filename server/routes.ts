@@ -185,12 +185,25 @@ export async function registerRoutes(
       return assignments.some(a => a.siteId === siteId);
     }
     
-    // Clients can only access sites in their company
-    if (user.role === "client") {
+    // Clients access depends on whether they have site assignments
+    if (user.role === "client" && user.id) {
       if (!user.companyId) return false;
       const site = await storage.getSite(siteId);
       if (!site) return false;
-      return site.companyId === user.companyId;
+      
+      // First check: site must be in the client's company
+      if (site.companyId !== user.companyId) return false;
+      
+      // Check if client has specific site assignments
+      const hasAssignments = await storage.hasClientSiteAssignments(user.id);
+      if (hasAssignments) {
+        // Client has site assignments - check if this site is assigned
+        const clientSites = await storage.getClientSites(user.id);
+        return clientSites.some(a => a.siteId === siteId);
+      }
+      
+      // No site assignments - allow access to all sites in company (backward compatible)
+      return true;
     }
     
     return false;
@@ -2878,6 +2891,164 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update consultant assignment error:", error);
       res.status(500).json({ error: "Failed to update consultant assignment" });
+    }
+  });
+
+  // Get client site assignments for a site
+  app.get("/api/sites/:siteId/client-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin and consultants can view client assignments
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const assignments = await storage.getClientSiteAssignments(req.params.siteId);
+      
+      // Enhance with client details
+      const enhancedAssignments = await Promise.all(
+        assignments.map(async (a) => {
+          const client = await storage.getUser(a.clientId);
+          return {
+            ...a,
+            clientName: client?.fullName || "Unknown",
+            clientEmail: client?.email || "",
+          };
+        })
+      );
+      
+      res.json(enhancedAssignments);
+    } catch (error) {
+      console.error("Get site client assignments error:", error);
+      res.status(500).json({ error: "Failed to fetch client assignments" });
+    }
+  });
+
+  // Assign client to site
+  app.post("/api/sites/:siteId/client-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin and consultants can assign clients to sites
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can assign clients to sites" });
+      }
+      
+      const { clientId } = req.body;
+      if (!clientId) {
+        return res.status(400).json({ error: "Client ID is required" });
+      }
+      
+      // Verify client exists and is a client
+      const client = await storage.getUser(clientId);
+      if (!client || client.role !== "client") {
+        return res.status(400).json({ error: "Invalid client" });
+      }
+      
+      // Verify site exists
+      const site = await storage.getSite(req.params.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      // Verify client belongs to the same company as the site
+      if (client.companyId !== site.companyId) {
+        return res.status(400).json({ error: "Client must belong to the same company as the site" });
+      }
+      
+      const assignment = await storage.assignClientToSite({
+        clientId,
+        siteId: req.params.siteId,
+        assignedBy: user.id,
+      });
+      
+      res.status(201).json({
+        ...assignment,
+        clientName: client.fullName,
+        clientEmail: client.email,
+      });
+    } catch (error) {
+      console.error("Assign client to site error:", error);
+      res.status(500).json({ error: "Failed to assign client to site" });
+    }
+  });
+
+  // Remove client site assignment
+  app.delete("/api/sites/:siteId/client-assignments/:clientId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin and consultants can remove client site assignments
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can remove client site assignments" });
+      }
+      
+      const removed = await storage.removeClientSiteAssignment(
+        req.params.clientId,
+        req.params.siteId
+      );
+      
+      if (!removed) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove client site assignment error:", error);
+      res.status(500).json({ error: "Failed to remove client site assignment" });
+    }
+  });
+
+  // Get sites assigned to a specific client
+  app.get("/api/users/:clientId/site-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin/consultant can view other users' assignments, clients can view their own
+      const targetClient = await storage.getUser(req.params.clientId);
+      if (!targetClient) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      
+      if (user.role === "client" && user.id !== req.params.clientId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const assignments = await storage.getClientSites(req.params.clientId);
+      
+      // Enhance with site details
+      const enhancedAssignments = await Promise.all(
+        assignments.map(async (a) => {
+          const site = await storage.getSite(a.siteId);
+          return {
+            ...a,
+            siteName: site?.name || "Unknown",
+          };
+        })
+      );
+      
+      res.json(enhancedAssignments);
+    } catch (error) {
+      console.error("Get client site assignments error:", error);
+      res.status(500).json({ error: "Failed to fetch client site assignments" });
     }
   });
 
