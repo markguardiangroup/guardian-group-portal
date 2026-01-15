@@ -23,6 +23,8 @@ import {
   type ModuleAccessRequest, type InsertModuleAccessRequest, type ModuleAccessRequestStatus,
   type ConsultantAssignment, type InsertConsultantAssignment,
   type DocumentTypeRecord, type InsertDocumentType,
+  type FolderTemplate, type InsertFolderTemplate,
+  type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
   moduleConfig,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -128,6 +130,22 @@ export interface IStorage {
   deleteDocumentFolder(id: string): Promise<boolean>;
   getDocumentsByFolder(folderId: string): Promise<Document[]>;
   moveDocumentToFolder(documentId: string, folderId: string | null): Promise<Document | undefined>;
+  
+  // Folder Templates (Admin-managed master folder structure)
+  getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
+  getFolderTemplate(id: string): Promise<FolderTemplate | undefined>;
+  createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate>;
+  updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined>;
+  deleteFolderTemplate(id: string): Promise<boolean>;
+  
+  // Folder-Document Type Rules
+  getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]>;
+  getDocumentTypeRulesForTemplate(folderTemplateId: string): Promise<(FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[]>;
+  createFolderDocumentTypeRule(rule: InsertFolderDocumentTypeRule): Promise<FolderDocumentTypeRule>;
+  deleteFolderDocumentTypeRule(id: string): Promise<boolean>;
+  
+  // Provision folder structure from templates for a site
+  provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -146,6 +164,8 @@ export class MemStorage implements IStorage {
   private moduleAccessRequests: Map<string, ModuleAccessRequest>;
   private consultantAssignments: Map<string, ConsultantAssignment>;
   private documentTypesMap: Map<string, DocumentTypeRecord>;
+  private folderTemplates: Map<string, FolderTemplate>;
+  private folderDocumentTypeRules: Map<string, FolderDocumentTypeRule>;
 
   constructor() {
     this.users = new Map();
@@ -163,6 +183,8 @@ export class MemStorage implements IStorage {
     this.moduleAccessRequests = new Map();
     this.consultantAssignments = new Map();
     this.documentTypesMap = new Map();
+    this.folderTemplates = new Map();
+    this.folderDocumentTypeRules = new Map();
     
     this.initializeSampleData();
   }
@@ -2345,6 +2367,7 @@ export class MemStorage implements IStorage {
       module: folder.module as ModuleType,
       siteId: folder.siteId,
       parentId: folder.parentId ?? null,
+      templateId: folder.templateId ?? null,
       sortOrder: folder.sortOrder ?? 0,
       createdBy: folder.createdBy,
       createdAt: now,
@@ -2403,6 +2426,151 @@ export class MemStorage implements IStorage {
     };
     this.documents.set(documentId, updated);
     return updated;
+  }
+
+  // Folder Templates (Admin-managed master folder structure)
+  async getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]> {
+    let templates = Array.from(this.folderTemplates.values());
+    if (module) {
+      templates = templates.filter(t => t.module === module);
+    }
+    return templates.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async getFolderTemplate(id: string): Promise<FolderTemplate | undefined> {
+    return this.folderTemplates.get(id);
+  }
+
+  async createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate> {
+    const id = randomUUID();
+    const now = new Date();
+    const newTemplate: FolderTemplate = {
+      id,
+      name: template.name,
+      code: template.code,
+      module: template.module as ModuleType,
+      description: template.description ?? null,
+      parentId: template.parentId ?? null,
+      isRequired: template.isRequired ?? false,
+      sortOrder: template.sortOrder ?? 0,
+      isActive: template.isActive ?? true,
+      createdBy: template.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.folderTemplates.set(id, newTemplate);
+    return newTemplate;
+  }
+
+  async updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined> {
+    const existing = this.folderTemplates.get(id);
+    if (!existing) {
+      return undefined;
+    }
+    const updated: FolderTemplate = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.folderTemplates.set(id, updated);
+    return updated;
+  }
+
+  async deleteFolderTemplate(id: string): Promise<boolean> {
+    // First remove any rules associated with this template
+    const rules = Array.from(this.folderDocumentTypeRules.values());
+    for (const rule of rules) {
+      if (rule.folderTemplateId === id) {
+        this.folderDocumentTypeRules.delete(rule.id);
+      }
+    }
+    // Delete child templates
+    const templates = Array.from(this.folderTemplates.values());
+    for (const template of templates) {
+      if (template.parentId === id) {
+        await this.deleteFolderTemplate(template.id);
+      }
+    }
+    return this.folderTemplates.delete(id);
+  }
+
+  // Folder-Document Type Rules
+  async getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]> {
+    return Array.from(this.folderDocumentTypeRules.values())
+      .filter(r => r.folderTemplateId === folderTemplateId)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async getDocumentTypeRulesForTemplate(folderTemplateId: string): Promise<(FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[]> {
+    const rules = await this.getFolderDocumentTypeRules(folderTemplateId);
+    return rules.map(rule => {
+      const documentType = this.documentTypesMap.get(rule.documentTypeId);
+      return { ...rule, documentType };
+    });
+  }
+
+  async createFolderDocumentTypeRule(rule: InsertFolderDocumentTypeRule): Promise<FolderDocumentTypeRule> {
+    const id = randomUUID();
+    const now = new Date();
+    const newRule: FolderDocumentTypeRule = {
+      id,
+      folderTemplateId: rule.folderTemplateId,
+      documentTypeId: rule.documentTypeId,
+      isRequired: rule.isRequired ?? false,
+      sortOrder: rule.sortOrder ?? 0,
+      createdBy: rule.createdBy,
+      createdAt: now,
+    };
+    this.folderDocumentTypeRules.set(id, newRule);
+    return newRule;
+  }
+
+  async deleteFolderDocumentTypeRule(id: string): Promise<boolean> {
+    return this.folderDocumentTypeRules.delete(id);
+  }
+
+  // Provision folder structure from templates for a site
+  async provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]> {
+    const templates = await this.getFolderTemplates(module);
+    const createdFolders: DocumentFolder[] = [];
+    const templateIdToFolderId = new Map<string, string>();
+
+    // First pass: create folders for top-level templates (no parent)
+    for (const template of templates.filter(t => !t.parentId && t.isActive)) {
+      const folder = await this.createDocumentFolder({
+        name: template.name,
+        description: template.description ?? undefined,
+        module: template.module,
+        siteId,
+        parentId: undefined,
+        templateId: template.id,
+        sortOrder: template.sortOrder,
+        createdBy,
+      });
+      templateIdToFolderId.set(template.id, folder.id);
+      createdFolders.push(folder);
+    }
+
+    // Second pass: create folders for child templates
+    for (const template of templates.filter(t => t.parentId && t.isActive)) {
+      const parentFolderId = templateIdToFolderId.get(template.parentId!);
+      if (parentFolderId) {
+        const folder = await this.createDocumentFolder({
+          name: template.name,
+          description: template.description ?? undefined,
+          module: template.module,
+          siteId,
+          parentId: parentFolderId,
+          templateId: template.id,
+          sortOrder: template.sortOrder,
+          createdBy,
+        });
+        templateIdToFolderId.set(template.id, folder.id);
+        createdFolders.push(folder);
+      }
+    }
+
+    return createdFolders;
   }
 }
 
