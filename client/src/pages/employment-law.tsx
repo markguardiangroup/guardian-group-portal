@@ -970,42 +970,6 @@ function CreateMilestoneForm({
   );
 }
 
-// Tab navigation component for Employment Law module
-function EmploymentLawTabs({ activeTab }: { activeTab: "dashboard" | "documents" | "cases" }) {
-  const [, setLocation] = useLocation();
-  
-  return (
-    <Tabs value={activeTab} className="w-full">
-      <TabsList className="grid w-full max-w-md grid-cols-3">
-        <TabsTrigger 
-          value="dashboard" 
-          onClick={() => setLocation("/employment-law")}
-          data-testid="tab-el-dashboard"
-        >
-          <LayoutDashboard className="mr-2 h-4 w-4" />
-          Dashboard
-        </TabsTrigger>
-        <TabsTrigger 
-          value="documents" 
-          onClick={() => setLocation("/employment-law/documents")}
-          data-testid="tab-el-documents"
-        >
-          <FolderOpen className="mr-2 h-4 w-4" />
-          Documents
-        </TabsTrigger>
-        <TabsTrigger 
-          value="cases" 
-          onClick={() => setLocation("/employment-law/cases")}
-          data-testid="tab-el-cases"
-        >
-          <Briefcase className="mr-2 h-4 w-4" />
-          Cases
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
-}
-
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
@@ -1179,7 +1143,6 @@ function EmploymentLawDashboardView() {
       </div>
       
       <div className="space-y-6 p-8">
-        <EmploymentLawTabs activeTab="dashboard" />
       
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-l-4 border-l-pink-500">
@@ -1252,14 +1215,9 @@ function EmploymentLawDashboardView() {
   );
 }
 
-// Cases list view (existing functionality, now with tabs)
+// Cases list view
 function EmploymentLawCasesView() {
-  return (
-    <div className="space-y-6">
-      <EmploymentLawTabs activeTab="cases" />
-      <CasesList />
-    </div>
-  );
+  return <CasesList />;
 }
 
 export default function EmploymentLawPage() {
