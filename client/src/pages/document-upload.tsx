@@ -360,7 +360,7 @@ export default function DocumentUpload() {
                                 </SelectItem>
                               ))}
                               {(!filteredDocumentTypes || filteredDocumentTypes.length === 0) && (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="no-doc-types" disabled>
                                   No document types available
                                 </SelectItem>
                               )}
@@ -430,7 +430,7 @@ export default function DocumentUpload() {
                                 </SelectItem>
                               ))}
                               {(!filteredSites || filteredSites.length === 0) && (
-                                <SelectItem value="" disabled>
+                                <SelectItem value="no-sites" disabled>
                                   No sites available
                                 </SelectItem>
                               )}
@@ -450,8 +450,8 @@ export default function DocumentUpload() {
                         <FormItem>
                           <FormLabel>Folder</FormLabel>
                           <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value || suggestedFolderId || ""}
+                            onValueChange={(value) => field.onChange(value === "none" ? "" : value)} 
+                            value={field.value || suggestedFolderId || "none"}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-folder">
@@ -459,7 +459,7 @@ export default function DocumentUpload() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">No folder</SelectItem>
+                              <SelectItem value="none">No folder</SelectItem>
                               {moduleFolders.map((folder) => (
                                 <SelectItem key={folder.id} value={folder.id}>
                                   {folder.name}
