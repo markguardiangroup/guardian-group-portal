@@ -316,6 +316,48 @@ export const insertDocumentTypeSchema = createInsertSchema(documentTypes).omit({
 export type InsertDocumentType = z.infer<typeof insertDocumentTypeSchema>;
 export type DocumentTypeRecord = typeof documentTypes.$inferSelect;
 
+// Folder Templates (Admin-managed master folder structure)
+export const folderTemplates = pgTable("folder_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(), // Unique identifier like "fire_safety_docs"
+  module: text("module").$type<ModuleType>().notNull(),
+  description: text("description"),
+  parentId: varchar("parent_id"), // Reference to parent template for nested hierarchy
+  isRequired: boolean("is_required").notNull().default(false), // Required folder per module
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFolderTemplateSchema = createInsertSchema(folderTemplates).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertFolderTemplate = z.infer<typeof insertFolderTemplateSchema>;
+export type FolderTemplate = typeof folderTemplates.$inferSelect;
+
+// Folder-Document Type Rules (which document types belong in which folders)
+export const folderDocumentTypeRules = pgTable("folder_document_type_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderTemplateId: varchar("folder_template_id").notNull(),
+  documentTypeId: varchar("document_type_id").notNull(),
+  isRequired: boolean("is_required").notNull().default(false), // Document is required in this folder
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertFolderDocumentTypeRuleSchema = createInsertSchema(folderDocumentTypeRules).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertFolderDocumentTypeRule = z.infer<typeof insertFolderDocumentTypeRuleSchema>;
+export type FolderDocumentTypeRule = typeof folderDocumentTypeRules.$inferSelect;
+
 // Document Folders (for organizing documents)
 export const documentFolders = pgTable("document_folders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -324,6 +366,7 @@ export const documentFolders = pgTable("document_folders", {
   module: text("module").$type<ModuleType>().notNull(),
   siteId: varchar("site_id").notNull(),
   parentId: varchar("parent_id"), // Reference to parent folder for nesting
+  templateId: varchar("template_id"), // Reference to folder template this was created from
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
