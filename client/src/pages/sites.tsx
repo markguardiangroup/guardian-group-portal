@@ -316,9 +316,10 @@ export default function Sites() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: companies } = useQuery<Company[]>({
+  const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies"],
   });
+  const companies = companiesResponse?.companies;
 
   const createSiteMutation = useMutation({
     mutationFn: async (data: typeof newSite) => {
