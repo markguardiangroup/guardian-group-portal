@@ -41,6 +41,7 @@ import {
   Shield,
   Heart,
   Briefcase,
+  Headphones,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -53,6 +54,7 @@ function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: SiteModuleAccessS
     { key: "health_safety" as const, label: "H&S", icon: Shield },
     { key: "human_resources" as const, label: "HR", icon: Heart },
     { key: "employment_law" as const, label: "EL", icon: Briefcase },
+    { key: "support" as const, label: "SUP", icon: Headphones },
   ];
 
   const statusColors = {

@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Modules
-export type ModuleType = "health_safety" | "human_resources" | "employment_law";
+export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "support";
 
 // User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
@@ -589,6 +589,7 @@ export interface SiteModuleAccessSummary {
   health_safety: "active" | "visible" | "hidden";
   human_resources: "active" | "visible" | "hidden";
   employment_law: "active" | "visible" | "hidden";
+  support: "active" | "visible" | "hidden";
 }
 
 // Assigned consultant summary for site list view
@@ -665,6 +666,11 @@ export const moduleConfig: Record<ModuleType, {
       { value: "case_notes", label: "Case Notes" },
       { value: "legal_correspondence", label: "Legal Correspondence" },
     ],
+  },
+  support: {
+    name: "Support",
+    shortName: "SUP",
+    documentTypes: [],
   },
 };
 

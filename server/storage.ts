@@ -1616,14 +1616,16 @@ export class MemStorage implements IStorage {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
+        support: "active" | "visible" | "hidden";
       } = {
         health_safety: "hidden",
         human_resources: "hidden",
         employment_law: "hidden",
+        support: "hidden",
       };
       
       for (const access of moduleAccessList) {
-        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law") {
+        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law" || access.module === "support") {
           moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
         }
       }
@@ -1668,14 +1670,16 @@ export class MemStorage implements IStorage {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
+        support: "active" | "visible" | "hidden";
       } = {
         health_safety: "hidden",
         human_resources: "hidden",
         employment_law: "hidden",
+        support: "hidden",
       };
       
       for (const access of moduleAccessList) {
-        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law") {
+        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law" || access.module === "support") {
           moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
         }
       }
@@ -1997,11 +2001,12 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummaries(siteId?: string): Promise<ModuleSummary[]> {
-    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
       employment_law: "Employment Law",
+      support: "Support",
     };
     
     return Promise.all(modules.map(async (module) => {
@@ -2015,11 +2020,12 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]> {
-    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
       employment_law: "Employment Law",
+      support: "Support",
     };
     
     // Aggregate compliance summary across multiple sites

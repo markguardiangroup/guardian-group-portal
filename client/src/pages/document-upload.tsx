@@ -40,7 +40,7 @@ import type { Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
   documentTypeId: z.string().min(1, "Please select a document type"),
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),

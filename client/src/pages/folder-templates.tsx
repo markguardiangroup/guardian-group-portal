@@ -54,6 +54,7 @@ import {
   Link as LinkIcon,
   FileText,
   X,
+  Headphones,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -65,24 +66,28 @@ const moduleIcons: Record<ModuleType, typeof HardHat> = {
   health_safety: HardHat,
   human_resources: Users,
   employment_law: Scale,
+  support: Headphones,
 };
 
 const moduleNames: Record<ModuleType, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
+  support: "Support",
 };
 
 const moduleColors: Record<ModuleType, string> = {
   health_safety: "text-emerald-600 dark:text-emerald-400",
   human_resources: "text-blue-600 dark:text-blue-400",
   employment_law: "text-pink-600 dark:text-pink-400",
+  support: "text-purple-600 dark:text-purple-400",
 };
 
 const moduleBgColors: Record<ModuleType, string> = {
   health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
   human_resources: "bg-blue-100 dark:bg-blue-900/30",
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
+  support: "bg-purple-100 dark:bg-purple-900/30",
 };
 
 type FormData = {

@@ -872,7 +872,7 @@ function ModuleAccessTab({ siteId }: { siteId: string }) {
     },
   });
 
-  const modules = ["health_safety", "human_resources", "employment_law"];
+  const modules = ["health_safety", "human_resources", "employment_law", "support"];
 
   const getModuleStatus = (module: string): ModuleStatus => {
     const access = moduleAccess.find((a) => a.module === module);

@@ -8,7 +8,7 @@ import PDFDocument from "pdfkit";
 const createDocumentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
   type: z.string().min(1),
   documentTypeId: z.string().optional(),
   siteId: z.string().min(1),
@@ -56,7 +56,7 @@ const createSupportRequestSchema = z.object({
   description: z.string().min(20),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   category: z.string().min(1),
-  module: z.enum(["health_safety", "human_resources", "employment_law"]).optional(),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
 });
 
 const approvalSchema = z.object({
@@ -72,7 +72,7 @@ const loginSchema = z.object({
 const createDocumentTypeSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
-  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
   description: z.string().optional(),
   isRequired: z.boolean().optional(),
   renewalPeriodMonths: z.number().positive().optional().nullable(),
@@ -1068,7 +1068,7 @@ export async function registerRoutes(
       const schema = z.object({
         name: z.string().min(1),
         code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
-        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
         description: z.string().optional(),
         parentId: z.string().nullable().optional(),
         isRequired: z.boolean().optional(),
@@ -1331,7 +1331,7 @@ export async function registerRoutes(
       }
       
       const schema = z.object({
-        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
       });
       
       const parsed = schema.safeParse(req.body);
@@ -1960,7 +1960,7 @@ export async function registerRoutes(
   app.get("/api/document-types/:module/:siteId", requireAuth, async (req, res) => {
     try {
       const { module, siteId } = req.params;
-      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "support") {
         return res.status(400).json({ error: "Invalid module" });
       }
       
@@ -2467,7 +2467,7 @@ export async function registerRoutes(
       }
       
       // Validate module and status against allowed values
-      const validModules = ["health_safety", "human_resources", "employment_law"];
+      const validModules = ["health_safety", "human_resources", "employment_law", "support"];
       const validStatuses = ["active", "visible", "hidden"];
       
       if (!validModules.includes(module)) {
@@ -2538,7 +2538,7 @@ export async function registerRoutes(
       const { siteId, module, reason } = req.body;
       
       // Validate module
-      const validModules = ["health_safety", "human_resources", "employment_law"];
+      const validModules = ["health_safety", "human_resources", "employment_law", "support"];
       if (!module || !validModules.includes(module)) {
         return res.status(400).json({ error: `Invalid module. Must be one of: ${validModules.join(", ")}` });
       }
