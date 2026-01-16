@@ -19,11 +19,13 @@ import {
   Scale,
   Lock,
   Headphones,
+  MessageCircle,
+  CheckCheck,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, SiteWithDetails } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -143,6 +145,63 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
         <Button className={`w-full ${buttonClass}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
             View Module
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SupportCard() {
+  const { data: supportRequests = [] } = useQuery<SupportRequest[]>({
+    queryKey: ["/api/support-requests"],
+  });
+
+  const openRequests = supportRequests.filter(r => r.status === "open" || r.status === "in_progress").length;
+  const resolvedRequests = supportRequests.filter(r => r.status === "resolved").length;
+  const totalRequests = supportRequests.length;
+
+  return (
+    <Card className="hover-elevate theme-support border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20" data-testid="card-module-support">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/40">
+            <Headphones className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Support</CardTitle>
+            <CardDescription>{totalRequests} requests</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-3xl font-bold text-slate-600 dark:text-slate-400">
+            {openRequests}
+          </span>
+          <p className="text-xs text-muted-foreground">Open</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{openRequests}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Open</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCheck className="h-4 w-4" />
+              <span className="text-lg font-semibold">{resolvedRequests}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Resolved</p>
+          </div>
+        </div>
+
+        <Button className="w-full border-slate-500 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-950/30" variant="outline" asChild>
+          <Link href="/support" data-testid="link-module-support">
+            View Support
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -413,16 +472,21 @@ export default function Dashboard() {
     );
   }
 
-  const allModules: { module: ModuleType; name: string }[] = [
+  // Compliance modules (not including support)
+  const complianceModules: { module: ModuleType; name: string }[] = [
     { module: "health_safety", name: "Health & Safety" },
     { module: "human_resources", name: "Human Resources" },
     { module: "employment_law", name: "Employment Law" },
-    { module: "support", name: "Support" },
   ];
 
   const summaries = moduleSummaries || [];
-  const activeSummaries = summaries.filter(s => hasActiveAccess(s.module));
-  const visibleLockedModules = allModules.filter(m => !hasActiveAccess(m.module) && !isHidden(m.module));
+  // Filter to only compliance modules (exclude support)
+  const complianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
+  const visibleLockedModules = complianceModules.filter(m => !hasActiveAccess(m.module) && !isHidden(m.module));
+  
+  // Check if user has access to support
+  const hasSupportAccess = hasActiveAccess("support");
+  const isSupportLocked = !hasSupportAccess && !isHidden("support");
 
   return (
     <div className="space-y-8 p-8">
@@ -455,12 +519,12 @@ export default function Dashboard() {
         )}
       </div>
 
-      <OverallComplianceCard summaries={activeSummaries} />
+      <OverallComplianceCard summaries={complianceSummaries} />
 
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Modules</h2>
+        <h2 className="mb-4 text-xl font-semibold">Compliance Modules</h2>
         <div className="grid gap-6 md:grid-cols-3">
-          {summaries.filter(s => hasActiveAccess(s.module)).map((summary) => (
+          {complianceSummaries.map((summary) => (
             <ModuleCard key={summary.module} summary={summary} />
           ))}
           {visibleLockedModules.map((m) => (
@@ -473,6 +537,24 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Support section - separate from compliance modules */}
+      {(hasSupportAccess || isSupportLocked) && (
+        <div>
+          <h2 className="mb-4 text-xl font-semibold">Support</h2>
+          <div className="grid gap-6 md:grid-cols-3">
+            {hasSupportAccess ? (
+              <SupportCard />
+            ) : (
+              <LockedModuleCard 
+                moduleName="Support" 
+                module="support"
+                isPending={hasPendingRequest("support")}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
