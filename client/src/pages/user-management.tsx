@@ -142,10 +142,11 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companies = [] } = useQuery<{ id: string; name: string }[]>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string }[] }>({
     queryKey: ["/api/companies"],
     enabled: isAdmin || isConsultant,
   });
+  const companies = companiesResponse?.companies || [];
 
   const usersWithSiteInfo = allUsers.map((u) => {
     if (u.role === "consultant") {
