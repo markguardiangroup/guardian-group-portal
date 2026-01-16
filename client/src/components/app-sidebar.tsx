@@ -103,14 +103,15 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/support" },
     ],
   },
-];
-
-const sharedNavItems = [
   {
     title: "Reports",
-    url: "/reports",
     icon: BarChart3,
-    module: "reports" as ModuleType,
+    url: "/reports",
+    themeClass: "theme-reports",
+    module: "reports",
+    subItems: [
+      { title: "Dashboard", url: "/reports" },
+    ],
   },
 ];
 
@@ -324,68 +325,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       </CollapsibleContent>
                     </SidebarMenuItem>
                   </Collapsible>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Shared
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {sharedNavItems.map((item) => {
-                const isActive = location === item.url || 
-                  (item.url !== "/" && location.startsWith(item.url));
-                const hasAccess = item.module ? hasActiveAccess(item.module) : true;
-                const isPending = item.module ? hasPendingRequest(item.module) : false;
-                const showLock = !hasAccess && !isPending;
-                const showPending = !hasAccess && isPending;
-                
-                if (!hasAccess && !isPrivilegedUser) {
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        className="cursor-default opacity-60"
-                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                        {showLock && (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Request
-                          </Badge>
-                        )}
-                        {showPending && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                }
-                
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={cn(
-                        "transition-colors",
-                        isActive && "bg-sidebar-accent font-medium"
-                      )}
-                    >
-                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="flex-1">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
