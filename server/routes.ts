@@ -1919,6 +1919,107 @@ export async function registerRoutes(
     }
   });
 
+  // Get messages for a support request
+  app.get("/api/support-requests/:id/messages", async (req, res) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const request = await storage.getSupportRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Support request not found" });
+      }
+
+      // Check access
+      if (user.role === "client" && request.createdBy !== user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (user.role === "consultant") {
+        const canAccess = await canUserAccessSite(user, request.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      const messages = await storage.getSupportMessages(req.params.id);
+      
+      // Enrich with sender names
+      const enrichedMessages = await Promise.all(messages.map(async (msg) => {
+        const sender = await storage.getUser(msg.senderId);
+        return {
+          ...msg,
+          senderName: sender?.fullName || sender?.username || "Unknown",
+          senderRole: sender?.role || "unknown",
+        };
+      }));
+
+      res.json(enrichedMessages);
+    } catch (error) {
+      console.error("Get support messages error:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // Post a message to a support request
+  app.post("/api/support-requests/:id/messages", async (req, res) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const request = await storage.getSupportRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Support request not found" });
+      }
+
+      // Check access - clients can only post to their own requests
+      if (user.role === "client" && request.createdBy !== user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (user.role === "consultant") {
+        const canAccess = await canUserAccessSite(user, request.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      const { message } = req.body;
+      if (!message || typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const newMessage = await storage.createSupportMessage({
+        requestId: req.params.id,
+        senderId: user.id,
+        message: message.trim(),
+      });
+
+      // Update request status to in_progress if it's open and a consultant/admin responds
+      if (request.status === "open" && (user.role === "admin" || user.role === "consultant")) {
+        await storage.updateSupportRequest(req.params.id, { 
+          status: "in_progress",
+          updatedAt: new Date(),
+        });
+      }
+
+      // Enrich with sender info
+      const sender = await storage.getUser(user.id);
+      const enrichedMessage = {
+        ...newMessage,
+        senderName: sender?.fullName || sender?.username || "Unknown",
+        senderRole: sender?.role || "unknown",
+      };
+
+      res.status(201).json(enrichedMessage);
+    } catch (error) {
+      console.error("Create support message error:", error);
+      res.status(500).json({ error: "Failed to create message" });
+    }
+  });
+
   // Document Types (Admin-managed master list)
   app.get("/api/document-types", async (req, res) => {
     try {
