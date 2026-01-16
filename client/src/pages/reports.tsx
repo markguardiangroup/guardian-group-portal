@@ -234,9 +234,10 @@ export default function Reports() {
     },
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: ["/api/companies"],
   });
+  const companies = companiesData?.companies || [];
 
   const { data: allSites = [] } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
