@@ -18,6 +18,7 @@ import {
   Clock,
   KeyRound,
   FolderTree,
+  Headphones,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -92,6 +93,17 @@ const moduleNavItems: {
       { title: "Cases", url: "/employment-law/cases" },
     ],
   },
+  {
+    title: "Support",
+    icon: Headphones,
+    url: "/support",
+    themeClass: "theme-support",
+    module: "support",
+    subItems: [
+      { title: "Dashboard", url: "/support" },
+      { title: "Requests", url: "/support/requests" },
+    ],
+  },
 ];
 
 const sharedNavItems = [
@@ -99,12 +111,6 @@ const sharedNavItems = [
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
-  },
-  {
-    title: "Support",
-    url: "/support",
-    icon: HelpCircle,
-    badge: 1,
   },
 ];
 
@@ -346,11 +352,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                         <item.icon className="h-4 w-4" />
                         <span className="flex-1">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="secondary" className="h-5 min-w-5 justify-center text-xs">
-                            {item.badge}
-                          </Badge>
-                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
