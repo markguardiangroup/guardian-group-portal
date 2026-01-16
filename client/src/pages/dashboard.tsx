@@ -18,6 +18,7 @@ import {
   Shield,
   Scale,
   Lock,
+  Headphones,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -31,9 +32,17 @@ interface DashboardData {
 function ModuleCard({ summary }: { summary: ModuleSummary }) {
   const isHS = summary.module === "health_safety";
   const isEL = summary.module === "employment_law";
-  const Icon = isHS ? HardHat : isEL ? Scale : Users;
-  const basePath = isHS ? "/health-safety" : isEL ? "/employment-law" : "/human-resources";
-  const themeClass = isHS ? "theme-hs" : isEL ? "theme-el" : "theme-hr";
+  const isSupport = summary.module === "support";
+  const isHR = summary.module === "human_resources";
+  
+  // Determine icon based on module
+  const Icon = isHS ? HardHat : isEL ? Scale : isSupport ? Headphones : Users;
+  
+  // Determine path based on module
+  const basePath = isHS ? "/health-safety" : isEL ? "/employment-law" : isSupport ? "/support" : "/human-resources";
+  
+  // Determine theme class based on module
+  const themeClass = isHS ? "theme-hs" : isEL ? "theme-el" : isSupport ? "theme-support" : "theme-hr";
   
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -47,29 +56,37 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     return "bg-red-500";
   };
 
-  // Module-specific styling
+  // Module-specific styling - Support gets orange/amber, distinct from blue HR
   const moduleStyles = isHS 
     ? "border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20"
     : isEL 
     ? "border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20"
+    : isSupport
+    ? "border-t-4 border-t-orange-500 bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/20"
     : "border-t-4 border-t-blue-500 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20";
   
   const iconBgClass = isHS 
     ? "bg-emerald-100 dark:bg-emerald-900/40" 
     : isEL 
     ? "bg-pink-100 dark:bg-pink-900/40"
+    : isSupport
+    ? "bg-orange-100 dark:bg-orange-900/40"
     : "bg-blue-100 dark:bg-blue-900/40";
   
   const iconColorClass = isHS 
     ? "text-emerald-600 dark:text-emerald-400" 
     : isEL 
     ? "text-pink-600 dark:text-pink-400"
+    : isSupport
+    ? "text-orange-600 dark:text-orange-400"
     : "text-blue-600 dark:text-blue-400";
   
   const buttonClass = isHS 
     ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30" 
     : isEL 
     ? "border-pink-500 text-pink-600 hover:bg-pink-50 dark:text-pink-400 dark:hover:bg-pink-950/30"
+    : isSupport
+    ? "border-orange-500 text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
     : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30";
 
   return (
@@ -236,24 +253,31 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 }) {
   const isHS = module === "health_safety";
   const isEL = module === "employment_law";
-  const Icon = isHS ? HardHat : isEL ? Scale : Users;
+  const isSupport = module === "support";
+  const Icon = isHS ? HardHat : isEL ? Scale : isSupport ? Headphones : Users;
   
   const moduleStyles = isHS 
     ? "border-t-4 border-t-emerald-500/50 bg-gradient-to-br from-emerald-50/30 to-transparent dark:from-emerald-950/10"
     : isEL 
     ? "border-t-4 border-t-pink-500/50 bg-gradient-to-br from-pink-50/30 to-transparent dark:from-pink-950/10"
+    : isSupport
+    ? "border-t-4 border-t-orange-500/50 bg-gradient-to-br from-orange-50/30 to-transparent dark:from-orange-950/10"
     : "border-t-4 border-t-blue-500/50 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-950/10";
   
   const iconBgClass = isHS 
     ? "bg-emerald-100/50 dark:bg-emerald-900/20" 
     : isEL 
     ? "bg-pink-100/50 dark:bg-pink-900/20"
+    : isSupport
+    ? "bg-orange-100/50 dark:bg-orange-900/20"
     : "bg-blue-100/50 dark:bg-blue-900/20";
   
   const iconColorClass = isHS 
     ? "text-emerald-600/50 dark:text-emerald-400/50" 
     : isEL 
     ? "text-pink-600/50 dark:text-pink-400/50"
+    : isSupport
+    ? "text-orange-600/50 dark:text-orange-400/50"
     : "text-blue-600/50 dark:text-blue-400/50";
 
   return (
@@ -393,6 +417,7 @@ export default function Dashboard() {
     { module: "health_safety", name: "Health & Safety" },
     { module: "human_resources", name: "Human Resources" },
     { module: "employment_law", name: "Employment Law" },
+    { module: "support", name: "Support" },
   ];
 
   const summaries = moduleSummaries || [];
