@@ -2737,13 +2737,25 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and consultants can manage module access" });
       }
       
+      // Consultants need canManageModules permission on this site
+      if (user.role === "consultant") {
+        const assignments = await storage.getConsultantAssignments(user.id);
+        const siteAssignment = assignments.find(a => a.siteId === req.params.siteId);
+        if (!siteAssignment) {
+          return res.status(403).json({ error: "You are not assigned to this site" });
+        }
+        if (!siteAssignment.canManageModules) {
+          return res.status(403).json({ error: "You do not have permission to manage modules for this site" });
+        }
+      }
+      
       const { module, status, notes } = req.body;
       if (!module || !status) {
         return res.status(400).json({ error: "Module and status are required" });
       }
       
       // Validate module and status against allowed values
-      const validModules = ["health_safety", "human_resources", "employment_law", "support"];
+      const validModules = ["health_safety", "human_resources", "employment_law", "support", "reports"];
       const validStatuses = ["active", "visible", "hidden"];
       
       if (!validModules.includes(module)) {
