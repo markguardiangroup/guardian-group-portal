@@ -43,7 +43,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ComplianceSummary, Site, SiteWithDetails } from "@shared/schema";
+import type { ComplianceSummary, Site, SiteWithDetails, Company } from "@shared/schema";
 
 interface ReportData {
   summary: ComplianceSummary;
@@ -213,18 +213,48 @@ function TrendChart({ data }: { data: { month: string; score: number }[] }) {
 }
 
 export default function Reports() {
-  const [siteFilter, setEntityFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [showModuleReport, setShowModuleReport] = useState(false);
 
+  // Build query params for filtering
+  const queryParams = new URLSearchParams();
+  if (companyFilter !== "all") queryParams.set("companyId", companyFilter);
+  if (siteFilter !== "all") queryParams.set("siteId", siteFilter);
+  const queryString = queryParams.toString();
+  const reportsUrl = queryString ? `/api/reports?${queryString}` : "/api/reports";
+
   const { data, isLoading } = useQuery<ReportData>({
-    queryKey: ["/api/reports"],
+    queryKey: ["/api/reports", { companyId: companyFilter, siteId: siteFilter }],
+    queryFn: async () => {
+      const response = await fetch(reportsUrl, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch reports");
+      return response.json();
+    },
+  });
+
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+  });
+
+  const { data: allSites = [] } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
   });
 
   const { data: sitesWithModules = [] } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
     enabled: showModuleReport,
   });
+
+  const filteredSites = companyFilter === "all" 
+    ? allSites 
+    : allSites.filter(site => site.companyId === companyFilter);
+
+  const handleCompanyChange = (value: string) => {
+    setCompanyFilter(value);
+    setSiteFilter("all");
+  };
 
   const moduleStatusColors = {
     active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
@@ -290,15 +320,27 @@ export default function Reports() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Select value={siteFilter} onValueChange={setEntityFilter}>
-          <SelectTrigger className="w-48" data-testid="select-entity-filter">
+        <Select value={companyFilter} onValueChange={handleCompanyChange}>
+          <SelectTrigger className="w-48" data-testid="select-company-filter">
+            <Building2 className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="All Companies" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Companies</SelectItem>
+            {companies.map((company) => (
+              <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={siteFilter} onValueChange={setSiteFilter}>
+          <SelectTrigger className="w-48" data-testid="select-site-filter">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue placeholder="All Sites" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Sites</SelectItem>
-            {data?.sites?.map((entity) => (
-              <SelectItem key={entity.id} value={entity.id}>{entity.name}</SelectItem>
+            {filteredSites.map((site) => (
+              <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

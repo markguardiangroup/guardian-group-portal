@@ -233,7 +233,7 @@ export async function registerRoutes(
       if (module !== "health_safety" && module !== "human_resources") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const summary = await storage.getComplianceSummary(module);
+      const summary = await storage.getComplianceSummary(undefined, undefined, module);
       const documents = await storage.getDocuments(module);
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
@@ -263,7 +263,7 @@ export async function registerRoutes(
   app.get("/api/dashboard", async (req, res) => {
     try {
       const module = req.query.module as ModuleType | undefined;
-      const summary = await storage.getComplianceSummary(module);
+      const summary = await storage.getComplianceSummary(undefined, undefined, module);
       const documents = await storage.getDocuments(module);
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
@@ -340,7 +340,7 @@ export async function registerRoutes(
           return;
         }
         
-        const summaries = await storage.getModuleSummaries(siteId);
+        const summaries = await storage.getModuleSummaries(undefined, siteId);
         res.json(summaries);
         return;
       }
@@ -392,7 +392,7 @@ export async function registerRoutes(
           if (!canAccess) {
             return res.status(403).json({ error: "Access denied to this site" });
           }
-          const summaries = await storage.getModuleSummaries(siteId);
+          const summaries = await storage.getModuleSummaries(undefined, siteId);
           res.json(summaries);
           return;
         }
@@ -410,7 +410,7 @@ export async function registerRoutes(
       }
       
       // Fallback (shouldn't reach here)
-      const summaries = await storage.getModuleSummaries(siteId);
+      const summaries = await storage.getModuleSummaries(undefined, siteId);
       res.json(summaries);
     } catch (error) {
       console.error("Module summaries error:", error);
@@ -2138,9 +2138,20 @@ export async function registerRoutes(
   // Reports
   app.get("/api/reports", async (req, res) => {
     try {
-      const summary = await storage.getComplianceSummary();
-      const moduleSummaries = await storage.getModuleSummaries();
-      const entities = await storage.getSitesWithDetails();
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+      
+      const summary = await storage.getComplianceSummary(companyId, siteId);
+      const moduleSummaries = await storage.getModuleSummaries(companyId, siteId);
+      const allSites = await storage.getSitesWithDetails();
+      
+      // Filter sites based on company/site filter
+      let filteredSites = allSites;
+      if (siteId) {
+        filteredSites = allSites.filter(s => s.id === siteId);
+      } else if (companyId) {
+        filteredSites = allSites.filter(s => s.companyId === companyId);
+      }
       
       const monthlyTrend = [
         { month: "Jul", score: 72 },
@@ -2154,7 +2165,7 @@ export async function registerRoutes(
       res.json({
         summary,
         moduleSummaries,
-        entities: entities.map(e => ({ id: e.id, name: e.name })),
+        sites: filteredSites.map(e => ({ id: e.id, name: e.name })),
         monthlyTrend,
       });
     } catch (error) {

@@ -86,8 +86,8 @@ export interface IStorage {
   createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage>;
   
   // Dashboard
-  getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
-  getModuleSummaries(siteId?: string): Promise<ModuleSummary[]>;
+  getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary>;
+  getModuleSummaries(companyId?: string, siteId?: string): Promise<ModuleSummary[]>;
   getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]>;
   
   // Site Document Type Access
@@ -2005,13 +2005,18 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard
-  async getComplianceSummary(module?: ModuleType, siteId?: string): Promise<ComplianceSummary> {
+  async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
     let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
     if (module) {
       docs = docs.filter(d => d.module === module);
     }
     if (siteId) {
       docs = docs.filter(d => d.siteId === siteId);
+    } else if (companyId) {
+      // Filter by company: get all sites for this company
+      const companySites = Array.from(this.sites.values()).filter(s => s.companyId === companyId);
+      const companySiteIds = companySites.map(s => s.id);
+      docs = docs.filter(d => companySiteIds.includes(d.siteId));
     }
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
@@ -2029,17 +2034,18 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getModuleSummaries(siteId?: string): Promise<ModuleSummary[]> {
+  async getModuleSummaries(companyId?: string, siteId?: string): Promise<ModuleSummary[]> {
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
       employment_law: "Employment Law",
       support: "Support",
+      reports: "Reports",
     };
     
     return Promise.all(modules.map(async (module) => {
-      const summary = await this.getComplianceSummary(module, siteId);
+      const summary = await this.getComplianceSummary(companyId, siteId, module);
       return {
         ...summary,
         module,
@@ -2055,6 +2061,7 @@ export class MemStorage implements IStorage {
       human_resources: "Human Resources",
       employment_law: "Employment Law",
       support: "Support",
+      reports: "Reports",
     };
     
     // Aggregate compliance summary across multiple sites
