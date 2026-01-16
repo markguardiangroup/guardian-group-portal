@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Modules
-export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "support";
+export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "support" | "reports";
 
 // User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
@@ -139,6 +139,7 @@ export const consultantAssignments = pgTable("consultant_assignments", {
   consultantId: varchar("consultant_id").notNull(),
   siteId: varchar("site_id").notNull(),
   isPrimary: boolean("is_primary").notNull().default(false),
+  canManageModules: boolean("can_manage_modules").notNull().default(false),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
 });
 
@@ -692,6 +693,11 @@ export const moduleConfig: Record<ModuleType, {
   support: {
     name: "Support",
     shortName: "SUP",
+    documentTypes: [],
+  },
+  reports: {
+    name: "Reports",
+    shortName: "RPT",
     documentTypes: [],
   },
 };
