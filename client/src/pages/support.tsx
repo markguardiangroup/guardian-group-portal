@@ -355,63 +355,162 @@ function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSucc
   );
 }
 
+function RequestDetailDialog({ request, site, canRespond }: { request: SupportRequest; site?: SiteWithDetails; canRespond: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Card className="hover-elevate cursor-pointer" data-testid={`request-card-${request.id}`}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                {request.status === "resolved" || request.status === "closed" ? (
+                  <CheckCircle className="h-5 w-5 text-emerald-500" />
+                ) : request.priority === "urgent" || request.priority === "high" ? (
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                ) : (
+                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="font-medium">{request.subject}</h4>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{request.category}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <PriorityBadge priority={request.priority} />
+                    <SupportStatusBadge status={request.status} />
+                  </div>
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                  {request.description}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                  {site && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {site.name}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Created {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                  </span>
+                  {request.resolvedAt && (
+                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle className="h-3 w-3" />
+                      Resolved {formatDistanceToNow(new Date(request.resolvedAt), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+              {request.status === "resolved" || request.status === "closed" ? (
+                <CheckCircle className="h-5 w-5 text-emerald-500" />
+              ) : request.priority === "urgent" || request.priority === "high" ? (
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+              ) : (
+                <MessageSquare className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <DialogTitle>{request.subject}</DialogTitle>
+              <DialogDescription>{request.category}</DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6 mt-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <PriorityBadge priority={request.priority} />
+            <SupportStatusBadge status={request.status} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {site && (
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Site</p>
+                  <p className="font-medium">{site.name}</p>
+                </div>
+              </div>
+            )}
+            {site && (
+              <div className="flex items-center gap-2 text-sm">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Company</p>
+                  <p className="font-medium">{site.companyName}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-muted-foreground text-xs">Created</p>
+                <p className="font-medium">
+                  {request.createdAt && format(new Date(request.createdAt), "PPp")}
+                </p>
+              </div>
+            </div>
+            {request.resolvedAt && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <div>
+                  <p className="text-muted-foreground text-xs">Resolved</p>
+                  <p className="font-medium">
+                    {format(new Date(request.resolvedAt), "PPp")}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium mb-2">Description</h4>
+            <div className="rounded-md bg-muted/50 p-4">
+              <p className="text-sm whitespace-pre-wrap">{request.description}</p>
+            </div>
+          </div>
+
+          {request.response && (
+            <div>
+              <h4 className="text-sm font-medium mb-2">Response</h4>
+              <div className="rounded-md bg-muted/50 p-4 border-l-4 border-primary">
+                <p className="text-sm whitespace-pre-wrap">{request.response}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {canRespond && (
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+            <RespondDialog request={request} onSuccess={() => setOpen(false)} />
+          </DialogFooter>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SupportRequestCard({ request, sites, canRespond }: { request: SupportRequest; sites: SiteWithDetails[]; canRespond: boolean }) {
   const site = sites.find(s => s.id === request.siteId);
   
   return (
-    <Card className="hover-elevate">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
-            {request.status === "resolved" || request.status === "closed" ? (
-              <CheckCircle className="h-5 w-5 text-emerald-500" />
-            ) : request.priority === "urgent" || request.priority === "high" ? (
-              <AlertCircle className="h-5 w-5 text-amber-500" />
-            ) : (
-              <MessageSquare className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4 className="font-medium">{request.subject}</h4>
-                <p className="mt-0.5 text-sm text-muted-foreground">{request.category}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <PriorityBadge priority={request.priority} />
-                <SupportStatusBadge status={request.status} />
-              </div>
-            </div>
-            <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-              {request.description}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-              {site && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {site.name}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Created {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
-              </span>
-              {request.resolvedAt && (
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle className="h-3 w-3" />
-                  Resolved {formatDistanceToNow(new Date(request.resolvedAt), { addSuffix: true })}
-                </span>
-              )}
-            </div>
-            {canRespond && (
-              <div className="mt-3 pt-3 border-t">
-                <RespondDialog request={request} onSuccess={() => {}} />
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <RequestDetailDialog request={request} site={site} canRespond={canRespond} />
   );
 }
 
@@ -428,10 +527,11 @@ export default function Support() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies"],
     enabled: user?.role === "admin",
   });
+  const companies = companiesResponse?.companies || [];
 
   const queryParams = new URLSearchParams();
   if (siteFilter !== "all") {

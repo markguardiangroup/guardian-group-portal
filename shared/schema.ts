@@ -525,6 +525,7 @@ export const supportRequests = pgTable("support_requests", {
   siteId: varchar("site_id").notNull(),
   createdBy: varchar("created_by").notNull(),
   assignedTo: varchar("assigned_to"),
+  response: text("response"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at"),
@@ -534,7 +535,8 @@ export const insertSupportRequestSchema = createInsertSchema(supportRequests).om
   id: true, 
   createdAt: true, 
   updatedAt: true,
-  resolvedAt: true 
+  resolvedAt: true,
+  response: true,
 });
 export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
 export type SupportRequest = typeof supportRequests.$inferSelect;
