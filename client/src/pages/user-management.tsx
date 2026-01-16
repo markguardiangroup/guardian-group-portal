@@ -340,7 +340,7 @@ export default function UserManagement() {
     <div className="space-y-6 p-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold">User Management</h1>
+          <h1 className="text-3xl font-semibold">Users</h1>
           <p className="mt-1 text-muted-foreground">
             {isAdmin ? "Manage all users across the platform" : "View client users"}
           </p>

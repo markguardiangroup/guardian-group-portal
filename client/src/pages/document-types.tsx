@@ -348,7 +348,7 @@ export default function DocumentTypesPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold" data-testid="text-page-title">Document Types</h1>
+          <h1 className="text-3xl font-semibold" data-testid="text-page-title">Document Hub</h1>
           <p className="text-muted-foreground mt-1">
             Manage the master list of document types for compliance tracking
           </p>

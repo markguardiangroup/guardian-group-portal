@@ -128,17 +128,17 @@ const adminNavItems = [
     icon: MapPin,
   },
   {
-    title: "User Management",
+    title: "Users",
     url: "/users",
     icon: Users,
   },
   {
-    title: "Document Types",
+    title: "Document Hub",
     url: "/document-types",
     icon: FileText,
   },
   {
-    title: "Folder Templates",
+    title: "Folder Hub",
     url: "/folder-templates",
     icon: FolderTree,
   },

@@ -352,7 +352,7 @@ export default function FolderTemplatesPage() {
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <FolderTree className="h-6 w-6" />
-            Folder Templates
+            Folder Hub
           </h1>
           <p className="text-muted-foreground mt-1">
             Define master folder structures that can be applied to all sites
