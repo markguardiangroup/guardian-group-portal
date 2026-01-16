@@ -56,13 +56,13 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     return "bg-red-500";
   };
 
-  // Module-specific styling - Support gets orange/amber, distinct from blue HR
+  // Module-specific styling - Support gets slate, distinct from blue HR
   const moduleStyles = isHS 
     ? "border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20"
     : isEL 
     ? "border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20"
     : isSupport
-    ? "border-t-4 border-t-orange-500 bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/20"
+    ? "border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20"
     : "border-t-4 border-t-blue-500 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20";
   
   const iconBgClass = isHS 
@@ -70,7 +70,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     : isEL 
     ? "bg-pink-100 dark:bg-pink-900/40"
     : isSupport
-    ? "bg-orange-100 dark:bg-orange-900/40"
+    ? "bg-slate-100 dark:bg-slate-800/40"
     : "bg-blue-100 dark:bg-blue-900/40";
   
   const iconColorClass = isHS 
@@ -78,7 +78,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     : isEL 
     ? "text-pink-600 dark:text-pink-400"
     : isSupport
-    ? "text-orange-600 dark:text-orange-400"
+    ? "text-slate-600 dark:text-slate-400"
     : "text-blue-600 dark:text-blue-400";
   
   const buttonClass = isHS 
@@ -86,7 +86,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     : isEL 
     ? "border-pink-500 text-pink-600 hover:bg-pink-50 dark:text-pink-400 dark:hover:bg-pink-950/30"
     : isSupport
-    ? "border-orange-500 text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+    ? "border-slate-500 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-950/30"
     : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30";
 
   return (
@@ -261,7 +261,7 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
     : isEL 
     ? "border-t-4 border-t-pink-500/50 bg-gradient-to-br from-pink-50/30 to-transparent dark:from-pink-950/10"
     : isSupport
-    ? "border-t-4 border-t-orange-500/50 bg-gradient-to-br from-orange-50/30 to-transparent dark:from-orange-950/10"
+    ? "border-t-4 border-t-slate-500/50 bg-gradient-to-br from-slate-50/30 to-transparent dark:from-slate-950/10"
     : "border-t-4 border-t-blue-500/50 bg-gradient-to-br from-blue-50/30 to-transparent dark:from-blue-950/10";
   
   const iconBgClass = isHS 
@@ -269,7 +269,7 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
     : isEL 
     ? "bg-pink-100/50 dark:bg-pink-900/20"
     : isSupport
-    ? "bg-orange-100/50 dark:bg-orange-900/20"
+    ? "bg-slate-100/50 dark:bg-slate-800/20"
     : "bg-blue-100/50 dark:bg-blue-900/20";
   
   const iconColorClass = isHS 
@@ -277,7 +277,7 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
     : isEL 
     ? "text-pink-600/50 dark:text-pink-400/50"
     : isSupport
-    ? "text-orange-600/50 dark:text-orange-400/50"
+    ? "text-slate-600/50 dark:text-slate-400/50"
     : "text-blue-600/50 dark:text-blue-400/50";
 
   return (
