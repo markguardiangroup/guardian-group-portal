@@ -101,7 +101,6 @@ const moduleNavItems: {
     module: "support",
     subItems: [
       { title: "Dashboard", url: "/support" },
-      { title: "Requests", url: "/support/requests" },
     ],
   },
 ];
