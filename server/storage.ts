@@ -76,6 +76,7 @@ export interface IStorage {
   
   // Support Requests
   getSupportRequests(module?: ModuleType): Promise<SupportRequest[]>;
+  getSupportRequest(id: string): Promise<SupportRequest | undefined>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
   updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined>;
   
@@ -1946,6 +1947,10 @@ export class MemStorage implements IStorage {
       requests = requests.filter(r => r.module === module);
     }
     return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getSupportRequest(id: string): Promise<SupportRequest | undefined> {
+    return this.supportRequests.get(id);
   }
 
   async createSupportRequest(insertRequest: InsertSupportRequest): Promise<SupportRequest> {

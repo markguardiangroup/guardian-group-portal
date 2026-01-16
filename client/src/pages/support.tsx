@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -30,10 +31,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PriorityBadge, SupportStatusBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   HelpCircle,
@@ -43,16 +46,32 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Send,
+  Filter,
+  MapPin,
+  Building2,
+  User,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { SupportRequest, SupportPriority, SupportStatus } from "@shared/schema";
+
+interface SiteWithDetails {
+  id: string;
+  name: string;
+  companyId: string;
+  companyName: string;
+}
+
+interface Company {
+  id: string;
+  name: string;
+}
 
 const supportRequestSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   category: z.string().min(1, "Please select a category"),
+  siteId: z.string().min(1, "Please select a site"),
 });
 
 type SupportRequestForm = z.infer<typeof supportRequestSchema>;
@@ -67,7 +86,7 @@ const categories = [
   "Other",
 ];
 
-function CreateSupportRequestDialog({ onSuccess }: { onSuccess: () => void }) {
+function CreateSupportRequestDialog({ sites, onSuccess }: { sites: SiteWithDetails[]; onSuccess: () => void }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
@@ -78,6 +97,7 @@ function CreateSupportRequestDialog({ onSuccess }: { onSuccess: () => void }) {
       description: "",
       priority: "medium",
       category: "",
+      siteId: sites.length === 1 ? sites[0].id : "",
     },
   });
 
@@ -125,6 +145,30 @@ function CreateSupportRequestDialog({ onSuccess }: { onSuccess: () => void }) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="siteId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Site</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-site">
+                        <SelectValue placeholder="Select site" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {sites.map((site) => (
+                        <SelectItem key={site.id} value={site.id}>
+                          {site.name} ({site.companyName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="subject"
@@ -218,7 +262,102 @@ function CreateSupportRequestDialog({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function SupportRequestCard({ request }: { request: SupportRequest }) {
+function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<string>(request.status);
+  const [response, setResponse] = useState("");
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", `/api/support-requests/${request.id}`, {
+        status,
+        response,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      setOpen(false);
+      setResponse("");
+      toast({
+        title: "Request Updated",
+        description: "The support request has been updated.",
+      });
+      onSuccess();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" data-testid={`button-respond-${request.id}`}>
+          Respond
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Respond to Request</DialogTitle>
+          <DialogDescription>
+            Update the status and add a response to this request.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-medium mb-1">Subject</p>
+            <p className="text-sm text-muted-foreground">{request.subject}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium mb-1">Description</p>
+            <p className="text-sm text-muted-foreground">{request.description}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="mt-1" data-testid="select-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Response / Notes</label>
+            <Textarea
+              className="mt-1 min-h-24"
+              placeholder="Add your response or internal notes..."
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              data-testid="textarea-response"
+            />
+          </div>
+        </div>
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-submit-response">
+            {mutation.isPending ? "Updating..." : "Update Request"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SupportRequestCard({ request, sites, canRespond }: { request: SupportRequest; sites: SiteWithDetails[]; canRespond: boolean }) {
+  const site = sites.find(s => s.id === request.siteId);
+  
   return (
     <Card className="hover-elevate">
       <CardContent className="p-4">
@@ -246,7 +385,13 @@ function SupportRequestCard({ request }: { request: SupportRequest }) {
             <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
               {request.description}
             </p>
-            <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              {site && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {site.name}
+                </span>
+              )}
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Created {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
@@ -258,6 +403,11 @@ function SupportRequestCard({ request }: { request: SupportRequest }) {
                 </span>
               )}
             </div>
+            {canRespond && (
+              <div className="mt-3 pt-3 border-t">
+                <RespondDialog request={request} onSuccess={() => {}} />
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -266,11 +416,39 @@ function SupportRequestCard({ request }: { request: SupportRequest }) {
 }
 
 export default function Support() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [siteFilter, setSiteFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
 
-  const { data: requests, isLoading } = useQuery<SupportRequest[]>({
-    queryKey: ["/api/support-requests"],
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+
+  const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites"],
+  });
+
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+    enabled: user?.role === "admin",
+  });
+
+  const queryParams = new URLSearchParams();
+  if (siteFilter !== "all") {
+    queryParams.set("siteId", siteFilter);
+  } else if (companyFilter !== "all") {
+    queryParams.set("companyId", companyFilter);
+  }
+
+  const { data: requests, isLoading: requestsLoading } = useQuery<SupportRequest[]>({
+    queryKey: ["/api/support-requests", siteFilter, companyFilter],
+    queryFn: async () => {
+      const response = await fetch(`/api/support-requests?${queryParams.toString()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch requests");
+      return response.json();
+    },
   });
 
   const filteredRequests = requests?.filter((req) => {
@@ -286,6 +464,8 @@ export default function Support() {
 
   const openCount = requests?.filter((r) => r.status === "open" || r.status === "in_progress").length || 0;
   const resolvedCount = requests?.filter((r) => r.status === "resolved" || r.status === "closed").length || 0;
+
+  const isLoading = sitesLoading || requestsLoading;
 
   if (isLoading) {
     return (
@@ -309,11 +489,48 @@ export default function Support() {
         <div>
           <h1 className="text-3xl font-semibold">Support</h1>
           <p className="mt-1 text-muted-foreground">
-            Get help from the Guardian Group team
+            {isPrivilegedUser ? "Manage support requests from clients" : "Get help from the Guardian Group team"}
           </p>
         </div>
-        <CreateSupportRequestDialog onSuccess={() => {}} />
+        {sites.length > 0 && <CreateSupportRequestDialog sites={sites} onSuccess={() => {}} />}
       </div>
+
+      {isPrivilegedUser && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters:</span>
+          </div>
+          {user?.role === "admin" && companies.length > 0 && (
+            <Select value={companyFilter} onValueChange={(val) => { setCompanyFilter(val); setSiteFilter("all"); }}>
+              <SelectTrigger className="w-48" data-testid="filter-company">
+                <Building2 className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="All Companies" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Companies</SelectItem>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger className="w-48" data-testid="filter-site">
+              <MapPin className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Sites" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites
+                .filter(s => companyFilter === "all" || s.companyId === companyFilter)
+                .map((site) => (
+                  <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-3">
         <Card>
@@ -374,7 +591,12 @@ export default function Support() {
           {filteredRequests && filteredRequests.length > 0 ? (
             <div className="space-y-4">
               {filteredRequests.map((request) => (
-                <SupportRequestCard key={request.id} request={request} />
+                <SupportRequestCard 
+                  key={request.id} 
+                  request={request} 
+                  sites={sites}
+                  canRespond={isPrivilegedUser}
+                />
               ))}
             </div>
           ) : (

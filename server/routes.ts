@@ -56,7 +56,14 @@ const createSupportRequestSchema = z.object({
   description: z.string().min(20),
   priority: z.enum(["low", "medium", "high", "urgent"]),
   category: z.string().min(1),
+  siteId: z.string().min(1),
   module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
+});
+
+const updateSupportRequestSchema = z.object({
+  status: z.enum(["open", "in_progress", "resolved", "closed"]).optional(),
+  assignedTo: z.string().nullable().optional(),
+  response: z.string().optional(),
 });
 
 const approvalSchema = z.object({
@@ -1695,8 +1702,52 @@ export async function registerRoutes(
   // Support Requests
   app.get("/api/support-requests", async (req, res) => {
     try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const module = req.query.module as ModuleType | undefined;
-      const requests = await storage.getSupportRequests(module);
+      const siteId = req.query.siteId as string | undefined;
+      const companyId = req.query.companyId as string | undefined;
+      
+      let requests = await storage.getSupportRequests(module);
+      
+      // Role-based filtering
+      if (user.role === "admin") {
+        // Admins can see all requests, optionally filter by company/site
+        if (siteId) {
+          requests = requests.filter(r => r.siteId === siteId);
+        } else if (companyId) {
+          const companySites = await storage.getSites();
+          const siteIds = companySites.filter(s => s.companyId === companyId).map(s => s.id);
+          requests = requests.filter(r => siteIds.includes(r.siteId));
+        }
+      } else if (user.role === "consultant") {
+        // Consultants see requests from their assigned sites
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = assignments.map((a: { siteId: string }) => a.siteId);
+        requests = requests.filter(r => assignedSiteIds.includes(r.siteId));
+        if (siteId) {
+          requests = requests.filter(r => r.siteId === siteId);
+        }
+      } else {
+        // Clients see only their own requests from their accessible sites
+        const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
+        if (clientSiteAssignments.length > 0) {
+          // Client has specific site assignments
+          const assignedSiteIds = clientSiteAssignments.map(a => a.siteId);
+          requests = requests.filter(r => r.createdBy === user.id && assignedSiteIds.includes(r.siteId));
+        } else if (user.companyId) {
+          // Client can access all sites in their company
+          const companySites = await storage.getSites();
+          const siteIds = companySites.filter(s => s.companyId === user.companyId).map(s => s.id);
+          requests = requests.filter(r => r.createdBy === user.id && siteIds.includes(r.siteId));
+        } else {
+          requests = requests.filter(r => r.createdBy === user.id);
+        }
+      }
+      
       res.json(requests);
     } catch (error) {
       console.error("Support requests error:", error);
@@ -1706,12 +1757,23 @@ export async function registerRoutes(
 
   app.post("/api/support-requests", async (req, res) => {
     try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const parseResult = createSupportRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
       }
       
       const body = parseResult.data;
+      
+      // Verify user can access the site
+      const canAccess = await canUserAccessSite(user, body.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "You don't have access to this site" });
+      }
       
       const request = await storage.createSupportRequest({
         subject: body.subject,
@@ -1720,16 +1782,16 @@ export async function registerRoutes(
         status: "open",
         category: body.category,
         module: body.module || null,
-        siteId: "entity-1",
-        createdBy: "user-1",
+        siteId: body.siteId,
+        createdBy: user.id,
         assignedTo: null,
       });
 
       await storage.createAuditLog({
         action: "support_request_created",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "entity-1",
+        userId: user.id,
+        userName: user.fullName || user.username,
+        siteId: body.siteId,
         documentId: null,
         supportRequestId: request.id,
         module: body.module || null,
@@ -1741,6 +1803,103 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create support request error:", error);
       res.status(500).json({ error: "Failed to create support request" });
+    }
+  });
+
+  // Update/respond to support request
+  app.patch("/api/support-requests/:id", async (req, res) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Only admins and consultants can update requests
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Only consultants and admins can respond to requests" });
+      }
+
+      const parseResult = updateSupportRequestSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
+      }
+
+      const existingRequest = await storage.getSupportRequest(req.params.id);
+      if (!existingRequest) {
+        return res.status(404).json({ error: "Support request not found" });
+      }
+
+      // Check consultant can access the site
+      if (user.role === "consultant") {
+        const canAccess = await canUserAccessSite(user, existingRequest.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "You don't have access to this site's requests" });
+        }
+      }
+
+      const body = parseResult.data;
+      const updates: Partial<typeof existingRequest> = {};
+      
+      if (body.status) {
+        updates.status = body.status;
+        if (body.status === "resolved" || body.status === "closed") {
+          updates.resolvedAt = new Date();
+        }
+      }
+      if (body.assignedTo !== undefined) {
+        updates.assignedTo = body.assignedTo;
+      }
+      updates.updatedAt = new Date();
+
+      const updated = await storage.updateSupportRequest(req.params.id, updates);
+
+      await storage.createAuditLog({
+        action: "support_request_updated",
+        userId: user.id,
+        userName: user.fullName || user.username,
+        siteId: existingRequest.siteId,
+        documentId: null,
+        supportRequestId: req.params.id,
+        module: existingRequest.module,
+        details: body.response || `Updated support request status to ${body.status}`,
+        metadata: null,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update support request error:", error);
+      res.status(500).json({ error: "Failed to update support request" });
+    }
+  });
+
+  // Get single support request
+  app.get("/api/support-requests/:id", async (req, res) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const request = await storage.getSupportRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Support request not found" });
+      }
+
+      // Check access
+      if (user.role === "client" && request.createdBy !== user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (user.role === "consultant") {
+        const canAccess = await canUserAccessSite(user, request.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
+      res.json(request);
+    } catch (error) {
+      console.error("Get support request error:", error);
+      res.status(500).json({ error: "Failed to fetch support request" });
     }
   });
 
