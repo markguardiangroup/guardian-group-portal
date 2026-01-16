@@ -1748,7 +1748,18 @@ export async function registerRoutes(
         }
       }
       
-      res.json(requests);
+      // Enrich with user names
+      const enrichedRequests = await Promise.all(requests.map(async (request) => {
+        const createdByUser = await storage.getUser(request.createdBy);
+        const respondedByUser = request.respondedBy ? await storage.getUser(request.respondedBy) : null;
+        return {
+          ...request,
+          createdByName: createdByUser?.fullName || createdByUser?.username || "Unknown",
+          respondedByName: respondedByUser?.fullName || respondedByUser?.username || null,
+        };
+      }));
+
+      res.json(enrichedRequests);
     } catch (error) {
       console.error("Support requests error:", error);
       res.status(500).json({ error: "Failed to fetch support requests" });
@@ -1848,6 +1859,11 @@ export async function registerRoutes(
       }
       if (body.assignedTo !== undefined) {
         updates.assignedTo = body.assignedTo;
+      }
+      if (body.response) {
+        updates.response = body.response;
+        updates.respondedBy = user.id;
+        updates.respondedAt = new Date();
       }
       updates.updatedAt = new Date();
 

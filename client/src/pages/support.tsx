@@ -66,6 +66,11 @@ interface Company {
   name: string;
 }
 
+interface SupportRequestWithNames extends SupportRequest {
+  createdByName: string;
+  respondedByName: string | null;
+}
+
 const supportRequestSchema = z.object({
   subject: z.string().min(5, "Subject must be at least 5 characters"),
   description: z.string().min(20, "Description must be at least 20 characters"),
@@ -355,7 +360,7 @@ function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSucc
   );
 }
 
-function RequestDetailDialog({ request, site, canRespond }: { request: SupportRequest; site?: SiteWithDetails; canRespond: boolean }) {
+function RequestDetailDialog({ request, site, canRespond }: { request: SupportRequestWithNames; site?: SiteWithDetails; canRespond: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -388,6 +393,10 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                   {request.description}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    {request.createdByName}
+                  </span>
                   {site && (
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
@@ -396,12 +405,12 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                   )}
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    Created {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                    {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                   </span>
-                  {request.resolvedAt && (
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle className="h-3 w-3" />
-                      Resolved {formatDistanceToNow(new Date(request.resolvedAt), { addSuffix: true })}
+                  {request.respondedByName && (
+                    <span className="flex items-center gap-1 text-primary">
+                      <MessageSquare className="h-3 w-3" />
+                      Responded by {request.respondedByName}
                     </span>
                   )}
                 </div>
@@ -477,7 +486,13 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
           </div>
 
           <div>
-            <h4 className="text-sm font-medium mb-2">Description</h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium">Request</h4>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>{request.createdByName}</span>
+              </div>
+            </div>
             <div className="rounded-md bg-muted/50 p-4">
               <p className="text-sm whitespace-pre-wrap">{request.description}</p>
             </div>
@@ -485,7 +500,18 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
 
           {request.response && (
             <div>
-              <h4 className="text-sm font-medium mb-2">Response</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-medium">Response</h4>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <User className="h-3 w-3" />
+                  <span>{request.respondedByName}</span>
+                  {request.respondedAt && (
+                    <span className="text-muted-foreground">
+                      {formatDistanceToNow(new Date(request.respondedAt), { addSuffix: true })}
+                    </span>
+                  )}
+                </div>
+              </div>
               <div className="rounded-md bg-muted/50 p-4 border-l-4 border-primary">
                 <p className="text-sm whitespace-pre-wrap">{request.response}</p>
               </div>
@@ -506,7 +532,7 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
   );
 }
 
-function SupportRequestCard({ request, sites, canRespond }: { request: SupportRequest; sites: SiteWithDetails[]; canRespond: boolean }) {
+function SupportRequestCard({ request, sites, canRespond }: { request: SupportRequestWithNames; sites: SiteWithDetails[]; canRespond: boolean }) {
   const site = sites.find(s => s.id === request.siteId);
   
   return (
@@ -540,7 +566,7 @@ export default function Support() {
     queryParams.set("companyId", companyFilter);
   }
 
-  const { data: requests, isLoading: requestsLoading } = useQuery<SupportRequest[]>({
+  const { data: requests, isLoading: requestsLoading } = useQuery<SupportRequestWithNames[]>({
     queryKey: ["/api/support-requests", siteFilter, companyFilter],
     queryFn: async () => {
       const response = await fetch(`/api/support-requests?${queryParams.toString()}`, {
