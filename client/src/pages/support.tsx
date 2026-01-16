@@ -360,6 +360,145 @@ function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSucc
   );
 }
 
+interface MessageWithSender {
+  id: string;
+  requestId: string;
+  senderId: string;
+  message: string;
+  createdAt: Date;
+  senderName: string;
+  senderRole: string;
+}
+
+function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: boolean }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [newMessage, setNewMessage] = useState("");
+
+  const { data: messages = [], isLoading, refetch } = useQuery<MessageWithSender[]>({
+    queryKey: ["/api/support-requests", requestId, "messages"],
+    queryFn: async () => {
+      const response = await fetch(`/api/support-requests/${requestId}/messages`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch messages");
+      return response.json();
+    },
+    enabled: isOpen,
+    refetchInterval: isOpen ? 10000 : false,
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async (message: string) => {
+      return apiRequest("POST", `/api/support-requests/${requestId}/messages`, { message });
+    },
+    onSuccess: () => {
+      setNewMessage("");
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSend = () => {
+    if (newMessage.trim()) {
+      sendMutation.mutate(newMessage.trim());
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-3/4" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium flex items-center gap-2">
+        <MessageSquare className="h-4 w-4" />
+        Conversation ({messages.length} {messages.length === 1 ? "message" : "messages"})
+      </h4>
+
+      {messages.length === 0 ? (
+        <div className="rounded-md bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+          No messages yet. Start the conversation below.
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-64 overflow-y-auto">
+          {messages.map((msg) => {
+            const isOwnMessage = msg.senderId === user?.id;
+            const isStaff = msg.senderRole === "admin" || msg.senderRole === "consultant";
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    isOwnMessage
+                      ? "bg-primary text-primary-foreground"
+                      : isStaff
+                      ? "bg-muted border-l-4 border-primary"
+                      : "bg-muted"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-medium">
+                      {msg.senderName}
+                    </span>
+                    {isStaff && !isOwnMessage && (
+                      <Badge variant="secondary" className="text-xs py-0 px-1">
+                        Staff
+                      </Badge>
+                    )}
+                    <span className={`text-xs ${isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                      {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Textarea
+          placeholder="Type your message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          className="min-h-20 flex-1"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          data-testid="input-message"
+        />
+        <Button
+          onClick={handleSend}
+          disabled={!newMessage.trim() || sendMutation.isPending}
+          className="self-end"
+          data-testid="button-send-message"
+        >
+          {sendMutation.isPending ? "..." : "Send"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RequestDetailDialog({ request, site, canRespond }: { request: SupportRequestWithNames; site?: SiteWithDetails; canRespond: boolean }) {
   const [open, setOpen] = useState(false);
 
@@ -407,12 +546,6 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                     <Clock className="h-3 w-3" />
                     {request.createdAt && formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                   </span>
-                  {request.respondedByName && (
-                    <span className="flex items-center gap-1 text-primary">
-                      <MessageSquare className="h-3 w-3" />
-                      Responded by {request.respondedByName}
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -431,63 +564,54 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                 <MessageSquare className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
-            <div>
+            <div className="flex-1">
               <DialogTitle>{request.subject}</DialogTitle>
               <DialogDescription>{request.category}</DialogDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <PriorityBadge priority={request.priority} />
+              <SupportStatusBadge status={request.status} />
             </div>
           </div>
         </DialogHeader>
         
         <div className="space-y-6 mt-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <PriorityBadge priority={request.priority} />
-            <SupportStatusBadge status={request.status} />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 text-sm">
             {site && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-muted-foreground text-xs">Site</p>
-                  <p className="font-medium">{site.name}</p>
-                </div>
+                <span className="text-muted-foreground">Site:</span>
+                <span className="font-medium">{site.name}</span>
               </div>
             )}
             {site && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-muted-foreground text-xs">Company</p>
-                  <p className="font-medium">{site.companyName}</p>
-                </div>
+                <span className="text-muted-foreground">Company:</span>
+                <span className="font-medium">{site.companyName}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-muted-foreground text-xs">Created</p>
-                <p className="font-medium">
-                  {request.createdAt && format(new Date(request.createdAt), "PPp")}
-                </p>
-              </div>
+              <span className="text-muted-foreground">Created:</span>
+              <span className="font-medium">
+                {request.createdAt && format(new Date(request.createdAt), "PPp")}
+              </span>
             </div>
             {request.resolvedAt && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-emerald-500" />
-                <div>
-                  <p className="text-muted-foreground text-xs">Resolved</p>
-                  <p className="font-medium">
-                    {format(new Date(request.resolvedAt), "PPp")}
-                  </p>
-                </div>
+                <span className="text-muted-foreground">Resolved:</span>
+                <span className="font-medium">
+                  {format(new Date(request.resolvedAt), "PPp")}
+                </span>
               </div>
             )}
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium">Request</h4>
+              <h4 className="text-sm font-medium">Original Request</h4>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <User className="h-3 w-3" />
                 <span>{request.createdByName}</span>
@@ -498,35 +622,14 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
             </div>
           </div>
 
-          {request.response && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium">Response</h4>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <User className="h-3 w-3" />
-                  <span>{request.respondedByName}</span>
-                  {request.respondedAt && (
-                    <span className="text-muted-foreground">
-                      {formatDistanceToNow(new Date(request.respondedAt), { addSuffix: true })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="rounded-md bg-muted/50 p-4 border-l-4 border-primary">
-                <p className="text-sm whitespace-pre-wrap">{request.response}</p>
-              </div>
+          <ConversationThread requestId={request.id} isOpen={open} />
+
+          {canRespond && (
+            <div className="pt-4 border-t">
+              <RespondDialog request={request} onSuccess={() => {}} />
             </div>
           )}
         </div>
-
-        {canRespond && (
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Close
-            </Button>
-            <RespondDialog request={request} onSuccess={() => setOpen(false)} />
-          </DialogFooter>
-        )}
       </DialogContent>
     </Dialog>
   );
