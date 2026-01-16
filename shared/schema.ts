@@ -545,6 +545,22 @@ export const insertSupportRequestSchema = createInsertSchema(supportRequests).om
 export type InsertSupportRequest = z.infer<typeof insertSupportRequestSchema>;
 export type SupportRequest = typeof supportRequests.$inferSelect;
 
+// Support messages - conversation thread for support requests
+export const supportMessages = pgTable("support_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requestId: varchar("request_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSupportMessageSchema = createInsertSchema(supportMessages).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+export type SupportMessage = typeof supportMessages.$inferSelect;
+
 // Site document type access - tracks which document types each site has access to
 export const siteDocumentTypeAccess = pgTable("site_document_type_access", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

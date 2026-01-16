@@ -7,6 +7,7 @@ import {
   type DocumentFolder, type InsertDocumentFolder,
   type AuditLog, type InsertAuditLog,
   type SupportRequest, type InsertSupportRequest,
+  type SupportMessage, type InsertSupportMessage,
   type Case, type InsertCase,
   type CaseMilestone, type InsertCaseMilestone,
   type ComplianceSummary,
@@ -79,6 +80,10 @@ export interface IStorage {
   getSupportRequest(id: string): Promise<SupportRequest | undefined>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
   updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined>;
+  
+  // Support Messages
+  getSupportMessages(requestId: string): Promise<SupportMessage[]>;
+  createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage>;
   
   // Dashboard
   getComplianceSummary(module?: ModuleType): Promise<ComplianceSummary>;
@@ -174,6 +179,7 @@ export class MemStorage implements IStorage {
   private documentFolders: Map<string, DocumentFolder>;
   private auditLogs: Map<string, AuditLog>;
   private supportRequests: Map<string, SupportRequest>;
+  private supportMessages: Map<string, SupportMessage>;
   private siteDocumentTypeAccess: Map<string, SiteDocumentTypeAccess>;
   private cases: Map<string, Case>;
   private caseMilestones: Map<string, CaseMilestone>;
@@ -194,6 +200,7 @@ export class MemStorage implements IStorage {
     this.documentFolders = new Map();
     this.auditLogs = new Map();
     this.supportRequests = new Map();
+    this.supportMessages = new Map();
     this.siteDocumentTypeAccess = new Map();
     this.cases = new Map();
     this.caseMilestones = new Map();
@@ -1978,6 +1985,23 @@ export class MemStorage implements IStorage {
     const updated = { ...request, ...updates, updatedAt: new Date() };
     this.supportRequests.set(id, updated);
     return updated;
+  }
+
+  async getSupportMessages(requestId: string): Promise<SupportMessage[]> {
+    return Array.from(this.supportMessages.values())
+      .filter(m => m.requestId === requestId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  async createSupportMessage(insertMessage: InsertSupportMessage): Promise<SupportMessage> {
+    const id = randomUUID();
+    const message: SupportMessage = {
+      ...insertMessage,
+      id,
+      createdAt: new Date(),
+    };
+    this.supportMessages.set(id, message);
+    return message;
   }
 
   // Dashboard
