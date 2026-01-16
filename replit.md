@@ -73,7 +73,7 @@ The platform uses a hierarchical model: Companies → Sites → Users
 - **Sites**: Physical locations belonging to a company via entity_id/companyId
 - **User Access**: Users have companyId granting access to all sites within their company
 - **Consultant Management**: Assign multiple consultants to specific sites with primary designation
-- **Module Access**: Control which modules (H&S, HR, Employment Law) each site can access
+- **Module Access**: Control which modules (H&S, HR, Employment Law, Support) each site can access
 - **Compliance Tracking**: Track document compliance per site with aggregation by company
 
 ### Companies and Sites Navigation
