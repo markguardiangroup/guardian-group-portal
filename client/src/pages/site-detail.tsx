@@ -60,6 +60,7 @@ import {
   Clock,
   MoreHorizontal,
   Pencil,
+  KeyRound,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -103,6 +104,8 @@ const moduleLabels: Record<string, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
+  reports: "Reports",
+  support: "Support",
 };
 
 const statusColors: Record<ModuleStatus, string> = {
@@ -271,9 +274,10 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ consultantId, isPrimary }: { consultantId: string; isPrimary: boolean }) => {
+    mutationFn: async ({ consultantId, isPrimary, canManageModules }: { consultantId: string; isPrimary?: boolean; canManageModules?: boolean }) => {
       const response = await apiRequest("PATCH", `/api/sites/${siteId}/consultants/${consultantId}`, {
         isPrimary,
+        canManageModules,
       });
       return response.json();
     },
@@ -380,12 +384,18 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium">{assignment.consultantName}</p>
                       {assignment.isPrimary && (
                         <Badge variant="secondary" className="gap-1">
                           <Crown className="h-3 w-3" />
                           Primary
+                        </Badge>
+                      )}
+                      {assignment.canManageModules && (
+                        <Badge variant="outline" className="gap-1 border-primary/50 text-primary">
+                          <KeyRound className="h-3 w-3" />
+                          Module Manager
                         </Badge>
                       )}
                     </div>
@@ -422,6 +432,23 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                         >
                           <Star className="mr-2 h-4 w-4" />
                           Remove Primary Status
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      {!assignment.canManageModules && (
+                        <DropdownMenuItem
+                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, canManageModules: true })}
+                        >
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          Grant Module Management
+                        </DropdownMenuItem>
+                      )}
+                      {assignment.canManageModules && (
+                        <DropdownMenuItem
+                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, canManageModules: false })}
+                        >
+                          <KeyRound className="mr-2 h-4 w-4" />
+                          Revoke Module Management
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />

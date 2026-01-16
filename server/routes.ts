@@ -3220,12 +3220,12 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update consultant assignments" });
       }
       
-      const { isPrimary } = req.body;
+      const { isPrimary, canManageModules } = req.body;
       
       const updated = await storage.updateConsultantAssignment(
         req.params.consultantId,
         req.params.siteId,
-        { isPrimary }
+        { isPrimary, canManageModules }
       );
       
       if (!updated) {
