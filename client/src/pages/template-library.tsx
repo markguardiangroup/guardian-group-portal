@@ -72,6 +72,11 @@ import {
   Clock,
   Link as LinkIcon,
   X,
+  Wand2,
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  CircleDot,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
@@ -151,6 +156,7 @@ type DocTypeFormData = {
   name: string;
   code: string;
   module: ModuleType;
+  folderTemplateId: string;
   description: string;
   isRequired: boolean;
   renewalPeriodMonths: number | null;
@@ -185,11 +191,50 @@ const defaultDocTypeFormData: DocTypeFormData = {
   name: "",
   code: "",
   module: "health_safety",
+  folderTemplateId: "",
   description: "",
   isRequired: false,
   renewalPeriodMonths: null,
   sortOrder: 0,
   isActive: true,
+};
+
+type WizardStep = "module" | "folder" | "doctype" | "template" | "complete";
+
+type WizardData = {
+  module: ModuleType;
+  folderId: string;
+  folderName: string;
+  createNewFolder: boolean;
+  newFolderName: string;
+  newFolderCode: string;
+  docTypeName: string;
+  docTypeCode: string;
+  docTypeDescription: string;
+  isRequired: boolean;
+  renewalPeriodMonths: number | null;
+  addTemplate: boolean;
+  templateName: string;
+  templateFileName: string;
+  templateDescription: string;
+};
+
+const defaultWizardData: WizardData = {
+  module: "health_safety",
+  folderId: "",
+  folderName: "",
+  createNewFolder: false,
+  newFolderName: "",
+  newFolderCode: "",
+  docTypeName: "",
+  docTypeCode: "",
+  docTypeDescription: "",
+  isRequired: false,
+  renewalPeriodMonths: null,
+  addTemplate: false,
+  templateName: "",
+  templateFileName: "",
+  templateDescription: "",
 };
 
 type RuleWithDocType = FolderDocumentTypeRule & { documentType?: DocumentTypeRecord };
@@ -225,6 +270,14 @@ export default function TemplateLibraryPage() {
   const [selectedDocType, setSelectedDocType] = useState<DocumentTypeRecord | null>(null);
   const [docTypeFormData, setDocTypeFormData] = useState<DocTypeFormData>(defaultDocTypeFormData);
   const [selectedFolderIdForAssign, setSelectedFolderIdForAssign] = useState<string>("");
+  
+  // Setup wizard
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<WizardStep>("module");
+  const [wizardData, setWizardData] = useState<WizardData>(defaultWizardData);
+  const [wizardLoading, setWizardLoading] = useState(false);
+  const [createdFolderId, setCreatedFolderId] = useState<string | null>(null);
+  const [createdDocTypeId, setCreatedDocTypeId] = useState<string | null>(null);
   
   // Queries
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
@@ -658,20 +711,50 @@ export default function TemplateLibraryPage() {
   };
   
   // Document type handlers
-  const handleCreateDocType = () => {
-    if (!docTypeFormData.name || !docTypeFormData.code) {
-      toast({ title: "Validation error", description: "Please fill in all required fields", variant: "destructive" });
+  const handleCreateDocType = async () => {
+    if (!docTypeFormData.name || !docTypeFormData.code || !docTypeFormData.folderTemplateId) {
+      toast({ title: "Validation error", description: "Please fill in all required fields including folder", variant: "destructive" });
       return;
     }
-    createDocTypeMutation.mutate(docTypeFormData);
+    try {
+      const response = await apiRequest("POST", "/api/document-types", {
+        name: docTypeFormData.name,
+        code: docTypeFormData.code,
+        module: docTypeFormData.module,
+        description: docTypeFormData.description || undefined,
+        isRequired: docTypeFormData.isRequired,
+        renewalPeriodMonths: docTypeFormData.renewalPeriodMonths,
+        sortOrder: docTypeFormData.sortOrder,
+        isActive: docTypeFormData.isActive,
+      });
+      const newDocType = await response.json();
+      await apiRequest("POST", "/api/folder-document-type-rules", {
+        folderTemplateId: docTypeFormData.folderTemplateId,
+        documentTypeId: newDocType.id,
+        isRequired: docTypeFormData.isRequired,
+        sortOrder: 0,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      setIsDocTypeDialogOpen(false);
+      setDocTypeFormData(defaultDocTypeFormData);
+      toast({ title: "Document type created", description: "The document type has been created and assigned to the folder." });
+    } catch (error) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to create document type", variant: "destructive" });
+    }
   };
   
   const handleEditDocType = (docType: DocumentTypeRecord) => {
     setSelectedDocType(docType);
+    const assignedFolders = docTypeToFolders.get(docType.id);
+    const folderId = assignedFolders && assignedFolders.length > 0 
+      ? folderTemplates.find(f => f.name === assignedFolders[0])?.id || ""
+      : "";
     setDocTypeFormData({
       name: docType.name,
       code: docType.code,
       module: docType.module,
+      folderTemplateId: folderId,
       description: docType.description || "",
       isRequired: docType.isRequired,
       renewalPeriodMonths: docType.renewalPeriodMonths,
@@ -685,7 +768,15 @@ export default function TemplateLibraryPage() {
     if (!selectedDocType) return;
     updateDocTypeMutation.mutate({
       id: selectedDocType.id,
-      data: docTypeFormData,
+      data: {
+        name: docTypeFormData.name,
+        code: docTypeFormData.code,
+        description: docTypeFormData.description,
+        isRequired: docTypeFormData.isRequired,
+        renewalPeriodMonths: docTypeFormData.renewalPeriodMonths,
+        sortOrder: docTypeFormData.sortOrder,
+        isActive: docTypeFormData.isActive,
+      },
     });
   };
   
@@ -699,6 +790,137 @@ export default function TemplateLibraryPage() {
     setSelectedDocType(docType);
     setSelectedFolderIdForAssign("");
     setIsAssignFolderDialogOpen(true);
+  };
+  
+  // Wizard handlers
+  const openWizard = () => {
+    setWizardData(defaultWizardData);
+    setWizardStep("module");
+    setCreatedFolderId(null);
+    setCreatedDocTypeId(null);
+    setIsWizardOpen(true);
+  };
+  
+  const closeWizard = () => {
+    setIsWizardOpen(false);
+    setWizardStep("module");
+    setWizardData(defaultWizardData);
+    setCreatedFolderId(null);
+    setCreatedDocTypeId(null);
+  };
+  
+  const wizardNextStep = async () => {
+    if (wizardStep === "module") {
+      setWizardStep("folder");
+    } else if (wizardStep === "folder") {
+      if (wizardData.createNewFolder) {
+        if (!wizardData.newFolderName || !wizardData.newFolderCode) {
+          toast({ title: "Validation error", description: "Please enter folder name and code", variant: "destructive" });
+          return;
+        }
+        setWizardLoading(true);
+        try {
+          const response = await apiRequest("POST", "/api/folder-templates", {
+            name: wizardData.newFolderName,
+            code: wizardData.newFolderCode,
+            module: wizardData.module,
+            description: "",
+            parentId: null,
+            isRequired: false,
+            sortOrder: 0,
+            isActive: true,
+          });
+          const newFolder = await response.json();
+          setCreatedFolderId(newFolder.id);
+          setWizardData(prev => ({ ...prev, folderId: newFolder.id, folderName: newFolder.name }));
+          queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+          setWizardStep("doctype");
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+        } finally {
+          setWizardLoading(false);
+        }
+      } else {
+        if (!wizardData.folderId) {
+          toast({ title: "Validation error", description: "Please select a folder", variant: "destructive" });
+          return;
+        }
+        setWizardStep("doctype");
+      }
+    } else if (wizardStep === "doctype") {
+      if (!wizardData.docTypeName || !wizardData.docTypeCode) {
+        toast({ title: "Validation error", description: "Please enter document type name and code", variant: "destructive" });
+        return;
+      }
+      setWizardLoading(true);
+      try {
+        const response = await apiRequest("POST", "/api/document-types", {
+          name: wizardData.docTypeName,
+          code: wizardData.docTypeCode,
+          module: wizardData.module,
+          description: wizardData.docTypeDescription || undefined,
+          isRequired: wizardData.isRequired,
+          renewalPeriodMonths: wizardData.renewalPeriodMonths,
+          sortOrder: 0,
+          isActive: true,
+        });
+        const newDocType = await response.json();
+        setCreatedDocTypeId(newDocType.id);
+        const folderId = createdFolderId || wizardData.folderId;
+        await apiRequest("POST", "/api/folder-document-type-rules", {
+          folderTemplateId: folderId,
+          documentTypeId: newDocType.id,
+          isRequired: wizardData.isRequired,
+          sortOrder: 0,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+        setWizardStep("template");
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to create document type", variant: "destructive" });
+      } finally {
+        setWizardLoading(false);
+      }
+    } else if (wizardStep === "template") {
+      if (wizardData.addTemplate) {
+        if (!wizardData.templateName || !wizardData.templateFileName) {
+          toast({ title: "Validation error", description: "Please enter template name and file name", variant: "destructive" });
+          return;
+        }
+        setWizardLoading(true);
+        try {
+          const folderId = createdFolderId || wizardData.folderId;
+          await apiRequest("POST", "/api/document-templates", {
+            name: wizardData.templateName,
+            description: wizardData.templateDescription || undefined,
+            module: wizardData.module,
+            folderTemplateId: folderId,
+            fileName: wizardData.templateFileName,
+            fileSize: 1024,
+            mimeType: "application/octet-stream",
+            sortOrder: 0,
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+          setWizardStep("complete");
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to create template", variant: "destructive" });
+        } finally {
+          setWizardLoading(false);
+        }
+      } else {
+        setWizardStep("complete");
+      }
+    }
+  };
+  
+  const wizardPrevStep = () => {
+    if (wizardStep === "folder") setWizardStep("module");
+    else if (wizardStep === "doctype") setWizardStep("folder");
+    else if (wizardStep === "template") setWizardStep("doctype");
+  };
+  
+  const getWizardFoldersForModule = () => {
+    return folderTemplates.filter(f => f.module === wizardData.module && f.isActive);
   };
   
   const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
@@ -865,6 +1087,10 @@ export default function TemplateLibraryPage() {
           
           {isAdmin && (
             <div className="flex gap-2">
+              <Button onClick={openWizard} variant="outline" data-testid="button-setup-wizard">
+                <Wand2 className="h-4 w-4 mr-2" />
+                Setup Wizard
+              </Button>
               {activeTab === "templates" && (
                 <Button onClick={() => setIsTemplateDialogOpen(true)} data-testid="button-add-template">
                   <Plus className="h-4 w-4 mr-2" />
@@ -1620,10 +1846,10 @@ export default function TemplateLibraryPage() {
               <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and underscores only</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doctype-module">Module</Label>
+              <Label htmlFor="doctype-module">Module <span className="text-red-500">*</span></Label>
               <Select
                 value={docTypeFormData.module}
-                onValueChange={(v) => setDocTypeFormData({ ...docTypeFormData, module: v as ModuleType })}
+                onValueChange={(v) => setDocTypeFormData({ ...docTypeFormData, module: v as ModuleType, folderTemplateId: "" })}
               >
                 <SelectTrigger data-testid="select-doctype-module">
                   <SelectValue />
@@ -1634,6 +1860,32 @@ export default function TemplateLibraryPage() {
                   <SelectItem value="employment_law">Employment Law</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="doctype-folder">Folder <span className="text-red-500">*</span></Label>
+              <Select
+                value={docTypeFormData.folderTemplateId}
+                onValueChange={(v) => setDocTypeFormData({ ...docTypeFormData, folderTemplateId: v })}
+              >
+                <SelectTrigger data-testid="select-doctype-folder">
+                  <SelectValue placeholder="Select a folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {folderTemplates
+                    .filter(f => f.module === docTypeFormData.module && f.isActive)
+                    .map(folder => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-4 w-4 text-amber-500" />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {folderTemplates.filter(f => f.module === docTypeFormData.module && f.isActive).length === 0 && (
+                <p className="text-xs text-muted-foreground">No folders available for this module. Create a folder first.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="doctype-description">Description (optional)</Label>
@@ -1789,6 +2041,344 @@ export default function TemplateLibraryPage() {
             >
               {assignFolderMutation.isPending ? "Assigning..." : "Assign"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Setup Wizard Dialog */}
+      <Dialog open={isWizardOpen} onOpenChange={(open) => { if (!open) closeWizard(); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5" />
+              Setup Wizard
+            </DialogTitle>
+            <DialogDescription>
+              Step-by-step guide to create a complete document structure
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center justify-center gap-2 py-4">
+            {["module", "folder", "doctype", "template"].map((step, index) => {
+              const stepLabels = { module: "Module", folder: "Folder", doctype: "Doc Type", template: "Template" };
+              const steps: WizardStep[] = ["module", "folder", "doctype", "template"];
+              const currentIndex = steps.indexOf(wizardStep);
+              const stepIndex = index;
+              const isComplete = stepIndex < currentIndex || wizardStep === "complete";
+              const isCurrent = step === wizardStep;
+              
+              return (
+                <div key={step} className="flex items-center gap-2">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                    isComplete ? "bg-primary border-primary text-primary-foreground" :
+                    isCurrent ? "border-primary text-primary" :
+                    "border-muted-foreground/30 text-muted-foreground"
+                  }`}>
+                    {isComplete ? <Check className="h-4 w-4" /> : <span className="text-sm font-medium">{index + 1}</span>}
+                  </div>
+                  <span className={`text-sm ${isCurrent ? "font-medium" : "text-muted-foreground"}`}>
+                    {stepLabels[step as keyof typeof stepLabels]}
+                  </span>
+                  {index < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="min-h-[300px] py-4">
+            {/* Step 1: Module Selection */}
+            {wizardStep === "module" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Select Module</h3>
+                <p className="text-sm text-muted-foreground">Choose which compliance module this document type belongs to.</p>
+                <div className="grid grid-cols-3 gap-4 pt-4">
+                  {modules.map(module => {
+                    const ModuleIcon = moduleIcons[module];
+                    const isSelected = wizardData.module === module;
+                    return (
+                      <button
+                        key={module}
+                        onClick={() => setWizardData(prev => ({ ...prev, module, folderId: "", folderName: "" }))}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          isSelected 
+                            ? "border-primary bg-primary/5" 
+                            : "border-border hover-elevate"
+                        }`}
+                        data-testid={`wizard-module-${module}`}
+                      >
+                        <div className={`flex flex-col items-center gap-2 ${moduleColors[module]}`}>
+                          <ModuleIcon className="h-8 w-8" />
+                          <span className="font-medium text-sm">{moduleNames[module]}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {/* Step 2: Folder Selection */}
+            {wizardStep === "folder" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Select or Create Folder</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose an existing folder or create a new one for {moduleNames[wizardData.module]}.
+                </p>
+                
+                <div className="flex items-center gap-4 pt-2">
+                  <Button
+                    variant={!wizardData.createNewFolder ? "default" : "outline"}
+                    onClick={() => setWizardData(prev => ({ ...prev, createNewFolder: false }))}
+                    data-testid="wizard-use-existing-folder"
+                  >
+                    Use Existing Folder
+                  </Button>
+                  <Button
+                    variant={wizardData.createNewFolder ? "default" : "outline"}
+                    onClick={() => setWizardData(prev => ({ ...prev, createNewFolder: true, folderId: "" }))}
+                    data-testid="wizard-create-new-folder"
+                  >
+                    Create New Folder
+                  </Button>
+                </div>
+                
+                {!wizardData.createNewFolder ? (
+                  <div className="space-y-2 pt-4">
+                    <Label>Select Folder</Label>
+                    <Select 
+                      value={wizardData.folderId} 
+                      onValueChange={(v) => {
+                        const folder = folderTemplates.find(f => f.id === v);
+                        setWizardData(prev => ({ ...prev, folderId: v, folderName: folder?.name || "" }));
+                      }}
+                    >
+                      <SelectTrigger data-testid="wizard-select-folder">
+                        <SelectValue placeholder="Select a folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getWizardFoldersForModule().map(folder => (
+                          <SelectItem key={folder.id} value={folder.id}>
+                            <div className="flex items-center gap-2">
+                              <Folder className="h-4 w-4 text-amber-500" />
+                              {folder.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {getWizardFoldersForModule().length === 0 && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        No folders exist for this module. Please create a new folder.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="wizard-folder-name">Folder Name</Label>
+                      <Input
+                        id="wizard-folder-name"
+                        value={wizardData.newFolderName}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          const code = name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);
+                          setWizardData(prev => ({ ...prev, newFolderName: name, newFolderCode: code }));
+                        }}
+                        placeholder="e.g., Fire Safety Documents"
+                        data-testid="wizard-input-folder-name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="wizard-folder-code">Folder Code</Label>
+                      <Input
+                        id="wizard-folder-code"
+                        value={wizardData.newFolderCode}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, newFolderCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }))}
+                        placeholder="e.g., fire_safety_docs"
+                        data-testid="wizard-input-folder-code"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Step 3: Document Type */}
+            {wizardStep === "doctype" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Create Document Type</h3>
+                <p className="text-sm text-muted-foreground">
+                  Define the compliance document type that will be stored in "{wizardData.folderName || wizardData.newFolderName}".
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="wizard-doctype-name">Document Type Name</Label>
+                    <Input
+                      id="wizard-doctype-name"
+                      value={wizardData.docTypeName}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        const code = name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);
+                        setWizardData(prev => ({ ...prev, docTypeName: name, docTypeCode: code }));
+                      }}
+                      placeholder="e.g., Fire Risk Assessment"
+                      data-testid="wizard-input-doctype-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="wizard-doctype-code">Code</Label>
+                    <Input
+                      id="wizard-doctype-code"
+                      value={wizardData.docTypeCode}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, docTypeCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }))}
+                      placeholder="fire_risk_assessment"
+                      data-testid="wizard-input-doctype-code"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="wizard-doctype-description">Description (optional)</Label>
+                  <Textarea
+                    id="wizard-doctype-description"
+                    value={wizardData.docTypeDescription}
+                    onChange={(e) => setWizardData(prev => ({ ...prev, docTypeDescription: e.target.value }))}
+                    placeholder="Brief description of this document type"
+                    className="resize-none"
+                    data-testid="wizard-input-doctype-description"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="wizard-doctype-renewal">Renewal Period (months)</Label>
+                    <Input
+                      id="wizard-doctype-renewal"
+                      type="number"
+                      min="1"
+                      value={wizardData.renewalPeriodMonths ?? ""}
+                      onChange={(e) => setWizardData(prev => ({
+                        ...prev,
+                        renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null,
+                      }))}
+                      placeholder="Leave empty if none"
+                      data-testid="wizard-input-doctype-renewal"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <Switch
+                      id="wizard-doctype-required"
+                      checked={wizardData.isRequired}
+                      onCheckedChange={(checked) => setWizardData(prev => ({ ...prev, isRequired: checked }))}
+                      data-testid="wizard-switch-doctype-required"
+                    />
+                    <Label htmlFor="wizard-doctype-required">Required document</Label>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Step 4: Template (optional) */}
+            {wizardStep === "template" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Add Template (Optional)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Would you like to add a template file for "{wizardData.docTypeName}"?
+                </p>
+                
+                <div className="flex items-center gap-4 pt-2">
+                  <Button
+                    variant={wizardData.addTemplate ? "default" : "outline"}
+                    onClick={() => setWizardData(prev => ({ ...prev, addTemplate: true }))}
+                    data-testid="wizard-add-template-yes"
+                  >
+                    Yes, add a template
+                  </Button>
+                  <Button
+                    variant={!wizardData.addTemplate ? "default" : "outline"}
+                    onClick={() => setWizardData(prev => ({ ...prev, addTemplate: false }))}
+                    data-testid="wizard-add-template-no"
+                  >
+                    Skip for now
+                  </Button>
+                </div>
+                
+                {wizardData.addTemplate && (
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="wizard-template-name">Template Name</Label>
+                      <Input
+                        id="wizard-template-name"
+                        value={wizardData.templateName}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, templateName: e.target.value }))}
+                        placeholder="e.g., Fire Risk Assessment Template"
+                        data-testid="wizard-input-template-name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="wizard-template-filename">File Name</Label>
+                      <Input
+                        id="wizard-template-filename"
+                        value={wizardData.templateFileName}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, templateFileName: e.target.value }))}
+                        placeholder="e.g., fire_risk_assessment_template.docx"
+                        data-testid="wizard-input-template-filename"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="wizard-template-description">Description (optional)</Label>
+                      <Textarea
+                        id="wizard-template-description"
+                        value={wizardData.templateDescription}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, templateDescription: e.target.value }))}
+                        placeholder="Brief description of this template"
+                        className="resize-none"
+                        data-testid="wizard-input-template-description"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Complete Step */}
+            {wizardStep === "complete" && (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">Setup Complete!</h3>
+                <p className="text-muted-foreground max-w-md">
+                  {wizardData.createNewFolder 
+                    ? `Created folder "${wizardData.newFolderName}" with document type "${wizardData.docTypeName}"`
+                    : `Added document type "${wizardData.docTypeName}" to folder "${wizardData.folderName}"`
+                  }
+                  {wizardData.addTemplate && ` and template "${wizardData.templateName}"`}.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="gap-2">
+            {wizardStep !== "complete" && wizardStep !== "module" && (
+              <Button variant="outline" onClick={wizardPrevStep} disabled={wizardLoading}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            )}
+            <div className="flex-1" />
+            {wizardStep === "complete" ? (
+              <Button onClick={closeWizard} data-testid="wizard-button-done">
+                Done
+              </Button>
+            ) : (
+              <Button onClick={wizardNextStep} disabled={wizardLoading} data-testid="wizard-button-next">
+                {wizardLoading ? "Processing..." : wizardStep === "template" ? "Finish" : "Next"}
+                {!wizardLoading && <ChevronRight className="h-4 w-4 ml-1" />}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
