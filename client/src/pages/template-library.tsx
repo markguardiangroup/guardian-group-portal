@@ -139,6 +139,9 @@ type TemplateFormData = {
   mimeType: string;
   placeholders: string;
   sortOrder: number;
+  createNewFolder: boolean;
+  newFolderName: string;
+  newFolderCode: string;
 };
 
 type FolderFormData = {
@@ -174,6 +177,9 @@ const defaultTemplateFormData: TemplateFormData = {
   mimeType: "",
   placeholders: "",
   sortOrder: 0,
+  createNewFolder: false,
+  newFolderName: "",
+  newFolderCode: "",
 };
 
 const defaultFolderFormData: FolderFormData = {
@@ -606,16 +612,49 @@ export default function TemplateLibraryPage() {
   };
   
   // Template handlers
-  const handleCreateTemplate = () => {
-    if (!templateFormData.name || !templateFormData.folderTemplateId || !templateFormData.fileName) {
-      toast({ title: "Validation error", description: "Please fill in all required fields", variant: "destructive" });
+  const handleCreateTemplate = async () => {
+    if (!templateFormData.name || !templateFormData.fileName) {
+      toast({ title: "Validation error", description: "Please fill in name and file name", variant: "destructive" });
       return;
     }
+    
+    let folderId = templateFormData.folderTemplateId;
+    
+    // If creating a new folder, create it first
+    if (templateFormData.createNewFolder) {
+      if (!templateFormData.newFolderName || !templateFormData.newFolderCode) {
+        toast({ title: "Validation error", description: "Please fill in folder name and code", variant: "destructive" });
+        return;
+      }
+      try {
+        const response = await apiRequest("POST", "/api/folder-templates", {
+          name: templateFormData.newFolderName,
+          code: templateFormData.newFolderCode,
+          module: templateFormData.module,
+          description: "",
+          parentId: null,
+          sortOrder: 0,
+          isActive: true,
+        });
+        const newFolder = await response.json();
+        folderId = newFolder.id;
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+        return;
+      }
+    }
+    
+    if (!folderId) {
+      toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
+      return;
+    }
+    
     createTemplateMutation.mutate({
       name: templateFormData.name,
       description: templateFormData.description || undefined,
       module: templateFormData.module,
-      folderTemplateId: templateFormData.folderTemplateId,
+      folderTemplateId: folderId,
       fileName: templateFormData.fileName,
       fileSize: templateFormData.fileSize || 1024,
       mimeType: templateFormData.mimeType || "application/octet-stream",
@@ -636,6 +675,9 @@ export default function TemplateLibraryPage() {
       mimeType: template.mimeType,
       placeholders: template.placeholders || "",
       sortOrder: template.sortOrder,
+      createNewFolder: false,
+      newFolderName: "",
+      newFolderCode: "",
     });
     setIsEditTemplateDialogOpen(true);
   };
@@ -1470,24 +1512,75 @@ export default function TemplateLibraryPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-folder">Folder</Label>
-              <Select 
-                value={templateFormData.folderTemplateId} 
-                onValueChange={(v) => setTemplateFormData({ ...templateFormData, folderTemplateId: v })}
-              >
-                <SelectTrigger data-testid="select-template-folder">
-                  <SelectValue placeholder="Select a folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {folderTemplates
-                    .filter(f => f.module === templateFormData.module && f.isActive)
-                    .map(folder => (
-                      <SelectItem key={folder.id} value={folder.id}>
-                        {folder.parentId ? "└ " : ""}{folder.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <Label>Folder</Label>
+              <div className="flex gap-2 mb-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!templateFormData.createNewFolder ? "default" : "outline"}
+                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: false, newFolderName: "", newFolderCode: "" })}
+                  data-testid="button-select-existing-folder"
+                >
+                  Select Existing
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={templateFormData.createNewFolder ? "default" : "outline"}
+                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: true, folderTemplateId: "" })}
+                  data-testid="button-create-new-folder"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create New
+                </Button>
+              </div>
+              {!templateFormData.createNewFolder ? (
+                <>
+                  <Select 
+                    value={templateFormData.folderTemplateId} 
+                    onValueChange={(v) => setTemplateFormData({ ...templateFormData, folderTemplateId: v })}
+                  >
+                    <SelectTrigger data-testid="select-template-folder">
+                      <SelectValue placeholder="Select a folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {folderTemplates
+                        .filter(f => f.module === templateFormData.module && f.isActive)
+                        .map(folder => (
+                          <SelectItem key={folder.id} value={folder.id}>
+                            {folder.parentId ? "└ " : ""}{folder.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {folderTemplates.filter(f => f.module === templateFormData.module && f.isActive).length === 0 && (
+                    <p className="text-xs text-muted-foreground">No folders available. Click "Create New" to add one.</p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                  <div className="space-y-1">
+                    <Label htmlFor="new-folder-name" className="text-sm">Folder Name</Label>
+                    <Input
+                      id="new-folder-name"
+                      value={templateFormData.newFolderName}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderName: e.target.value })}
+                      placeholder="e.g., Policies"
+                      data-testid="input-new-folder-name"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="new-folder-code" className="text-sm">Folder Code</Label>
+                    <Input
+                      id="new-folder-code"
+                      value={templateFormData.newFolderCode}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderCode: e.target.value.toUpperCase() })}
+                      placeholder="e.g., POL"
+                      data-testid="input-new-folder-code"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="template-fileName">File Name</Label>
