@@ -1618,6 +1618,87 @@ export async function registerRoutes(
     }
   });
   
+  // Bulk reorder templates within a folder (admin only)
+  app.post("/api/document-templates/reorder", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can reorder templates" });
+      }
+      
+      const schema = z.object({
+        folderTemplateId: z.string().min(1),
+        templateOrder: z.array(z.object({
+          id: z.string(),
+          sortOrder: z.number(),
+        })),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      // Check for duplicate IDs in the request
+      const requestedIds = parsed.data.templateOrder.map(t => t.id);
+      const uniqueIds = new Set(requestedIds);
+      if (uniqueIds.size !== requestedIds.length) {
+        return res.status(400).json({ error: "Duplicate template IDs in request" });
+      }
+      
+      // Get all templates in this folder
+      const allTemplates = await storage.getDocumentTemplates();
+      const folderTemplates = allTemplates.filter(
+        t => t.folderTemplateId === parsed.data.folderTemplateId && t.isActive
+      );
+      const folderTemplateIds = new Set(folderTemplates.map(t => t.id));
+      
+      // Verify all requested templates belong to the folder
+      for (const id of requestedIds) {
+        if (!folderTemplateIds.has(id)) {
+          return res.status(400).json({ error: "One or more templates do not belong to the specified folder" });
+        }
+      }
+      
+      // Verify all templates in folder are included in request
+      if (requestedIds.length !== folderTemplates.length) {
+        return res.status(400).json({ 
+          error: "Request must include all templates in the folder",
+          expected: folderTemplates.length,
+          received: requestedIds.length
+        });
+      }
+      
+      // Update each template's sortOrder
+      const updates = await Promise.all(
+        parsed.data.templateOrder.map(({ id, sortOrder }) =>
+          storage.updateDocumentTemplate(id, { sortOrder })
+        )
+      );
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: "templates_reordered",
+        userId: user.id,
+        userName: user.fullName,
+        details: `Reordered ${parsed.data.templateOrder.length} templates in folder`,
+        metadata: JSON.stringify({
+          folderTemplateId: parsed.data.folderTemplateId,
+          templateCount: parsed.data.templateOrder.length,
+        }),
+      });
+      
+      res.json({ success: true, updated: updates.length });
+    } catch (error) {
+      console.error("Reorder templates error:", error);
+      res.status(500).json({ error: "Failed to reorder templates" });
+    }
+  });
+
   // Upload new version of document template (admin/consultant)
   app.post("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
     try {

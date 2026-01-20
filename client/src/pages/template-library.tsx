@@ -78,14 +78,33 @@ import {
   ChevronLeft,
   Check,
   CircleDot,
+  GripVertical,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType } from "@shared/schema";
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -410,6 +429,21 @@ export default function TemplateLibraryPage() {
     },
   });
 
+  // Mutation for reordering templates via drag-and-drop
+  const reorderTemplatesMutation = useMutation({
+    mutationFn: async (data: { folderTemplateId: string; templateOrder: Array<{ id: string; sortOrder: number }> }) => {
+      return apiRequest("POST", "/api/document-templates/reorder", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      toast({ title: "Templates reordered", description: "Template order has been saved." });
+    },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      toast({ title: "Error", description: error.message || "Failed to reorder templates", variant: "destructive" });
+    },
+  });
+
   // Query for version history
   const { data: templateVersions = [] } = useQuery<Array<{ id: string; templateId: string; version: number; fileName: string; fileUrl: string | null; fileSize: number; mimeType: string | null; changeNote: string | null; uploadedBy: string; createdAt: string }>>({
     queryKey: ["/api/document-templates", selectedTemplate?.id, "versions"],
@@ -616,7 +650,9 @@ export default function TemplateLibraryPage() {
   
   // Helper functions
   const getTemplatesForFolder = (folderId: string) => {
-    return filteredTemplates.filter(t => t.folderTemplateId === folderId);
+    return filteredTemplates
+      .filter(t => t.folderTemplateId === folderId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   };
   
   const getRootFolders = (module: ModuleType) => {
@@ -1011,12 +1047,26 @@ export default function TemplateLibraryPage() {
   const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
   
   // Template card component
-  const TemplateCard = ({ template, showFolder = false }: { template: DocumentTemplate; showFolder?: boolean }) => {
+  const TemplateCard = ({ template, showFolder = false, isDraggable = false, dragHandleProps = {} }: { 
+    template: DocumentTemplate; 
+    showFolder?: boolean;
+    isDraggable?: boolean;
+    dragHandleProps?: Record<string, unknown>;
+  }) => {
     const FileIcon = getFileIcon(template.mimeType);
     
     return (
       <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover-elevate" data-testid={`template-card-${template.id}`}>
         <div className="flex items-center gap-3">
+          {isDraggable && isAdmin && (
+            <div 
+              {...dragHandleProps} 
+              className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted"
+              data-testid={`drag-handle-${template.id}`}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
           <div className="p-2 rounded-md bg-muted">
             <FileIcon className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -1118,6 +1168,110 @@ export default function TemplateLibraryPage() {
       </div>
     );
   };
+
+  // Sortable template card wrapper for drag-and-drop
+  const SortableTemplateCard = ({ template }: { template: DocumentTemplate }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: template.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 1000 : "auto",
+    };
+
+    return (
+      <div ref={setNodeRef} style={style} {...attributes}>
+        <TemplateCard 
+          template={template} 
+          isDraggable={true}
+          dragHandleProps={listeners}
+        />
+      </div>
+    );
+  };
+
+  // DnD sensors for mouse and keyboard
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Sortable templates list component with local state for immediate visual updates
+  const SortableTemplatesList = ({ folderId, templates }: { folderId: string; templates: DocumentTemplate[] }) => {
+    const [localOrder, setLocalOrder] = useState<DocumentTemplate[]>(templates);
+    
+    // Sync local order when templates prop changes (e.g., after server refetch)
+    useEffect(() => {
+      setLocalOrder(templates);
+    }, [templates]);
+
+    if (!isAdmin || templates.length <= 1) {
+      return (
+        <>
+          {templates.map(template => (
+            <TemplateCard key={template.id} template={template} />
+          ))}
+        </>
+      );
+    }
+
+    const handleLocalDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event;
+      
+      if (over && active.id !== over.id) {
+        const oldIndex = localOrder.findIndex(t => t.id === active.id);
+        const newIndex = localOrder.findIndex(t => t.id === over.id);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          // Update local state immediately for visual feedback
+          const reordered = arrayMove(localOrder, oldIndex, newIndex);
+          setLocalOrder(reordered);
+          
+          // Create the template order for the API
+          const templateOrder = reordered.map((t, index) => ({
+            id: t.id,
+            sortOrder: index,
+          }));
+          
+          reorderTemplatesMutation.mutate({
+            folderTemplateId: folderId,
+            templateOrder,
+          });
+        }
+      }
+    };
+
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleLocalDragEnd}
+      >
+        <SortableContext
+          items={localOrder.map(t => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {localOrder.map(template => (
+            <SortableTemplateCard key={template.id} template={template} />
+          ))}
+        </SortableContext>
+      </DndContext>
+    );
+  };
   
   // Folder tree renderer
   const renderFolderTree = (folder: FolderTemplate, depth: number = 0) => {
@@ -1153,9 +1307,7 @@ export default function TemplateLibraryPage() {
         </AccordionTrigger>
         <AccordionContent className="pb-0">
           <div style={{ paddingLeft: `${(depth + 1) * 16}px` }} className="space-y-2">
-            {templatesInFolder.map(template => (
-              <TemplateCard key={template.id} template={template} />
-            ))}
+            <SortableTemplatesList folderId={folder.id} templates={templatesInFolder} />
             {children.length > 0 && (
               <Accordion type="multiple" className="w-full">
                 {children.map(child => renderFolderTree(child, depth + 1))}
