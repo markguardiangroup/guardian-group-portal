@@ -1651,7 +1651,7 @@ export default function TemplateLibraryPage() {
 
       {/* Template Create Dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Document Template</DialogTitle>
             <DialogDescription>Upload a new template to the Document Bible</DialogDescription>
