@@ -28,6 +28,8 @@ import {
   type DocumentTypeRecord, type InsertDocumentType,
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
+  type DocumentTemplate, type InsertDocumentTemplate,
+  type DocumentTemplateVersion, type InsertDocumentTemplateVersion,
   type LoginAttempt, type InsertLoginAttempt,
   moduleConfig,
   folderTemplates as folderTemplatesTable,
@@ -168,6 +170,17 @@ export interface IStorage {
   createFolderDocumentTypeRule(rule: InsertFolderDocumentTypeRule): Promise<FolderDocumentTypeRule>;
   deleteFolderDocumentTypeRule(id: string): Promise<boolean>;
   
+  // Document Templates (The "Document Bible")
+  getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]>;
+  getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
+  createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
+  updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
+  deleteDocumentTemplate(id: string): Promise<boolean>;
+  
+  // Document Template Versions
+  getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]>;
+  createDocumentTemplateVersion(version: InsertDocumentTemplateVersion): Promise<DocumentTemplateVersion>;
+  
   // Provision folder structure from templates for a site
   provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]>;
   
@@ -197,6 +210,8 @@ export class MemStorage implements IStorage {
   private documentTypesMap: Map<string, DocumentTypeRecord>;
   private folderTemplates: Map<string, FolderTemplate>;
   private folderDocumentTypeRules: Map<string, FolderDocumentTypeRule>;
+  private documentTemplates: Map<string, DocumentTemplate>;
+  private documentTemplateVersions: Map<string, DocumentTemplateVersion>;
 
   constructor() {
     this.users = new Map();
@@ -218,6 +233,8 @@ export class MemStorage implements IStorage {
     this.documentTypesMap = new Map();
     this.folderTemplates = new Map();
     this.folderDocumentTypeRules = new Map();
+    this.documentTemplates = new Map();
+    this.documentTemplateVersions = new Map();
     
     this.initializeSampleData();
   }
@@ -2832,6 +2849,105 @@ export class MemStorage implements IStorage {
       console.error("Error deleting folder rule from DB:", error);
       return this.folderDocumentTypeRules.delete(id);
     }
+  }
+
+  // ============================================
+  // DOCUMENT TEMPLATES (The "Document Bible")
+  // ============================================
+  
+  async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]> {
+    let templates = Array.from(this.documentTemplates.values());
+    
+    if (module) {
+      templates = templates.filter(t => t.module === module);
+    }
+    if (folderTemplateId) {
+      templates = templates.filter(t => t.folderTemplateId === folderTemplateId);
+    }
+    
+    return templates.filter(t => t.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  
+  async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
+    return this.documentTemplates.get(id);
+  }
+  
+  async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {
+    const id = randomUUID();
+    const now = new Date();
+    const newTemplate: DocumentTemplate = {
+      id,
+      name: template.name,
+      description: template.description ?? null,
+      module: template.module,
+      folderTemplateId: template.folderTemplateId,
+      documentTypeId: template.documentTypeId ?? null,
+      fileName: template.fileName,
+      fileSize: template.fileSize,
+      mimeType: template.mimeType,
+      version: template.version ?? 1,
+      placeholders: template.placeholders ?? null,
+      isActive: template.isActive ?? true,
+      sortOrder: template.sortOrder ?? 0,
+      createdBy: template.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.documentTemplates.set(id, newTemplate);
+    
+    // Create initial version
+    await this.createDocumentTemplateVersion({
+      templateId: id,
+      version: 1,
+      fileName: template.fileName,
+      fileSize: template.fileSize,
+      changeNote: "Initial version",
+      uploadedBy: template.createdBy,
+    });
+    
+    return newTemplate;
+  }
+  
+  async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined> {
+    const template = this.documentTemplates.get(id);
+    if (!template) return undefined;
+    
+    const updatedTemplate: DocumentTemplate = {
+      ...template,
+      ...updates,
+      id: template.id,
+      createdAt: template.createdAt,
+      updatedAt: new Date(),
+    };
+    this.documentTemplates.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+  
+  async deleteDocumentTemplate(id: string): Promise<boolean> {
+    return this.documentTemplates.delete(id);
+  }
+  
+  // Document Template Versions
+  async getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]> {
+    return Array.from(this.documentTemplateVersions.values())
+      .filter(v => v.templateId === templateId)
+      .sort((a, b) => b.version - a.version);
+  }
+  
+  async createDocumentTemplateVersion(version: InsertDocumentTemplateVersion): Promise<DocumentTemplateVersion> {
+    const id = randomUUID();
+    const newVersion: DocumentTemplateVersion = {
+      id,
+      templateId: version.templateId,
+      version: version.version,
+      fileName: version.fileName,
+      fileSize: version.fileSize,
+      changeNote: version.changeNote ?? null,
+      uploadedBy: version.uploadedBy,
+      createdAt: new Date(),
+    };
+    this.documentTemplateVersions.set(id, newVersion);
+    return newVersion;
   }
 
   // Provision folder structure from templates for a site

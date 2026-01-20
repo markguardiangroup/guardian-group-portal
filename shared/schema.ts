@@ -389,6 +389,54 @@ export const insertFolderDocumentTypeRuleSchema = createInsertSchema(folderDocum
 export type InsertFolderDocumentTypeRule = z.infer<typeof insertFolderDocumentTypeRuleSchema>;
 export type FolderDocumentTypeRule = typeof folderDocumentTypeRules.$inferSelect;
 
+// Document Templates (The "Document Bible" - master templates for creating documents)
+export const documentTemplates = pgTable("document_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: text("module").$type<ModuleType>().notNull(),
+  folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to
+  documentTypeId: varchar("document_type_id"), // Optional link to document type
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  version: integer("version").notNull().default(1),
+  // Placeholder variables available in this template
+  placeholders: text("placeholders"), // JSON array of placeholder names like ["COMPANY_NAME", "SITE_ADDRESS"]
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+
+// Document Template Versions (track template history for lineage)
+export const documentTemplateVersions = pgTable("document_template_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull(),
+  version: integer("version").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  changeNote: text("change_note"),
+  uploadedBy: varchar("uploaded_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertDocumentTemplateVersionSchema = createInsertSchema(documentTemplateVersions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertDocumentTemplateVersion = z.infer<typeof insertDocumentTemplateVersionSchema>;
+export type DocumentTemplateVersion = typeof documentTemplateVersions.$inferSelect;
+
 // Document Folders (for organizing documents)
 export const documentFolders = pgTable("document_folders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -412,6 +460,9 @@ export const insertDocumentFolderSchema = createInsertSchema(documentFolders).om
 export type InsertDocumentFolder = z.infer<typeof insertDocumentFolderSchema>;
 export type DocumentFolder = typeof documentFolders.$inferSelect;
 
+// Document source type
+export type DocumentSource = "template" | "external";
+
 // Documents
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -434,6 +485,10 @@ export const documents = pgTable("documents", {
   uploadedBy: varchar("uploaded_by").notNull(),
   assignedTo: varchar("assigned_to"),
   isArchived: boolean("is_archived").notNull().default(false),
+  // Template lineage tracking
+  source: text("source").$type<DocumentSource>().notNull().default("external"), // "template" or "external"
+  templateId: varchar("template_id"), // Reference to document template used
+  templateVersion: integer("template_version"), // Version of template when document was created
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
