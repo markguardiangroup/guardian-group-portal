@@ -726,6 +726,20 @@ export default function TemplateLibraryPage() {
       }
     }
     
+    // If we have a document type, also create a folder-document type rule
+    if (documentTypeId && folderId) {
+      try {
+        await apiRequest("POST", `/api/folder-templates/${folderId}/rules`, {
+          documentTypeId: documentTypeId,
+          isRequired: false,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      } catch (error) {
+        // Rule might already exist, which is fine
+        console.log("Folder rule may already exist:", error);
+      }
+    }
+    
     createTemplateMutation.mutate({
       name: templateFormData.name,
       description: templateFormData.description || undefined,
