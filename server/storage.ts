@@ -175,10 +175,12 @@ export interface IStorage {
   
   // Document Templates (The "Document Bible")
   getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]>;
+  getArchivedDocumentTemplates(): Promise<DocumentTemplate[]>;
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
   deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
+  restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean>;
   
   // Document Template Versions
   getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]>;
@@ -2937,6 +2939,56 @@ export class MemStorage implements IStorage {
       }
       
       return templates.filter(t => t.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+  }
+  
+  async getArchivedDocumentTemplates(): Promise<DocumentTemplate[]> {
+    try {
+      const templates = await db.select().from(documentTemplatesTable)
+        .where(eq(documentTemplatesTable.isActive, false))
+        .orderBy(asc(documentTemplatesTable.sortOrder));
+      return templates;
+    } catch (error) {
+      console.error("Error fetching archived templates from DB:", error);
+      return Array.from(this.documentTemplates.values())
+        .filter(t => !t.isActive)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+  }
+  
+  async restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean> {
+    try {
+      const restoreData = {
+        isActive: true,
+        deletedAt: null,
+        deletedBy: null,
+        deletionReason: null,
+        updatedAt: new Date(),
+      };
+      
+      await db.update(documentTemplatesTable).set(restoreData).where(eq(documentTemplatesTable.id, id));
+      
+      // Update memory cache too
+      const existing = this.documentTemplates.get(id);
+      if (existing) {
+        this.documentTemplates.set(id, { ...existing, ...restoreData });
+      }
+      
+      // Log to audit trail
+      await this.createAuditLog({
+        userId: restoredBy,
+        action: 'template_restored',
+        entityType: 'document_template',
+        entityId: id,
+        details: JSON.stringify({ 
+          templateName: existing?.name || 'Unknown',
+        }),
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error restoring document template:", error);
+      return false;
     }
   }
   

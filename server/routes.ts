@@ -1451,6 +1451,21 @@ export async function registerRoutes(
     }
   });
   
+  // Get archived document templates (admin only)
+  app.get("/api/document-templates-archived", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view archived templates" });
+      }
+      const templates = await storage.getArchivedDocumentTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Get archived document templates error:", error);
+      res.status(500).json({ error: "Failed to fetch archived document templates" });
+    }
+  });
+  
   // Get single document template
   app.get("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
@@ -1730,6 +1745,35 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete document template error:", error);
       res.status(500).json({ error: "Failed to delete document template" });
+    }
+  });
+  
+  // Restore archived document template (admin only)
+  app.post("/api/document-templates/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can restore document templates" });
+      }
+      
+      const success = await storage.restoreDocumentTemplate(req.params.id, user.id);
+      
+      if (!success) {
+        return res.status(500).json({ error: "Failed to restore document template" });
+      }
+      
+      res.status(200).json({ 
+        message: "Template restored successfully",
+        restoredAt: new Date().toISOString(),
+        restoredBy: user.fullName
+      });
+    } catch (error) {
+      console.error("Restore document template error:", error);
+      res.status(500).json({ error: "Failed to restore document template" });
     }
   });
 

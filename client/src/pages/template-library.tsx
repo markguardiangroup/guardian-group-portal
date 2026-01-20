@@ -71,6 +71,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Clock,
+  RotateCcw,
   Link as LinkIcon,
   X,
   Wand2,
@@ -316,6 +317,14 @@ export default function TemplateLibraryPage() {
     queryKey: ["/api/document-templates"],
   });
   
+  // Archived templates query
+  const { data: archivedTemplates = [], isLoading: archivedLoading } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates-archived"],
+  });
+  
+  // Show archived toggle
+  const [showArchived, setShowArchived] = useState(false);
+  
   const { data: folderTemplates = [], isLoading: foldersLoading } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
   });
@@ -376,6 +385,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
       setIsDeleteDialogOpen(false);
       setTemplateToDelete(null);
       setDeleteReason("");
@@ -383,6 +393,20 @@ export default function TemplateLibraryPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to archive template", variant: "destructive" });
+    },
+  });
+  
+  const restoreTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/document-templates/${id}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      toast({ title: "Template restored", description: "The document template has been restored and is now active." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to restore template", variant: "destructive" });
     },
   });
 
@@ -1384,6 +1408,58 @@ export default function TemplateLibraryPage() {
                   </Card>
                 );
               })}
+              
+              {/* Archived Templates Section */}
+              {isAdmin && archivedTemplates.length > 0 && (
+                <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+                  <CardHeader className="cursor-pointer" onClick={() => setShowArchived(!showArchived)}>
+                    <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="h-5 w-5" />
+                      Archived Templates
+                      <Badge variant="outline" className="ml-2 border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400">
+                        {archivedTemplates.length}
+                      </Badge>
+                      <ChevronRight className={`h-4 w-4 ml-auto transition-transform ${showArchived ? 'rotate-90' : ''}`} />
+                    </CardTitle>
+                    <CardDescription>
+                      Templates that have been archived. Click to {showArchived ? 'hide' : 'view'}.
+                    </CardDescription>
+                  </CardHeader>
+                  {showArchived && (
+                    <CardContent className="space-y-3">
+                      {archivedTemplates.map(template => {
+                        const folder = folderTemplates.find(f => f.id === template.folderTemplateId);
+                        return (
+                          <div key={template.id} className="flex items-center justify-between p-3 rounded-md border bg-background">
+                            <div className="flex-1">
+                              <p className="font-medium">{template.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {folder?.name || 'Unknown folder'} • {moduleNames[template.module]}
+                              </p>
+                              {(template as any).deletedAt && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                  Archived: {new Date((template as any).deletedAt).toLocaleDateString()}
+                                  {(template as any).deletionReason && ` • Reason: ${(template as any).deletionReason}`}
+                                </p>
+                              )}
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => restoreTemplateMutation.mutate(template.id)}
+                              disabled={restoreTemplateMutation.isPending}
+                              data-testid={`button-restore-template-${template.id}`}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Restore
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  )}
+                </Card>
+              )}
             </div>
           )}
         </TabsContent>
