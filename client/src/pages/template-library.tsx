@@ -262,6 +262,8 @@ export default function TemplateLibraryPage() {
   const [activeTab, setActiveTab] = useState("templates");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedModule, setSelectedModule] = useState<ModuleType | "all">("all");
+  const [requiredFilter, setRequiredFilter] = useState<"all" | "required" | "optional">("all");
+  const [renewalFilter, setRenewalFilter] = useState<"all" | "has_renewal" | "no_renewal">("all");
   
   // Template dialogs
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -589,8 +591,20 @@ export default function TemplateLibraryPage() {
         t.fileName.toLowerCase().includes(query)
       );
     }
+    // Compliance filter: required vs optional
+    if (requiredFilter === "required") {
+      result = result.filter(t => t.isRequired === true);
+    } else if (requiredFilter === "optional") {
+      result = result.filter(t => t.isRequired !== true);
+    }
+    // Renewal filter: has renewal period vs no renewal
+    if (renewalFilter === "has_renewal") {
+      result = result.filter(t => t.renewalPeriodMonths !== null && t.renewalPeriodMonths !== undefined);
+    } else if (renewalFilter === "no_renewal") {
+      result = result.filter(t => t.renewalPeriodMonths === null || t.renewalPeriodMonths === undefined);
+    }
     return result;
-  }, [templates, selectedModule, searchQuery]);
+  }, [templates, selectedModule, searchQuery, requiredFilter, renewalFilter]);
   
   const filteredDocTypes = useMemo(() => {
     let result = documentTypes;
@@ -1293,8 +1307,8 @@ export default function TemplateLibraryPage() {
           )}
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+          <div className="relative flex-1 max-w-md min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={`Search ${activeTab}...`}
@@ -1317,6 +1331,32 @@ export default function TemplateLibraryPage() {
               <SelectItem value="employment_law">Employment Law</SelectItem>
             </SelectContent>
           </Select>
+          
+          {activeTab === "templates" && (
+            <>
+              <Select value={requiredFilter} onValueChange={(v) => setRequiredFilter(v as "all" | "required" | "optional")}>
+                <SelectTrigger className="w-40" data-testid="select-required-filter">
+                  <SelectValue placeholder="Compliance" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Compliance</SelectItem>
+                  <SelectItem value="required">Required Only</SelectItem>
+                  <SelectItem value="optional">Optional Only</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={renewalFilter} onValueChange={(v) => setRenewalFilter(v as "all" | "has_renewal" | "no_renewal")}>
+                <SelectTrigger className="w-44" data-testid="select-renewal-filter">
+                  <SelectValue placeholder="Renewal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Renewals</SelectItem>
+                  <SelectItem value="has_renewal">Has Renewal Period</SelectItem>
+                  <SelectItem value="no_renewal">No Renewal</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
         
         {/* Templates Tab */}

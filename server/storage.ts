@@ -3073,16 +3073,11 @@ export class MemStorage implements IStorage {
     const [dbTemplate] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
     if (!dbTemplate) return undefined;
     
-    console.log("[DEBUG] updateDocumentTemplate - updates received:", JSON.stringify(updates));
-    console.log("[DEBUG] updateDocumentTemplate - current DB template:", JSON.stringify(dbTemplate));
-    
     // Build the update object with only the fields being updated
     const updateData = {
       ...updates,
       updatedAt: new Date(),
     };
-    
-    console.log("[DEBUG] updateDocumentTemplate - updateData to set:", JSON.stringify(updateData));
     
     // Persist to database
     try {
@@ -3090,8 +3085,6 @@ export class MemStorage implements IStorage {
         .set(updateData)
         .where(eq(documentTemplatesTable.id, id))
         .returning();
-      
-      console.log("[DEBUG] updateDocumentTemplate - DB returned:", JSON.stringify(updated));
       
       if (updated) {
         this.documentTemplates.set(id, updated);
