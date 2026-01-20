@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import type { ModuleType } from "@shared/schema";
 import { SECURITY_CONFIG } from "@shared/schema";
 import PDFDocument from "pdfkit";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -107,6 +108,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // Register object storage routes for file uploads
+  registerObjectStorageRoutes(app);
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {

@@ -78,10 +78,11 @@ import {
   Check,
   CircleDot,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useUpload } from "@/hooks/use-upload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType } from "@shared/schema";
 
@@ -135,6 +136,7 @@ type TemplateFormData = {
   module: ModuleType;
   folderTemplateId: string;
   fileName: string;
+  fileUrl: string;
   fileSize: number;
   mimeType: string;
   placeholders: string;
@@ -173,6 +175,7 @@ const defaultTemplateFormData: TemplateFormData = {
   module: "health_safety",
   folderTemplateId: "",
   fileName: "",
+  fileUrl: "",
   fileSize: 0,
   mimeType: "",
   placeholders: "",
@@ -259,6 +262,34 @@ export default function TemplateLibraryPage() {
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // File upload hook
+  const { uploadFile, isUploading } = useUpload({
+    onSuccess: (response) => {
+      toast({ title: "File uploaded", description: "Template file uploaded successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  // Handle file selection and upload
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const result = await uploadFile(file);
+    if (result) {
+      setTemplateFormData(prev => ({
+        ...prev,
+        fileName: file.name,
+        fileUrl: result.objectPath,
+        fileSize: file.size,
+        mimeType: file.type || "application/octet-stream",
+      }));
+    }
+  };
   
   // Folder dialogs
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
@@ -613,8 +644,13 @@ export default function TemplateLibraryPage() {
   
   // Template handlers
   const handleCreateTemplate = async () => {
-    if (!templateFormData.name || !templateFormData.fileName) {
-      toast({ title: "Validation error", description: "Please fill in name and file name", variant: "destructive" });
+    if (!templateFormData.name) {
+      toast({ title: "Validation error", description: "Please enter a template name", variant: "destructive" });
+      return;
+    }
+    
+    if (!templateFormData.fileUrl || !templateFormData.fileName) {
+      toast({ title: "Validation error", description: "Please upload a template file", variant: "destructive" });
       return;
     }
     
@@ -656,6 +692,7 @@ export default function TemplateLibraryPage() {
       module: templateFormData.module,
       folderTemplateId: folderId,
       fileName: templateFormData.fileName,
+      fileUrl: templateFormData.fileUrl,
       fileSize: templateFormData.fileSize || 1024,
       mimeType: templateFormData.mimeType || "application/octet-stream",
       placeholders: templateFormData.placeholders || undefined,
@@ -671,6 +708,7 @@ export default function TemplateLibraryPage() {
       module: template.module,
       folderTemplateId: template.folderTemplateId,
       fileName: template.fileName,
+      fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
       mimeType: template.mimeType,
       placeholders: template.placeholders || "",
@@ -1584,14 +1622,51 @@ export default function TemplateLibraryPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="template-fileName">File Name</Label>
-              <Input
-                id="template-fileName"
-                value={templateFormData.fileName}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, fileName: e.target.value })}
-                placeholder="e.g., fire_risk_assessment_template.docx"
-                data-testid="input-template-filename"
+              <Label>Template File <span className="text-destructive">*</span></Label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept=".doc,.docx,.pdf,.xls,.xlsx,.txt,.rtf"
+                data-testid="input-template-file"
               />
+              {templateFormData.fileUrl ? (
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{templateFormData.fileName}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(templateFormData.fileSize)}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setTemplateFormData(prev => ({ ...prev, fileName: "", fileUrl: "", fileSize: 0, mimeType: "" }));
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    data-testid="button-remove-file"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full justify-start"
+                  data-testid="button-upload-template-file"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? "Uploading..." : "Choose template file..."}
+                </Button>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Supported formats: Word (.doc, .docx), PDF, Excel (.xls, .xlsx), Text files
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="template-description">Description (Optional)</Label>

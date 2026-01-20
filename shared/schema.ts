@@ -398,6 +398,7 @@ export const documentTemplates = pgTable("document_templates", {
   folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to
   documentTypeId: varchar("document_type_id"), // Optional link to document type
   fileName: text("file_name").notNull(),
+  fileUrl: text("file_url"), // URL/path to the uploaded template file in object storage
   fileSize: integer("file_size").notNull(),
   mimeType: text("mime_type").notNull(),
   version: integer("version").notNull().default(1),
