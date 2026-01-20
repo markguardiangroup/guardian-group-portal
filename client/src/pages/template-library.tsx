@@ -135,6 +135,11 @@ type TemplateFormData = {
   description: string;
   module: ModuleType;
   folderTemplateId: string;
+  documentTypeId: string;
+  createNewDocType: boolean;
+  newDocTypeName: string;
+  newDocTypeCode: string;
+  newDocTypeRenewalMonths: number | null;
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -174,6 +179,11 @@ const defaultTemplateFormData: TemplateFormData = {
   description: "",
   module: "health_safety",
   folderTemplateId: "",
+  documentTypeId: "",
+  createNewDocType: false,
+  newDocTypeName: "",
+  newDocTypeCode: "",
+  newDocTypeRenewalMonths: 12,
   fileName: "",
   fileUrl: "",
   fileSize: 0,
@@ -658,6 +668,7 @@ export default function TemplateLibraryPage() {
     }
     
     let folderId = templateFormData.folderTemplateId;
+    let documentTypeId = templateFormData.documentTypeId || undefined;
     
     // If creating a new folder, create it first
     if (templateFormData.createNewFolder) {
@@ -689,11 +700,38 @@ export default function TemplateLibraryPage() {
       return;
     }
     
+    // If creating a new document type, create it first
+    if (templateFormData.createNewDocType) {
+      if (!templateFormData.newDocTypeName || !templateFormData.newDocTypeCode) {
+        toast({ title: "Validation error", description: "Please fill in template type name and code", variant: "destructive" });
+        return;
+      }
+      try {
+        const response = await apiRequest("POST", "/api/document-types", {
+          name: templateFormData.newDocTypeName,
+          code: templateFormData.newDocTypeCode,
+          module: templateFormData.module,
+          description: "",
+          isRequired: false,
+          renewalPeriodMonths: templateFormData.newDocTypeRenewalMonths,
+          sortOrder: 0,
+          isActive: true,
+        });
+        const newDocType = await response.json();
+        documentTypeId = newDocType.id;
+        queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to create template type", variant: "destructive" });
+        return;
+      }
+    }
+    
     createTemplateMutation.mutate({
       name: templateFormData.name,
       description: templateFormData.description || undefined,
       module: templateFormData.module,
       folderTemplateId: folderId,
+      documentTypeId: documentTypeId,
       fileName: templateFormData.fileName,
       fileUrl: templateFormData.fileUrl,
       fileSize: templateFormData.fileSize || 1024,
@@ -710,6 +748,11 @@ export default function TemplateLibraryPage() {
       description: template.description || "",
       module: template.module,
       folderTemplateId: template.folderTemplateId,
+      documentTypeId: template.documentTypeId || "",
+      createNewDocType: false,
+      newDocTypeName: "",
+      newDocTypeCode: "",
+      newDocTypeRenewalMonths: 12,
       fileName: template.fileName,
       fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
@@ -1708,6 +1751,89 @@ export default function TemplateLibraryPage() {
                       data-testid="input-new-folder-code"
                     />
                     <p className="text-xs text-muted-foreground">Lowercase letters and underscores only</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Template Type (Optional)</Label>
+              <div className="flex gap-2 mb-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!templateFormData.createNewDocType ? "default" : "outline"}
+                  onClick={() => setTemplateFormData({ ...templateFormData, createNewDocType: false, newDocTypeName: "", newDocTypeCode: "" })}
+                  data-testid="button-select-existing-doctype"
+                >
+                  Select Existing
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={templateFormData.createNewDocType ? "default" : "outline"}
+                  onClick={() => setTemplateFormData({ ...templateFormData, createNewDocType: true, documentTypeId: "" })}
+                  data-testid="button-create-new-doctype"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create New
+                </Button>
+              </div>
+              {!templateFormData.createNewDocType ? (
+                <>
+                  <Select 
+                    value={templateFormData.documentTypeId} 
+                    onValueChange={(v) => setTemplateFormData({ ...templateFormData, documentTypeId: v })}
+                  >
+                    <SelectTrigger data-testid="select-template-doctype">
+                      <SelectValue placeholder="Select a template type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {documentTypes
+                        .filter(dt => dt.module === templateFormData.module && dt.isActive)
+                        .map(dt => (
+                          <SelectItem key={dt.id} value={dt.id}>
+                            {dt.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {documentTypes.filter(dt => dt.module === templateFormData.module && dt.isActive).length === 0 && (
+                    <p className="text-xs text-muted-foreground">No template types available. Click "Create New" to add one.</p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                  <div className="space-y-1">
+                    <Label htmlFor="new-doctype-name" className="text-sm">Type Name</Label>
+                    <Input
+                      id="new-doctype-name"
+                      value={templateFormData.newDocTypeName}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeName: e.target.value })}
+                      placeholder="e.g., Fire Risk Assessment"
+                      data-testid="input-new-doctype-name"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="new-doctype-code" className="text-sm">Type Code</Label>
+                    <Input
+                      id="new-doctype-code"
+                      value={templateFormData.newDocTypeCode}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
+                      placeholder="e.g., fire_risk_assessment"
+                      data-testid="input-new-doctype-code"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="new-doctype-renewal" className="text-sm">Renewal Period (months)</Label>
+                    <Input
+                      id="new-doctype-renewal"
+                      type="number"
+                      value={templateFormData.newDocTypeRenewalMonths ?? ""}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeRenewalMonths: e.target.value ? parseInt(e.target.value) : null })}
+                      placeholder="12"
+                      data-testid="input-new-doctype-renewal"
+                    />
+                    <p className="text-xs text-muted-foreground">How often this document type needs renewal</p>
                   </div>
                 </div>
               )}
