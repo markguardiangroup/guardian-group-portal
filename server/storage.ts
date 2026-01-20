@@ -3073,11 +3073,14 @@ export class MemStorage implements IStorage {
     const [dbTemplate] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
     if (!dbTemplate) return undefined;
     
-    // Build the update object with only the fields being updated
-    const updateData = {
-      ...updates,
-      updatedAt: new Date(),
-    };
+    // Build the update object - only include fields that are explicitly defined (not undefined)
+    // This prevents accidental nullification of fields not being updated
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
+    }
     
     // Persist to database
     try {
@@ -3094,8 +3097,8 @@ export class MemStorage implements IStorage {
       console.error("Error updating document template in DB:", error);
     }
     
-    // Fallback to in-memory if DB fails
-    const fallbackTemplate = { ...dbTemplate, ...updates, updatedAt: new Date() };
+    // Fallback to in-memory if DB fails - use sanitized updateData
+    const fallbackTemplate = { ...dbTemplate, ...updateData } as DocumentTemplate;
     this.documentTemplates.set(id, fallbackTemplate);
     return fallbackTemplate;
   }
