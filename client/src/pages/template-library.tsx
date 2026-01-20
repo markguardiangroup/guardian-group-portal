@@ -1948,7 +1948,7 @@ export default function TemplateLibraryPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{decodeURIComponent(version.fileName)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatFileSize(version.fileSize)} • {new Date(version.createdAt).toLocaleDateString()}
+                      {formatFileSize(version.fileSize)} • {new Date(version.createdAt).toLocaleDateString()} • Uploaded by: {version.uploadedBy}
                     </p>
                     {version.changeNote && (
                       <p className="text-xs text-muted-foreground mt-1 italic">"{version.changeNote}"</p>
