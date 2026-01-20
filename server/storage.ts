@@ -3042,7 +3042,17 @@ export class MemStorage implements IStorage {
   }
   
   async deleteDocumentTemplate(id: string): Promise<boolean> {
-    return this.documentTemplates.delete(id);
+    try {
+      // Delete from database first
+      await db.delete(documentTemplateVersions).where(eq(documentTemplateVersions.templateId, id));
+      await db.delete(documentTemplates).where(eq(documentTemplates.id, id));
+      // Also remove from memory
+      this.documentTemplates.delete(id);
+      return true;
+    } catch (error) {
+      console.error("Error deleting document template:", error);
+      return this.documentTemplates.delete(id);
+    }
   }
   
   // Document Template Versions
