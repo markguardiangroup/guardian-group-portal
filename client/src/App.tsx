@@ -27,8 +27,6 @@ import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import ModuleAccessRequests from "@/pages/module-access-requests";
 import UserManagement from "@/pages/user-management";
-import DocumentTypes from "@/pages/document-types";
-import FolderTemplates from "@/pages/folder-templates";
 import TemplateLibrary from "@/pages/template-library";
 import CreateFromTemplate from "@/pages/create-from-template";
 import NotFound from "@/pages/not-found";
@@ -89,8 +87,6 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route path="/users" component={UserManagement} />
-      <Route path="/document-types" component={DocumentTypes} />
-      <Route path="/folder-templates" component={FolderTemplates} />
       <Route path="/template-library" component={TemplateLibrary} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route component={NotFound} />

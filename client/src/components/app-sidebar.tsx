@@ -1,13 +1,9 @@
 import { useLocation, Link } from "wouter";
 import {
   LayoutDashboard,
-  FileText,
-  Building2,
   Landmark,
   MapPin,
-  ClipboardCheck,
   BarChart3,
-  HelpCircle,
   Settings,
   LogOut,
   HardHat,
@@ -17,7 +13,6 @@ import {
   Lock,
   Clock,
   KeyRound,
-  FolderTree,
   Headphones,
   BookOpen,
 } from "lucide-react";
@@ -139,16 +134,6 @@ const adminNavItems = [
     title: "Users",
     url: "/users",
     icon: Users,
-  },
-  {
-    title: "Document Hub",
-    url: "/document-types",
-    icon: FileText,
-  },
-  {
-    title: "Folder Hub",
-    url: "/folder-templates",
-    icon: FolderTree,
   },
   {
     title: "Template Library",
