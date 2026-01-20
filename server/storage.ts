@@ -34,6 +34,8 @@ import {
   moduleConfig,
   folderTemplates as folderTemplatesTable,
   folderDocumentTypeRules as folderDocumentTypeRulesTable,
+  documentTemplates as documentTemplatesTable,
+  documentTemplateVersions as documentTemplateVersionsTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -2859,20 +2861,45 @@ export class MemStorage implements IStorage {
   // ============================================
   
   async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]> {
-    let templates = Array.from(this.documentTemplates.values());
-    
-    if (module) {
-      templates = templates.filter(t => t.module === module);
+    try {
+      let query = db.select().from(documentTemplatesTable);
+      const conditions = [];
+      if (module) {
+        conditions.push(eq(documentTemplatesTable.module, module));
+      }
+      if (folderTemplateId) {
+        conditions.push(eq(documentTemplatesTable.folderTemplateId, folderTemplateId));
+      }
+      conditions.push(eq(documentTemplatesTable.isActive, true));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as typeof query;
+      }
+      const templates = await query.orderBy(asc(documentTemplatesTable.sortOrder));
+      return templates;
+    } catch (error) {
+      console.error("Error fetching document templates from DB:", error);
+      let templates = Array.from(this.documentTemplates.values());
+      
+      if (module) {
+        templates = templates.filter(t => t.module === module);
+      }
+      if (folderTemplateId) {
+        templates = templates.filter(t => t.folderTemplateId === folderTemplateId);
+      }
+      
+      return templates.filter(t => t.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
     }
-    if (folderTemplateId) {
-      templates = templates.filter(t => t.folderTemplateId === folderTemplateId);
-    }
-    
-    return templates.filter(t => t.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
   }
   
   async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
-    return this.documentTemplates.get(id);
+    try {
+      const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+      return template;
+    } catch (error) {
+      console.error("Error fetching document template from DB:", error);
+      return this.documentTemplates.get(id);
+    }
   }
   
   async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {
@@ -2897,21 +2924,43 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    this.documentTemplates.set(id, newTemplate);
     
-    // Create initial version
-    await this.createDocumentTemplateVersion({
-      templateId: id,
-      version: 1,
-      fileName: template.fileName,
-      fileUrl: template.fileUrl,
-      fileSize: template.fileSize,
-      mimeType: template.mimeType,
-      changeNote: "Initial version",
-      uploadedBy: template.createdBy,
-    });
-    
-    return newTemplate;
+    // Persist to database
+    try {
+      const [inserted] = await db.insert(documentTemplatesTable).values(newTemplate).returning();
+      this.documentTemplates.set(inserted.id, inserted);
+      
+      // Create initial version
+      await this.createDocumentTemplateVersion({
+        templateId: inserted.id,
+        version: 1,
+        fileName: template.fileName,
+        fileUrl: template.fileUrl,
+        fileSize: template.fileSize,
+        mimeType: template.mimeType,
+        changeNote: "Initial version",
+        uploadedBy: template.createdBy,
+      });
+      
+      return inserted;
+    } catch (error) {
+      console.error("Error inserting document template to DB:", error);
+      this.documentTemplates.set(id, newTemplate);
+      
+      // Create initial version in memory
+      await this.createDocumentTemplateVersion({
+        templateId: id,
+        version: 1,
+        fileName: template.fileName,
+        fileUrl: template.fileUrl,
+        fileSize: template.fileSize,
+        mimeType: template.mimeType,
+        changeNote: "Initial version",
+        uploadedBy: template.createdBy,
+      });
+      
+      return newTemplate;
+    }
   }
   
   async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined> {
@@ -2925,6 +2974,21 @@ export class MemStorage implements IStorage {
       createdAt: template.createdAt,
       updatedAt: new Date(),
     };
+    
+    // Persist to database
+    try {
+      const [updated] = await db.update(documentTemplatesTable)
+        .set(updatedTemplate)
+        .where(eq(documentTemplatesTable.id, id))
+        .returning();
+      if (updated) {
+        this.documentTemplates.set(id, updated);
+        return updated;
+      }
+    } catch (error) {
+      console.error("Error updating document template in DB:", error);
+    }
+    
     this.documentTemplates.set(id, updatedTemplate);
     return updatedTemplate;
   }
@@ -2935,9 +2999,16 @@ export class MemStorage implements IStorage {
   
   // Document Template Versions
   async getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]> {
-    return Array.from(this.documentTemplateVersions.values())
-      .filter(v => v.templateId === templateId)
-      .sort((a, b) => b.version - a.version);
+    try {
+      const versions = await db.select().from(documentTemplateVersionsTable)
+        .where(eq(documentTemplateVersionsTable.templateId, templateId));
+      return versions.sort((a, b) => b.version - a.version);
+    } catch (error) {
+      console.error("Error fetching document template versions from DB:", error);
+      return Array.from(this.documentTemplateVersions.values())
+        .filter(v => v.templateId === templateId)
+        .sort((a, b) => b.version - a.version);
+    }
   }
   
   async createDocumentTemplateVersion(version: InsertDocumentTemplateVersion): Promise<DocumentTemplateVersion> {
@@ -2954,8 +3025,17 @@ export class MemStorage implements IStorage {
       uploadedBy: version.uploadedBy,
       createdAt: new Date(),
     };
-    this.documentTemplateVersions.set(id, newVersion);
-    return newVersion;
+    
+    // Persist to database
+    try {
+      const [inserted] = await db.insert(documentTemplateVersionsTable).values(newVersion).returning();
+      this.documentTemplateVersions.set(inserted.id, inserted);
+      return inserted;
+    } catch (error) {
+      console.error("Error inserting document template version to DB:", error);
+      this.documentTemplateVersions.set(id, newVersion);
+      return newVersion;
+    }
   }
 
   // Provision folder structure from templates for a site
