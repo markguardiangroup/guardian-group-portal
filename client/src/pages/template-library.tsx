@@ -260,6 +260,8 @@ export default function TemplateLibraryPage() {
   // Template dialogs
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
+  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<DocumentTemplate | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
   
@@ -1025,12 +1027,22 @@ export default function TemplateLibraryPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {template.fileUrl && (
-                  <DropdownMenuItem asChild>
-                    <a href={template.fileUrl} target="_blank" rel="noopener noreferrer" download={template.fileName} data-testid={`link-download-template-${template.id}`}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download File
-                    </a>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={() => {
+                      setPreviewTemplate(template);
+                      setIsPreviewDialogOpen(true);
+                    }} data-testid={`button-preview-template-${template.id}`}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href={template.fileUrl} target="_blank" rel="noopener noreferrer" download={template.fileName} data-testid={`link-download-template-${template.id}`}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
                 )}
                 <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
                   <Pencil className="h-4 w-4 mr-2" />
@@ -1495,6 +1507,59 @@ export default function TemplateLibraryPage() {
         </TabsContent>
       </Tabs>
       
+      {/* Template Preview Dialog */}
+      <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {previewTemplate?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {decodeURIComponent(previewTemplate?.fileName || "")} • {formatFileSize(previewTemplate?.fileSize || 0)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {previewTemplate?.mimeType === "application/pdf" ? (
+              <iframe
+                src={previewTemplate.fileUrl || ""}
+                className="w-full h-[60vh] border rounded-md"
+                title="Document Preview"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 border rounded-md bg-muted/30 min-h-[300px]">
+                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                <p className="text-lg font-medium mb-2">Preview not available</p>
+                <p className="text-sm text-muted-foreground mb-6 text-center">
+                  {previewTemplate?.mimeType?.includes("word") || previewTemplate?.mimeType?.includes("document")
+                    ? "Word documents cannot be previewed in the browser."
+                    : previewTemplate?.mimeType?.includes("excel") || previewTemplate?.mimeType?.includes("spreadsheet")
+                    ? "Excel spreadsheets cannot be previewed in the browser."
+                    : "This file type cannot be previewed in the browser."}
+                </p>
+                <Button asChild>
+                  <a href={previewTemplate?.fileUrl || ""} download={previewTemplate?.fileName} data-testid="button-preview-download">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download to View
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)} data-testid="button-close-preview">
+              Close
+            </Button>
+            <Button asChild>
+              <a href={previewTemplate?.fileUrl || ""} download={previewTemplate?.fileName} data-testid="button-preview-download-footer">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Template Create Dialog */}
       <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
         <DialogContent className="max-w-lg">
