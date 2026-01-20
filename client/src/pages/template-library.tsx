@@ -78,11 +78,11 @@ import {
   Check,
   CircleDot,
 } from "lucide-react";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType } from "@shared/schema";
 
@@ -262,25 +262,6 @@ export default function TemplateLibraryPage() {
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
-  const [isUploading, setIsUploading] = useState(false);
-  const pendingUploadRef = useRef<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
-  
-  // Handle upload completion from ObjectUploader
-  const handleUploadComplete = (result: { successful?: Array<unknown> }) => {
-    const uploadedFile = result.successful?.[0];
-    if (uploadedFile && pendingUploadRef.current) {
-      setTemplateFormData(prev => ({
-        ...prev,
-        fileName: pendingUploadRef.current!.fileName,
-        fileUrl: pendingUploadRef.current!.objectPath,
-        fileSize: pendingUploadRef.current!.fileSize,
-        mimeType: pendingUploadRef.current!.mimeType,
-      }));
-      toast({ title: "File uploaded", description: "Template file uploaded successfully" });
-      pendingUploadRef.current = null;
-    }
-    setIsUploading(false);
-  };
   
   // Folder dialogs
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
@@ -1634,41 +1615,32 @@ export default function TemplateLibraryPage() {
                   </Button>
                 </div>
               ) : (
-                <ObjectUploader
-                  maxNumberOfFiles={1}
-                  maxFileSize={52428800}
-                  onGetUploadParameters={async (file) => {
-                    setIsUploading(true);
-                    const res = await fetch("/api/uploads/request-url", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      credentials: "include",
-                      body: JSON.stringify({
-                        name: file.name,
-                        size: file.size,
-                        contentType: file.type || "application/octet-stream",
-                      }),
+                <SimpleFileUpload
+                  maxSizeMB={50}
+                  onUploadComplete={(result) => {
+                    setTemplateFormData(prev => ({
+                      ...prev,
+                      fileName: result.fileName,
+                      fileUrl: result.objectPath,
+                      fileSize: result.fileSize,
+                      mimeType: result.mimeType,
+                    }));
+                    toast({
+                      title: "File uploaded",
+                      description: `${result.fileName} uploaded successfully`,
                     });
-                    const { uploadURL, objectPath } = await res.json();
-                    // Store the objectPath for use in onComplete
-                    pendingUploadRef.current = {
-                      objectPath,
-                      fileName: file.name,
-                      fileSize: file.size || 0,
-                      mimeType: file.type || "application/octet-stream",
-                    };
-                    return {
-                      method: "PUT" as const,
-                      url: uploadURL,
-                      headers: {},
-                    };
                   }}
-                  onComplete={handleUploadComplete}
-                  buttonClassName="w-full justify-start"
+                  onError={(error) => {
+                    toast({
+                      title: "Upload failed",
+                      description: error,
+                      variant: "destructive",
+                    });
+                  }}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Choose template file...
-                </ObjectUploader>
+                </SimpleFileUpload>
               )}
               <p className="text-xs text-muted-foreground">
                 Supported formats: Word (.doc, .docx), PDF, Excel (.xls, .xlsx), Text files
