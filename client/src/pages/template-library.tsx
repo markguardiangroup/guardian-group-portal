@@ -1024,6 +1024,14 @@ export default function TemplateLibraryPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {template.fileUrl && (
+                  <DropdownMenuItem asChild>
+                    <a href={template.fileUrl} target="_blank" rel="noopener noreferrer" download={template.fileName} data-testid={`link-download-template-${template.id}`}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download File
+                    </a>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
