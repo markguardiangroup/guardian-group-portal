@@ -32,6 +32,7 @@ import {
   type DocumentTemplateVersion, type InsertDocumentTemplateVersion,
   type LoginAttempt, type InsertLoginAttempt,
   moduleConfig,
+  documentTypes,
   folderTemplates as folderTemplatesTable,
   folderDocumentTypeRules as folderDocumentTypeRulesTable,
   documentTemplates as documentTemplatesTable,
@@ -2537,15 +2538,31 @@ export class MemStorage implements IStorage {
 
   // Document Types (Admin-managed)
   async getDocumentTypes(module?: ModuleType): Promise<DocumentTypeRecord[]> {
-    let types = Array.from(this.documentTypesMap.values());
-    if (module) {
-      types = types.filter(t => t.module === module);
+    try {
+      let query = db.select().from(documentTypes);
+      if (module) {
+        query = query.where(eq(documentTypes.module, module)) as typeof query;
+      }
+      const types = await query.orderBy(asc(documentTypes.sortOrder));
+      return types;
+    } catch (error) {
+      console.error("Error fetching document types from DB:", error);
+      let types = Array.from(this.documentTypesMap.values());
+      if (module) {
+        types = types.filter(t => t.module === module);
+      }
+      return types.sort((a, b) => a.sortOrder - b.sortOrder);
     }
-    return types.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
   async getDocumentType(id: string): Promise<DocumentTypeRecord | undefined> {
-    return this.documentTypesMap.get(id);
+    try {
+      const [docType] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
+      return docType;
+    } catch (error) {
+      console.error("Error fetching document type from DB:", error);
+      return this.documentTypesMap.get(id);
+    }
   }
 
   async createDocumentType(docType: InsertDocumentType): Promise<DocumentTypeRecord> {
@@ -2565,6 +2582,13 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
+    
+    try {
+      await db.insert(documentTypes).values(newDocType);
+    } catch (error) {
+      console.error("Error saving document type to DB:", error);
+    }
+    
     this.documentTypesMap.set(id, newDocType);
     return newDocType;
   }
