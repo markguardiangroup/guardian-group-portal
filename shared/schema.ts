@@ -425,7 +425,9 @@ export const documentTemplateVersions = pgTable("document_template_versions", {
   templateId: varchar("template_id").notNull(),
   version: integer("version").notNull(),
   fileName: text("file_name").notNull(),
+  fileUrl: text("file_url"), // URL/path to the uploaded file in object storage
   fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type"), // File MIME type
   changeNote: text("change_note"),
   uploadedBy: varchar("uploaded_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

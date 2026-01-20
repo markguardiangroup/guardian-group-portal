@@ -261,7 +261,12 @@ export default function TemplateLibraryPage() {
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
+  const [isVersionUploadDialogOpen, setIsVersionUploadDialogOpen] = useState(false);
+  const [isVersionHistoryDialogOpen, setIsVersionHistoryDialogOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<DocumentTemplate | null>(null);
+  const [versionUploadTemplate, setVersionUploadTemplate] = useState<DocumentTemplate | null>(null);
+  const [versionChangeNote, setVersionChangeNote] = useState("");
+  const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
   
@@ -360,6 +365,30 @@ export default function TemplateLibraryPage() {
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to delete template", variant: "destructive" });
     },
+  });
+
+  const uploadVersionMutation = useMutation({
+    mutationFn: async ({ templateId, data }: { templateId: string; data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string } }) => {
+      return apiRequest("POST", `/api/document-templates/${templateId}/versions`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates", versionUploadTemplate?.id, "versions"] });
+      setIsVersionUploadDialogOpen(false);
+      setVersionUploadTemplate(null);
+      setNewVersionFile(null);
+      setVersionChangeNote("");
+      toast({ title: "New version uploaded", description: "The template has been updated with a new version." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to upload new version", variant: "destructive" });
+    },
+  });
+
+  // Query for version history
+  const { data: templateVersions = [] } = useQuery<Array<{ id: string; templateId: string; version: number; fileName: string; fileUrl: string | null; fileSize: number; mimeType: string | null; changeNote: string | null; uploadedBy: string; createdAt: string }>>({
+    queryKey: ["/api/document-templates", selectedTemplate?.id, "versions"],
+    enabled: !!selectedTemplate && isVersionHistoryDialogOpen,
   });
   
   // Folder mutations
@@ -1044,6 +1073,23 @@ export default function TemplateLibraryPage() {
                     <DropdownMenuSeparator />
                   </>
                 )}
+                <DropdownMenuItem onClick={() => {
+                  setVersionUploadTemplate(template);
+                  setNewVersionFile(null);
+                  setVersionChangeNote("");
+                  setIsVersionUploadDialogOpen(true);
+                }} data-testid={`button-upload-version-${template.id}`}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload New Version
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  setSelectedTemplate(template);
+                  setIsVersionHistoryDialogOpen(true);
+                }} data-testid={`button-version-history-${template.id}`}>
+                  <History className="h-4 w-4 mr-2" />
+                  Version History
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
@@ -1792,6 +1838,141 @@ export default function TemplateLibraryPage() {
             <Button variant="outline" onClick={() => setIsEditTemplateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateTemplate} disabled={updateTemplateMutation.isPending} data-testid="button-update-template">
               {updateTemplateMutation.isPending ? "Updating..." : "Update Template"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version Upload Dialog */}
+      <Dialog open={isVersionUploadDialogOpen} onOpenChange={setIsVersionUploadDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload New Version
+            </DialogTitle>
+            <DialogDescription>
+              Upload a new version of "{versionUploadTemplate?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted/30 rounded-md">
+              <p className="text-sm text-muted-foreground">Current version: <strong>v{versionUploadTemplate?.version}</strong></p>
+              <p className="text-sm text-muted-foreground">File: {decodeURIComponent(versionUploadTemplate?.fileName || "")}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>New File</Label>
+              {newVersionFile ? (
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{decodeURIComponent(newVersionFile.fileName)}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(newVersionFile.fileSize)}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setNewVersionFile(null)}
+                    data-testid="button-remove-version-file"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <SimpleFileUpload
+                  onUploadComplete={(result) => setNewVersionFile(result)}
+                  onError={(msg) => toast({ title: "Upload failed", description: msg, variant: "destructive" })}
+                  accept=".doc,.docx,.pdf,.xls,.xlsx,.txt,.rtf"
+                  maxSizeMB={50}
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="version-change-note">Change Note (optional)</Label>
+              <Input
+                id="version-change-note"
+                value={versionChangeNote}
+                onChange={(e) => setVersionChangeNote(e.target.value)}
+                placeholder="e.g., Updated compliance requirements"
+                data-testid="input-version-change-note"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsVersionUploadDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!versionUploadTemplate || !newVersionFile) return;
+                uploadVersionMutation.mutate({
+                  templateId: versionUploadTemplate.id,
+                  data: {
+                    fileName: newVersionFile.fileName,
+                    fileUrl: newVersionFile.objectPath,
+                    fileSize: newVersionFile.fileSize,
+                    mimeType: newVersionFile.mimeType,
+                    changeNote: versionChangeNote || undefined,
+                  },
+                });
+              }}
+              disabled={!newVersionFile || uploadVersionMutation.isPending}
+              data-testid="button-upload-version"
+            >
+              {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version History Dialog */}
+      <Dialog open={isVersionHistoryDialogOpen} onOpenChange={setIsVersionHistoryDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Version History
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTemplate?.name} - All versions
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {templateVersions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No version history available</p>
+            ) : (
+              templateVersions.map((version) => (
+                <div key={version.id} className="flex items-start gap-3 p-3 border rounded-md">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary text-sm font-medium shrink-0">
+                    v{version.version}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{decodeURIComponent(version.fileName)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFileSize(version.fileSize)} • {new Date(version.createdAt).toLocaleDateString()}
+                    </p>
+                    {version.changeNote && (
+                      <p className="text-xs text-muted-foreground mt-1 italic">"{version.changeNote}"</p>
+                    )}
+                  </div>
+                  {version.fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      className="shrink-0"
+                    >
+                      <a href={version.fileUrl} download={version.fileName} data-testid={`button-download-version-${version.id}`}>
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsVersionHistoryDialogOpen(false)} data-testid="button-close-version-history">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

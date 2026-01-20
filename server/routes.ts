@@ -1525,6 +1525,20 @@ export async function registerRoutes(
         createdBy: user.id,
       });
       
+      // Create audit log
+      await storage.createAuditLog({
+        action: "template_created",
+        userId: user.id,
+        userName: user.fullName,
+        module: template.module,
+        details: `Created template "${template.name}"`,
+        metadata: JSON.stringify({
+          templateId: template.id,
+          templateName: template.name,
+          folderTemplateId: template.folderTemplateId,
+        }),
+      });
+      
       res.status(201).json(template);
     } catch (error) {
       console.error("Create document template error:", error);
@@ -1563,6 +1577,21 @@ export async function registerRoutes(
       }
       
       const updated = await storage.updateDocumentTemplate(req.params.id, parsed.data);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: "template_updated",
+        userId: user.id,
+        userName: user.fullName,
+        module: template.module,
+        details: `Updated template "${template.name}"`,
+        metadata: JSON.stringify({
+          templateId: template.id,
+          templateName: template.name,
+          changes: parsed.data,
+        }),
+      });
+      
       res.json(updated);
     } catch (error) {
       console.error("Update document template error:", error);
@@ -1570,7 +1599,7 @@ export async function registerRoutes(
     }
   });
   
-  // Upload new version of document template (admin only)
+  // Upload new version of document template (admin/consultant)
   app.post("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -1578,8 +1607,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update document templates" });
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update document templates" });
       }
       
       const template = await storage.getDocumentTemplate(req.params.id);
@@ -1589,7 +1618,9 @@ export async function registerRoutes(
       
       const schema = z.object({
         fileName: z.string().min(1),
+        fileUrl: z.string().min(1),
         fileSize: z.number().min(1),
+        mimeType: z.string().min(1),
         changeNote: z.string().optional(),
       });
       
@@ -1605,7 +1636,9 @@ export async function registerRoutes(
         templateId: template.id,
         version: newVersion,
         fileName: parsed.data.fileName,
+        fileUrl: parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
+        mimeType: parsed.data.mimeType,
         changeNote: parsed.data.changeNote,
         uploadedBy: user.id,
       });
@@ -1614,7 +1647,25 @@ export async function registerRoutes(
       await storage.updateDocumentTemplate(template.id, {
         version: newVersion,
         fileName: parsed.data.fileName,
+        fileUrl: parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
+        mimeType: parsed.data.mimeType,
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: "template_version_uploaded",
+        userId: user.id,
+        userName: user.fullName,
+        module: template.module,
+        details: `Uploaded version ${newVersion} of template "${template.name}"`,
+        metadata: JSON.stringify({
+          templateId: template.id,
+          templateName: template.name,
+          version: newVersion,
+          fileName: parsed.data.fileName,
+          changeNote: parsed.data.changeNote,
+        }),
       });
       
       res.status(201).json(version);
@@ -1658,6 +1709,20 @@ export async function registerRoutes(
       }
       
       await storage.deleteDocumentTemplate(req.params.id);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: "template_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        module: template.module,
+        details: `Deleted template "${template.name}"`,
+        metadata: JSON.stringify({
+          templateId: template.id,
+          templateName: template.name,
+        }),
+      });
+      
       res.status(204).send();
     } catch (error) {
       console.error("Delete document template error:", error);
