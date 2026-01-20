@@ -37,8 +37,9 @@ Core entities include:
 - **Users**: Role-based (admin, consultant, client) with company association (companyId)
 - **Companies**: Stored as "entities" table for backward compatibility - parent organizations that group sites
 - **Sites**: Physical locations linked to companies via `entity_id`/`companyId` foreign key
-- **Document Types**: Admin-managed master list defining required/optional document types per module with renewal periods
-- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to document types and sites
+- **Document Templates**: Master templates (the "Document Bible") with Module → Folder → Template hierarchy. Compliance properties (isRequired, renewalPeriodMonths) are directly on templates
+- **Folder Templates**: Template folders that define the organizational structure for each module
+- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to sites
 - **Document Versions**: Version history for document changes
 - **Consultant Assignments**: Links consultants to sites with primary flag
 - **Site Module Access**: Three-state access control (active/visible/hidden) per module per site

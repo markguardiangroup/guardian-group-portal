@@ -137,11 +137,8 @@ type TemplateFormData = {
   description: string;
   module: ModuleType;
   folderTemplateId: string;
-  documentTypeId: string;
-  createNewDocType: boolean;
-  newDocTypeName: string;
-  newDocTypeCode: string;
-  newDocTypeRenewalMonths: number | null;
+  isRequired: boolean;
+  renewalPeriodMonths: number | null;
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -181,11 +178,8 @@ const defaultTemplateFormData: TemplateFormData = {
   description: "",
   module: "health_safety",
   folderTemplateId: "",
-  documentTypeId: "",
-  createNewDocType: false,
-  newDocTypeName: "",
-  newDocTypeCode: "",
-  newDocTypeRenewalMonths: 12,
+  isRequired: false,
+  renewalPeriodMonths: null,
   fileName: "",
   fileUrl: "",
   fileSize: 0,
@@ -701,7 +695,6 @@ export default function TemplateLibraryPage() {
     }
     
     let folderId = templateFormData.folderTemplateId;
-    let documentTypeId = templateFormData.documentTypeId || undefined;
     
     // If creating a new folder, create it first
     if (templateFormData.createNewFolder) {
@@ -733,58 +726,19 @@ export default function TemplateLibraryPage() {
       return;
     }
     
-    // If creating a new document type, create it first
-    if (templateFormData.createNewDocType) {
-      if (!templateFormData.newDocTypeName || !templateFormData.newDocTypeCode) {
-        toast({ title: "Validation error", description: "Please fill in template type name and code", variant: "destructive" });
-        return;
-      }
-      try {
-        const response = await apiRequest("POST", "/api/document-types", {
-          name: templateFormData.newDocTypeName,
-          code: templateFormData.newDocTypeCode,
-          module: templateFormData.module,
-          description: "",
-          isRequired: false,
-          renewalPeriodMonths: templateFormData.newDocTypeRenewalMonths,
-          sortOrder: 0,
-          isActive: true,
-        });
-        const newDocType = await response.json();
-        documentTypeId = newDocType.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to create template type", variant: "destructive" });
-        return;
-      }
-    }
-    
-    // If we have a document type, also create a folder-document type rule
-    if (documentTypeId && folderId) {
-      try {
-        await apiRequest("POST", `/api/folder-templates/${folderId}/rules`, {
-          documentTypeId: documentTypeId,
-          isRequired: false,
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
-      } catch (error) {
-        // Rule might already exist, which is fine
-        console.log("Folder rule may already exist:", error);
-      }
-    }
-    
     createTemplateMutation.mutate({
       name: templateFormData.name,
       description: templateFormData.description || undefined,
       module: templateFormData.module,
       folderTemplateId: folderId,
-      documentTypeId: documentTypeId,
       fileName: templateFormData.fileName,
       fileUrl: templateFormData.fileUrl,
       fileSize: templateFormData.fileSize || 1024,
       mimeType: templateFormData.mimeType || "application/octet-stream",
       placeholders: templateFormData.placeholders || undefined,
       sortOrder: templateFormData.sortOrder,
+      isRequired: templateFormData.isRequired,
+      renewalPeriodMonths: templateFormData.renewalPeriodMonths,
     });
   };
   
@@ -795,11 +749,8 @@ export default function TemplateLibraryPage() {
       description: template.description || "",
       module: template.module,
       folderTemplateId: template.folderTemplateId,
-      documentTypeId: template.documentTypeId || "",
-      createNewDocType: false,
-      newDocTypeName: "",
-      newDocTypeCode: "",
-      newDocTypeRenewalMonths: 12,
+      isRequired: template.isRequired || false,
+      renewalPeriodMonths: template.renewalPeriodMonths || null,
       fileName: template.fileName,
       fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
@@ -822,6 +773,8 @@ export default function TemplateLibraryPage() {
         description: templateFormData.description || undefined,
         placeholders: templateFormData.placeholders || undefined,
         sortOrder: templateFormData.sortOrder,
+        isRequired: templateFormData.isRequired,
+        renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       },
     });
   };
@@ -1118,7 +1071,21 @@ export default function TemplateLibraryPage() {
             <FileIcon className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <p className="font-medium text-sm">{template.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm">{template.name}</p>
+              {template.isRequired && (
+                <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs py-0">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Required
+                </Badge>
+              )}
+              {template.renewalPeriodMonths && (
+                <Badge variant="outline" className="text-xs py-0">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {template.renewalPeriodMonths}mo
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{template.fileName}</span>
               <span>•</span>
@@ -1295,10 +1262,6 @@ export default function TemplateLibraryPage() {
             <TabsTrigger value="folders" data-testid="tab-folders">
               <FolderTree className="h-4 w-4 mr-2" />
               Folders
-            </TabsTrigger>
-            <TabsTrigger value="document-types" data-testid="tab-document-types">
-              <File className="h-4 w-4 mr-2" />
-              Template Types
             </TabsTrigger>
           </TabsList>
           
@@ -1576,128 +1539,6 @@ export default function TemplateLibraryPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
-        {/* Document Types Tab */}
-        <TabsContent value="document-types" className="space-y-4">
-          <Card>
-            <CardContent className="pt-6">
-              {documentTypes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No template types found</p>
-                  <p className="text-sm mt-1">Create template types for compliance tracking</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Module</TableHead>
-                      <TableHead>Folder</TableHead>
-                      <TableHead>Required</TableHead>
-                      <TableHead>Renewal</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDocTypes.map((docType) => {
-                      const ModuleIcon = moduleIcons[docType.module];
-                      return (
-                        <TableRow key={docType.id} data-testid={`row-doctype-${docType.id}`}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{docType.name}</div>
-                              {docType.description && (
-                                <div className="text-sm text-muted-foreground line-clamp-1">{docType.description}</div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-muted px-2 py-1 rounded">{docType.code}</code>
-                          </TableCell>
-                          <TableCell>
-                            <div className={`flex items-center gap-2 ${moduleColors[docType.module]}`}>
-                              <ModuleIcon className="h-4 w-4" />
-                              <span className="text-sm">{moduleNames[docType.module]}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {docTypeToFolders.get(docType.id)?.length ? (
-                              <div className="flex items-center gap-1 text-sm">
-                                <FolderOpen className="h-3 w-3 text-muted-foreground" />
-                                <span>{docTypeToFolders.get(docType.id)!.join(", ")}</span>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Not assigned</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {docType.isRequired ? (
-                              <Badge variant="outline" className="text-amber-600 border-amber-600">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Required
-                              </Badge>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Optional</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {docType.renewalPeriodMonths ? (
-                              <div className="flex items-center gap-1 text-sm">
-                                <Clock className="h-3 w-3" />
-                                {docType.renewalPeriodMonths} months
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">None</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {docType.isActive ? (
-                              <Badge variant="outline" className="text-emerald-600 border-emerald-600">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {isAdmin && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" data-testid={`button-doctype-actions-${docType.id}`}>
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEditDocType(docType)}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleAssignFolder(docType)}>
-                                    <FolderPlus className="h-4 w-4 mr-2" />
-                                    Assign to Folder
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleDeleteDocType(docType)} className="text-red-600 dark:text-red-400">
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
       
       {/* Template Preview Dialog */}
@@ -1859,88 +1700,34 @@ export default function TemplateLibraryPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Template Type (Optional)</Label>
-              <div className="flex gap-2 mb-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={!templateFormData.createNewDocType ? "default" : "outline"}
-                  onClick={() => setTemplateFormData({ ...templateFormData, createNewDocType: false, newDocTypeName: "", newDocTypeCode: "" })}
-                  data-testid="button-select-existing-doctype"
-                >
-                  Select Existing
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={templateFormData.createNewDocType ? "default" : "outline"}
-                  onClick={() => setTemplateFormData({ ...templateFormData, createNewDocType: true, documentTypeId: "" })}
-                  data-testid="button-create-new-doctype"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create New
-                </Button>
+            {/* Compliance Settings */}
+            <div className="space-y-4 p-3 border rounded-md bg-muted/30">
+              <p className="text-sm font-medium">Compliance Settings</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="template-required"
+                  checked={templateFormData.isRequired}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, isRequired: e.target.checked })}
+                  className="h-4 w-4"
+                  data-testid="checkbox-template-required"
+                />
+                <Label htmlFor="template-required" className="font-normal cursor-pointer">
+                  Required for compliance
+                </Label>
               </div>
-              {!templateFormData.createNewDocType ? (
-                <>
-                  <Select 
-                    value={templateFormData.documentTypeId} 
-                    onValueChange={(v) => setTemplateFormData({ ...templateFormData, documentTypeId: v })}
-                  >
-                    <SelectTrigger data-testid="select-template-doctype">
-                      <SelectValue placeholder="Select a template type (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {documentTypes
-                        .filter(dt => dt.module === templateFormData.module && dt.isActive)
-                        .map(dt => (
-                          <SelectItem key={dt.id} value={dt.id}>
-                            {dt.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  {documentTypes.filter(dt => dt.module === templateFormData.module && dt.isActive).length === 0 && (
-                    <p className="text-xs text-muted-foreground">No template types available. Click "Create New" to add one.</p>
-                  )}
-                </>
-              ) : (
-                <div className="space-y-3 p-3 border rounded-md bg-muted/30">
-                  <div className="space-y-1">
-                    <Label htmlFor="new-doctype-name" className="text-sm">Type Name</Label>
-                    <Input
-                      id="new-doctype-name"
-                      value={templateFormData.newDocTypeName}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeName: e.target.value })}
-                      placeholder="e.g., Fire Risk Assessment"
-                      data-testid="input-new-doctype-name"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="new-doctype-code" className="text-sm">Type Code</Label>
-                    <Input
-                      id="new-doctype-code"
-                      value={templateFormData.newDocTypeCode}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
-                      placeholder="e.g., fire_risk_assessment"
-                      data-testid="input-new-doctype-code"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="new-doctype-renewal" className="text-sm">Renewal Period (months)</Label>
-                    <Input
-                      id="new-doctype-renewal"
-                      type="number"
-                      value={templateFormData.newDocTypeRenewalMonths ?? ""}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newDocTypeRenewalMonths: e.target.value ? parseInt(e.target.value) : null })}
-                      placeholder="12"
-                      data-testid="input-new-doctype-renewal"
-                    />
-                    <p className="text-xs text-muted-foreground">How often this document type needs renewal</p>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label htmlFor="template-renewal" className="text-sm">Renewal Period (months)</Label>
+                <Input
+                  id="template-renewal"
+                  type="number"
+                  value={templateFormData.renewalPeriodMonths ?? ""}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="e.g., 12 (leave blank for no renewal)"
+                  data-testid="input-template-renewal"
+                />
+                <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Template File <span className="text-destructive">*</span></Label>
@@ -2062,6 +1849,35 @@ export default function TemplateLibraryPage() {
                 onChange={(e) => setTemplateFormData({ ...templateFormData, placeholders: e.target.value })}
                 data-testid="input-edit-template-placeholders"
               />
+            </div>
+            {/* Compliance Settings */}
+            <div className="space-y-4 p-3 border rounded-md bg-muted/30">
+              <p className="text-sm font-medium">Compliance Settings</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="edit-template-required"
+                  checked={templateFormData.isRequired}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, isRequired: e.target.checked })}
+                  className="h-4 w-4"
+                  data-testid="checkbox-edit-template-required"
+                />
+                <Label htmlFor="edit-template-required" className="font-normal cursor-pointer">
+                  Required for compliance
+                </Label>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period (months)</Label>
+                <Input
+                  id="edit-template-renewal"
+                  type="number"
+                  value={templateFormData.renewalPeriodMonths ?? ""}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
+                  placeholder="e.g., 12 (leave blank for no renewal)"
+                  data-testid="input-edit-template-renewal"
+                />
+                <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
+              </div>
             </div>
           </div>
           <DialogFooter>

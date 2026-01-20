@@ -1512,13 +1512,15 @@ export async function registerRoutes(
         description: z.string().optional(),
         module: z.enum(["health_safety", "human_resources", "employment_law"]),
         folderTemplateId: z.string().min(1),
-        documentTypeId: z.string().optional(),
+        documentTypeId: z.string().optional(), // Legacy - kept for backward compatibility
         fileName: z.string().min(1),
         fileUrl: z.string().min(1), // Path to the uploaded file in object storage
         fileSize: z.number().min(1),
         mimeType: z.string().min(1),
         placeholders: z.string().optional(), // JSON array of placeholder names
         sortOrder: z.number().optional(),
+        isRequired: z.boolean().optional(), // Compliance: is this template required?
+        renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
       });
       
       const parsed = schema.safeParse(req.body);
@@ -1584,6 +1586,8 @@ export async function registerRoutes(
         placeholders: z.string().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
+        isRequired: z.boolean().optional(), // Compliance: is this template required?
+        renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
       });
       
       const parsed = schema.safeParse(req.body);

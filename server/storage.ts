@@ -3018,11 +3018,16 @@ export class MemStorage implements IStorage {
       mimeType: template.mimeType,
       version: template.version ?? 1,
       placeholders: template.placeholders ?? null,
+      isRequired: template.isRequired ?? false,
+      renewalPeriodMonths: template.renewalPeriodMonths ?? null,
       isActive: template.isActive ?? true,
       sortOrder: template.sortOrder ?? 0,
       createdBy: template.createdBy,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
+      deletedBy: null,
+      deletionReason: null,
     };
     
     // Persist to database

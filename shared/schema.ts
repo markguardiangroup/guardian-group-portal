@@ -396,7 +396,7 @@ export const documentTemplates = pgTable("document_templates", {
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
   folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to
-  documentTypeId: varchar("document_type_id"), // Optional link to document type
+  documentTypeId: varchar("document_type_id"), // Legacy - kept for backward compatibility
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"), // URL/path to the uploaded template file in object storage
   fileSize: integer("file_size").notNull(),
@@ -404,6 +404,9 @@ export const documentTemplates = pgTable("document_templates", {
   version: integer("version").notNull().default(1),
   // Placeholder variables available in this template
   placeholders: text("placeholders"), // JSON array of placeholder names like ["COMPANY_NAME", "SITE_ADDRESS"]
+  // Compliance properties (moved from document types for simplicity)
+  isRequired: boolean("is_required").notNull().default(false), // Is this template required for compliance?
+  renewalPeriodMonths: integer("renewal_period_months"), // How often documents from this template need renewal (null = no renewal)
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),
