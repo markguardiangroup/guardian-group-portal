@@ -33,6 +33,8 @@ import {
   X,
   CheckCircle,
   Calendar,
+  BookOpen,
+  ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
@@ -343,12 +345,36 @@ export default function DocumentUpload() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold">Upload Document</h1>
+          <h1 className="text-3xl font-semibold">Upload External Document</h1>
           <p className="mt-1 text-muted-foreground">
-            Add a new compliance document to the system
+            Upload a third-party or externally created document
           </p>
         </div>
       </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-md">
+                <BookOpen className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Looking to create a document from a template?</p>
+                <p className="text-sm text-muted-foreground">
+                  Use our Template Library to create standardized compliance documents with pre-filled site details.
+                </p>
+              </div>
+            </div>
+            <Link href="/create-from-template">
+              <Button data-testid="button-create-from-template">
+                Create from Template
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

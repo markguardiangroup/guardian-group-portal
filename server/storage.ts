@@ -1905,6 +1905,9 @@ export class MemStorage implements IStorage {
       expiryDate: insertDocument.expiryDate ?? null,
       assignedTo: insertDocument.assignedTo ?? null,
       isArchived: insertDocument.isArchived ?? false,
+      source: (insertDocument.source ?? "external") as any,
+      templateId: insertDocument.templateId ?? null,
+      templateVersion: insertDocument.templateVersion ?? null,
       createdAt: createdNow,
       updatedAt: createdNow,
     };

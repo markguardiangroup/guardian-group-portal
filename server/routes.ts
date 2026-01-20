@@ -22,6 +22,9 @@ const createDocumentSchema = z.object({
   mimeType: z.string().min(1),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
+  source: z.enum(["template", "upload", "external"]).optional(),
+  templateId: z.string().optional(),
+  templateVersion: z.number().optional(),
 });
 
 const createCaseSchema = z.object({
@@ -787,6 +790,9 @@ export async function registerRoutes(
         uploadedBy: "user-1",
         assignedTo: null,
         isArchived: false,
+        source: body.source || "external",
+        templateId: body.templateId || null,
+        templateVersion: body.templateVersion ?? null,
       });
 
       await storage.createAuditLog({

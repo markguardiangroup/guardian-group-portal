@@ -56,6 +56,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -710,6 +711,12 @@ function TemplateCard({ template, isAdmin, onEdit, onDelete, showFolder, getFold
           <ModuleIcon className="h-3 w-3 mr-1" />
           {moduleNames[template.module]}
         </Badge>
+        
+        <Link href={`/create-from-template?templateId=${template.id}`}>
+          <Button size="sm" data-testid={`button-use-template-${template.id}`}>
+            Use Template
+          </Button>
+        </Link>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
