@@ -2594,21 +2594,45 @@ export class MemStorage implements IStorage {
   }
 
   async updateDocumentType(id: string, updates: Partial<DocumentTypeRecord>): Promise<DocumentTypeRecord | undefined> {
-    const existing = this.documentTypesMap.get(id);
-    if (!existing) {
-      return undefined;
+    try {
+      const [existing] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
+      if (!existing) {
+        // Fallback to memory
+        const memExisting = this.documentTypesMap.get(id);
+        if (!memExisting) return undefined;
+        const updated: DocumentTypeRecord = { ...memExisting, ...updates, updatedAt: new Date() };
+        this.documentTypesMap.set(id, updated);
+        return updated;
+      }
+      
+      const updatedData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+      
+      await db.update(documentTypes).set(updatedData).where(eq(documentTypes.id, id));
+      
+      const [updated] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
+      return updated;
+    } catch (error) {
+      console.error("Error updating document type:", error);
+      const existing = this.documentTypesMap.get(id);
+      if (!existing) return undefined;
+      const updated: DocumentTypeRecord = { ...existing, ...updates, updatedAt: new Date() };
+      this.documentTypesMap.set(id, updated);
+      return updated;
     }
-    const updated: DocumentTypeRecord = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.documentTypesMap.set(id, updated);
-    return updated;
   }
 
   async deleteDocumentType(id: string): Promise<boolean> {
-    return this.documentTypesMap.delete(id);
+    try {
+      await db.delete(documentTypes).where(eq(documentTypes.id, id));
+      this.documentTypesMap.delete(id);
+      return true;
+    } catch (error) {
+      console.error("Error deleting document type:", error);
+      return this.documentTypesMap.delete(id);
+    }
   }
 
   // Document Folders
