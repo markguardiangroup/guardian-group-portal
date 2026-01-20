@@ -69,6 +69,7 @@ import {
   Filter,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   Clock,
   Link as LinkIcon,
   X,
@@ -305,6 +306,11 @@ export default function TemplateLibraryPage() {
   const [createdFolderId, setCreatedFolderId] = useState<string | null>(null);
   const [createdDocTypeId, setCreatedDocTypeId] = useState<string | null>(null);
   
+  // Delete confirmation
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplate | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  
   // Queries
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -365,15 +371,18 @@ export default function TemplateLibraryPage() {
   });
   
   const deleteTemplateMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/document-templates/${id}`);
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      return apiRequest("DELETE", `/api/document-templates/${id}`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      toast({ title: "Template deleted", description: "The document template has been deleted." });
+      setIsDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+      setDeleteReason("");
+      toast({ title: "Template archived", description: "The document template has been archived with full audit trail." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to delete template", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to archive template", variant: "destructive" });
     },
   });
 
@@ -794,9 +803,14 @@ export default function TemplateLibraryPage() {
   };
   
   const handleDeleteTemplate = (template: DocumentTemplate) => {
-    if (confirm(`Are you sure you want to delete "${template.name}"?`)) {
-      deleteTemplateMutation.mutate(template.id);
-    }
+    setTemplateToDelete(template);
+    setDeleteReason("");
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDeleteTemplate = () => {
+    if (!templateToDelete || deleteReason.trim().length < 5) return;
+    deleteTemplateMutation.mutate({ id: templateToDelete.id, reason: deleteReason.trim() });
   };
   
   // Folder handlers
@@ -1152,9 +1166,9 @@ export default function TemplateLibraryPage() {
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-red-600 dark:text-red-400">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -2113,6 +2127,70 @@ export default function TemplateLibraryPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsVersionHistoryDialogOpen(false)} data-testid="button-close-version-history">
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Archive Template
+            </DialogTitle>
+            <DialogDescription>
+              This action will archive "{templateToDelete?.name}" and remove it from active use. 
+              The template and all its versions will be preserved in the audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-reason" className="text-sm font-medium">
+                Reason for archiving <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Please provide a reason for archiving this template (minimum 5 characters)..."
+                className="min-h-[80px]"
+                data-testid="input-delete-reason"
+              />
+              {deleteReason.trim().length > 0 && deleteReason.trim().length < 5 && (
+                <p className="text-xs text-destructive">Reason must be at least 5 characters</p>
+              )}
+            </div>
+            <div className="p-3 bg-muted rounded-md text-sm">
+              <p className="font-medium mb-1">This action will:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Remove the template from active use</li>
+                <li>Preserve all version history</li>
+                <li>Create an audit record with your reason</li>
+                <li>Allow recovery by administrators if needed</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setTemplateToDelete(null);
+                setDeleteReason("");
+              }}
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDeleteTemplate}
+              disabled={deleteReason.trim().length < 5 || deleteTemplateMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteTemplateMutation.isPending ? "Archiving..." : "Archive Template"}
             </Button>
           </DialogFooter>
         </DialogContent>

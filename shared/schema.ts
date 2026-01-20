@@ -409,6 +409,10 @@ export const documentTemplates = pgTable("document_templates", {
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // Soft delete tracking
+  deletedAt: timestamp("deleted_at"),
+  deletedBy: varchar("deleted_by"),
+  deletionReason: text("deletion_reason"),
 });
 
 export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({ 

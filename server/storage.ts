@@ -178,7 +178,7 @@ export interface IStorage {
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
-  deleteDocumentTemplate(id: string): Promise<boolean>;
+  deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
   
   // Document Template Versions
   getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]>;
@@ -3041,17 +3041,41 @@ export class MemStorage implements IStorage {
     return updatedTemplate;
   }
   
-  async deleteDocumentTemplate(id: string): Promise<boolean> {
+  async deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
     try {
-      // Delete from database first
-      await db.delete(documentTemplateVersions).where(eq(documentTemplateVersions.templateId, id));
-      await db.delete(documentTemplates).where(eq(documentTemplates.id, id));
-      // Also remove from memory
-      this.documentTemplates.delete(id);
+      // Soft delete - mark as inactive with audit info
+      const deletionData = {
+        isActive: false,
+        deletedAt: new Date(),
+        deletedBy: deletedBy,
+        deletionReason: reason,
+        updatedAt: new Date(),
+      };
+      
+      await db.update(documentTemplates).set(deletionData).where(eq(documentTemplates.id, id));
+      
+      // Update memory cache too
+      const existing = this.documentTemplates.get(id);
+      if (existing) {
+        this.documentTemplates.set(id, { ...existing, ...deletionData });
+      }
+      
+      // Log to audit trail
+      await this.createAuditLog({
+        userId: deletedBy,
+        action: 'template_deleted',
+        entityType: 'document_template',
+        entityId: id,
+        details: JSON.stringify({ 
+          templateName: existing?.name || 'Unknown',
+          reason: reason 
+        }),
+      });
+      
       return true;
     } catch (error) {
-      console.error("Error deleting document template:", error);
-      return this.documentTemplates.delete(id);
+      console.error("Error soft-deleting document template:", error);
+      return false;
     }
   }
   

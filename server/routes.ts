@@ -1703,27 +1703,30 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can delete document templates" });
       }
       
+      // Require deletion reason
+      const { reason } = req.body || {};
+      if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+        return res.status(400).json({ error: "A deletion reason is required (minimum 5 characters)" });
+      }
+      
       const template = await storage.getDocumentTemplate(req.params.id);
       if (!template) {
         return res.status(404).json({ error: "Document template not found" });
       }
       
-      await storage.deleteDocumentTemplate(req.params.id);
+      // Soft delete with audit trail
+      const success = await storage.deleteDocumentTemplate(req.params.id, user.id, reason.trim());
       
-      // Create audit log
-      await storage.createAuditLog({
-        action: "template_deleted",
-        userId: user.id,
-        userName: user.fullName,
-        module: template.module,
-        details: `Deleted template "${template.name}"`,
-        metadata: JSON.stringify({
-          templateId: template.id,
-          templateName: template.name,
-        }),
+      if (!success) {
+        return res.status(500).json({ error: "Failed to archive document template" });
+      }
+      
+      res.status(200).json({ 
+        message: "Template archived successfully",
+        archivedAt: new Date().toISOString(),
+        archivedBy: user.fullName,
+        reason: reason.trim()
       });
-      
-      res.status(204).send();
     } catch (error) {
       console.error("Delete document template error:", error);
       res.status(500).json({ error: "Failed to delete document template" });
