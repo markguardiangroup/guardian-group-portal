@@ -811,6 +811,10 @@ export default function TemplateLibraryPage() {
   
   const wizardNextStep = async () => {
     if (wizardStep === "module") {
+      if (!wizardData.module) {
+        toast({ title: "Validation error", description: "Please select a module", variant: "destructive" });
+        return;
+      }
       setWizardStep("folder");
     } else if (wizardStep === "folder") {
       if (wizardData.createNewFolder) {
