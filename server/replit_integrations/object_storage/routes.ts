@@ -1,5 +1,6 @@
 import type { Express } from "express";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
+import { randomUUID } from "crypto";
 
 /**
  * Register object storage routes for file uploads.
@@ -15,6 +16,60 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
  */
 export function registerObjectStorageRoutes(app: Express): void {
   const objectStorageService = new ObjectStorageService();
+
+  /**
+   * Server-side file upload endpoint.
+   * Accepts file as raw body and uploads to object storage.
+   */
+  app.post("/api/uploads/file", async (req, res) => {
+    try {
+      const fileName = req.headers["x-file-name"] as string;
+      const contentType = req.headers["content-type"] || "application/octet-stream";
+      
+      if (!fileName) {
+        return res.status(400).json({ error: "Missing x-file-name header" });
+      }
+
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const objectId = randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      
+      // Parse bucket and object name from path
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      
+      // Collect request body chunks
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+      
+      // Upload to GCS
+      await file.save(buffer, {
+        contentType: contentType,
+        metadata: {
+          originalName: fileName,
+        },
+      });
+      
+      const objectPath = `/objects/uploads/${objectId}`;
+      
+      res.json({
+        objectPath,
+        fileName,
+        fileSize: buffer.length,
+        mimeType: contentType,
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
 
   /**
    * Request a presigned URL for file upload.

@@ -42,47 +42,33 @@ export function SimpleFileUpload({
     setProgress(0);
 
     try {
-      const res = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          contentType: file.type || "application/octet-stream",
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to get upload URL");
-      }
-
-      const { uploadURL, objectPath } = await res.json();
-
       setProgress(30);
 
-      console.log("Starting GCS upload to:", uploadURL.substring(0, 100) + "...");
-      
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
+      // Upload directly to server which handles GCS upload
+      const uploadRes = await fetch("/api/uploads/file", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(file.name),
+        },
+        credentials: "include",
         body: file,
       });
 
-      console.log("GCS upload response status:", uploadRes.status);
-
       if (!uploadRes.ok) {
-        const errorText = await uploadRes.text().catch(() => "Unknown error");
-        console.error("GCS upload failed:", uploadRes.status, errorText);
-        throw new Error(`Upload failed: ${uploadRes.status} - ${errorText.substring(0, 100)}`);
+        const errorData = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(errorData.error || `Upload failed: ${uploadRes.status}`);
       }
+
+      const result = await uploadRes.json();
 
       setProgress(100);
 
       onUploadComplete({
-        objectPath,
-        fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type || "application/octet-stream",
+        objectPath: result.objectPath,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+        mimeType: result.mimeType,
       });
     } catch (err) {
       console.error("Upload error:", err);
