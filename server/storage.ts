@@ -3069,23 +3069,30 @@ export class MemStorage implements IStorage {
   }
   
   async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined> {
-    const template = this.documentTemplates.get(id);
-    if (!template) return undefined;
+    // Always fetch from database first to ensure we have latest data
+    const [dbTemplate] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+    if (!dbTemplate) return undefined;
     
-    const updatedTemplate: DocumentTemplate = {
-      ...template,
+    console.log("[DEBUG] updateDocumentTemplate - updates received:", JSON.stringify(updates));
+    console.log("[DEBUG] updateDocumentTemplate - current DB template:", JSON.stringify(dbTemplate));
+    
+    // Build the update object with only the fields being updated
+    const updateData = {
       ...updates,
-      id: template.id,
-      createdAt: template.createdAt,
       updatedAt: new Date(),
     };
+    
+    console.log("[DEBUG] updateDocumentTemplate - updateData to set:", JSON.stringify(updateData));
     
     // Persist to database
     try {
       const [updated] = await db.update(documentTemplatesTable)
-        .set(updatedTemplate)
+        .set(updateData)
         .where(eq(documentTemplatesTable.id, id))
         .returning();
+      
+      console.log("[DEBUG] updateDocumentTemplate - DB returned:", JSON.stringify(updated));
+      
       if (updated) {
         this.documentTemplates.set(id, updated);
         return updated;
@@ -3094,8 +3101,10 @@ export class MemStorage implements IStorage {
       console.error("Error updating document template in DB:", error);
     }
     
-    this.documentTemplates.set(id, updatedTemplate);
-    return updatedTemplate;
+    // Fallback to in-memory if DB fails
+    const fallbackTemplate = { ...dbTemplate, ...updates, updatedAt: new Date() };
+    this.documentTemplates.set(id, fallbackTemplate);
+    return fallbackTemplate;
   }
   
   async deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
