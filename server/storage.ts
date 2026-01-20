@@ -2886,6 +2886,7 @@ export class MemStorage implements IStorage {
       folderTemplateId: template.folderTemplateId,
       documentTypeId: template.documentTypeId ?? null,
       fileName: template.fileName,
+      fileUrl: template.fileUrl ?? null,
       fileSize: template.fileSize,
       mimeType: template.mimeType,
       version: template.version ?? 1,

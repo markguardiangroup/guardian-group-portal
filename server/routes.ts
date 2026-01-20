@@ -1499,6 +1499,7 @@ export async function registerRoutes(
         folderTemplateId: z.string().min(1),
         documentTypeId: z.string().optional(),
         fileName: z.string().min(1),
+        fileUrl: z.string().min(1), // Path to the uploaded file in object storage
         fileSize: z.number().min(1),
         mimeType: z.string().min(1),
         placeholders: z.string().optional(), // JSON array of placeholder names
