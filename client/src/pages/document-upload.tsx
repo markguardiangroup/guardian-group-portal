@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,12 +67,16 @@ const moduleLabels: Record<ModuleType, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
+  support: "Support",
+  reports: "Reports",
 };
 
 const modulePaths: Record<ModuleType, string> = {
   health_safety: "/health-safety/documents",
   human_resources: "/human-resources/documents",
   employment_law: "/employment-law",
+  support: "/support",
+  reports: "/reports",
 };
 
 interface FolderTemplate {
@@ -99,9 +104,12 @@ interface DocumentFolder {
 export default function DocumentUpload() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
+  
+  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
   interface SiteWithCompany extends Site {
     companyName?: string | null;
@@ -352,29 +360,31 @@ export default function DocumentUpload() {
         </div>
       </div>
 
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-md">
-                <BookOpen className="h-5 w-5 text-primary" />
+      {isAdminOrConsultant && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-md">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium">Looking to create a document from a template?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Use the Template Library to create standardized compliance documents with pre-filled site details.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Looking to create a document from a template?</p>
-                <p className="text-sm text-muted-foreground">
-                  Use our Template Library to create standardized compliance documents with pre-filled site details.
-                </p>
-              </div>
+              <Link href="/create-from-template">
+                <Button data-testid="button-create-from-template">
+                  Create from Template
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-            <Link href="/create-from-template">
-              <Button data-testid="button-create-from-template">
-                Create from Template
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
