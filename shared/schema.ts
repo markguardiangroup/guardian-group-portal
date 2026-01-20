@@ -715,12 +715,6 @@ export const moduleConfig: Record<ModuleType, {
     documentTypes: [
       { value: "hs_policy", label: "H&S Policy" },
       { value: "risk_assessment", label: "Risk Assessment" },
-      { value: "safety_audit", label: "Safety Audit" },
-      { value: "coshh_assessment", label: "COSHH Assessment" },
-      { value: "fire_safety", label: "Fire Safety" },
-      { value: "incident_report", label: "Incident Report" },
-      { value: "method_statement", label: "Method Statement" },
-      { value: "hs_checklist", label: "H&S Checklist" },
     ],
   },
   human_resources: {
@@ -729,28 +723,14 @@ export const moduleConfig: Record<ModuleType, {
     documentTypes: [
       { value: "employment_contract", label: "Employment Contract" },
       { value: "employee_handbook", label: "Employee Handbook" },
-      { value: "disciplinary_procedure", label: "Disciplinary Procedure" },
-      { value: "grievance_procedure", label: "Grievance Procedure" },
-      { value: "training_record", label: "Training Record" },
-      { value: "performance_review", label: "Performance Review" },
-      { value: "hr_policy", label: "HR Policy" },
-      { value: "absence_record", label: "Absence Record" },
     ],
   },
   employment_law: {
     name: "Employment Law",
     shortName: "EL",
     documentTypes: [
-      { value: "tupe_consultation", label: "TUPE Consultation" },
-      { value: "investigation_report", label: "Investigation Report" },
-      { value: "disciplinary_hearing", label: "Disciplinary Hearing" },
-      { value: "cot3_agreement", label: "COT3 Agreement" },
       { value: "settlement_agreement", label: "Settlement Agreement" },
-      { value: "grievance_outcome", label: "Grievance Outcome" },
-      { value: "appeal_hearing", label: "Appeal Hearing" },
-      { value: "witness_statement", label: "Witness Statement" },
       { value: "case_notes", label: "Case Notes" },
-      { value: "legal_correspondence", label: "Legal Correspondence" },
     ],
   },
   support: {
