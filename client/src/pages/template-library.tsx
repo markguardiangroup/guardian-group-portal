@@ -1660,7 +1660,7 @@ export default function TemplateLibraryPage() {
                     return {
                       method: "PUT" as const,
                       url: uploadURL,
-                      headers: { "Content-Type": file.type || "application/octet-stream" },
+                      headers: {},
                     };
                   }}
                   onComplete={handleUploadComplete}
