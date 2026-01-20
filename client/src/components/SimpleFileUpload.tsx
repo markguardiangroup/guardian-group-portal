@@ -61,16 +61,19 @@ export function SimpleFileUpload({
 
       setProgress(30);
 
+      console.log("Starting GCS upload to:", uploadURL.substring(0, 100) + "...");
+      
       const uploadRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
-        mode: "cors",
       });
+
+      console.log("GCS upload response status:", uploadRes.status);
 
       if (!uploadRes.ok) {
         const errorText = await uploadRes.text().catch(() => "Unknown error");
         console.error("GCS upload failed:", uploadRes.status, errorText);
-        throw new Error(`Upload failed: ${uploadRes.status}`);
+        throw new Error(`Upload failed: ${uploadRes.status} - ${errorText.substring(0, 100)}`);
       }
 
       setProgress(100);
