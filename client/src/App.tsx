@@ -29,6 +29,7 @@ import ModuleAccessRequests from "@/pages/module-access-requests";
 import UserManagement from "@/pages/user-management";
 import DocumentTypes from "@/pages/document-types";
 import FolderTemplates from "@/pages/folder-templates";
+import TemplateLibrary from "@/pages/template-library";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/users" component={UserManagement} />
       <Route path="/document-types" component={DocumentTypes} />
       <Route path="/folder-templates" component={FolderTemplates} />
+      <Route path="/template-library" component={TemplateLibrary} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1424,6 +1424,236 @@ export async function registerRoutes(
     }
   });
 
+  // ============================================
+  // DOCUMENT TEMPLATES (The "Document Bible")
+  // ============================================
+  
+  // Get all document templates (optionally filtered by module or folder)
+  app.get("/api/document-templates", requireAuth, async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const folderTemplateId = req.query.folderTemplateId as string | undefined;
+      const templates = await storage.getDocumentTemplates(module, folderTemplateId);
+      res.json(templates);
+    } catch (error) {
+      console.error("Get document templates error:", error);
+      res.status(500).json({ error: "Failed to fetch document templates" });
+    }
+  });
+  
+  // Get single document template
+  app.get("/api/document-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Document template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Get document template error:", error);
+      res.status(500).json({ error: "Failed to fetch document template" });
+    }
+  });
+  
+  // Get templates for a specific folder template
+  app.get("/api/folder-templates/:id/templates", requireAuth, async (req, res) => {
+    try {
+      const folderTemplate = await storage.getFolderTemplate(req.params.id);
+      if (!folderTemplate) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      const templates = await storage.getDocumentTemplates(undefined, req.params.id);
+      res.json(templates);
+    } catch (error) {
+      console.error("Get folder templates error:", error);
+      res.status(500).json({ error: "Failed to fetch folder templates" });
+    }
+  });
+  
+  // Create document template (admin only)
+  app.post("/api/document-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create document templates" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        folderTemplateId: z.string().min(1),
+        documentTypeId: z.string().optional(),
+        fileName: z.string().min(1),
+        fileSize: z.number().min(1),
+        mimeType: z.string().min(1),
+        placeholders: z.string().optional(), // JSON array of placeholder names
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      // Verify folder template exists and module matches
+      const folderTemplate = await storage.getFolderTemplate(parsed.data.folderTemplateId);
+      if (!folderTemplate) {
+        return res.status(404).json({ error: "Folder template not found" });
+      }
+      if (folderTemplate.module !== parsed.data.module) {
+        return res.status(400).json({ error: "Template module must match folder template module" });
+      }
+      
+      const template = await storage.createDocumentTemplate({
+        ...parsed.data,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(template);
+    } catch (error) {
+      console.error("Create document template error:", error);
+      res.status(500).json({ error: "Failed to create document template" });
+    }
+  });
+  
+  // Update document template (admin only)
+  app.patch("/api/document-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update document templates" });
+      }
+      
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Document template not found" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        description: z.string().optional(),
+        placeholders: z.string().optional(),
+        sortOrder: z.number().optional(),
+        isActive: z.boolean().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updated = await storage.updateDocumentTemplate(req.params.id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update document template error:", error);
+      res.status(500).json({ error: "Failed to update document template" });
+    }
+  });
+  
+  // Upload new version of document template (admin only)
+  app.post("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update document templates" });
+      }
+      
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Document template not found" });
+      }
+      
+      const schema = z.object({
+        fileName: z.string().min(1),
+        fileSize: z.number().min(1),
+        changeNote: z.string().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const newVersion = template.version + 1;
+      
+      // Create new version record
+      const version = await storage.createDocumentTemplateVersion({
+        templateId: template.id,
+        version: newVersion,
+        fileName: parsed.data.fileName,
+        fileSize: parsed.data.fileSize,
+        changeNote: parsed.data.changeNote,
+        uploadedBy: user.id,
+      });
+      
+      // Update template with new version info
+      await storage.updateDocumentTemplate(template.id, {
+        version: newVersion,
+        fileName: parsed.data.fileName,
+        fileSize: parsed.data.fileSize,
+      });
+      
+      res.status(201).json(version);
+    } catch (error) {
+      console.error("Create document template version error:", error);
+      res.status(500).json({ error: "Failed to create document template version" });
+    }
+  });
+  
+  // Get template versions
+  app.get("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
+    try {
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Document template not found" });
+      }
+      
+      const versions = await storage.getDocumentTemplateVersions(req.params.id);
+      res.json(versions);
+    } catch (error) {
+      console.error("Get document template versions error:", error);
+      res.status(500).json({ error: "Failed to fetch document template versions" });
+    }
+  });
+  
+  // Delete document template (admin only)
+  app.delete("/api/document-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete document templates" });
+      }
+      
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "Document template not found" });
+      }
+      
+      await storage.deleteDocumentTemplate(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete document template error:", error);
+      res.status(500).json({ error: "Failed to delete document template" });
+    }
+  });
+
   // Provision folders from templates for a site
   app.post("/api/sites/:siteId/provision-folders", requireAuth, async (req, res) => {
     try {

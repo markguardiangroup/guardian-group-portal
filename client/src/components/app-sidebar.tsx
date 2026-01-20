@@ -19,6 +19,7 @@ import {
   KeyRound,
   FolderTree,
   Headphones,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -148,6 +149,11 @@ const adminNavItems = [
     title: "Folder Hub",
     url: "/folder-templates",
     icon: FolderTree,
+  },
+  {
+    title: "Template Library",
+    url: "/template-library",
+    icon: BookOpen,
   },
   {
     title: "Module Requests",
