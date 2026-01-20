@@ -1574,10 +1574,11 @@ export default function TemplateLibraryPage() {
                     <Input
                       id="new-folder-code"
                       value={templateFormData.newFolderCode}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderCode: e.target.value.toUpperCase() })}
-                      placeholder="e.g., POL"
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
+                      placeholder="e.g., policies"
                       data-testid="input-new-folder-code"
                     />
+                    <p className="text-xs text-muted-foreground">Lowercase letters and underscores only</p>
                   </div>
                 </div>
               )}
