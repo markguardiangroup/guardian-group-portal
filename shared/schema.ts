@@ -483,7 +483,12 @@ export type AuditAction =
   | "case_status_changed"
   | "case_closed"
   | "milestone_added"
-  | "milestone_completed";
+  | "milestone_completed"
+  | "login"
+  | "logout"
+  | "login_failed"
+  | "account_locked"
+  | "password_change";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
@@ -815,3 +820,33 @@ export interface SiteRequestWithDetails extends SiteRequest {
 export interface UserWithDetails extends User {
   siteName?: string;
 }
+
+// ============================================
+// SECURITY TABLES
+// ============================================
+
+// Login attempts tracking (for account lockout)
+export const loginAttempts = pgTable("login_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  success: boolean("success").notNull().default(false),
+  failureReason: text("failure_reason"),
+  attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
+});
+
+export type LoginAttempt = typeof loginAttempts.$inferSelect;
+export type InsertLoginAttempt = typeof loginAttempts.$inferInsert;
+
+// Account lockout configuration
+export const SECURITY_CONFIG = {
+  maxLoginAttempts: 5,
+  lockoutDurationMinutes: 15,
+  sessionTimeoutMinutes: 60,
+  passwordMinLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSpecialChar: false,
+} as const;

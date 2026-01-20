@@ -28,9 +28,11 @@ import {
   type DocumentTypeRecord, type InsertDocumentType,
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
+  type LoginAttempt, type InsertLoginAttempt,
   moduleConfig,
   folderTemplates as folderTemplatesTable,
   folderDocumentTypeRules as folderDocumentTypeRulesTable,
+  SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -168,6 +170,11 @@ export interface IStorage {
   
   // Provision folder structure from templates for a site
   provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]>;
+  
+  // Security - Login Attempts
+  recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
+  getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]>;
+  isAccountLocked(username: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2866,6 +2873,53 @@ export class MemStorage implements IStorage {
     }
 
     return createdFolders;
+  }
+  
+  // ============================================
+  // SECURITY - LOGIN ATTEMPTS
+  // ============================================
+  
+  private loginAttempts: Map<string, LoginAttempt> = new Map();
+  
+  async recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
+    const id = randomUUID();
+    const loginAttempt: LoginAttempt = {
+      id,
+      username: attempt.username,
+      ipAddress: attempt.ipAddress ?? null,
+      userAgent: attempt.userAgent ?? null,
+      success: attempt.success ?? false,
+      failureReason: attempt.failureReason ?? null,
+      attemptedAt: new Date(),
+    };
+    this.loginAttempts.set(id, loginAttempt);
+    return loginAttempt;
+  }
+  
+  async getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]> {
+    const cutoffTime = new Date(Date.now() - minutes * 60 * 1000);
+    return Array.from(this.loginAttempts.values())
+      .filter(attempt => 
+        attempt.username.toLowerCase() === username.toLowerCase() &&
+        attempt.attemptedAt >= cutoffTime
+      )
+      .sort((a, b) => b.attemptedAt.getTime() - a.attemptedAt.getTime());
+  }
+  
+  async isAccountLocked(username: string): Promise<boolean> {
+    const recentAttempts = await this.getRecentLoginAttempts(
+      username, 
+      SECURITY_CONFIG.lockoutDurationMinutes
+    );
+    
+    // Count consecutive failures (until last success)
+    let failedAttempts = 0;
+    for (const attempt of recentAttempts) {
+      if (attempt.success) break;
+      failedAttempts++;
+    }
+    
+    return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
   }
 }
 

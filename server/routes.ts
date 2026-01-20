@@ -2,8 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import bcrypt from "bcrypt";
 import type { ModuleType } from "@shared/schema";
+import { SECURITY_CONFIG } from "@shared/schema";
 import PDFDocument from "pdfkit";
+
+const BCRYPT_SALT_ROUNDS = 12;
 
 const createDocumentSchema = z.object({
   title: z.string().min(1),
@@ -110,11 +114,103 @@ export async function registerRoutes(
       }
 
       const { username, password } = parseResult.data;
+      const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+      const userAgent = req.get("User-Agent") || "unknown";
+
+      // Check if account is locked due to too many failed attempts
+      const isLocked = await storage.isAccountLocked(username);
+      if (isLocked) {
+        await storage.recordLoginAttempt({
+          username,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: "account_locked",
+        });
+        
+        // Create audit log for locked account attempt
+        const user = await storage.getUserByUsername(username);
+        if (user) {
+          await storage.createAuditLog({
+            action: "account_locked",
+            userId: user.id,
+            userName: user.fullName,
+            details: `Login attempt while account locked from IP ${ipAddress}`,
+          });
+        }
+        
+        return res.status(423).json({ 
+          error: `Account temporarily locked. Please try again in ${SECURITY_CONFIG.lockoutDurationMinutes} minutes.` 
+        });
+      }
+
       const user = await storage.getUserByUsername(username);
 
-      if (!user || user.password !== password) {
+      // Check if user exists
+      if (!user) {
+        await storage.recordLoginAttempt({
+          username,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: "user_not_found",
+        });
         return res.status(401).json({ error: "Invalid username or password" });
       }
+
+      // Check password - support both bcrypt hashed and legacy plain text (for migration)
+      let passwordValid = false;
+      if (user.password.startsWith("$2")) {
+        // Bcrypt hashed password
+        passwordValid = await bcrypt.compare(password, user.password);
+      } else {
+        // Legacy plain text password - upgrade it
+        passwordValid = user.password === password;
+        if (passwordValid) {
+          // Upgrade to bcrypt hash
+          const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+          await storage.updateUser(user.id, { password: hashedPassword });
+        }
+      }
+
+      if (!passwordValid) {
+        await storage.recordLoginAttempt({
+          username,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: "invalid_password",
+        });
+        
+        // Check if this failure triggers a lockout
+        const nowLocked = await storage.isAccountLocked(username);
+        if (nowLocked) {
+          await storage.createAuditLog({
+            action: "account_locked",
+            userId: user.id,
+            userName: user.fullName,
+            details: `Account locked after ${SECURITY_CONFIG.maxLoginAttempts} failed attempts from IP ${ipAddress}`,
+          });
+        }
+        
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Successful login - record attempt
+      await storage.recordLoginAttempt({
+        username,
+        ipAddress,
+        userAgent,
+        success: true,
+      });
+
+      // Create audit log for successful login
+      await storage.createAuditLog({
+        action: "login",
+        userId: user.id,
+        userName: user.fullName,
+        details: `Successful login from IP ${ipAddress}`,
+      });
 
       // Set user in session
       (req.session as any).userId = user.id;
@@ -141,12 +237,25 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
+  app.post("/api/auth/logout", async (req, res) => {
+    const user = (req.session as any)?.user;
+    const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+    
+    // Create audit log for logout before destroying session
+    if (user) {
+      await storage.createAuditLog({
+        action: "logout",
+        userId: user.id,
+        userName: user.fullName,
+        details: `User logged out from IP ${ipAddress}`,
+      });
+    }
+    
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ error: "Logout failed" });
       }
-      res.clearCookie("connect.sid");
+      res.clearCookie("guardian.sid"); // Match our custom session name
       res.json({ message: "Logged out successfully" });
     });
   });
