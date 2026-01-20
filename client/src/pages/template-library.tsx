@@ -404,10 +404,10 @@ export default function TemplateLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
       setSelectedDocTypeId("");
       setIsRuleRequired(false);
-      toast({ title: "Document type linked", description: "The document type has been linked to this folder." });
+      toast({ title: "Template type linked", description: "The template type has been linked to this folder." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to link document type", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to link template type", variant: "destructive" });
     },
   });
   
@@ -418,10 +418,10 @@ export default function TemplateLibraryPage() {
     onSuccess: () => {
       refetchRules();
       queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
-      toast({ title: "Document type unlinked", description: "The document type has been removed from this folder." });
+      toast({ title: "Template type unlinked", description: "The template type has been removed from this folder." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to unlink document type", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to unlink template type", variant: "destructive" });
     },
   });
   
@@ -434,10 +434,10 @@ export default function TemplateLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
       setIsDocTypeDialogOpen(false);
       setDocTypeFormData(defaultDocTypeFormData);
-      toast({ title: "Document type created", description: "The document type has been created successfully." });
+      toast({ title: "Template type created", description: "The template type has been created successfully." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to create document type", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to create template type", variant: "destructive" });
     },
   });
   
@@ -449,10 +449,10 @@ export default function TemplateLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
       setIsEditDocTypeDialogOpen(false);
       setSelectedDocType(null);
-      toast({ title: "Document type updated", description: "The document type has been updated successfully." });
+      toast({ title: "Template type updated", description: "The template type has been updated successfully." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to update document type", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to update template type", variant: "destructive" });
     },
   });
   
@@ -462,10 +462,10 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
-      toast({ title: "Document type deleted", description: "The document type has been removed." });
+      toast({ title: "Template type deleted", description: "The template type has been removed." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to delete document type", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to delete template type", variant: "destructive" });
     },
   });
   
@@ -483,7 +483,7 @@ export default function TemplateLibraryPage() {
       setIsAssignFolderDialogOpen(false);
       setSelectedDocType(null);
       setSelectedFolderIdForAssign("");
-      toast({ title: "Folder assigned", description: "The document type has been assigned to the folder." });
+      toast({ title: "Folder assigned", description: "The template type has been assigned to the folder." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to assign folder", variant: "destructive" });
@@ -738,9 +738,9 @@ export default function TemplateLibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
       setIsDocTypeDialogOpen(false);
       setDocTypeFormData(defaultDocTypeFormData);
-      toast({ title: "Document type created", description: "The document type has been created and assigned to the folder." });
+      toast({ title: "Template type created", description: "The template type has been created and assigned to the folder." });
     } catch (error) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to create document type", variant: "destructive" });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to create template type", variant: "destructive" });
     }
   };
   
@@ -853,7 +853,7 @@ export default function TemplateLibraryPage() {
       }
     } else if (wizardStep === "doctype") {
       if (!wizardData.docTypeName || !wizardData.docTypeCode) {
-        toast({ title: "Validation error", description: "Please enter document type name and code", variant: "destructive" });
+        toast({ title: "Validation error", description: "Please enter template type name and code", variant: "destructive" });
         return;
       }
       setWizardLoading(true);
@@ -881,7 +881,7 @@ export default function TemplateLibraryPage() {
         queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
         setWizardStep("template");
       } catch (error) {
-        toast({ title: "Error", description: "Failed to create document type", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to create template type", variant: "destructive" });
       } finally {
         setWizardLoading(false);
       }
@@ -1067,7 +1067,7 @@ export default function TemplateLibraryPage() {
             Template Library
           </h1>
           <p className="text-muted-foreground">
-            Manage templates, folders, and document types - the "Document Bible"
+            Manage templates, folders, and template types - the "Document Bible"
           </p>
         </div>
       </div>
@@ -1085,7 +1085,7 @@ export default function TemplateLibraryPage() {
             </TabsTrigger>
             <TabsTrigger value="document-types" data-testid="tab-document-types">
               <File className="h-4 w-4 mr-2" />
-              Document Types
+              Template Types
             </TabsTrigger>
           </TabsList>
           
@@ -1110,7 +1110,7 @@ export default function TemplateLibraryPage() {
               {activeTab === "document-types" && (
                 <Button onClick={() => { setDocTypeFormData(defaultDocTypeFormData); setIsDocTypeDialogOpen(true); }} data-testid="button-add-document-type">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Document Type
+                  Add Template Type
                 </Button>
               )}
             </div>
@@ -1287,7 +1287,7 @@ export default function TemplateLibraryPage() {
                                   <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => handleManageRules(folder)}>
                                       <LinkIcon className="h-4 w-4 mr-2" />
-                                      Manage Document Types
+                                      Manage Template Types
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
@@ -1319,8 +1319,8 @@ export default function TemplateLibraryPage() {
               {documentTypes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No document types found</p>
-                  <p className="text-sm mt-1">Create document types for compliance tracking</p>
+                  <p>No template types found</p>
+                  <p className="text-sm mt-1">Create template types for compliance tracking</p>
                 </div>
               ) : (
                 <Table>
@@ -1748,18 +1748,18 @@ export default function TemplateLibraryPage() {
       <Dialog open={isRulesDialogOpen} onOpenChange={setIsRulesDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage Document Types</DialogTitle>
+            <DialogTitle>Manage Template Types</DialogTitle>
             <DialogDescription>
-              Link document types to "{selectedFolder?.name}" folder
+              Link template types to "{selectedFolder?.name}" folder
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-end gap-2">
               <div className="flex-1 space-y-2">
-                <Label>Add Document Type</Label>
+                <Label>Add Template Type</Label>
                 <Select value={selectedDocTypeId} onValueChange={setSelectedDocTypeId}>
                   <SelectTrigger data-testid="select-rule-doctype">
-                    <SelectValue placeholder="Select document type" />
+                    <SelectValue placeholder="Select template type" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableDocTypesForFolder.map((dt) => (
@@ -1783,7 +1783,7 @@ export default function TemplateLibraryPage() {
             
             {templateRules && templateRules.length > 0 ? (
               <div className="space-y-2">
-                <Label>Linked Document Types</Label>
+                <Label>Linked Template Types</Label>
                 {templateRules.map((rule) => (
                   <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
                     <div className="flex items-center gap-2">
@@ -1807,7 +1807,7 @@ export default function TemplateLibraryPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No document types linked to this folder yet
+                No template types linked to this folder yet
               </p>
             )}
           </div>
@@ -1821,8 +1821,8 @@ export default function TemplateLibraryPage() {
       <Dialog open={isDocTypeDialogOpen} onOpenChange={setIsDocTypeDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add Document Type</DialogTitle>
-            <DialogDescription>Create a new document type for compliance tracking</DialogDescription>
+            <DialogTitle>Add Template Type</DialogTitle>
+            <DialogDescription>Create a new template type for compliance tracking</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1897,7 +1897,7 @@ export default function TemplateLibraryPage() {
                 id="doctype-description"
                 value={docTypeFormData.description}
                 onChange={(e) => setDocTypeFormData({ ...docTypeFormData, description: e.target.value })}
-                placeholder="Description of this document type"
+                placeholder="Description of this template type"
                 className="resize-none"
                 data-testid="input-doctype-description"
               />
@@ -1930,7 +1930,7 @@ export default function TemplateLibraryPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDocTypeDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateDocType} disabled={createDocTypeMutation.isPending} data-testid="button-save-doctype">
-              {createDocTypeMutation.isPending ? "Creating..." : "Create Document Type"}
+              {createDocTypeMutation.isPending ? "Creating..." : "Create Template Type"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1940,8 +1940,8 @@ export default function TemplateLibraryPage() {
       <Dialog open={isEditDocTypeDialogOpen} onOpenChange={setIsEditDocTypeDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Document Type</DialogTitle>
-            <DialogDescription>Update document type details</DialogDescription>
+            <DialogTitle>Edit Template Type</DialogTitle>
+            <DialogDescription>Update template type details</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1999,7 +1999,7 @@ export default function TemplateLibraryPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDocTypeDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateDocType} disabled={updateDocTypeMutation.isPending} data-testid="button-update-doctype">
-              {updateDocTypeMutation.isPending ? "Updating..." : "Update Document Type"}
+              {updateDocTypeMutation.isPending ? "Updating..." : "Update Template Type"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2065,7 +2065,7 @@ export default function TemplateLibraryPage() {
           {/* Progress Steps */}
           <div className="flex items-center justify-center gap-2 py-4">
             {["module", "folder", "doctype", "template"].map((step, index) => {
-              const stepLabels = { module: "Module", folder: "Folder", doctype: "Doc Type", template: "Template" };
+              const stepLabels = { module: "Module", folder: "Folder", doctype: "Type", template: "Template" };
               const steps: WizardStep[] = ["module", "folder", "doctype", "template"];
               const currentIndex = steps.indexOf(wizardStep);
               const stepIndex = index;
@@ -2095,7 +2095,7 @@ export default function TemplateLibraryPage() {
             {wizardStep === "module" && (
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Select Module</h3>
-                <p className="text-sm text-muted-foreground">Choose which compliance module this document type belongs to.</p>
+                <p className="text-sm text-muted-foreground">Choose which compliance module this template type belongs to.</p>
                 <div className="grid grid-cols-3 gap-4 pt-4">
                   {modules.map(module => {
                     const ModuleIcon = moduleIcons[module];
@@ -2208,17 +2208,17 @@ export default function TemplateLibraryPage() {
               </div>
             )}
             
-            {/* Step 3: Document Type */}
+            {/* Step 3: Template Type */}
             {wizardStep === "doctype" && (
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Create Document Type</h3>
+                <h3 className="text-lg font-medium">Create Template Type</h3>
                 <p className="text-sm text-muted-foreground">
-                  Define the compliance document type that will be stored in "{wizardData.folderName || wizardData.newFolderName}".
+                  Define the template type that will be stored in "{wizardData.folderName || wizardData.newFolderName}".
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="space-y-2">
-                    <Label htmlFor="wizard-doctype-name">Document Type Name</Label>
+                    <Label htmlFor="wizard-doctype-name">Template Type Name</Label>
                     <Input
                       id="wizard-doctype-name"
                       value={wizardData.docTypeName}
@@ -2249,7 +2249,7 @@ export default function TemplateLibraryPage() {
                     id="wizard-doctype-description"
                     value={wizardData.docTypeDescription}
                     onChange={(e) => setWizardData(prev => ({ ...prev, docTypeDescription: e.target.value }))}
-                    placeholder="Brief description of this document type"
+                    placeholder="Brief description of this template type"
                     className="resize-none"
                     data-testid="wizard-input-doctype-description"
                   />
@@ -2356,8 +2356,8 @@ export default function TemplateLibraryPage() {
                 <h3 className="text-lg font-medium mb-2">Setup Complete!</h3>
                 <p className="text-muted-foreground max-w-md">
                   {wizardData.createNewFolder 
-                    ? `Created folder "${wizardData.newFolderName}" with document type "${wizardData.docTypeName}"`
-                    : `Added document type "${wizardData.docTypeName}" to folder "${wizardData.folderName}"`
+                    ? `Created folder "${wizardData.newFolderName}" with template type "${wizardData.docTypeName}"`
+                    : `Added template type "${wizardData.docTypeName}" to folder "${wizardData.folderName}"`
                   }
                   {wizardData.addTemplate && ` and template "${wizardData.templateName}"`}.
                 </p>
