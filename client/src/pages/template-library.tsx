@@ -82,7 +82,7 @@ import { useState, useMemo, useRef } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useUpload } from "@/hooks/use-upload";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType } from "@shared/schema";
 
@@ -262,33 +262,24 @@ export default function TemplateLibraryPage() {
   const [isEditTemplateDialogOpen, setIsEditTemplateDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const pendingUploadRef = useRef<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   
-  // File upload hook
-  const { uploadFile, isUploading } = useUpload({
-    onSuccess: (response) => {
-      toast({ title: "File uploaded", description: "Template file uploaded successfully" });
-    },
-    onError: (error) => {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
-    },
-  });
-  
-  // Handle file selection and upload
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    const result = await uploadFile(file);
-    if (result) {
+  // Handle upload completion from ObjectUploader
+  const handleUploadComplete = (result: { successful?: Array<unknown> }) => {
+    const uploadedFile = result.successful?.[0];
+    if (uploadedFile && pendingUploadRef.current) {
       setTemplateFormData(prev => ({
         ...prev,
-        fileName: file.name,
-        fileUrl: result.objectPath,
-        fileSize: file.size,
-        mimeType: file.type || "application/octet-stream",
+        fileName: pendingUploadRef.current!.fileName,
+        fileUrl: pendingUploadRef.current!.objectPath,
+        fileSize: pendingUploadRef.current!.fileSize,
+        mimeType: pendingUploadRef.current!.mimeType,
       }));
+      toast({ title: "File uploaded", description: "Template file uploaded successfully" });
+      pendingUploadRef.current = null;
     }
+    setIsUploading(false);
   };
   
   // Folder dialogs
@@ -1623,14 +1614,6 @@ export default function TemplateLibraryPage() {
             </div>
             <div className="space-y-2">
               <Label>Template File <span className="text-destructive">*</span></Label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                className="hidden"
-                accept=".doc,.docx,.pdf,.xls,.xlsx,.txt,.rtf"
-                data-testid="input-template-file"
-              />
               {templateFormData.fileUrl ? (
                 <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
                   <FileText className="h-5 w-5 text-primary" />
@@ -1644,7 +1627,6 @@ export default function TemplateLibraryPage() {
                     variant="ghost"
                     onClick={() => {
                       setTemplateFormData(prev => ({ ...prev, fileName: "", fileUrl: "", fileSize: 0, mimeType: "" }));
-                      if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                     data-testid="button-remove-file"
                   >
@@ -1652,17 +1634,41 @@ export default function TemplateLibraryPage() {
                   </Button>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full justify-start"
-                  data-testid="button-upload-template-file"
+                <ObjectUploader
+                  maxNumberOfFiles={1}
+                  maxFileSize={52428800}
+                  onGetUploadParameters={async (file) => {
+                    setIsUploading(true);
+                    const res = await fetch("/api/uploads/request-url", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      credentials: "include",
+                      body: JSON.stringify({
+                        name: file.name,
+                        size: file.size,
+                        contentType: file.type || "application/octet-stream",
+                      }),
+                    });
+                    const { uploadURL, objectPath } = await res.json();
+                    // Store the objectPath for use in onComplete
+                    pendingUploadRef.current = {
+                      objectPath,
+                      fileName: file.name,
+                      fileSize: file.size || 0,
+                      mimeType: file.type || "application/octet-stream",
+                    };
+                    return {
+                      method: "PUT" as const,
+                      url: uploadURL,
+                      headers: { "Content-Type": file.type || "application/octet-stream" },
+                    };
+                  }}
+                  onComplete={handleUploadComplete}
+                  buttonClassName="w-full justify-start"
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? "Uploading..." : "Choose template file..."}
-                </Button>
+                  Choose template file...
+                </ObjectUploader>
               )}
               <p className="text-xs text-muted-foreground">
                 Supported formats: Word (.doc, .docx), PDF, Excel (.xls, .xlsx), Text files
