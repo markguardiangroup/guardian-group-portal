@@ -3052,7 +3052,7 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(),
       };
       
-      await db.update(documentTemplates).set(deletionData).where(eq(documentTemplates.id, id));
+      await db.update(documentTemplatesTable).set(deletionData).where(eq(documentTemplatesTable.id, id));
       
       // Update memory cache too
       const existing = this.documentTemplates.get(id);
