@@ -713,25 +713,18 @@ export const moduleConfig: Record<ModuleType, {
     name: "Health & Safety",
     shortName: "H&S",
     documentTypes: [
-      { value: "hs_policy", label: "H&S Policy" },
       { value: "risk_assessment", label: "Risk Assessment" },
     ],
   },
   human_resources: {
     name: "Human Resources",
     shortName: "HR",
-    documentTypes: [
-      { value: "employment_contract", label: "Employment Contract" },
-      { value: "employee_handbook", label: "Employee Handbook" },
-    ],
+    documentTypes: [],
   },
   employment_law: {
     name: "Employment Law",
     shortName: "EL",
-    documentTypes: [
-      { value: "settlement_agreement", label: "Settlement Agreement" },
-      { value: "case_notes", label: "Case Notes" },
-    ],
+    documentTypes: [],
   },
   support: {
     name: "Support",
