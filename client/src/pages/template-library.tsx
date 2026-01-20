@@ -72,7 +72,6 @@ import {
   AlertTriangle,
   Clock,
   RotateCcw,
-  Link as LinkIcon,
   X,
   Wand2,
   ChevronRight,
@@ -281,11 +280,8 @@ export default function TemplateLibraryPage() {
   // Folder dialogs
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
   const [isEditFolderDialogOpen, setIsEditFolderDialogOpen] = useState(false);
-  const [isRulesDialogOpen, setIsRulesDialogOpen] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<FolderTemplate | null>(null);
   const [folderFormData, setFolderFormData] = useState<FolderFormData>(defaultFolderFormData);
-  const [selectedDocTypeId, setSelectedDocTypeId] = useState<string>("");
-  const [isRuleRequired, setIsRuleRequired] = useState(false);
   
   // Document type dialogs
   const [isDocTypeDialogOpen, setIsDocTypeDialogOpen] = useState(false);
@@ -333,16 +329,6 @@ export default function TemplateLibraryPage() {
     queryKey: ["/api/folder-document-type-rules"],
   });
   
-  const { data: templateRules, refetch: refetchRules } = useQuery<RuleWithDocType[]>({
-    queryKey: ["/api/folder-templates", selectedFolder?.id, "rules"],
-    queryFn: async () => {
-      if (!selectedFolder) return [];
-      const response = await fetch(`/api/folder-templates/${selectedFolder.id}/rules`);
-      if (!response.ok) throw new Error("Failed to fetch rules");
-      return response.json();
-    },
-    enabled: !!selectedFolder && isRulesDialogOpen,
-  });
   
   // Template mutations
   const createTemplateMutation = useMutation({
@@ -474,35 +460,6 @@ export default function TemplateLibraryPage() {
     },
   });
   
-  const addRuleMutation = useMutation({
-    mutationFn: async (data: { documentTypeId: string; isRequired: boolean }) => {
-      return apiRequest("POST", `/api/folder-templates/${selectedFolder?.id}/rules`, data);
-    },
-    onSuccess: () => {
-      refetchRules();
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
-      setSelectedDocTypeId("");
-      setIsRuleRequired(false);
-      toast({ title: "Template type linked", description: "The template type has been linked to this folder." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to link template type", variant: "destructive" });
-    },
-  });
-  
-  const deleteRuleMutation = useMutation({
-    mutationFn: async (ruleId: string) => {
-      return apiRequest("DELETE", `/api/folder-template-rules/${ruleId}`);
-    },
-    onSuccess: () => {
-      refetchRules();
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
-      toast({ title: "Template type unlinked", description: "The template type has been removed from this folder." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to unlink template type", variant: "destructive" });
-    },
-  });
   
   // Document type mutations
   const createDocTypeMutation = useMutation({
@@ -642,15 +599,6 @@ export default function TemplateLibraryPage() {
     return lookup;
   }, [folderRules, folderTemplates]);
   
-  const availableDocTypesForFolder = useMemo(() => {
-    if (!documentTypes || !selectedFolder || !templateRules) return [];
-    const linkedTypeIds = new Set(templateRules.map(r => r.documentTypeId));
-    return documentTypes.filter(dt => 
-      dt.module === selectedFolder.module && 
-      dt.isActive && 
-      !linkedTypeIds.has(dt.id)
-    );
-  }, [documentTypes, selectedFolder, templateRules]);
   
   const availableFoldersForDocType = useMemo(() => {
     if (!selectedDocType || !folderTemplates) return [];
@@ -842,18 +790,6 @@ export default function TemplateLibraryPage() {
     }
   };
   
-  const handleManageRules = (folder: FolderTemplate) => {
-    setSelectedFolder(folder);
-    setIsRulesDialogOpen(true);
-  };
-  
-  const handleAddRule = () => {
-    if (!selectedDocTypeId) return;
-    addRuleMutation.mutate({
-      documentTypeId: selectedDocTypeId,
-      isRequired: isRuleRequired,
-    });
-  };
   
   // Document type handlers
   const handleCreateDocType = async () => {
@@ -1205,9 +1141,6 @@ export default function TemplateLibraryPage() {
             )}
             {isAdmin && (
               <div className="ml-auto mr-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleManageRules(folder)} data-testid={`button-folder-rules-${folder.id}`}>
-                  <LinkIcon className="h-3 w-3" />
-                </Button>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
                   <Pencil className="h-3 w-3" />
                 </Button>
@@ -1553,11 +1486,6 @@ export default function TemplateLibraryPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleManageRules(folder)}>
-                                      <LinkIcon className="h-4 w-4 mr-2" />
-                                      Manage Template Types
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
                                       <Pencil className="h-4 w-4 mr-2" />
                                       Edit
@@ -2291,79 +2219,6 @@ export default function TemplateLibraryPage() {
             <Button onClick={handleUpdateFolder} disabled={updateFolderMutation.isPending} data-testid="button-update-folder">
               {updateFolderMutation.isPending ? "Updating..." : "Update Folder"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Folder Rules Dialog */}
-      <Dialog open={isRulesDialogOpen} onOpenChange={setIsRulesDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Manage Template Types</DialogTitle>
-            <DialogDescription>
-              Link template types to "{selectedFolder?.name}" folder
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-2">
-                <Label>Add Template Type</Label>
-                <Select value={selectedDocTypeId} onValueChange={setSelectedDocTypeId}>
-                  <SelectTrigger data-testid="select-rule-doctype">
-                    <SelectValue placeholder="Select template type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDocTypesForFolder.map((dt) => (
-                      <SelectItem key={dt.id} value={dt.id}>{dt.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2 pb-0.5">
-                <Switch
-                  id="rule-required"
-                  checked={isRuleRequired}
-                  onCheckedChange={setIsRuleRequired}
-                />
-                <Label htmlFor="rule-required" className="text-sm">Required</Label>
-              </div>
-              <Button onClick={handleAddRule} disabled={!selectedDocTypeId || addRuleMutation.isPending} data-testid="button-add-rule">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {templateRules && templateRules.length > 0 ? (
-              <div className="space-y-2">
-                <Label>Linked Template Types</Label>
-                {templateRules.map((rule) => (
-                  <div key={rule.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">{rule.documentType?.name || "Unknown"}</span>
-                      {rule.isRequired && (
-                        <Badge variant="secondary" className="text-xs">Required</Badge>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteRuleMutation.mutate(rule.id)}
-                      disabled={deleteRuleMutation.isPending}
-                      data-testid={`button-remove-rule-${rule.id}`}
-                    >
-                      <X className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No template types linked to this folder yet
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRulesDialogOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
