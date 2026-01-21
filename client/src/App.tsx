@@ -20,7 +20,6 @@ import Sites from "@/pages/sites";
 import SiteDetail from "@/pages/site-detail";
 import Companies from "@/pages/companies";
 import CompanyDetail from "@/pages/company-detail";
-import HSChecklists from "@/pages/hs-checklists";
 import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
 import Support from "@/pages/support";
@@ -60,7 +59,6 @@ function Router() {
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
       <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
-      <Route path="/health-safety/checklists" component={HSChecklists} />
       <Route path="/health-safety/incidents" component={HSIncidents} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
