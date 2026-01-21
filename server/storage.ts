@@ -31,6 +31,8 @@ import {
   type DocumentTemplate, type InsertDocumentTemplate,
   type DocumentTemplateVersion, type InsertDocumentTemplateVersion,
   type LoginAttempt, type InsertLoginAttempt,
+  type TrainingModule, type InsertTrainingModule,
+  trainingModules as trainingModulesTable,
   moduleConfig,
   documentTypes,
   folderTemplates as folderTemplatesTable,
@@ -193,6 +195,13 @@ export interface IStorage {
   recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
   getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]>;
   isAccountLocked(username: string): Promise<boolean>;
+  
+  // Training Modules
+  getTrainingModules(module?: ModuleType): Promise<TrainingModule[]>;
+  getTrainingModule(id: string): Promise<TrainingModule | undefined>;
+  createTrainingModule(trainingModule: InsertTrainingModule): Promise<TrainingModule>;
+  updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule | undefined>;
+  deleteTrainingModule(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -217,6 +226,7 @@ export class MemStorage implements IStorage {
   private folderDocumentTypeRules: Map<string, FolderDocumentTypeRule>;
   private documentTemplates: Map<string, DocumentTemplate>;
   private documentTemplateVersions: Map<string, DocumentTemplateVersion>;
+  private trainingModulesMap: Map<string, TrainingModule>;
 
   constructor() {
     this.users = new Map();
@@ -240,6 +250,7 @@ export class MemStorage implements IStorage {
     this.folderDocumentTypeRules = new Map();
     this.documentTemplates = new Map();
     this.documentTemplateVersions = new Map();
+    this.trainingModulesMap = new Map();
     
     this.initializeSampleData();
   }
@@ -3268,6 +3279,109 @@ export class MemStorage implements IStorage {
     }
     
     return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
+  }
+
+  // Training Modules
+  async getTrainingModules(module?: ModuleType): Promise<TrainingModule[]> {
+    try {
+      if (module) {
+        const results = await db.select().from(trainingModulesTable)
+          .where(and(
+            eq(trainingModulesTable.module, module),
+            eq(trainingModulesTable.isActive, true)
+          ))
+          .orderBy(asc(trainingModulesTable.sortOrder));
+        return results;
+      }
+      const results = await db.select().from(trainingModulesTable)
+        .where(eq(trainingModulesTable.isActive, true))
+        .orderBy(asc(trainingModulesTable.sortOrder));
+      return results;
+    } catch (error) {
+      console.error("Database error in getTrainingModules:", error);
+      return Array.from(this.trainingModulesMap.values())
+        .filter(t => t.isActive && (!module || t.module === module))
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+  }
+
+  async getTrainingModule(id: string): Promise<TrainingModule | undefined> {
+    try {
+      const results = await db.select().from(trainingModulesTable)
+        .where(eq(trainingModulesTable.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Database error in getTrainingModule:", error);
+      return this.trainingModulesMap.get(id);
+    }
+  }
+
+  async createTrainingModule(trainingModule: InsertTrainingModule): Promise<TrainingModule> {
+    const now = new Date();
+    try {
+      const results = await db.insert(trainingModulesTable)
+        .values({
+          ...trainingModule,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in createTrainingModule:", error);
+      const id = randomUUID();
+      const newModule: TrainingModule = {
+        id,
+        ...trainingModule,
+        description: trainingModule.description ?? null,
+        folderTemplateId: trainingModule.folderTemplateId ?? null,
+        provider: trainingModule.provider ?? null,
+        duration: trainingModule.duration ?? null,
+        isRequired: trainingModule.isRequired ?? false,
+        renewalPeriodMonths: trainingModule.renewalPeriodMonths ?? null,
+        sortOrder: trainingModule.sortOrder ?? 0,
+        isActive: trainingModule.isActive ?? true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.trainingModulesMap.set(id, newModule);
+      return newModule;
+    }
+  }
+
+  async updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule | undefined> {
+    const now = new Date();
+    try {
+      const results = await db.update(trainingModulesTable)
+        .set({ ...updates, updatedAt: now })
+        .where(eq(trainingModulesTable.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in updateTrainingModule:", error);
+      const existing = this.trainingModulesMap.get(id);
+      if (!existing) return undefined;
+      const updated = { ...existing, ...updates, updatedAt: now };
+      this.trainingModulesMap.set(id, updated);
+      return updated;
+    }
+  }
+
+  async deleteTrainingModule(id: string): Promise<boolean> {
+    try {
+      // Soft delete - just mark as inactive
+      const results = await db.update(trainingModulesTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(trainingModulesTable.id, id))
+        .returning();
+      return results.length > 0;
+    } catch (error) {
+      console.error("Database error in deleteTrainingModule:", error);
+      const existing = this.trainingModulesMap.get(id);
+      if (!existing) return false;
+      this.trainingModulesMap.set(id, { ...existing, isActive: false });
+      return true;
+    }
   }
 }
 

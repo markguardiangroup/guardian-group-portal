@@ -27,6 +27,8 @@ import Settings from "@/pages/settings";
 import ModuleAccessRequests from "@/pages/module-access-requests";
 import UserManagement from "@/pages/user-management";
 import TemplateLibrary from "@/pages/template-library";
+import TrainingLibrary from "@/pages/training-library";
+import ModuleTraining from "@/pages/module-training";
 import CreateFromTemplate from "@/pages/create-from-template";
 import NotFound from "@/pages/not-found";
 
@@ -48,6 +50,18 @@ function HumanResourcesDocuments() {
 
 function EmploymentLawDocuments() {
   return <ModuleDocuments module="employment_law" />;
+}
+
+function HealthSafetyTraining() {
+  return <ModuleTraining module="health_safety" />;
+}
+
+function HumanResourcesTraining() {
+  return <ModuleTraining module="human_resources" />;
+}
+
+function EmploymentLawTraining() {
+  return <ModuleTraining module="employment_law" />;
 }
 
 function Router() {
@@ -86,6 +100,10 @@ function Router() {
       <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route path="/users" component={UserManagement} />
       <Route path="/template-library" component={TemplateLibrary} />
+      <Route path="/training-library" component={TrainingLibrary} />
+      <Route path="/health-safety/training" component={HealthSafetyTraining} />
+      <Route path="/human-resources/training" component={HumanResourcesTraining} />
+      <Route path="/employment-law/training" component={EmploymentLawTraining} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route component={NotFound} />
     </Switch>

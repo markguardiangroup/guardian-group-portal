@@ -1906,6 +1906,176 @@ export async function registerRoutes(
     }
   });
 
+  // Training Modules (Training Library)
+  app.get("/api/training-modules", requireAuth, async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const trainingModules = await storage.getTrainingModules(module);
+      res.json(trainingModules);
+    } catch (error) {
+      console.error("Get training modules error:", error);
+      res.status(500).json({ error: "Failed to fetch training modules" });
+    }
+  });
+
+  app.get("/api/training-modules/:id", requireAuth, async (req, res) => {
+    try {
+      const trainingModule = await storage.getTrainingModule(req.params.id);
+      if (!trainingModule) {
+        return res.status(404).json({ error: "Training module not found" });
+      }
+      res.json(trainingModule);
+    } catch (error) {
+      console.error("Get training module error:", error);
+      res.status(500).json({ error: "Failed to fetch training module" });
+    }
+  });
+
+  app.post("/api/training-modules", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create training modules" });
+      }
+      
+      const schema = z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+        folderTemplateId: z.string().optional(),
+        provider: z.string().optional(),
+        externalLink: z.string().url(),
+        duration: z.string().optional(),
+        isRequired: z.boolean().optional(),
+        renewalPeriodMonths: z.number().nullable().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const trainingModule = await storage.createTrainingModule({
+        ...parsed.data,
+        createdBy: user.id,
+      });
+      
+      await storage.createAuditLog({
+        action: "training_module_created",
+        userId: user.id,
+        userName: user.fullName,
+        module: trainingModule.module,
+        details: `Created training module "${trainingModule.title}"`,
+        metadata: JSON.stringify({
+          trainingModuleId: trainingModule.id,
+          trainingModuleTitle: trainingModule.title,
+        }),
+      });
+      
+      res.status(201).json(trainingModule);
+    } catch (error) {
+      console.error("Create training module error:", error);
+      res.status(500).json({ error: "Failed to create training module" });
+    }
+  });
+
+  app.patch("/api/training-modules/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update training modules" });
+      }
+      
+      const trainingModule = await storage.getTrainingModule(req.params.id);
+      if (!trainingModule) {
+        return res.status(404).json({ error: "Training module not found" });
+      }
+      
+      const schema = z.object({
+        title: z.string().min(1).optional(),
+        description: z.string().optional().nullable(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
+        folderTemplateId: z.string().optional().nullable(),
+        provider: z.string().optional().nullable(),
+        externalLink: z.string().url().optional(),
+        duration: z.string().optional().nullable(),
+        isRequired: z.boolean().optional(),
+        renewalPeriodMonths: z.number().nullable().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updated = await storage.updateTrainingModule(req.params.id, parsed.data);
+      
+      await storage.createAuditLog({
+        action: "training_module_updated",
+        userId: user.id,
+        userName: user.fullName,
+        module: updated?.module || trainingModule.module,
+        details: `Updated training module "${updated?.title || trainingModule.title}"`,
+        metadata: JSON.stringify({
+          trainingModuleId: req.params.id,
+          changes: Object.keys(parsed.data),
+        }),
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update training module error:", error);
+      res.status(500).json({ error: "Failed to update training module" });
+    }
+  });
+
+  app.delete("/api/training-modules/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete training modules" });
+      }
+      
+      const trainingModule = await storage.getTrainingModule(req.params.id);
+      if (!trainingModule) {
+        return res.status(404).json({ error: "Training module not found" });
+      }
+      
+      await storage.deleteTrainingModule(req.params.id);
+      
+      await storage.createAuditLog({
+        action: "training_module_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        module: trainingModule.module,
+        details: `Deleted training module "${trainingModule.title}"`,
+        metadata: JSON.stringify({
+          trainingModuleId: req.params.id,
+          trainingModuleTitle: trainingModule.title,
+        }),
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete training module error:", error);
+      res.status(500).json({ error: "Failed to delete training module" });
+    }
+  });
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {

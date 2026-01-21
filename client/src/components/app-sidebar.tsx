@@ -15,6 +15,7 @@ import {
   KeyRound,
   Headphones,
   BookOpen,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -62,6 +63,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
+      { title: "Training", url: "/health-safety/training" },
       { title: "Incidents", url: "/health-safety/incidents" },
     ],
   },
@@ -74,6 +76,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
+      { title: "Training", url: "/human-resources/training" },
     ],
   },
   {
@@ -85,6 +88,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/employment-law" },
       { title: "Documents", url: "/employment-law/documents" },
+      { title: "Training", url: "/employment-law/training" },
       { title: "Cases", url: "/employment-law/cases" },
     ],
   },
@@ -138,6 +142,11 @@ const adminNavItems = [
     title: "Template Library",
     url: "/template-library",
     icon: BookOpen,
+  },
+  {
+    title: "Training Library",
+    url: "/training-library",
+    icon: GraduationCap,
   },
   {
     title: "Module Requests",
