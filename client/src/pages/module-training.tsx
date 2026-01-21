@@ -596,7 +596,17 @@ function CourseDetailView({
   onBookTraining: () => void;
 }) {
   const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
-  const parsedPricingTable: PricingTable | null = course.pricingTable ? JSON.parse(course.pricingTable) : null;
+  let parsedPricingTable: PricingTable | null = null;
+  try {
+    if (course.pricingTable) {
+      const parsed = JSON.parse(course.pricingTable);
+      if (parsed && parsed.headingRow && Array.isArray(parsed.dataRows) && parsed.dataRows.length > 0) {
+        parsedPricingTable = parsed;
+      }
+    }
+  } catch {
+    parsedPricingTable = null;
+  }
   const overview = course.courseOverview || [];
 
   return (

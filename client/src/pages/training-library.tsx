@@ -339,13 +339,22 @@ export default function TrainingLibrary() {
     while (paddedOverview.length < 5) {
       paddedOverview.push("");
     }
-    const parsedPricingTable: PricingTable = course.pricingTable 
-      ? JSON.parse(course.pricingTable) 
-      : emptyPricingTable;
-    const paddedPricingDataRows = [...parsedPricingTable.dataRows];
+    let parsedPricingTable: PricingTable;
+    try {
+      const parsed = course.pricingTable ? JSON.parse(course.pricingTable) : null;
+      if (parsed && parsed.headingRow && Array.isArray(parsed.dataRows)) {
+        parsedPricingTable = parsed;
+      } else {
+        parsedPricingTable = emptyPricingTable;
+      }
+    } catch {
+      parsedPricingTable = emptyPricingTable;
+    }
+    const paddedPricingDataRows = [...(parsedPricingTable.dataRows || [])];
     while (paddedPricingDataRows.length < 5) {
       paddedPricingDataRows.push({ column1: "", column2: "" });
     }
+    const headingRow = parsedPricingTable.headingRow || { column1: "", column2: "" };
     setCourseForm({
       title: course.title,
       summary: course.summary || "",
@@ -358,7 +367,7 @@ export default function TrainingLibrary() {
       courseOverview: paddedOverview,
       faqs: paddedFaqs,
       pricingTable: {
-        headingRow: parsedPricingTable.headingRow,
+        headingRow: headingRow,
         dataRows: paddedPricingDataRows,
       },
       isRequired: course.isRequired,
