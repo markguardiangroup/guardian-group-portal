@@ -58,12 +58,8 @@ import {
   History,
   HardHat,
   Users,
-  Lock,
-  Unlock,
-  Sparkles,
   ChevronDown,
   ChevronUp,
-  ShieldCheck,
   Building2,
   LayoutGrid,
   LayoutList,
@@ -81,7 +77,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
-import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess, DocumentTypeRecord } from "@shared/schema";
+import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -113,11 +109,6 @@ const downloadDocument = async (documentId: string, fileName: string, version?: 
     throw error;
   }
 };
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 interface ModuleDocumentsProps {
   module: ModuleType;
@@ -207,7 +198,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [folderFilter, setFolderFilter] = useState<string>("all");
-  const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
@@ -330,25 +320,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     ? (user?.siteId || null)
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
     
-  const { data: documentTypesWithAccess } = useQuery<DocumentTypeWithAccess[]>({
-    queryKey: ["/api/document-types", module, siteId],
-    enabled: !!siteId,
-  });
-  
-  const accessibleTypes = documentTypesWithAccess?.filter(dt => dt.hasAccess) || [];
-  const unavailableTypes = documentTypesWithAccess?.filter(dt => !dt.hasAccess) || [];
-  
-  // Build context description for display
-  const currentContextName = useMemo(() => {
-    if (!canSelectSites) return null;
-    if (selectedSiteId && selectedSiteId !== "all") {
-      return sites?.find((s: SiteWithCompany) => s.id === selectedSiteId)?.name || null;
-    }
-    if (selectedCompany && selectedCompany !== "all") {
-      return `${selectedCompany} (all sites)`;
-    }
-    return "All Clients";
-  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -496,134 +467,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       <div className="space-y-6 p-8">
 
-      {/* Document Type Access Section */}
-      {siteId && documentTypesWithAccess && documentTypesWithAccess.length > 0 && (
-        <Collapsible open={showDocTypeAccess} onOpenChange={setShowDocTypeAccess}>
-          <Card className={unavailableTypes.length > 0 ? "border-amber-300 dark:border-amber-700 shadow-sm" : ""}>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover-elevate pb-3">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${unavailableTypes.length > 0 ? "bg-amber-100 dark:bg-amber-900/40" : "bg-module-accent/10"}`}>
-                      <ShieldCheck className={`h-5 w-5 ${unavailableTypes.length > 0 ? "text-amber-600 dark:text-amber-400" : "text-module-accent"}`} />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        Your Document Type Access
-                        {currentContextName && (
-                          <span className="text-sm font-normal text-muted-foreground">
-                            ({currentContextName})
-                          </span>
-                        )}
-                      </CardTitle>
-                      <CardDescription>
-                        {accessibleTypes.length} of {documentTypesWithAccess.length} document types included in your package
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {unavailableTypes.length > 0 && (
-                      <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                        {unavailableTypes.length} upgrade options
-                      </Badge>
-                    )}
-                    {showDocTypeAccess ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0">
-                {/* Site selector for consultants/admins */}
-                {!isClientUser && sites && sites.length > 1 && (
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">View access for:</span>
-                    <Select 
-                      value={siteId || ""} 
-                      onValueChange={setSelectedSiteId}
-                    >
-                      <SelectTrigger className="w-64" data-testid="select-site-access">
-                        <SelectValue placeholder="Select site" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sites.map((site: SiteBasic) => (
-                          <SelectItem key={site.id} value={site.id}>
-                            {site.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {documentTypesWithAccess.map((docType) => (
-                    <div
-                      key={docType.id}
-                      className={`flex items-center gap-3 rounded-lg border p-3 ${
-                        docType.hasAccess 
-                          ? "bg-card border-border" 
-                          : "bg-muted/30 border-dashed border-muted-foreground/30"
-                      }`}
-                      data-testid={`doctype-${docType.code}`}
-                    >
-                      {docType.hasAccess ? (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                          <Unlock className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        </div>
-                      ) : (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className={`truncate text-sm font-medium ${!docType.hasAccess && "text-muted-foreground"}`}>
-                          {docType.name}
-                        </p>
-                        {docType.hasAccess ? (
-                          <p className="text-xs text-muted-foreground">
-                            {docType.documentCount} document{docType.documentCount !== 1 ? "s" : ""}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
-                            Contact us to add
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {unavailableTypes.length > 0 && (
-                  <div className="mt-4 flex items-center justify-between rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 p-4">
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                      <div>
-                        <p className="font-medium text-amber-800 dark:text-amber-200">
-                          Expand your compliance coverage
-                        </p>
-                        <p className="text-sm text-amber-700 dark:text-amber-300">
-                          {unavailableTypes.length} additional document types are available for your organization
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      className="border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
-                      data-testid="button-request-access"
-                    >
-                      Request Access
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      )}
 
       {/* Folder View */}
       {viewMode === "folder" && (
