@@ -47,36 +47,52 @@ import {
   Filter,
   CheckSquare,
   ExternalLink,
+  Headphones,
+  FileBarChart,
+  MapPin,
 } from "lucide-react";
 import { useState, useMemo, Fragment } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
-import type { ModuleAccessRequest, ModuleType } from "@shared/schema";
+import type { ModuleAccessRequest, ModuleType, Company, Site } from "@shared/schema";
+
+type EnrichedModuleAccessRequest = ModuleAccessRequest & {
+  companyId?: string;
+  companyName?: string;
+};
 
 const moduleIcons: Record<ModuleType, typeof HardHat> = {
   health_safety: HardHat,
   human_resources: Users,
   employment_law: Scale,
+  support: Headphones,
+  reports: FileBarChart,
 };
 
 const moduleNames: Record<ModuleType, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
+  support: "Support",
+  reports: "Reports",
 };
 
 const moduleColors: Record<ModuleType, string> = {
   health_safety: "text-emerald-600 dark:text-emerald-400",
   human_resources: "text-blue-600 dark:text-blue-400",
   employment_law: "text-pink-600 dark:text-pink-400",
+  support: "text-purple-600 dark:text-purple-400",
+  reports: "text-orange-600 dark:text-orange-400",
 };
 
 const moduleBgColors: Record<ModuleType, string> = {
   health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
   human_resources: "bg-blue-100 dark:bg-blue-900/30",
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
+  support: "bg-purple-100 dark:bg-purple-900/30",
+  reports: "bg-orange-100 dark:bg-orange-900/30",
 };
 
 type FilterStatus = "all" | "pending" | "overdue" | "urgent" | "approved" | "rejected";
@@ -158,6 +174,8 @@ export default function ModuleAccessRequests() {
   
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
@@ -167,13 +185,22 @@ export default function ModuleAccessRequests() {
   
   const [reviewDialog, setReviewDialog] = useState<{ 
     open: boolean; 
-    requests: ModuleAccessRequest[];
+    requests: EnrichedModuleAccessRequest[];
     action: "approve" | "reject" | null;
   }>({ open: false, requests: [], action: null });
   const [reviewNotes, setReviewNotes] = useState("");
 
-  const { data: requests = [], isLoading } = useQuery<ModuleAccessRequest[]>({
+  const { data: requests = [], isLoading } = useQuery<EnrichedModuleAccessRequest[]>({
     queryKey: ["/api/module-access-requests"],
+  });
+
+  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
+    queryKey: ["/api/companies?limit=1000"],
+  });
+  const companies = companiesData?.companies || [];
+
+  const { data: sites = [] } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
   });
 
   const reviewMutation = useMutation({
@@ -262,6 +289,28 @@ export default function ModuleAccessRequests() {
     };
   }, [requests]);
 
+  // Get sites for the selected company filter
+  const filteredSites = useMemo(() => {
+    if (companyFilter === "all") return sites;
+    return sites.filter(s => s.companyId === companyFilter);
+  }, [sites, companyFilter]);
+
+  // Get unique companies that have requests
+  const companiesWithRequests = useMemo(() => {
+    const companyIds = new Set(requests.map(r => r.companyId).filter(Boolean));
+    return companies.filter(c => companyIds.has(c.id));
+  }, [companies, requests]);
+
+  // Get sites that have requests (optionally filtered by company)
+  const sitesWithRequests = useMemo(() => {
+    const siteIds = new Set(requests.map(r => r.siteId));
+    let filtered = sites.filter(s => siteIds.has(s.id));
+    if (companyFilter !== "all") {
+      filtered = filtered.filter(s => s.companyId === companyFilter);
+    }
+    return filtered;
+  }, [sites, requests, companyFilter]);
+
   const filteredRequests = useMemo(() => {
     let filtered = [...requests];
     
@@ -280,11 +329,22 @@ export default function ModuleAccessRequests() {
     if (moduleFilter !== "all") {
       filtered = filtered.filter(r => r.module === moduleFilter);
     }
+
+    // Company filter
+    if (companyFilter !== "all") {
+      filtered = filtered.filter(r => r.companyId === companyFilter);
+    }
+
+    // Site filter
+    if (siteFilter !== "all") {
+      filtered = filtered.filter(r => r.siteId === siteFilter);
+    }
     
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(r => 
         r.companyName?.toLowerCase().includes(query) ||
+        r.siteName?.toLowerCase().includes(query) ||
         r.requestedByName.toLowerCase().includes(query)
       );
     }
@@ -302,7 +362,7 @@ export default function ModuleAccessRequests() {
     });
     
     return filtered;
-  }, [requests, statusFilter, moduleFilter, searchQuery, sortBy, sortOrder]);
+  }, [requests, statusFilter, moduleFilter, companyFilter, siteFilter, searchQuery, sortBy, sortOrder]);
 
   const paginatedRequests = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -486,6 +546,47 @@ export default function ModuleAccessRequests() {
             <SelectItem value="health_safety">Health & Safety ({stats.byModule.health_safety})</SelectItem>
             <SelectItem value="human_resources">Human Resources ({stats.byModule.human_resources})</SelectItem>
             <SelectItem value="employment_law">Employment Law ({stats.byModule.employment_law})</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select 
+          value={companyFilter} 
+          onValueChange={(v) => { 
+            setCompanyFilter(v); 
+            setSiteFilter("all"); 
+            setCurrentPage(1); 
+          }}
+        >
+          <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
+            <SelectValue placeholder="All Companies" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Companies</SelectItem>
+            {companiesWithRequests.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select 
+          value={siteFilter} 
+          onValueChange={(v) => { 
+            setSiteFilter(v); 
+            setCurrentPage(1); 
+          }}
+        >
+          <SelectTrigger className="w-[180px]" data-testid="select-site-filter">
+            <SelectValue placeholder="All Sites" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sites</SelectItem>
+            {sitesWithRequests.map((site) => (
+              <SelectItem key={site.id} value={site.id}>
+                {site.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         

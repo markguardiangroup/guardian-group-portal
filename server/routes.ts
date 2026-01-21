@@ -3727,7 +3727,21 @@ export async function registerRoutes(
       }
       
       const requests = await storage.getModuleAccessRequests(siteId, status as any);
-      res.json(requests);
+      
+      // Enrich requests with company data from sites
+      const sites = await storage.getSites();
+      const companies = await storage.getCompanies();
+      const enrichedRequests = requests.map(r => {
+        const site = sites.find(s => s.id === r.siteId);
+        const company = site ? companies.find(c => c.id === site.companyId) : undefined;
+        return {
+          ...r,
+          companyId: company?.id,
+          companyName: company?.name,
+        };
+      });
+      
+      res.json(enrichedRequests);
     } catch (error) {
       console.error("Get module access requests error:", error);
       res.status(500).json({ error: "Failed to fetch access requests" });
