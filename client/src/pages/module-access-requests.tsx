@@ -720,7 +720,7 @@ export default function ModuleAccessRequests() {
                         </TableCell>
                         <TableCell className="py-2 text-right">
                           <div className="flex justify-end gap-1">
-                            <Link href={`/entities/${request.siteId}`}>
+                            <Link href={`/sites/${request.siteId}`}>
                               <Button
                                 variant="outline"
                                 size="sm"
