@@ -61,6 +61,10 @@ import {
   List,
   HelpCircle,
   ChevronRight,
+  Eye,
+  ExternalLink,
+  Building2,
+  DollarSign,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -124,6 +128,7 @@ export default function TrainingLibrary() {
   // Course dialog state
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<TrainingCourse | null>(null);
+  const [viewingCourse, setViewingCourse] = useState<TrainingCourse | null>(null);
   const emptyPricingTable: PricingTable = {
     headingRow: { column1: "", column2: "" },
     dataRows: [
@@ -538,6 +543,7 @@ export default function TrainingLibrary() {
                 isAdmin={isAdmin}
                 onEditFolder={handleEditFolder}
                 onDeleteFolder={(id) => deleteFolderMutation.mutate(id)}
+                onViewCourse={setViewingCourse}
                 onEditCourse={handleEditCourse}
                 onDeleteCourse={(id) => deleteCourseMutation.mutate(id)}
                 moduleColors={moduleColors}
@@ -548,6 +554,7 @@ export default function TrainingLibrary() {
                 courses={filteredCourses}
                 folders={filteredFolders}
                 isAdmin={isAdmin}
+                onViewCourse={setViewingCourse}
                 onEditCourse={handleEditCourse}
                 onDeleteCourse={(id) => deleteCourseMutation.mutate(id)}
                 moduleColors={moduleColors}
@@ -935,7 +942,224 @@ export default function TrainingLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Course Details Dialog */}
+      <Dialog open={!!viewingCourse} onOpenChange={(open) => {
+        if (!open) setViewingCourse(null);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {viewingCourse && (
+            <CourseDetailView 
+              course={viewingCourse} 
+              folders={trainingFolders || []}
+              onClose={() => setViewingCourse(null)}
+              onEdit={() => {
+                handleEditCourse(viewingCourse);
+                setViewingCourse(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Course Detail View Component for read-only viewing
+function CourseDetailView({
+  course,
+  folders,
+  onClose,
+  onEdit,
+}: {
+  course: TrainingCourse;
+  folders: TrainingFolder[];
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const folderName = course.trainingFolderId 
+    ? folders.find(f => f.id === course.trainingFolderId)?.name || "Unknown Folder"
+    : "Unassigned";
+
+  const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
+  const validFaqs = parsedFaqs.filter(faq => faq.question.trim() || faq.answer.trim());
+  
+  let parsedPricingTable: PricingTable | null = null;
+  try {
+    if (course.pricingTable) {
+      const parsed = JSON.parse(course.pricingTable);
+      if (parsed && parsed.headingRow && Array.isArray(parsed.dataRows)) {
+        const hasData = parsed.dataRows.some((row: PricingTableRow) => row.column1?.trim() || row.column2?.trim());
+        if (hasData || parsed.headingRow.column1?.trim() || parsed.headingRow.column2?.trim()) {
+          parsedPricingTable = parsed;
+        }
+      }
+    }
+  } catch {
+    parsedPricingTable = null;
+  }
+
+  const overview = course.courseOverview || [];
+  const validOverview = overview.filter(item => item.trim());
+
+  return (
+    <>
+      <DialogHeader>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <DialogTitle className="text-xl">{course.title}</DialogTitle>
+            <DialogDescription className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className={moduleColors[course.module]}>
+                {moduleNames[course.module]}
+              </Badge>
+              <span className="text-muted-foreground">•</span>
+              <span>{folderName}</span>
+              {course.productCode && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {course.productCode}
+                  </Badge>
+                </>
+              )}
+            </DialogDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {course.isRequired ? (
+              <Badge variant="destructive" className="gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Required
+                {course.renewalPeriodMonths && (
+                  <span className="ml-1 opacity-75">({course.renewalPeriodMonths}mo)</span>
+                )}
+              </Badge>
+            ) : (
+              <Badge variant="secondary">Optional</Badge>
+            )}
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="space-y-6 py-4">
+        {/* Summary */}
+        {course.summary && (
+          <div>
+            <h4 className="font-medium mb-2">Summary</h4>
+            <p className="text-sm text-muted-foreground">{course.summary}</p>
+          </div>
+        )}
+
+        {/* Course Details Grid */}
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          {course.provider && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Provider:</span>
+              <span>{course.provider}</span>
+            </div>
+          )}
+          {course.duration && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Duration:</span>
+              <span>{course.duration}</span>
+            </div>
+          )}
+          {course.externalLink && (
+            <div className="flex items-center gap-2 col-span-2">
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Link:</span>
+              <a 
+                href={course.externalLink} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline truncate"
+              >
+                {course.externalLink}
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Course Overview */}
+        {validOverview.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Course Overview
+            </h4>
+            <ul className="space-y-1">
+              {validOverview.map((item, index) => (
+                <li key={index} className="flex items-start gap-2 text-sm">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Pricing Table */}
+        {parsedPricingTable && (
+          <div>
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Pricing
+            </h4>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{parsedPricingTable.headingRow.column1 || "Item"}</TableHead>
+                  <TableHead>{parsedPricingTable.headingRow.column2 || "Price"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {parsedPricingTable.dataRows
+                  .filter((row: PricingTableRow) => row.column1?.trim() || row.column2?.trim())
+                  .map((row: PricingTableRow, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.column1}</TableCell>
+                      <TableCell>{row.column2}</TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* FAQs */}
+        {validFaqs.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Frequently Asked Questions
+            </h4>
+            <Accordion type="single" collapsible className="w-full">
+              {validFaqs.map((faq, index) => (
+                <AccordionItem key={index} value={`faq-${index}`}>
+                  <AccordionTrigger className="text-sm text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Close
+        </Button>
+        <Button onClick={onEdit}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Edit Course
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
 
@@ -948,6 +1172,7 @@ function FolderView({
   isAdmin,
   onEditFolder,
   onDeleteFolder,
+  onViewCourse,
   onEditCourse,
   onDeleteCourse,
   moduleColors,
@@ -960,6 +1185,7 @@ function FolderView({
   isAdmin: boolean;
   onEditFolder: (folder: TrainingFolder) => void;
   onDeleteFolder: (id: string) => void;
+  onViewCourse: (course: TrainingCourse) => void;
   onEditCourse: (course: TrainingCourse) => void;
   onDeleteCourse: (id: string) => void;
   moduleColors: Record<string, string>;
@@ -1035,6 +1261,7 @@ function FolderView({
                       key={course.id} 
                       course={course} 
                       isAdmin={isAdmin}
+                      onView={() => onViewCourse(course)}
                       onEdit={() => onEditCourse(course)}
                       onDelete={() => onDeleteCourse(course.id)}
                     />
@@ -1065,6 +1292,7 @@ function FolderView({
                   key={course.id} 
                   course={course} 
                   isAdmin={isAdmin}
+                  onView={() => onViewCourse(course)}
                   onEdit={() => onEditCourse(course)}
                   onDelete={() => onDeleteCourse(course.id)}
                 />
@@ -1082,6 +1310,7 @@ function CourseListView({
   courses,
   folders,
   isAdmin,
+  onViewCourse,
   onEditCourse,
   onDeleteCourse,
   moduleColors,
@@ -1090,6 +1319,7 @@ function CourseListView({
   courses: TrainingCourse[];
   folders: TrainingFolder[];
   isAdmin: boolean;
+  onViewCourse: (course: TrainingCourse) => void;
   onEditCourse: (course: TrainingCourse) => void;
   onDeleteCourse: (id: string) => void;
   moduleColors: Record<string, string>;
@@ -1175,6 +1405,10 @@ function CourseListView({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onViewCourse(course)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEditCourse(course)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit Course
@@ -1202,11 +1436,13 @@ function CourseListView({
 function CourseRow({
   course,
   isAdmin,
+  onView,
   onEdit,
   onDelete,
 }: {
   course: TrainingCourse;
   isAdmin: boolean;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -1244,6 +1480,10 @@ function CourseRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onView}>
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onEdit}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Course
