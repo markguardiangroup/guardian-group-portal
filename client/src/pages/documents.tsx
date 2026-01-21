@@ -42,6 +42,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -69,9 +76,88 @@ import {
   ChevronRight,
   MoveRight,
   FolderTree,
+  LayoutList,
+  LayoutGrid,
+  HardHat,
+  Users,
+  Scale,
+  FileCheck,
+  FileClock,
+  FileWarning,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site } from "@shared/schema";
+import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType } from "@shared/schema";
+
+// Type for the documents hierarchy API response
+interface DocumentHierarchyDocument {
+  id: string;
+  title: string;
+  fileName: string;
+  status: string;
+  approvalStatus: string;
+  source: string;
+  templateId: string | null;
+  expiryDate: string | null;
+  updatedAt: string;
+}
+
+interface FolderStats {
+  totalDocuments: number;
+  compliant: number;
+  reviewRequired: number;
+  overdue: number;
+  pendingApproval?: number;
+  requiredTemplates: number;
+  fulfilledRequired: number;
+  folderStatus?: "compliant" | "incomplete" | "attention_needed";
+}
+
+interface TemplateInfo {
+  id: string;
+  name: string;
+  isRequired: boolean;
+  renewalPeriodMonths: number | null;
+  hasFulfilledDocument: boolean;
+}
+
+interface ChildFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  isRequired: boolean;
+  siteFolder: { id: string; name: string } | null;
+  documents: DocumentHierarchyDocument[];
+  stats: FolderStats;
+}
+
+interface HierarchyFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  isRequired: boolean;
+  sortOrder: number;
+  siteFolder: { id: string; name: string } | null;
+  documents: DocumentHierarchyDocument[];
+  childFolders: ChildFolder[];
+  stats: FolderStats;
+  templateInfo: TemplateInfo[];
+}
+
+interface DocumentsHierarchyResponse {
+  siteId: string;
+  module: string;
+  folders: HierarchyFolder[];
+  unfiledDocuments: DocumentHierarchyDocument[];
+  summary: {
+    totalFolders: number;
+    totalDocuments: number;
+    compliant: number;
+    reviewRequired: number;
+    overdue: number;
+  };
+}
+
+type ViewMode = "folder" | "table";
 
 const documentTypeLabels: Record<DocumentType, string> = {
   // Health & Safety
@@ -105,6 +191,22 @@ const documentTypeLabels: Record<DocumentType, string> = {
   legal_correspondence: "Legal Correspondence",
 };
 
+// Module labels for display (using ModuleType values from schema)
+const moduleLabels: Record<string, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "HR",
+  employment_law: "Employment Law",
+  support: "Support",
+};
+
+// Module icons (using ModuleType values from schema)
+const moduleIcons: Record<string, typeof HardHat> = {
+  health_safety: HardHat,
+  human_resources: Users,
+  employment_law: Scale,
+  support: MessageSquare,
+};
+
 function DocumentsListView() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -119,6 +221,8 @@ function DocumentsListView() {
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderDescription, setNewFolderDescription] = useState("");
   const [newFolderModule, setNewFolderModule] = useState<string>("health_safety");
+  const [viewMode, setViewMode] = useState<ViewMode>("folder");
+  const [selectedModule, setSelectedModule] = useState<string>("health_safety");
 
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
@@ -126,6 +230,17 @@ function DocumentsListView() {
 
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
+  });
+
+  // Fetch documents hierarchy for folder view
+  const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
+    queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy`);
+      if (!res.ok) throw new Error("Failed to fetch hierarchy");
+      return res.json();
+    },
+    enabled: selectedSiteId !== "all" && viewMode === "folder",
   });
 
   const { data: folders } = useQuery<DocumentFolder[]>({
@@ -245,58 +360,112 @@ function DocumentsListView() {
         </Button>
       </div>
 
-      {/* Site and Folder Selection */}
-      <div className="flex flex-wrap items-center gap-4">
-        <Select value={selectedSiteId} onValueChange={(value) => { setSelectedSiteId(value); setSelectedFolderId(null); }}>
-          <SelectTrigger className="w-52" data-testid="select-site">
-            <SelectValue placeholder="Select Site" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sites</SelectItem>
-            {sites?.map((site) => (
-              <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Site Selection and View Toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <Select value={selectedSiteId} onValueChange={(value) => { setSelectedSiteId(value); setSelectedFolderId(null); }}>
+            <SelectTrigger className="w-52" data-testid="select-site">
+              <SelectValue placeholder="Select Site" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites?.map((site) => (
+                <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {selectedSiteId !== "all" && folders && folders.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant={selectedFolderId === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedFolderId(null)}
-              data-testid="button-all-documents"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              All Documents
-            </Button>
-            {folders.map((folder) => (
+          {/* Module selector for folder view */}
+          {viewMode === "folder" && selectedSiteId !== "all" && (
+            <Select value={selectedModule} onValueChange={setSelectedModule}>
+              <SelectTrigger className="w-48" data-testid="select-module">
+                <SelectValue placeholder="Select Module" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="health_safety">
+                  <div className="flex items-center gap-2">
+                    <HardHat className="h-4 w-4" />
+                    Health &amp; Safety
+                  </div>
+                </SelectItem>
+                <SelectItem value="human_resources">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    HR
+                  </div>
+                </SelectItem>
+                <SelectItem value="employment_law">
+                  <div className="flex items-center gap-2">
+                    <Scale className="h-4 w-4" />
+                    Employment Law
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Folder buttons for table view (existing behavior) */}
+          {viewMode === "table" && selectedSiteId !== "all" && folders && folders.length > 0 && (
+            <div className="flex items-center gap-2">
               <Button
-                key={folder.id}
-                variant={selectedFolderId === folder.id ? "default" : "outline"}
+                variant={selectedFolderId === null ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedFolderId(folder.id)}
-                data-testid={`button-folder-${folder.id}`}
+                onClick={() => setSelectedFolderId(null)}
+                data-testid="button-all-documents"
               >
-                <Folder className="mr-2 h-4 w-4" />
-                {folder.name}
+                <FileText className="mr-2 h-4 w-4" />
+                All Documents
               </Button>
-            ))}
-          </div>
-        )}
+              {folders.map((folder) => (
+                <Button
+                  key={folder.id}
+                  variant={selectedFolderId === folder.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedFolderId(folder.id)}
+                  data-testid={`button-folder-${folder.id}`}
+                >
+                  <Folder className="mr-2 h-4 w-4" />
+                  {folder.name}
+                </Button>
+              ))}
+            </div>
+          )}
 
-        {canManageFolders && selectedSiteId !== "all" && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowCreateFolderDialog(true)} data-testid="button-create-folder">
-              <FolderPlus className="mr-2 h-4 w-4" />
-              New Folder
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowProvisionDialog(true)} data-testid="button-provision-folders">
-              <FolderTree className="mr-2 h-4 w-4" />
-              Apply Templates
-            </Button>
-          </div>
-        )}
+          {canManageFolders && selectedSiteId !== "all" && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowCreateFolderDialog(true)} data-testid="button-create-folder">
+                <FolderPlus className="mr-2 h-4 w-4" />
+                New Folder
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowProvisionDialog(true)} data-testid="button-provision-folders">
+                <FolderTree className="mr-2 h-4 w-4" />
+                Apply Templates
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* View Toggle */}
+        <div className="flex items-center gap-1 rounded-md border p-1">
+          <Button
+            variant={viewMode === "folder" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("folder")}
+            data-testid="button-folder-view"
+          >
+            <LayoutGrid className="mr-2 h-4 w-4" />
+            Folder View
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("table")}
+            data-testid="button-table-view"
+          >
+            <LayoutList className="mr-2 h-4 w-4" />
+            Table View
+          </Button>
+        </div>
       </div>
 
       {/* Provision Folders from Templates Dialog */}
@@ -396,47 +565,335 @@ function DocumentsListView() {
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-documents"
-              />
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-40" data-testid="select-document-type">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {Object.entries(documentTypeLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+      {/* Folder View */}
+      {viewMode === "folder" && selectedSiteId !== "all" && (
+        <div className="space-y-4">
+          {/* Summary Card */}
+          {hierarchy?.summary && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const ModuleIcon = moduleIcons[selectedModule] || HardHat;
+                      return <ModuleIcon className="h-5 w-5 text-primary" />;
+                    })()}
+                    <CardTitle className="text-lg">{moduleLabels[selectedModule]} Documents</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <FileCheck className="h-4 w-4 text-green-600" />
+                      <span>{hierarchy.summary.compliant} Compliant</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileClock className="h-4 w-4 text-yellow-600" />
+                      <span>{hierarchy.summary.reviewRequired} Review Required</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileWarning className="h-4 w-4 text-red-600" />
+                      <span>{hierarchy.summary.overdue} Overdue</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
+          {/* Folders Accordion */}
+          {isLoadingHierarchy ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
                   ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40" data-testid="select-document-status">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="compliant">Compliant</SelectItem>
-                  <SelectItem value="review_required">Review Required</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
+                </div>
+              </CardContent>
+            </Card>
+          ) : hierarchy?.folders && hierarchy.folders.length > 0 ? (
+            <Card>
+              <CardContent className="p-0">
+                <Accordion type="multiple" className="w-full" defaultValue={hierarchy.folders.map(f => f.id)}>
+                  {hierarchy.folders.map((folder) => (
+                    <AccordionItem key={folder.id} value={folder.id} className="border-b last:border-b-0">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline" data-testid={`accordion-folder-${folder.id}`}>
+                        <div className="flex flex-1 items-center justify-between pr-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                              <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{folder.name}</span>
+                                {folder.isRequired && (
+                                  <Badge variant="outline" className="text-xs">Required</Badge>
+                                )}
+                              </div>
+                              {folder.description && (
+                                <p className="text-sm text-muted-foreground">{folder.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {/* Folder status indicator */}
+                            {folder.stats.folderStatus === "compliant" && folder.stats.totalDocuments > 0 && (
+                              <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                                <CheckCircle className="mr-1 h-3 w-3" />
+                                Compliant
+                              </Badge>
+                            )}
+                            {folder.stats.folderStatus === "incomplete" && (
+                              <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700">
+                                <Clock className="mr-1 h-3 w-3" />
+                                {folder.stats.fulfilledRequired}/{folder.stats.requiredTemplates} Required
+                              </Badge>
+                            )}
+                            {folder.stats.folderStatus === "attention_needed" && (
+                              <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
+                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                Needs Attention
+                              </Badge>
+                            )}
+                            {folder.stats.totalDocuments === 0 && folder.stats.requiredTemplates === 0 && (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                Empty
+                              </Badge>
+                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {folder.stats.totalDocuments} document{folder.stats.totalDocuments !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        {/* Template requirements */}
+                        {folder.templateInfo && folder.templateInfo.length > 0 && (
+                          <div className="mb-4 rounded-md border bg-muted/30 p-3">
+                            <h4 className="mb-2 text-sm font-medium">Required Documents</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {folder.templateInfo.filter(t => t.isRequired).map((template) => (
+                                <Badge
+                                  key={template.id}
+                                  variant={template.hasFulfilledDocument ? "default" : "outline"}
+                                  className={template.hasFulfilledDocument ? "bg-green-100 text-green-800" : ""}
+                                >
+                                  {template.hasFulfilledDocument && <CheckCircle className="mr-1 h-3 w-3" />}
+                                  {template.name}
+                                </Badge>
+                              ))}
+                              {folder.templateInfo.filter(t => t.isRequired).length === 0 && (
+                                <span className="text-sm text-muted-foreground">No required documents for this folder</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Documents list */}
+                        {folder.documents.length > 0 ? (
+                          <div className="space-y-2">
+                            {folder.documents.map((doc) => (
+                              <Link 
+                                key={doc.id} 
+                                href={`/documents/${doc.id}`}
+                                className="flex items-center justify-between rounded-md border p-3 hover-elevate"
+                                data-testid={`folder-doc-${doc.id}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{doc.title}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {doc.fileName} • {doc.source === "template" ? "From Template" : "Uploaded"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <RAGBadge status={doc.status as any} />
+                                  <ApprovalBadge status={doc.approvalStatus as any} />
+                                  <span className="text-sm text-muted-foreground">
+                                    {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                                  </span>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                              <FileText className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                            <p className="mt-3 text-sm text-muted-foreground">No documents in this folder yet</p>
+                            <Button className="mt-3" size="sm" asChild>
+                              <Link href="/documents/upload">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload Document
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Child folders */}
+                        {folder.childFolders && folder.childFolders.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="mb-2 text-sm font-medium text-muted-foreground">Sub-folders</h4>
+                            <Accordion type="multiple" className="w-full">
+                              {folder.childFolders.map((child) => (
+                                <AccordionItem key={child.id} value={child.id} className="border rounded-md mb-2">
+                                  <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                                    <div className="flex items-center gap-2">
+                                      <Folder className="h-4 w-4 text-muted-foreground" />
+                                      <span className="text-sm font-medium">{child.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({child.documents.length} docs)
+                                      </span>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="px-3 pb-3">
+                                    {child.documents.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {child.documents.map((doc) => (
+                                          <Link
+                                            key={doc.id}
+                                            href={`/documents/${doc.id}`}
+                                            className="flex items-center justify-between rounded-md border p-2 hover-elevate"
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <FileText className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-sm">{doc.title}</span>
+                                            </div>
+                                            <RAGBadge status={doc.status as any} />
+                                          </Link>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">No documents</p>
+                                    )}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ))}
+                            </Accordion>
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <FolderOpen className="h-7 w-7 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">No folders configured</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Apply folder templates to organize documents for this module
+                </p>
+                {canManageFolders && (
+                  <Button className="mt-4" onClick={() => setShowProvisionDialog(true)}>
+                    <FolderTree className="mr-2 h-4 w-4" />
+                    Apply Templates
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Unfiled Documents */}
+          {hierarchy?.unfiledDocuments && hierarchy.unfiledDocuments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Unfiled Documents</CardTitle>
+                <CardDescription>Documents not assigned to any folder</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {hierarchy.unfiledDocuments.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={`/documents/${doc.id}`}
+                      className="flex items-center justify-between rounded-md border p-3 hover-elevate"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{doc.title}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <RAGBadge status={doc.status as any} />
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Folder View - No Site Selected */}
+      {viewMode === "folder" && selectedSiteId === "all" && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+              <FolderOpen className="h-7 w-7 text-muted-foreground" />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
+            <h3 className="mt-4 text-lg font-medium">Select a site</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose a site to view documents organized by folder
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Table View */}
+      {viewMode === "table" && (
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search documents..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-documents"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-40" data-testid="select-document-type">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {Object.entries(documentTypeLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40" data-testid="select-document-status">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="compliant">Compliant</SelectItem>
+                    <SelectItem value="review_required">Review Required</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
           {filteredDocuments && filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
@@ -559,6 +1016,7 @@ function DocumentsListView() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

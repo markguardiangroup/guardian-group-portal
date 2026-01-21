@@ -3339,6 +3339,197 @@ export async function registerRoutes(
     }
   });
 
+  // Get documents hierarchy for a site module (folder-based view with compliance stats)
+  app.get("/api/sites/:siteId/modules/:module/documents-hierarchy", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const { siteId, module } = req.params;
+      
+      // Authorization: check site access
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Not authorized to view this site's documents" });
+      }
+      
+      // Validate module type (using ModuleType values from schema)
+      const validModules = ["health_safety", "human_resources", "employment_law", "support"];
+      if (!validModules.includes(module)) {
+        return res.status(400).json({ error: "Invalid module type" });
+      }
+      
+      // Get folder templates for this module (the "master" folder structure)
+      const folderTemplates = await storage.getFolderTemplates(module as any);
+      
+      // Get document templates for this module (to check required templates)
+      const allDocTemplates = await storage.getDocumentTemplates();
+      const moduleDocTemplates = allDocTemplates.filter(dt => dt.module === module && dt.isActive);
+      
+      // Get actual document folders provisioned for this site
+      const siteFolders = await storage.getDocumentFolders(siteId, module as any);
+      
+      // Get all documents for this site in this module
+      const allDocuments = await storage.getDocuments(module as any);
+      const siteDocuments = allDocuments.filter(d => d.siteId === siteId && !d.isArchived);
+      
+      // Build the hierarchy: for each folder template, find matching site folder and its documents
+      const hierarchy = folderTemplates
+        .filter(ft => !ft.parentId) // Only top-level folders
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(folderTemplate => {
+          // Find the provisioned folder for this template
+          const siteFolder = siteFolders.find(sf => sf.templateId === folderTemplate.id);
+          
+          // Get document templates in this folder template
+          const folderDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === folderTemplate.id);
+          const requiredTemplates = folderDocTemplates.filter(dt => dt.isRequired);
+          
+          // Get documents in this folder (if folder exists)
+          const folderDocuments = siteFolder 
+            ? siteDocuments.filter(d => d.folderId === siteFolder.id)
+            : [];
+          
+          // Calculate compliance stats
+          const compliantCount = folderDocuments.filter(d => d.status === "compliant").length;
+          const reviewRequiredCount = folderDocuments.filter(d => d.status === "review_required").length;
+          const overdueCount = folderDocuments.filter(d => d.status === "overdue").length;
+          const pendingApprovalCount = folderDocuments.filter(d => d.approvalStatus === "pending").length;
+          
+          // Check if required templates have been fulfilled
+          const fulfilledRequiredCount = requiredTemplates.filter(rt => 
+            folderDocuments.some(d => d.templateId === rt.id)
+          ).length;
+          
+          // Determine folder compliance status
+          let folderStatus: "compliant" | "incomplete" | "attention_needed" = "compliant";
+          if (requiredTemplates.length > 0 && fulfilledRequiredCount < requiredTemplates.length) {
+            folderStatus = "incomplete";
+          } else if (overdueCount > 0 || reviewRequiredCount > 0) {
+            folderStatus = "attention_needed";
+          }
+          
+          // Get child folders (sub-folders) if any
+          const childFolderTemplates = folderTemplates.filter(ft => ft.parentId === folderTemplate.id);
+          const childFolders = childFolderTemplates.map(childTemplate => {
+            const childSiteFolder = siteFolders.find(sf => sf.templateId === childTemplate.id);
+            const childFolderDocs = childSiteFolder
+              ? siteDocuments.filter(d => d.folderId === childSiteFolder.id)
+              : [];
+            
+            const childDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === childTemplate.id);
+            const childRequiredTemplates = childDocTemplates.filter(dt => dt.isRequired);
+            const childFulfilledCount = childRequiredTemplates.filter(rt =>
+              childFolderDocs.some(d => d.templateId === rt.id)
+            ).length;
+            
+            return {
+              id: childTemplate.id,
+              name: childTemplate.name,
+              description: childTemplate.description,
+              isRequired: childTemplate.isRequired,
+              siteFolder: childSiteFolder ? {
+                id: childSiteFolder.id,
+                name: childSiteFolder.name,
+              } : null,
+              documents: childFolderDocs.map(d => ({
+                id: d.id,
+                title: d.title,
+                fileName: d.fileName,
+                status: d.status,
+                approvalStatus: d.approvalStatus,
+                source: d.source,
+                templateId: d.templateId,
+                expiryDate: d.expiryDate,
+                updatedAt: d.updatedAt,
+              })),
+              stats: {
+                totalDocuments: childFolderDocs.length,
+                compliant: childFolderDocs.filter(d => d.status === "compliant").length,
+                reviewRequired: childFolderDocs.filter(d => d.status === "review_required").length,
+                overdue: childFolderDocs.filter(d => d.status === "overdue").length,
+                requiredTemplates: childRequiredTemplates.length,
+                fulfilledRequired: childFulfilledCount,
+              },
+            };
+          });
+          
+          return {
+            id: folderTemplate.id,
+            name: folderTemplate.name,
+            description: folderTemplate.description,
+            isRequired: folderTemplate.isRequired,
+            sortOrder: folderTemplate.sortOrder,
+            siteFolder: siteFolder ? {
+              id: siteFolder.id,
+              name: siteFolder.name,
+            } : null,
+            documents: folderDocuments.map(d => ({
+              id: d.id,
+              title: d.title,
+              fileName: d.fileName,
+              status: d.status,
+              approvalStatus: d.approvalStatus,
+              source: d.source,
+              templateId: d.templateId,
+              expiryDate: d.expiryDate,
+              updatedAt: d.updatedAt,
+            })),
+            childFolders,
+            stats: {
+              totalDocuments: folderDocuments.length,
+              compliant: compliantCount,
+              reviewRequired: reviewRequiredCount,
+              overdue: overdueCount,
+              pendingApproval: pendingApprovalCount,
+              requiredTemplates: requiredTemplates.length,
+              fulfilledRequired: fulfilledRequiredCount,
+              folderStatus,
+            },
+            templateInfo: folderDocTemplates.map(dt => ({
+              id: dt.id,
+              name: dt.name,
+              isRequired: dt.isRequired,
+              renewalPeriodMonths: dt.renewalPeriodMonths,
+              hasFulfilledDocument: folderDocuments.some(d => d.templateId === dt.id),
+            })),
+          };
+        });
+      
+      // Also include unfiled documents (documents not in any folder)
+      const unfiledDocuments = siteDocuments.filter(d => !d.folderId);
+      
+      res.json({
+        siteId,
+        module,
+        folders: hierarchy,
+        unfiledDocuments: unfiledDocuments.map(d => ({
+          id: d.id,
+          title: d.title,
+          fileName: d.fileName,
+          status: d.status,
+          approvalStatus: d.approvalStatus,
+          source: d.source,
+          templateId: d.templateId,
+          expiryDate: d.expiryDate,
+          updatedAt: d.updatedAt,
+        })),
+        summary: {
+          totalFolders: hierarchy.length,
+          totalDocuments: siteDocuments.length,
+          compliant: siteDocuments.filter(d => d.status === "compliant").length,
+          reviewRequired: siteDocuments.filter(d => d.status === "review_required").length,
+          overdue: siteDocuments.filter(d => d.status === "overdue").length,
+        },
+      });
+    } catch (error) {
+      console.error("Get documents hierarchy error:", error);
+      res.status(500).json({ error: "Failed to fetch documents hierarchy" });
+    }
+  });
+
   // Module Access Request Routes
   
   // Get all access requests (admin/consultant) or entity-specific (client)
