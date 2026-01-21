@@ -904,11 +904,24 @@ export type TrainingFAQ = {
   answer: string;
 };
 
+// Pricing table row type for training courses (2 columns)
+export type PricingTableRow = {
+  column1: string;
+  column2: string;
+};
+
+// Full pricing table structure (heading row + 5 data rows)
+export type PricingTable = {
+  headingRow: PricingTableRow;
+  dataRows: PricingTableRow[]; // Up to 5 rows
+};
+
 // Training Courses (Admin-managed training library)
 export const trainingCourses = pgTable("training_courses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   summary: text("summary"), // Brief summary of the course
+  productCode: text("product_code"), // Product/SKU code for the course
   module: text("module").$type<ModuleType>().notNull(),
   trainingFolderId: varchar("training_folder_id"), // Links to training folders
   provider: text("provider"), // e.g., "IOSH", "HSE Direct", "CIPD"
@@ -916,6 +929,7 @@ export const trainingCourses = pgTable("training_courses", {
   duration: text("duration"), // e.g., "2 hours", "1 day", "Self-paced"
   courseOverview: text("course_overview").array(), // List of course topics/sections
   faqs: text("faqs"), // JSON string of TrainingFAQ[] (5 Q&A pairs)
+  pricingTable: text("pricing_table"), // JSON string of PricingTable (heading row + 5 data rows)
   isRequired: boolean("is_required").notNull().default(false),
   renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
   sortOrder: integer("sort_order").notNull().default(0),

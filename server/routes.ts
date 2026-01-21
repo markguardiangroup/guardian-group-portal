@@ -2225,9 +2225,20 @@ export async function registerRoutes(
         answer: z.string(),
       });
       
+      const pricingRowSchema = z.object({
+        column1: z.string(),
+        column2: z.string(),
+      });
+      
+      const pricingTableSchema = z.object({
+        headingRow: pricingRowSchema,
+        dataRows: z.array(pricingRowSchema).max(5),
+      });
+      
       const schema = z.object({
         title: z.string().min(1),
         summary: z.string().optional(),
+        productCode: z.string().optional(),
         module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
         trainingFolderId: z.string().optional(),
         provider: z.string().optional(),
@@ -2235,6 +2246,7 @@ export async function registerRoutes(
         duration: z.string().optional(),
         courseOverview: z.array(z.string()).optional(),
         faqs: z.array(faqSchema).max(5).optional(),
+        pricingTable: pricingTableSchema.optional(),
         isRequired: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
@@ -2248,6 +2260,7 @@ export async function registerRoutes(
       const course = await storage.createTrainingCourse({
         ...parsed.data,
         faqs: parsed.data.faqs ? JSON.stringify(parsed.data.faqs) : undefined,
+        pricingTable: parsed.data.pricingTable ? JSON.stringify(parsed.data.pricingTable) : undefined,
         createdBy: user.id,
       });
       
@@ -2275,9 +2288,20 @@ export async function registerRoutes(
         answer: z.string(),
       });
       
+      const pricingRowSchema = z.object({
+        column1: z.string(),
+        column2: z.string(),
+      });
+      
+      const pricingTableSchema = z.object({
+        headingRow: pricingRowSchema,
+        dataRows: z.array(pricingRowSchema).max(5),
+      });
+      
       const schema = z.object({
         title: z.string().min(1).optional(),
         summary: z.string().optional().nullable(),
+        productCode: z.string().optional().nullable(),
         module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
         trainingFolderId: z.string().optional().nullable(),
         provider: z.string().optional().nullable(),
@@ -2285,6 +2309,7 @@ export async function registerRoutes(
         duration: z.string().optional().nullable(),
         courseOverview: z.array(z.string()).optional().nullable(),
         faqs: z.array(faqSchema).max(5).optional().nullable(),
+        pricingTable: pricingTableSchema.optional().nullable(),
         isRequired: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
@@ -2298,6 +2323,9 @@ export async function registerRoutes(
       const updateData: any = { ...parsed.data };
       if (parsed.data.faqs !== undefined) {
         updateData.faqs = parsed.data.faqs ? JSON.stringify(parsed.data.faqs) : null;
+      }
+      if (parsed.data.pricingTable !== undefined) {
+        updateData.pricingTable = parsed.data.pricingTable ? JSON.stringify(parsed.data.pricingTable) : null;
       }
       
       const updated = await storage.updateTrainingCourse(req.params.id, updateData);

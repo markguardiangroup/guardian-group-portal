@@ -66,7 +66,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { TrainingFolder, TrainingCourse, ModuleType, TrainingFAQ } from "@shared/schema";
+import type { TrainingFolder, TrainingCourse, ModuleType, TrainingFAQ, PricingTable, PricingTableRow } from "@shared/schema";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -124,9 +124,20 @@ export default function TrainingLibrary() {
   // Course dialog state
   const [showCourseDialog, setShowCourseDialog] = useState(false);
   const [editingCourse, setEditingCourse] = useState<TrainingCourse | null>(null);
+  const emptyPricingTable: PricingTable = {
+    headingRow: { column1: "", column2: "" },
+    dataRows: [
+      { column1: "", column2: "" },
+      { column1: "", column2: "" },
+      { column1: "", column2: "" },
+      { column1: "", column2: "" },
+      { column1: "", column2: "" },
+    ],
+  };
   const [courseForm, setCourseForm] = useState({
     title: "",
     summary: "",
+    productCode: "",
     module: "health_safety" as ModuleType,
     trainingFolderId: "",
     provider: "",
@@ -140,6 +151,7 @@ export default function TrainingLibrary() {
       { question: "", answer: "" },
       { question: "", answer: "" },
     ] as TrainingFAQ[],
+    pricingTable: emptyPricingTable,
     isRequired: false,
     renewalPeriodMonths: null as number | null,
   });
@@ -200,14 +212,28 @@ export default function TrainingLibrary() {
     },
   });
 
+  // Helper to clean pricing table (remove empty rows)
+  const cleanPricingTable = (table: PricingTable): PricingTable | undefined => {
+    const hasHeading = table.headingRow.column1.trim() || table.headingRow.column2.trim();
+    const filledRows = table.dataRows.filter(row => row.column1.trim() || row.column2.trim());
+    if (!hasHeading && filledRows.length === 0) return undefined;
+    return {
+      headingRow: table.headingRow,
+      dataRows: filledRows.length > 0 ? filledRows : table.dataRows.slice(0, 1),
+    };
+  };
+
   // Course mutations
   const createCourseMutation = useMutation({
     mutationFn: async (data: typeof courseForm) => {
+      const cleanedPricingTable = cleanPricingTable(data.pricingTable);
       const cleanedData = {
         ...data,
         trainingFolderId: data.trainingFolderId || undefined,
+        productCode: data.productCode || undefined,
         courseOverview: data.courseOverview.filter(item => item.trim()),
         faqs: data.faqs.filter(faq => faq.question.trim() && faq.answer.trim()),
+        pricingTable: cleanedPricingTable,
         renewalPeriodMonths: data.renewalPeriodMonths || undefined,
         externalLink: data.externalLink || undefined,
       };
@@ -227,11 +253,14 @@ export default function TrainingLibrary() {
 
   const updateCourseMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<typeof courseForm> }) => {
+      const cleanedPricingTable = data.pricingTable ? cleanPricingTable(data.pricingTable) : null;
       const cleanedData = {
         ...data,
         trainingFolderId: data.trainingFolderId || null,
+        productCode: data.productCode || null,
         courseOverview: data.courseOverview?.filter(item => item.trim()),
         faqs: data.faqs?.filter(faq => faq.question.trim() && faq.answer.trim()),
+        pricingTable: cleanedPricingTable,
         renewalPeriodMonths: data.renewalPeriodMonths || null,
         externalLink: data.externalLink || null,
       };
@@ -270,6 +299,7 @@ export default function TrainingLibrary() {
     setCourseForm({
       title: "",
       summary: "",
+      productCode: "",
       module: activeModule,
       trainingFolderId: "",
       provider: "",
@@ -283,6 +313,7 @@ export default function TrainingLibrary() {
         { question: "", answer: "" },
         { question: "", answer: "" },
       ],
+      pricingTable: emptyPricingTable,
       isRequired: false,
       renewalPeriodMonths: null,
     });
@@ -308,9 +339,17 @@ export default function TrainingLibrary() {
     while (paddedOverview.length < 5) {
       paddedOverview.push("");
     }
+    const parsedPricingTable: PricingTable = course.pricingTable 
+      ? JSON.parse(course.pricingTable) 
+      : emptyPricingTable;
+    const paddedPricingDataRows = [...parsedPricingTable.dataRows];
+    while (paddedPricingDataRows.length < 5) {
+      paddedPricingDataRows.push({ column1: "", column2: "" });
+    }
     setCourseForm({
       title: course.title,
       summary: course.summary || "",
+      productCode: course.productCode || "",
       module: course.module,
       trainingFolderId: course.trainingFolderId || "",
       provider: course.provider || "",
@@ -318,6 +357,10 @@ export default function TrainingLibrary() {
       duration: course.duration || "",
       courseOverview: paddedOverview,
       faqs: paddedFaqs,
+      pricingTable: {
+        headingRow: parsedPricingTable.headingRow,
+        dataRows: paddedPricingDataRows,
+      },
       isRequired: course.isRequired,
       renewalPeriodMonths: course.renewalPeriodMonths,
     });
@@ -619,16 +662,28 @@ export default function TrainingLibrary() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="course-summary">Summary</Label>
-                <Textarea
-                  id="course-summary"
-                  value={courseForm.summary}
-                  onChange={(e) => setCourseForm({ ...courseForm, summary: e.target.value })}
-                  placeholder="Brief summary of the training course..."
-                  rows={3}
-                  data-testid="input-course-summary"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="course-summary">Summary</Label>
+                  <Textarea
+                    id="course-summary"
+                    value={courseForm.summary}
+                    onChange={(e) => setCourseForm({ ...courseForm, summary: e.target.value })}
+                    placeholder="Brief summary of the training course..."
+                    rows={3}
+                    data-testid="input-course-summary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course-product-code">Product Code</Label>
+                  <Input
+                    id="course-product-code"
+                    value={courseForm.productCode}
+                    onChange={(e) => setCourseForm({ ...courseForm, productCode: e.target.value })}
+                    placeholder="e.g., TR-001"
+                    data-testid="input-course-product-code"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
@@ -771,6 +826,85 @@ export default function TrainingLibrary() {
                     />
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Pricing Table */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Pricing Table (2 columns, heading + 5 rows)</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-1/2">
+                        <Input
+                          value={courseForm.pricingTable.headingRow.column1}
+                          onChange={(e) => setCourseForm({
+                            ...courseForm,
+                            pricingTable: {
+                              ...courseForm.pricingTable,
+                              headingRow: { ...courseForm.pricingTable.headingRow, column1: e.target.value }
+                            }
+                          })}
+                          placeholder="Column 1 Heading"
+                          className="font-semibold"
+                          data-testid="input-pricing-heading-1"
+                        />
+                      </TableHead>
+                      <TableHead className="w-1/2">
+                        <Input
+                          value={courseForm.pricingTable.headingRow.column2}
+                          onChange={(e) => setCourseForm({
+                            ...courseForm,
+                            pricingTable: {
+                              ...courseForm.pricingTable,
+                              headingRow: { ...courseForm.pricingTable.headingRow, column2: e.target.value }
+                            }
+                          })}
+                          placeholder="Column 2 Heading"
+                          className="font-semibold"
+                          data-testid="input-pricing-heading-2"
+                        />
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {courseForm.pricingTable.dataRows.map((row, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Input
+                            value={row.column1}
+                            onChange={(e) => {
+                              const newRows = [...courseForm.pricingTable.dataRows];
+                              newRows[index] = { ...newRows[index], column1: e.target.value };
+                              setCourseForm({
+                                ...courseForm,
+                                pricingTable: { ...courseForm.pricingTable, dataRows: newRows }
+                              });
+                            }}
+                            placeholder={`Row ${index + 1} - Col 1`}
+                            data-testid={`input-pricing-row-${index}-col-1`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.column2}
+                            onChange={(e) => {
+                              const newRows = [...courseForm.pricingTable.dataRows];
+                              newRows[index] = { ...newRows[index], column2: e.target.value };
+                              setCourseForm({
+                                ...courseForm,
+                                pricingTable: { ...courseForm.pricingTable, dataRows: newRows }
+                              });
+                            }}
+                            placeholder={`Row ${index + 1} - Col 2`}
+                            data-testid={`input-pricing-row-${index}-col-2`}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>

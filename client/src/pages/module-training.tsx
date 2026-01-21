@@ -52,7 +52,15 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { TrainingFolder, TrainingCourse, TrainingFAQ, ModuleType, Site } from "@shared/schema";
+import type { TrainingFolder, TrainingCourse, TrainingFAQ, PricingTable, ModuleType, Site } from "@shared/schema";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -504,8 +512,13 @@ function TrainingCard({
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h4 className="font-medium">{course.title}</h4>
+              {course.productCode && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {course.productCode}
+                </Badge>
+              )}
               {course.isRequired ? (
                 <Badge className="bg-amber-500 hover:bg-amber-600">
                   Required
@@ -583,6 +596,7 @@ function CourseDetailView({
   onBookTraining: () => void;
 }) {
   const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
+  const parsedPricingTable: PricingTable | null = course.pricingTable ? JSON.parse(course.pricingTable) : null;
   const overview = course.courseOverview || [];
 
   return (
@@ -596,6 +610,11 @@ function CourseDetailView({
             <div>
               <DialogTitle className="text-xl">{course.title}</DialogTitle>
               <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                {course.productCode && (
+                  <span className="font-medium text-foreground">
+                    {course.productCode}
+                  </span>
+                )}
                 {course.provider && (
                   <span className="flex items-center gap-1">
                     <Building2 className="h-3.5 w-3.5" />
@@ -670,6 +689,31 @@ function CourseDetailView({
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
+        )}
+
+        {/* Pricing Table */}
+        {parsedPricingTable && parsedPricingTable.dataRows.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3">Pricing</h4>
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column1 || "Item"}</TableHead>
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column2 || "Price"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parsedPricingTable.dataRows.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{row.column1}</TableCell>
+                      <TableCell>{row.column2}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
 
