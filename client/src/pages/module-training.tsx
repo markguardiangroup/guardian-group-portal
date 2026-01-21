@@ -20,6 +20,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Search,
   HardHat, 
@@ -41,7 +48,7 @@ import {
   X,
   CheckCircle,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -102,6 +109,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [requestType, setRequestType] = useState<"info" | "booking">("info");
   const [requestMessage, setRequestMessage] = useState("");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>("");
 
   // Fetch training folders for this module
   const { data: trainingFolders, isLoading: foldersLoading } = useQuery<TrainingFolder[]>({
@@ -205,15 +213,29 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   };
 
   const handleSubmitRequest = () => {
-    if (!selectedCourse || !sites || sites.length === 0) return;
+    if (!selectedCourse || !selectedSiteId) {
+      toast({
+        title: "Site Required",
+        description: "Please select a site for this training request.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     submitRequestMutation.mutate({
       trainingCourseId: selectedCourse.id,
-      siteId: sites[0].id, // Use first available site
+      siteId: selectedSiteId,
       requestType,
       message: requestMessage || undefined,
     });
   };
+
+  // Set default site when sites load
+  useEffect(() => {
+    if (sites && sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0].id);
+    }
+  }, [sites, selectedSiteId]);
 
   const isLoading = foldersLoading || coursesLoading;
   const ModuleIcon = moduleIcons[module];
@@ -385,6 +407,35 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Site Selection */}
+            {sites && sites.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="request-site">Site</Label>
+                <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                  <SelectTrigger data-testid="select-request-site">
+                    <SelectValue placeholder="Select a site" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {sites && sites.length === 1 && (
+              <div className="text-sm text-muted-foreground">
+                Request for: <span className="font-medium">{sites[0].name}</span>
+              </div>
+            )}
+            {(!sites || sites.length === 0) && (
+              <div className="text-sm text-destructive flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                No sites available. Please contact your administrator.
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="request-message">Message (optional)</Label>
               <Textarea
@@ -406,7 +457,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             </Button>
             <Button 
               onClick={handleSubmitRequest}
-              disabled={submitRequestMutation.isPending}
+              disabled={submitRequestMutation.isPending || !selectedSiteId}
               data-testid="button-submit-request"
             >
               {requestType === "info" ? (

@@ -46,6 +46,9 @@ Core entities include:
 - **Module Access Requests**: Workflow for clients to request module access
 - **Audit Logs**: Activity tracking with timestamps and user attribution
 - **Support Requests**: Client support ticket system
+- **Training Folders**: Organizational structure for training content per module (separate from document folders)
+- **Training Courses**: Training content with enhanced fields (summary, course overview list, FAQs)
+- **Training Requests**: Client requests for training info or booking
 
 ### Authorization Model
 Role-based access control with tenant isolation:
@@ -93,6 +96,24 @@ Key API Routes for Site Management:
 - `DELETE /api/sites/:siteId/consultants/:consultantId` - Remove assignment
 - `GET /api/sites/:siteId/module-access` - Get module access settings
 - `POST /api/sites/:siteId/module-access` - Set module access
+
+### Training Library
+The Training Library has its own dedicated folder structure separate from document template folders:
+- **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
+- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs)
+- **Training Requests**: Client requests for more info or booking training
+
+Key API Routes:
+- `GET /api/training-folders` - Get all training folders (filter by ?module=)
+- `POST /api/training-folders` - Create training folder (admin only)
+- `PATCH /api/training-folders/:id` - Update training folder (admin only)
+- `DELETE /api/training-folders/:id` - Delete training folder (admin only)
+- `GET /api/training-courses` - Get all training courses (filter by ?module=)
+- `POST /api/training-courses` - Create training course (admin only)
+- `PATCH /api/training-courses/:id` - Update training course (admin only)
+- `DELETE /api/training-courses/:id` - Delete training course (admin only)
+- `GET /api/training-requests` - Get training requests for user's sites
+- `POST /api/training-requests` - Submit training request (any authenticated user)
 
 ### Storage Pattern
 The application uses an in-memory storage implementation (`MemStorage` class) that implements the `IStorage` interface. This allows for easy swapping to a database-backed implementation when PostgreSQL is provisioned.
