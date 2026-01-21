@@ -877,6 +877,33 @@ export const loginAttempts = pgTable("login_attempts", {
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type InsertLoginAttempt = typeof loginAttempts.$inferInsert;
 
+// Training Modules (Admin-managed training library with external links)
+export const trainingModules = pgTable("training_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  module: text("module").$type<ModuleType>().notNull(),
+  folderTemplateId: varchar("folder_template_id"), // Optional folder organization
+  provider: text("provider"), // e.g., "IOSH", "HSE Direct", "CIPD"
+  externalLink: text("external_link").notNull(), // URL to 3rd party training
+  duration: text("duration"), // e.g., "2 hours", "1 day", "Self-paced"
+  isRequired: boolean("is_required").notNull().default(false),
+  renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrainingModuleSchema = createInsertSchema(trainingModules).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
+export type TrainingModule = typeof trainingModules.$inferSelect;
+
 // Account lockout configuration
 export const SECURITY_CONFIG = {
   maxLoginAttempts: 5,
