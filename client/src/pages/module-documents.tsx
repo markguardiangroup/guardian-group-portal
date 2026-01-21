@@ -65,7 +65,21 @@ import {
   ChevronUp,
   ShieldCheck,
   Building2,
+  LayoutGrid,
+  LayoutList,
+  FolderOpen,
+  FileCheck,
+  FileClock,
+  FileWarning,
+  ChevronRight,
+  Scale,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { format } from "date-fns";
 import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeWithAccess, DocumentTypeRecord } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
@@ -118,6 +132,49 @@ interface SiteWithCompany extends SiteBasic {
   companyName?: string | null;
 }
 
+type ViewMode = "folder" | "table";
+
+// Hierarchy types for folder view
+interface HierarchyDocument {
+  id: string;
+  title: string;
+  fileName: string;
+  type: string;
+  status: string;
+  version: number;
+  approvalStatus: string;
+  updatedAt: string;
+  documentTypeId?: string | null;
+}
+
+interface HierarchyFolder {
+  id: string;
+  name: string;
+  code: string;
+  isRequired: boolean;
+  sortOrder: number;
+  documents: HierarchyDocument[];
+  stats: {
+    totalDocuments: number;
+    compliant: number;
+    reviewRequired: number;
+    overdue: number;
+  };
+}
+
+interface DocumentHierarchy {
+  folders: HierarchyFolder[];
+  unfiledDocuments: HierarchyDocument[];
+  summary: {
+    totalDocuments: number;
+    compliant: number;
+    reviewRequired: number;
+    overdue: number;
+    totalFolders: number;
+    requiredFolders: number;
+  };
+}
+
 function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const searchParams = useSearch();
   const urlParams = new URLSearchParams(searchParams);
@@ -131,6 +188,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [showDocTypeAccess, setShowDocTypeAccess] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
+  const [viewMode, setViewMode] = useState<ViewMode>("folder");
   
   const { user } = useAuth();
   const config = moduleConfig[module];
@@ -197,6 +255,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
     queryKey: ["/api/folder-document-type-rules"],
   });
+  
+  // Get the effective site ID for hierarchy query
+  const hierarchySiteId = selectedSiteId || (sites && sites.length === 1 ? sites[0].id : null);
+  
+  // Fetch document hierarchy for folder view
+  const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
+    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy`);
+      if (!res.ok) throw new Error("Failed to fetch hierarchy");
+      return res.json();
+    },
+    enabled: !!hierarchySiteId && viewMode === "folder",
+  });
+  
+  // Get folder status badge
+  const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
+    if (stats.overdue > 0) return { variant: "destructive" as const, label: "Attention Needed" };
+    if (stats.reviewRequired > 0) return { variant: "secondary" as const, label: "Review Required" };
+    if (stats.compliant > 0 && stats.totalDocuments === stats.compliant) return { variant: "default" as const, label: "Compliant" };
+    if (stats.totalDocuments === 0) return { variant: "outline" as const, label: "No Documents" };
+    return { variant: "secondary" as const, label: "Incomplete" };
+  };
   
   // Get folder templates for current module
   const moduleFolderTemplates = useMemo(() => {
@@ -327,6 +408,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 />
               </>
             )}
+            
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button
+                variant={viewMode === "folder" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("folder")}
+                data-testid="button-folder-view"
+              >
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Folder View
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                data-testid="button-table-view"
+              >
+                <LayoutList className="mr-2 h-4 w-4" />
+                Table View
+              </Button>
+            </div>
+            
             <Button className="bg-module-accent text-module-accent-foreground" asChild>
               <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
                 <Upload className="mr-2 h-4 w-4" />
@@ -468,6 +572,187 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </Collapsible>
       )}
 
+      {/* Folder View */}
+      {viewMode === "folder" && (
+        <div className="space-y-4">
+          {/* No site selected message */}
+          {!hierarchySiteId && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <FolderOpen className="h-7 w-7 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">Select a site</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose a site to view documents organized by folder
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Summary Card */}
+          {hierarchySiteId && hierarchy?.summary && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <ModuleIcon className="h-5 w-5 text-module-accent" />
+                    <CardTitle className="text-lg">{config.name} Documents</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <FileCheck className="h-4 w-4 text-green-600" />
+                      <span>{hierarchy.summary.compliant} Compliant</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileClock className="h-4 w-4 text-yellow-600" />
+                      <span>{hierarchy.summary.reviewRequired} Review Required</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileWarning className="h-4 w-4 text-red-600" />
+                      <span>{hierarchy.summary.overdue} Overdue</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
+
+          {/* Folders Accordion */}
+          {hierarchySiteId && isLoadingHierarchy ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : hierarchySiteId && hierarchy?.folders && hierarchy.folders.length > 0 ? (
+            <Card>
+              <CardContent className="p-4">
+                <Accordion type="multiple" className="w-full">
+                  {hierarchy.folders.map((folder) => {
+                    const statusBadge = getFolderStatusBadge(folder.stats);
+                    return (
+                      <AccordionItem key={folder.id} value={folder.id} data-testid={`accordion-folder-${folder.id}`}>
+                        <AccordionTrigger className="hover:no-underline px-2">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <div className="flex items-center gap-3">
+                              <FolderOpen className="h-5 w-5 text-module-accent" />
+                              <span className="font-medium">{folder.name}</span>
+                              {folder.isRequired && (
+                                <Badge variant="outline" className="text-xs">Required</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+                              <span className="text-sm text-muted-foreground">
+                                {folder.stats.totalDocuments} document{folder.stats.totalDocuments !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pl-8 space-y-2">
+                            {folder.documents.length > 0 ? (
+                              folder.documents.map((doc) => (
+                                <Link
+                                  key={doc.id}
+                                  href={`${basePath}/documents/${doc.id}`}
+                                  className="flex items-center justify-between p-3 rounded-md border hover-elevate"
+                                  data-testid={`link-document-${doc.id}`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    <div>
+                                      <p className="font-medium text-sm">{doc.title}</p>
+                                      <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <RAGBadge status={doc.status as any} />
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                </Link>
+                              ))
+                            ) : (
+                              <div className="text-center py-6 text-muted-foreground">
+                                <p className="text-sm">No documents in this folder</p>
+                                <Button variant="ghost" size="sm" asChild className="mt-2">
+                                  <Link href={`${basePath}/documents/upload`}>
+                                    <Upload className="mr-2 h-3 w-3" />
+                                    Upload Document
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              </CardContent>
+            </Card>
+          ) : hierarchySiteId ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <FolderOpen className="h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-4 text-lg font-medium">No folders yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upload documents to get started
+                </p>
+                <Button variant="outline" size="sm" asChild className="mt-4">
+                  <Link href={`${basePath}/documents/upload`}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {/* Unfiled Documents */}
+          {hierarchySiteId && hierarchy?.unfiledDocuments && hierarchy.unfiledDocuments.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Unfiled Documents
+                  <Badge variant="secondary">{hierarchy.unfiledDocuments.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {hierarchy.unfiledDocuments.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`${basePath}/documents/${doc.id}`}
+                    className="flex items-center justify-between p-3 rounded-md border hover-elevate"
+                    data-testid={`link-unfiled-document-${doc.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RAGBadge status={doc.status as any} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Table View */}
+      {viewMode === "table" && (
       <Card>
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -613,6 +898,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           )}
         </CardContent>
       </Card>
+      )}
       </div>
     </div>
   );
