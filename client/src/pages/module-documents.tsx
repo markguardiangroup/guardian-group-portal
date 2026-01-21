@@ -134,6 +134,28 @@ interface SiteWithCompany extends SiteBasic {
 
 type ViewMode = "folder" | "table";
 
+// Module-specific color theming (matching template library)
+const moduleColors: Record<string, string> = {
+  health_safety: "text-emerald-600 dark:text-emerald-400",
+  human_resources: "text-blue-600 dark:text-blue-400",
+  employment_law: "text-pink-600 dark:text-pink-400",
+  support: "text-purple-600 dark:text-purple-400",
+};
+
+const moduleBgColors: Record<string, string> = {
+  health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
+  human_resources: "bg-blue-100 dark:bg-blue-900/30",
+  employment_law: "bg-pink-100 dark:bg-pink-900/30",
+  support: "bg-purple-100 dark:bg-purple-900/30",
+};
+
+const moduleBorderColors: Record<string, string> = {
+  health_safety: "border-emerald-200 dark:border-emerald-800",
+  human_resources: "border-blue-200 dark:border-blue-800",
+  employment_law: "border-pink-200 dark:border-pink-800",
+  support: "border-purple-200 dark:border-purple-800",
+};
+
 // Hierarchy types for folder view
 interface HierarchyDocument {
   id: string;
@@ -376,10 +398,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     <div className={`${themeClass}`}>
       {/* Module Header with tinted background */}
       <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-module-accent">
-              <ModuleIcon className="h-6 w-6 text-module-accent-foreground" />
+            <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${moduleBgColors[module]}`}>
+              <ModuleIcon className={`h-6 w-6 ${moduleColors[module]}`} />
             </div>
             <div>
               <h1 className="text-3xl font-semibold">{config.name} Documents</h1>
@@ -388,56 +410,87 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Company and Site selectors for admin/consultant oversight */}
+          
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Site Context - Company and Site selectors */}
             {canSelectSites && sites && sites.length > 0 && (
-              <>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 <CompanyCombobox
                   sites={sites}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-48"
+                  className="w-44"
                   testId="select-company-documents"
                 />
+                <span className="text-muted-foreground">/</span>
                 <SiteCombobox
                   sites={filteredSites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
-                  className="w-48"
+                  className="w-44"
                   testId="select-site-documents"
                 />
-              </>
+              </div>
             )}
             
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 rounded-md border p-1">
-              <Button
-                variant={viewMode === "folder" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("folder")}
-                data-testid="button-folder-view"
-              >
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                Folder View
-              </Button>
-              <Button
-                variant={viewMode === "table" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("table")}
-                data-testid="button-table-view"
-              >
-                <LayoutList className="mr-2 h-4 w-4" />
-                Table View
-              </Button>
-            </div>
-            
-            <Button className="bg-module-accent text-module-accent-foreground" asChild>
+            <Button className={`${moduleBgColors[module]} ${moduleColors[module]} border ${moduleBorderColors[module]} hover:opacity-90`} asChild>
               <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Document
               </Link>
             </Button>
           </div>
+        </div>
+      </div>
+      
+      {/* Secondary toolbar with view toggle */}
+      <div className="bg-muted/30 border-b px-8 py-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <div className={`flex items-center gap-1 rounded-lg border ${moduleBorderColors[module]} p-1 bg-background`}>
+              <Button
+                variant={viewMode === "folder" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("folder")}
+                className={viewMode === "folder" ? `${moduleBgColors[module]} ${moduleColors[module]} hover:opacity-90` : ""}
+                data-testid="button-folder-view"
+              >
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Folders
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className={viewMode === "table" ? `${moduleBgColors[module]} ${moduleColors[module]} hover:opacity-90` : ""}
+                data-testid="button-table-view"
+              >
+                <LayoutList className="mr-2 h-4 w-4" />
+                Table
+              </Button>
+            </div>
+          </div>
+          
+          {/* Quick stats badge */}
+          {hierarchy?.summary && (
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <FileCheck className="h-4 w-4 text-green-600" />
+                <span className="text-muted-foreground">{hierarchy.summary.compliant}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <FileClock className="h-4 w-4 text-yellow-600" />
+                <span className="text-muted-foreground">{hierarchy.summary.reviewRequired}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <FileWarning className="h-4 w-4 text-red-600" />
+                <span className="text-muted-foreground">{hierarchy.summary.overdue}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -577,10 +630,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         <div className="space-y-4">
           {/* No site selected message */}
           {!hierarchySiteId && (
-            <Card>
+            <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                  <FolderOpen className="h-7 w-7 text-muted-foreground" />
+                <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
+                  <FolderOpen className={`h-7 w-7 ${moduleColors[module]}`} />
                 </div>
                 <h3 className="mt-4 text-lg font-medium">Select a site</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -592,12 +645,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           {/* Summary Card */}
           {hierarchySiteId && hierarchy?.summary && (
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className={`border-t-4 ${moduleBorderColors[module]} border-t-current`} style={{ borderTopColor: 'inherit' }}>
+              <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <ModuleIcon className="h-5 w-5 text-module-accent" />
-                    <CardTitle className="text-lg">{config.name} Documents</CardTitle>
+                    <ModuleIcon className={`h-5 w-5 ${moduleColors[module]}`} />
+                    <CardTitle className={`text-lg ${moduleColors[module]}`}>{config.name} Documents</CardTitle>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-2">
@@ -630,20 +683,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </CardContent>
             </Card>
           ) : hierarchySiteId && hierarchy?.folders && hierarchy.folders.length > 0 ? (
-            <Card>
+            <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="p-4">
                 <Accordion type="multiple" className="w-full">
                   {hierarchy.folders.map((folder) => {
                     const statusBadge = getFolderStatusBadge(folder.stats);
                     return (
-                      <AccordionItem key={folder.id} value={folder.id} data-testid={`accordion-folder-${folder.id}`}>
+                      <AccordionItem key={folder.id} value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
                         <AccordionTrigger className="hover:no-underline px-2">
                           <div className="flex items-center justify-between w-full pr-4">
                             <div className="flex items-center gap-3">
-                              <FolderOpen className="h-5 w-5 text-module-accent" />
+                              <div className={`flex h-8 w-8 items-center justify-center rounded-md ${moduleBgColors[module]}`}>
+                                <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
+                              </div>
                               <span className="font-medium">{folder.name}</span>
                               {folder.isRequired && (
-                                <Badge variant="outline" className="text-xs">Required</Badge>
+                                <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
                               )}
                             </div>
                             <div className="flex items-center gap-3">
@@ -697,14 +752,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </CardContent>
             </Card>
           ) : hierarchySiteId ? (
-            <Card>
+            <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <FolderOpen className="h-12 w-12 text-muted-foreground" />
+                <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
+                  <FolderOpen className={`h-7 w-7 ${moduleColors[module]}`} />
+                </div>
                 <h3 className="mt-4 text-lg font-medium">No folders yet</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Upload documents to get started
                 </p>
-                <Button variant="outline" size="sm" asChild className="mt-4">
+                <Button variant="outline" size="sm" asChild className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`}>
                   <Link href={`${basePath}/documents/upload`}>
                     <Upload className="mr-2 h-4 w-4" />
                     Upload Document
@@ -716,24 +773,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           {/* Unfiled Documents */}
           {hierarchySiteId && hierarchy?.unfiledDocuments && hierarchy.unfiledDocuments.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+            <Card className={`border ${moduleBorderColors[module]}`}>
+              <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
+                <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
                   <FileText className="h-4 w-4" />
                   Unfiled Documents
                   <Badge variant="secondary">{hierarchy.unfiledDocuments.length}</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-2 pt-4">
                 {hierarchy.unfiledDocuments.map((doc) => (
                   <Link
                     key={doc.id}
                     href={`${basePath}/documents/${doc.id}`}
-                    className="flex items-center justify-between p-3 rounded-md border hover-elevate"
+                    className={`flex items-center justify-between p-3 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
                     data-testid={`link-unfiled-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">v{doc.version}</p>
