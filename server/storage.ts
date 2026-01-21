@@ -32,7 +32,13 @@ import {
   type DocumentTemplateVersion, type InsertDocumentTemplateVersion,
   type LoginAttempt, type InsertLoginAttempt,
   type TrainingModule, type InsertTrainingModule,
+  type TrainingFolder, type InsertTrainingFolder,
+  type TrainingCourse, type InsertTrainingCourse,
+  type TrainingRequest, type InsertTrainingRequest,
   trainingModules as trainingModulesTable,
+  trainingFolders as trainingFoldersTable,
+  trainingCourses as trainingCoursesTable,
+  trainingRequests as trainingRequestsTable,
   moduleConfig,
   documentTypes,
   folderTemplates as folderTemplatesTable,
@@ -196,12 +202,32 @@ export interface IStorage {
   getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]>;
   isAccountLocked(username: string): Promise<boolean>;
   
-  // Training Modules
+  // Training Modules (legacy alias for Training Courses)
   getTrainingModules(module?: ModuleType): Promise<TrainingModule[]>;
   getTrainingModule(id: string): Promise<TrainingModule | undefined>;
   createTrainingModule(trainingModule: InsertTrainingModule): Promise<TrainingModule>;
   updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule | undefined>;
   deleteTrainingModule(id: string): Promise<boolean>;
+
+  // Training Folders
+  getTrainingFolders(module?: ModuleType): Promise<TrainingFolder[]>;
+  getTrainingFolder(id: string): Promise<TrainingFolder | undefined>;
+  createTrainingFolder(folder: InsertTrainingFolder): Promise<TrainingFolder>;
+  updateTrainingFolder(id: string, updates: Partial<TrainingFolder>): Promise<TrainingFolder | undefined>;
+  deleteTrainingFolder(id: string): Promise<boolean>;
+
+  // Training Courses
+  getTrainingCourses(module?: ModuleType, folderId?: string): Promise<TrainingCourse[]>;
+  getTrainingCourse(id: string): Promise<TrainingCourse | undefined>;
+  createTrainingCourse(course: InsertTrainingCourse): Promise<TrainingCourse>;
+  updateTrainingCourse(id: string, updates: Partial<TrainingCourse>): Promise<TrainingCourse | undefined>;
+  deleteTrainingCourse(id: string): Promise<boolean>;
+
+  // Training Requests
+  getTrainingRequests(filters?: { siteId?: string; status?: string; courseId?: string }): Promise<TrainingRequest[]>;
+  getTrainingRequest(id: string): Promise<TrainingRequest | undefined>;
+  createTrainingRequest(request: InsertTrainingRequest): Promise<TrainingRequest>;
+  updateTrainingRequest(id: string, updates: Partial<TrainingRequest>): Promise<TrainingRequest | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -3381,6 +3407,269 @@ export class MemStorage implements IStorage {
       if (!existing) return false;
       this.trainingModulesMap.set(id, { ...existing, isActive: false });
       return true;
+    }
+  }
+
+  // Training Folders
+  async getTrainingFolders(module?: ModuleType): Promise<TrainingFolder[]> {
+    try {
+      if (module) {
+        const results = await db.select().from(trainingFoldersTable)
+          .where(and(
+            eq(trainingFoldersTable.module, module),
+            eq(trainingFoldersTable.isActive, true)
+          ))
+          .orderBy(asc(trainingFoldersTable.sortOrder));
+        return results;
+      }
+      const results = await db.select().from(trainingFoldersTable)
+        .where(eq(trainingFoldersTable.isActive, true))
+        .orderBy(asc(trainingFoldersTable.sortOrder));
+      return results;
+    } catch (error) {
+      console.error("Database error in getTrainingFolders:", error);
+      return [];
+    }
+  }
+
+  async getTrainingFolder(id: string): Promise<TrainingFolder | undefined> {
+    try {
+      const results = await db.select().from(trainingFoldersTable)
+        .where(eq(trainingFoldersTable.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Database error in getTrainingFolder:", error);
+      return undefined;
+    }
+  }
+
+  async createTrainingFolder(folder: InsertTrainingFolder): Promise<TrainingFolder> {
+    const now = new Date();
+    try {
+      const results = await db.insert(trainingFoldersTable)
+        .values({
+          ...folder,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in createTrainingFolder:", error);
+      const id = `training-folder-${randomUUID()}`;
+      const newFolder: TrainingFolder = {
+        id,
+        name: folder.name,
+        description: folder.description || null,
+        module: folder.module,
+        sortOrder: folder.sortOrder || 0,
+        isActive: folder.isActive ?? true,
+        createdBy: folder.createdBy,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return newFolder;
+    }
+  }
+
+  async updateTrainingFolder(id: string, updates: Partial<TrainingFolder>): Promise<TrainingFolder | undefined> {
+    const now = new Date();
+    try {
+      const results = await db.update(trainingFoldersTable)
+        .set({ ...updates, updatedAt: now })
+        .where(eq(trainingFoldersTable.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in updateTrainingFolder:", error);
+      return undefined;
+    }
+  }
+
+  async deleteTrainingFolder(id: string): Promise<boolean> {
+    try {
+      const results = await db.update(trainingFoldersTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(trainingFoldersTable.id, id))
+        .returning();
+      return results.length > 0;
+    } catch (error) {
+      console.error("Database error in deleteTrainingFolder:", error);
+      return false;
+    }
+  }
+
+  // Training Courses
+  async getTrainingCourses(module?: ModuleType, folderId?: string): Promise<TrainingCourse[]> {
+    try {
+      let conditions = [eq(trainingCoursesTable.isActive, true)];
+      if (module) {
+        conditions.push(eq(trainingCoursesTable.module, module));
+      }
+      if (folderId) {
+        conditions.push(eq(trainingCoursesTable.trainingFolderId, folderId));
+      }
+      const results = await db.select().from(trainingCoursesTable)
+        .where(and(...conditions))
+        .orderBy(asc(trainingCoursesTable.sortOrder));
+      return results;
+    } catch (error) {
+      console.error("Database error in getTrainingCourses:", error);
+      return [];
+    }
+  }
+
+  async getTrainingCourse(id: string): Promise<TrainingCourse | undefined> {
+    try {
+      const results = await db.select().from(trainingCoursesTable)
+        .where(eq(trainingCoursesTable.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Database error in getTrainingCourse:", error);
+      return undefined;
+    }
+  }
+
+  async createTrainingCourse(course: InsertTrainingCourse): Promise<TrainingCourse> {
+    const now = new Date();
+    try {
+      const results = await db.insert(trainingCoursesTable)
+        .values({
+          ...course,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in createTrainingCourse:", error);
+      const id = `training-course-${randomUUID()}`;
+      const newCourse: TrainingCourse = {
+        id,
+        title: course.title,
+        summary: course.summary || null,
+        module: course.module,
+        trainingFolderId: course.trainingFolderId || null,
+        provider: course.provider || null,
+        externalLink: course.externalLink || null,
+        duration: course.duration || null,
+        courseOverview: course.courseOverview || null,
+        faqs: course.faqs || null,
+        isRequired: course.isRequired ?? false,
+        renewalPeriodMonths: course.renewalPeriodMonths || null,
+        sortOrder: course.sortOrder || 0,
+        isActive: course.isActive ?? true,
+        createdBy: course.createdBy,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return newCourse;
+    }
+  }
+
+  async updateTrainingCourse(id: string, updates: Partial<TrainingCourse>): Promise<TrainingCourse | undefined> {
+    const now = new Date();
+    try {
+      const results = await db.update(trainingCoursesTable)
+        .set({ ...updates, updatedAt: now })
+        .where(eq(trainingCoursesTable.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in updateTrainingCourse:", error);
+      return undefined;
+    }
+  }
+
+  async deleteTrainingCourse(id: string): Promise<boolean> {
+    try {
+      const results = await db.update(trainingCoursesTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(trainingCoursesTable.id, id))
+        .returning();
+      return results.length > 0;
+    } catch (error) {
+      console.error("Database error in deleteTrainingCourse:", error);
+      return false;
+    }
+  }
+
+  // Training Requests
+  async getTrainingRequests(filters?: { siteId?: string; status?: string; courseId?: string }): Promise<TrainingRequest[]> {
+    try {
+      let conditions: any[] = [];
+      if (filters?.siteId) {
+        conditions.push(eq(trainingRequestsTable.siteId, filters.siteId));
+      }
+      if (filters?.status) {
+        conditions.push(eq(trainingRequestsTable.status, filters.status as any));
+      }
+      if (filters?.courseId) {
+        conditions.push(eq(trainingRequestsTable.trainingCourseId, filters.courseId));
+      }
+      if (conditions.length > 0) {
+        const results = await db.select().from(trainingRequestsTable)
+          .where(and(...conditions));
+        return results;
+      }
+      return await db.select().from(trainingRequestsTable);
+    } catch (error) {
+      console.error("Database error in getTrainingRequests:", error);
+      return [];
+    }
+  }
+
+  async getTrainingRequest(id: string): Promise<TrainingRequest | undefined> {
+    try {
+      const results = await db.select().from(trainingRequestsTable)
+        .where(eq(trainingRequestsTable.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Database error in getTrainingRequest:", error);
+      return undefined;
+    }
+  }
+
+  async createTrainingRequest(request: InsertTrainingRequest): Promise<TrainingRequest> {
+    const now = new Date();
+    try {
+      const results = await db.insert(trainingRequestsTable)
+        .values({
+          ...request,
+          createdAt: now,
+        })
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in createTrainingRequest:", error);
+      const id = `training-request-${randomUUID()}`;
+      const newRequest: TrainingRequest = {
+        id,
+        trainingCourseId: request.trainingCourseId,
+        siteId: request.siteId,
+        requestType: request.requestType,
+        requestedBy: request.requestedBy,
+        message: request.message || null,
+        status: request.status || "pending",
+        respondedBy: request.respondedBy || null,
+        responseNotes: request.responseNotes || null,
+        createdAt: now,
+        respondedAt: null,
+      };
+      return newRequest;
+    }
+  }
+
+  async updateTrainingRequest(id: string, updates: Partial<TrainingRequest>): Promise<TrainingRequest | undefined> {
+    try {
+      const results = await db.update(trainingRequestsTable)
+        .set(updates)
+        .where(eq(trainingRequestsTable.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in updateTrainingRequest:", error);
+      return undefined;
     }
   }
 }

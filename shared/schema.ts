@@ -877,18 +877,100 @@ export const loginAttempts = pgTable("login_attempts", {
 export type LoginAttempt = typeof loginAttempts.$inferSelect;
 export type InsertLoginAttempt = typeof loginAttempts.$inferInsert;
 
-// Training Modules (Admin-managed training library with external links)
+// Training Folders (unique folder structure for training, separate from document folders)
+export const trainingFolders = pgTable("training_folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: text("module").$type<ModuleType>().notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrainingFolderSchema = createInsertSchema(trainingFolders).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertTrainingFolder = z.infer<typeof insertTrainingFolderSchema>;
+export type TrainingFolder = typeof trainingFolders.$inferSelect;
+
+// FAQ item type for training courses
+export type TrainingFAQ = {
+  question: string;
+  answer: string;
+};
+
+// Training Courses (Admin-managed training library)
+export const trainingCourses = pgTable("training_courses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  summary: text("summary"), // Brief summary of the course
+  module: text("module").$type<ModuleType>().notNull(),
+  trainingFolderId: varchar("training_folder_id"), // Links to training folders
+  provider: text("provider"), // e.g., "IOSH", "HSE Direct", "CIPD"
+  externalLink: text("external_link"), // Optional URL to 3rd party training
+  duration: text("duration"), // e.g., "2 hours", "1 day", "Self-paced"
+  courseOverview: text("course_overview").array(), // List of course topics/sections
+  faqs: text("faqs"), // JSON string of TrainingFAQ[] (5 Q&A pairs)
+  isRequired: boolean("is_required").notNull().default(false),
+  renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrainingCourseSchema = createInsertSchema(trainingCourses).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertTrainingCourse = z.infer<typeof insertTrainingCourseSchema>;
+export type TrainingCourse = typeof trainingCourses.$inferSelect;
+
+// Training Requests (for clients to request info or book training)
+export type TrainingRequestType = "info" | "booking";
+export type TrainingRequestStatus = "pending" | "contacted" | "completed" | "cancelled";
+
+export const trainingRequests = pgTable("training_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trainingCourseId: varchar("training_course_id").notNull(),
+  siteId: varchar("site_id").notNull(),
+  requestType: text("request_type").$type<TrainingRequestType>().notNull(),
+  requestedBy: varchar("requested_by").notNull(),
+  message: text("message"), // Optional message from requester
+  status: text("status").$type<TrainingRequestStatus>().notNull().default("pending"),
+  respondedBy: varchar("responded_by"),
+  responseNotes: text("response_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  respondedAt: timestamp("responded_at"),
+});
+
+export const insertTrainingRequestSchema = createInsertSchema(trainingRequests).omit({ 
+  id: true, 
+  createdAt: true,
+  respondedAt: true
+});
+export type InsertTrainingRequest = z.infer<typeof insertTrainingRequestSchema>;
+export type TrainingRequest = typeof trainingRequests.$inferSelect;
+
+// Legacy Training Modules table (kept for backward compatibility)
 export const trainingModules = pgTable("training_modules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
-  folderTemplateId: varchar("folder_template_id"), // Optional folder organization
-  provider: text("provider"), // e.g., "IOSH", "HSE Direct", "CIPD"
-  externalLink: text("external_link").notNull(), // URL to 3rd party training
-  duration: text("duration"), // e.g., "2 hours", "1 day", "Self-paced"
+  folderTemplateId: varchar("folder_template_id"),
+  provider: text("provider"),
+  externalLink: text("external_link"),
+  duration: text("duration"),
   isRequired: boolean("is_required").notNull().default(false),
-  renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
+  renewalPeriodMonths: integer("renewal_period_months"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdBy: varchar("created_by").notNull(),

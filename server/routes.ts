@@ -2076,6 +2076,337 @@ export async function registerRoutes(
     }
   });
 
+  // Training Folders
+  app.get("/api/training-folders", requireAuth, async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const folders = await storage.getTrainingFolders(module);
+      res.json(folders);
+    } catch (error) {
+      console.error("Get training folders error:", error);
+      res.status(500).json({ error: "Failed to fetch training folders" });
+    }
+  });
+
+  app.get("/api/training-folders/:id", requireAuth, async (req, res) => {
+    try {
+      const folder = await storage.getTrainingFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Training folder not found" });
+      }
+      res.json(folder);
+    } catch (error) {
+      console.error("Get training folder error:", error);
+      res.status(500).json({ error: "Failed to fetch training folder" });
+    }
+  });
+
+  app.post("/api/training-folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create training folders" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const folder = await storage.createTrainingFolder({
+        ...parsed.data,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error("Create training folder error:", error);
+      res.status(500).json({ error: "Failed to create training folder" });
+    }
+  });
+
+  app.patch("/api/training-folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update training folders" });
+      }
+      
+      const folder = await storage.getTrainingFolder(req.params.id);
+      if (!folder) {
+        return res.status(404).json({ error: "Training folder not found" });
+      }
+      
+      const schema = z.object({
+        name: z.string().min(1).optional(),
+        description: z.string().optional().nullable(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updated = await storage.updateTrainingFolder(req.params.id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update training folder error:", error);
+      res.status(500).json({ error: "Failed to update training folder" });
+    }
+  });
+
+  app.delete("/api/training-folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete training folders" });
+      }
+      
+      await storage.deleteTrainingFolder(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete training folder error:", error);
+      res.status(500).json({ error: "Failed to delete training folder" });
+    }
+  });
+
+  // Training Courses
+  app.get("/api/training-courses", requireAuth, async (req, res) => {
+    try {
+      const module = req.query.module as ModuleType | undefined;
+      const folderId = req.query.folderId as string | undefined;
+      const courses = await storage.getTrainingCourses(module, folderId);
+      res.json(courses);
+    } catch (error) {
+      console.error("Get training courses error:", error);
+      res.status(500).json({ error: "Failed to fetch training courses" });
+    }
+  });
+
+  app.get("/api/training-courses/:id", requireAuth, async (req, res) => {
+    try {
+      const course = await storage.getTrainingCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ error: "Training course not found" });
+      }
+      res.json(course);
+    } catch (error) {
+      console.error("Get training course error:", error);
+      res.status(500).json({ error: "Failed to fetch training course" });
+    }
+  });
+
+  app.post("/api/training-courses", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create training courses" });
+      }
+      
+      const faqSchema = z.object({
+        question: z.string(),
+        answer: z.string(),
+      });
+      
+      const schema = z.object({
+        title: z.string().min(1),
+        summary: z.string().optional(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+        trainingFolderId: z.string().optional(),
+        provider: z.string().optional(),
+        externalLink: z.string().url().optional().nullable(),
+        duration: z.string().optional(),
+        courseOverview: z.array(z.string()).optional(),
+        faqs: z.array(faqSchema).max(5).optional(),
+        isRequired: z.boolean().optional(),
+        renewalPeriodMonths: z.number().nullable().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const course = await storage.createTrainingCourse({
+        ...parsed.data,
+        faqs: parsed.data.faqs ? JSON.stringify(parsed.data.faqs) : undefined,
+        createdBy: user.id,
+      });
+      
+      res.status(201).json(course);
+    } catch (error) {
+      console.error("Create training course error:", error);
+      res.status(500).json({ error: "Failed to create training course" });
+    }
+  });
+
+  app.patch("/api/training-courses/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update training courses" });
+      }
+      
+      const course = await storage.getTrainingCourse(req.params.id);
+      if (!course) {
+        return res.status(404).json({ error: "Training course not found" });
+      }
+      
+      const faqSchema = z.object({
+        question: z.string(),
+        answer: z.string(),
+      });
+      
+      const schema = z.object({
+        title: z.string().min(1).optional(),
+        summary: z.string().optional().nullable(),
+        module: z.enum(["health_safety", "human_resources", "employment_law", "support"]).optional(),
+        trainingFolderId: z.string().optional().nullable(),
+        provider: z.string().optional().nullable(),
+        externalLink: z.string().url().optional().nullable(),
+        duration: z.string().optional().nullable(),
+        courseOverview: z.array(z.string()).optional().nullable(),
+        faqs: z.array(faqSchema).max(5).optional().nullable(),
+        isRequired: z.boolean().optional(),
+        renewalPeriodMonths: z.number().nullable().optional(),
+        sortOrder: z.number().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updateData: any = { ...parsed.data };
+      if (parsed.data.faqs !== undefined) {
+        updateData.faqs = parsed.data.faqs ? JSON.stringify(parsed.data.faqs) : null;
+      }
+      
+      const updated = await storage.updateTrainingCourse(req.params.id, updateData);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update training course error:", error);
+      res.status(500).json({ error: "Failed to update training course" });
+    }
+  });
+
+  app.delete("/api/training-courses/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete training courses" });
+      }
+      
+      await storage.deleteTrainingCourse(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete training course error:", error);
+      res.status(500).json({ error: "Failed to delete training course" });
+    }
+  });
+
+  // Training Requests
+  app.get("/api/training-requests", requireAuth, async (req, res) => {
+    try {
+      const filters: any = {};
+      if (req.query.siteId) filters.siteId = req.query.siteId as string;
+      if (req.query.status) filters.status = req.query.status as string;
+      if (req.query.courseId) filters.courseId = req.query.courseId as string;
+      
+      const requests = await storage.getTrainingRequests(Object.keys(filters).length > 0 ? filters : undefined);
+      res.json(requests);
+    } catch (error) {
+      console.error("Get training requests error:", error);
+      res.status(500).json({ error: "Failed to fetch training requests" });
+    }
+  });
+
+  app.post("/api/training-requests", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const schema = z.object({
+        trainingCourseId: z.string(),
+        siteId: z.string(),
+        requestType: z.enum(["info", "booking"]),
+        message: z.string().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const request = await storage.createTrainingRequest({
+        ...parsed.data,
+        requestedBy: user.id,
+        status: "pending",
+      });
+      
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Create training request error:", error);
+      res.status(500).json({ error: "Failed to create training request" });
+    }
+  });
+
+  app.patch("/api/training-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admins/consultants can update request status
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update training requests" });
+      }
+      
+      const schema = z.object({
+        status: z.enum(["pending", "contacted", "completed", "cancelled"]).optional(),
+        responseNotes: z.string().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updateData: any = { ...parsed.data };
+      if (parsed.data.status && parsed.data.status !== "pending") {
+        updateData.respondedBy = user.id;
+        updateData.respondedAt = new Date();
+      }
+      
+      const updated = await storage.updateTrainingRequest(req.params.id, updateData);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update training request error:", error);
+      res.status(500).json({ error: "Failed to update training request" });
+    }
+  });
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
