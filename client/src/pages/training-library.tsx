@@ -37,6 +37,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   Plus, 
   Search,
@@ -48,17 +54,19 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  ExternalLink,
   Clock,
-  Building2,
   AlertCircle,
+  FolderOpen,
   BookOpen,
+  List,
+  HelpCircle,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { TrainingModule, FolderTemplate, ModuleType } from "@shared/schema";
+import type { TrainingFolder, TrainingCourse, ModuleType, TrainingFAQ } from "@shared/schema";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -95,551 +103,691 @@ const moduleBorderColors: Record<string, string> = {
   support: "border-purple-200 dark:border-purple-800",
 };
 
+type ViewMode = "folders" | "courses";
+
 export default function TrainingLibrary() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeModule, setActiveModule] = useState<ModuleType>("health_safety");
+  const [viewMode, setViewMode] = useState<ViewMode>("folders");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingModule, setEditingModule] = useState<TrainingModule | null>(null);
   
-  // Form state
-  const [formData, setFormData] = useState({
-    title: "",
+  // Folder dialog state
+  const [showFolderDialog, setShowFolderDialog] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<TrainingFolder | null>(null);
+  const [folderForm, setFolderForm] = useState({
+    name: "",
     description: "",
     module: "health_safety" as ModuleType,
-    folderTemplateId: "",
+  });
+
+  // Course dialog state
+  const [showCourseDialog, setShowCourseDialog] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<TrainingCourse | null>(null);
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    summary: "",
+    module: "health_safety" as ModuleType,
+    trainingFolderId: "",
     provider: "",
     externalLink: "",
     duration: "",
+    courseOverview: ["", "", "", "", ""],
+    faqs: [
+      { question: "", answer: "" },
+      { question: "", answer: "" },
+      { question: "", answer: "" },
+      { question: "", answer: "" },
+      { question: "", answer: "" },
+    ] as TrainingFAQ[],
     isRequired: false,
     renewalPeriodMonths: null as number | null,
   });
 
-  // Fetch training modules
-  const { data: trainingModules, isLoading: modulesLoading } = useQuery<TrainingModule[]>({
-    queryKey: ["/api/training-modules"],
+  // Fetch training folders
+  const { data: trainingFolders, isLoading: foldersLoading } = useQuery<TrainingFolder[]>({
+    queryKey: ["/api/training-folders"],
   });
 
-  // Fetch folder templates for organization
-  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
-    queryKey: ["/api/folder-templates"],
+  // Fetch training courses
+  const { data: trainingCourses, isLoading: coursesLoading } = useQuery<TrainingCourse[]>({
+    queryKey: ["/api/training-courses"],
   });
 
-  // Create training module
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const response = await apiRequest("POST", "/api/training-modules", {
-        ...data,
-        folderTemplateId: data.folderTemplateId || undefined,
-        renewalPeriodMonths: data.renewalPeriodMonths || undefined,
-      });
+  // Folder mutations
+  const createFolderMutation = useMutation({
+    mutationFn: async (data: typeof folderForm) => {
+      const response = await apiRequest("POST", "/api/training-folders", data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-modules"] });
-      setShowAddDialog(false);
-      resetForm();
-      toast({
-        title: "Training module created",
-        description: "The training module has been added to the library.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      setShowFolderDialog(false);
+      resetFolderForm();
+      toast({ title: "Folder created", description: "The training folder has been created." });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create training module",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to create folder", variant: "destructive" });
     },
   });
 
-  // Update training module
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      const response = await apiRequest("PATCH", `/api/training-modules/${id}`, {
-        ...data,
-        folderTemplateId: data.folderTemplateId || null,
-        renewalPeriodMonths: data.renewalPeriodMonths || null,
-      });
+  const updateFolderMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof folderForm> }) => {
+      const response = await apiRequest("PATCH", `/api/training-folders/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-modules"] });
-      setEditingModule(null);
-      resetForm();
-      toast({
-        title: "Training module updated",
-        description: "The training module has been updated.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      setEditingFolder(null);
+      resetFolderForm();
+      toast({ title: "Folder updated", description: "The training folder has been updated." });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update training module",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to update folder", variant: "destructive" });
     },
   });
 
-  // Delete training module
-  const deleteMutation = useMutation({
+  const deleteFolderMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/training-modules/${id}`);
+      await apiRequest("DELETE", `/api/training-folders/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-modules"] });
-      toast({
-        title: "Training module deleted",
-        description: "The training module has been removed from the library.",
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      toast({ title: "Folder deleted", description: "The training folder has been removed." });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete training module",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to delete folder", variant: "destructive" });
     },
   });
 
-  const resetForm = () => {
-    setFormData({
+  // Course mutations
+  const createCourseMutation = useMutation({
+    mutationFn: async (data: typeof courseForm) => {
+      const cleanedData = {
+        ...data,
+        trainingFolderId: data.trainingFolderId || undefined,
+        courseOverview: data.courseOverview.filter(item => item.trim()),
+        faqs: data.faqs.filter(faq => faq.question.trim() && faq.answer.trim()),
+        renewalPeriodMonths: data.renewalPeriodMonths || undefined,
+        externalLink: data.externalLink || undefined,
+      };
+      const response = await apiRequest("POST", "/api/training-courses", cleanedData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      setShowCourseDialog(false);
+      resetCourseForm();
+      toast({ title: "Course created", description: "The training course has been added to the library." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to create course", variant: "destructive" });
+    },
+  });
+
+  const updateCourseMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof courseForm> }) => {
+      const cleanedData = {
+        ...data,
+        trainingFolderId: data.trainingFolderId || null,
+        courseOverview: data.courseOverview?.filter(item => item.trim()),
+        faqs: data.faqs?.filter(faq => faq.question.trim() && faq.answer.trim()),
+        renewalPeriodMonths: data.renewalPeriodMonths || null,
+        externalLink: data.externalLink || null,
+      };
+      const response = await apiRequest("PATCH", `/api/training-courses/${id}`, cleanedData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      setEditingCourse(null);
+      resetCourseForm();
+      toast({ title: "Course updated", description: "The training course has been updated." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to update course", variant: "destructive" });
+    },
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/training-courses/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      toast({ title: "Course deleted", description: "The training course has been removed." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to delete course", variant: "destructive" });
+    },
+  });
+
+  const resetFolderForm = () => {
+    setFolderForm({ name: "", description: "", module: activeModule });
+  };
+
+  const resetCourseForm = () => {
+    setCourseForm({
       title: "",
-      description: "",
+      summary: "",
       module: activeModule,
-      folderTemplateId: "",
+      trainingFolderId: "",
       provider: "",
       externalLink: "",
       duration: "",
+      courseOverview: ["", "", "", "", ""],
+      faqs: [
+        { question: "", answer: "" },
+        { question: "", answer: "" },
+        { question: "", answer: "" },
+        { question: "", answer: "" },
+        { question: "", answer: "" },
+      ],
       isRequired: false,
       renewalPeriodMonths: null,
     });
   };
 
-  const handleEdit = (module: TrainingModule) => {
-    setFormData({
-      title: module.title,
-      description: module.description || "",
-      module: module.module as ModuleType,
-      folderTemplateId: module.folderTemplateId || "",
-      provider: module.provider || "",
-      externalLink: module.externalLink,
-      duration: module.duration || "",
-      isRequired: module.isRequired,
-      renewalPeriodMonths: module.renewalPeriodMonths,
+  const handleEditFolder = (folder: TrainingFolder) => {
+    setEditingFolder(folder);
+    setFolderForm({
+      name: folder.name,
+      description: folder.description || "",
+      module: folder.module,
     });
-    setEditingModule(module);
   };
 
-  const handleSubmit = () => {
-    if (!formData.title.trim() || !formData.externalLink.trim()) {
-      toast({
-        title: "Validation error",
-        description: "Title and external link are required.",
-        variant: "destructive",
-      });
-      return;
+  const handleEditCourse = (course: TrainingCourse) => {
+    setEditingCourse(course);
+    const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
+    const paddedFaqs = [...parsedFaqs];
+    while (paddedFaqs.length < 5) {
+      paddedFaqs.push({ question: "", answer: "" });
     }
+    const paddedOverview = [...(course.courseOverview || [])];
+    while (paddedOverview.length < 5) {
+      paddedOverview.push("");
+    }
+    setCourseForm({
+      title: course.title,
+      summary: course.summary || "",
+      module: course.module,
+      trainingFolderId: course.trainingFolderId || "",
+      provider: course.provider || "",
+      externalLink: course.externalLink || "",
+      duration: course.duration || "",
+      courseOverview: paddedOverview,
+      faqs: paddedFaqs,
+      isRequired: course.isRequired,
+      renewalPeriodMonths: course.renewalPeriodMonths,
+    });
+  };
 
-    if (editingModule) {
-      updateMutation.mutate({ id: editingModule.id, data: formData });
+  const handleFolderSubmit = () => {
+    if (editingFolder) {
+      updateFolderMutation.mutate({ id: editingFolder.id, data: folderForm });
     } else {
-      createMutation.mutate(formData);
+      createFolderMutation.mutate(folderForm);
     }
   };
 
-  // Filter modules by active tab and search
-  const filteredModules = useMemo(() => {
-    if (!trainingModules) return [];
-    
-    return trainingModules
-      .filter((m) => m.module === activeModule)
-      .filter((m) => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-          m.title.toLowerCase().includes(query) ||
-          m.description?.toLowerCase().includes(query) ||
-          m.provider?.toLowerCase().includes(query)
-        );
-      })
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [trainingModules, activeModule, searchQuery]);
+  const handleCourseSubmit = () => {
+    if (editingCourse) {
+      updateCourseMutation.mutate({ id: editingCourse.id, data: courseForm });
+    } else {
+      createCourseMutation.mutate(courseForm);
+    }
+  };
 
-  // Get folder templates for active module
-  const moduleFolders = useMemo(() => {
-    if (!folderTemplates) return [];
-    return folderTemplates.filter((f) => f.module === activeModule && f.isActive);
-  }, [folderTemplates, activeModule]);
+  // Filter data by module and search
+  const filteredFolders = useMemo(() => {
+    return (trainingFolders || [])
+      .filter(f => f.module === activeModule)
+      .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [trainingFolders, activeModule, searchQuery]);
 
-  // Group modules by folder
-  const groupedByFolder = useMemo(() => {
-    const groups: Record<string, TrainingModule[]> = { unfiled: [] };
-    
-    moduleFolders.forEach((folder) => {
-      groups[folder.id] = [];
-    });
-    
-    filteredModules.forEach((module) => {
-      if (module.folderTemplateId && groups[module.folderTemplateId]) {
-        groups[module.folderTemplateId].push(module);
-      } else {
-        groups.unfiled.push(module);
-      }
-    });
-    
-    return groups;
-  }, [filteredModules, moduleFolders]);
+  const filteredCourses = useMemo(() => {
+    return (trainingCourses || [])
+      .filter(c => c.module === activeModule)
+      .filter(c => !searchQuery || c.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [trainingCourses, activeModule, searchQuery]);
 
-  const ModuleIcon = moduleIcons[activeModule];
+  // Get courses by folder for folder view
+  const getCoursesByFolder = (folderId: string) => {
+    return filteredCourses.filter(c => c.trainingFolderId === folderId);
+  };
+
+  const getUnassignedCourses = () => {
+    return filteredCourses.filter(c => !c.trainingFolderId);
+  };
+
   const isAdmin = user?.role === "admin";
+  const isLoading = foldersLoading || coursesLoading;
 
-  if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="p-8 text-center">
-          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">
-            Only administrators can manage the Training Library.
-          </p>
-        </Card>
-      </div>
-    );
-  }
+  const ModuleIcon = moduleIcons[activeModule] || GraduationCap;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${moduleBgColors[activeModule]}`}>
-              <GraduationCap className={`h-6 w-6 ${moduleColors[activeModule]}`} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Training Library</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage training resources across all modules
-              </p>
-            </div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${moduleBgColors[activeModule]}`}>
+            <GraduationCap className={`h-6 w-6 ${moduleColors[activeModule]}`} />
           </div>
-          <Button
-            onClick={() => {
-              resetForm();
-              setFormData((prev) => ({ ...prev, module: activeModule }));
-              setShowAddDialog(true);
-            }}
-            className="gap-2"
-            data-testid="button-add-training"
-          >
-            <Plus className="h-4 w-4" />
-            Add Training
-          </Button>
-        </div>
-
-        {/* Module Tabs */}
-        <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as ModuleType)}>
-          <TabsList className="mx-6 mb-4">
-            {(["health_safety", "human_resources", "employment_law"] as ModuleType[]).map((mod) => {
-              const Icon = moduleIcons[mod];
-              const count = trainingModules?.filter((m) => m.module === mod).length || 0;
-              return (
-                <TabsTrigger 
-                  key={mod} 
-                  value={mod} 
-                  className="gap-2"
-                  data-testid={`tab-${mod}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {moduleNames[mod]}
-                  <Badge variant="secondary" className="ml-1">
-                    {count}
-                  </Badge>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </Tabs>
-      </div>
-
-      {/* Search */}
-      <div className="flex-shrink-0 p-4 border-b">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search training modules..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-training"
-          />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {modulesLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
-          </div>
-        ) : filteredModules.length === 0 ? (
-          <Card className="p-12 text-center">
-            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No training modules yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Add training resources for {moduleNames[activeModule]} module
+          <div>
+            <h1 className="text-2xl font-bold">Training Library</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage training folders and courses for all modules
             </p>
+          </div>
+        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetFolderForm();
+                setShowFolderDialog(true);
+              }}
+              data-testid="button-add-folder"
+            >
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Add Folder
+            </Button>
             <Button
               onClick={() => {
-                resetForm();
-                setFormData((prev) => ({ ...prev, module: activeModule }));
-                setShowAddDialog(true);
+                resetCourseForm();
+                setShowCourseDialog(true);
               }}
-              className="gap-2"
+              data-testid="button-add-course"
             >
-              <Plus className="h-4 w-4" />
-              Add First Training
+              <Plus className="h-4 w-4 mr-2" />
+              Add Course
             </Button>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* Unfiled modules first if any */}
-            {groupedByFolder.unfiled.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <GraduationCap className={`h-5 w-5 ${moduleColors[activeModule]}`} />
-                    General Training
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TrainingTable
-                    modules={groupedByFolder.unfiled}
-                    moduleColor={moduleColors[activeModule]}
-                    onEdit={handleEdit}
-                    onDelete={(id) => deleteMutation.mutate(id)}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Grouped by folder */}
-            {moduleFolders.map((folder) => {
-              const folderModules = groupedByFolder[folder.id] || [];
-              if (folderModules.length === 0) return null;
-              
-              return (
-                <Card key={folder.id}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <GraduationCap className={`h-5 w-5 ${moduleColors[activeModule]}`} />
-                      {folder.name}
-                    </CardTitle>
-                    {folder.description && (
-                      <CardDescription>{folder.description}</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <TrainingTable
-                      modules={folderModules}
-                      moduleColor={moduleColors[activeModule]}
-                      onEdit={handleEdit}
-                      onDelete={(id) => deleteMutation.mutate(id)}
-                    />
-                  </CardContent>
-                </Card>
-              );
-            })}
           </div>
         )}
       </div>
 
-      {/* Add/Edit Dialog */}
-      <Dialog 
-        open={showAddDialog || !!editingModule} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowAddDialog(false);
-            setEditingModule(null);
-            resetForm();
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg">
+      {/* Module Tabs */}
+      <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as ModuleType)}>
+        <TabsList className="grid w-full grid-cols-4">
+          {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => {
+            const Icon = moduleIcons[mod];
+            return (
+              <TabsTrigger 
+                key={mod} 
+                value={mod}
+                data-testid={`tab-${mod}`}
+                className="flex items-center gap-2"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline">{moduleNames[mod]}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => (
+          <TabsContent key={mod} value={mod} className="mt-6">
+            {/* Search and View Toggle */}
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search folders and courses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === "folders" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("folders")}
+                  data-testid="button-view-folders"
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  By Folder
+                </Button>
+                <Button
+                  variant={viewMode === "courses" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("courses")}
+                  data-testid="button-view-courses"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  All Courses
+                </Button>
+              </div>
+            </div>
+
+            {/* Content */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <Skeleton className="h-6 w-48" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : viewMode === "folders" ? (
+              <FolderView
+                folders={filteredFolders}
+                courses={filteredCourses}
+                getCoursesByFolder={getCoursesByFolder}
+                getUnassignedCourses={getUnassignedCourses}
+                isAdmin={isAdmin}
+                onEditFolder={handleEditFolder}
+                onDeleteFolder={(id) => deleteFolderMutation.mutate(id)}
+                onEditCourse={handleEditCourse}
+                onDeleteCourse={(id) => deleteCourseMutation.mutate(id)}
+                moduleColors={moduleColors}
+                activeModule={activeModule}
+              />
+            ) : (
+              <CourseListView
+                courses={filteredCourses}
+                folders={filteredFolders}
+                isAdmin={isAdmin}
+                onEditCourse={handleEditCourse}
+                onDeleteCourse={(id) => deleteCourseMutation.mutate(id)}
+                moduleColors={moduleColors}
+                activeModule={activeModule}
+              />
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      {/* Folder Dialog */}
+      <Dialog open={showFolderDialog || !!editingFolder} onOpenChange={(open) => {
+        if (!open) {
+          setShowFolderDialog(false);
+          setEditingFolder(null);
+          resetFolderForm();
+        }
+      }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingModule ? "Edit Training Module" : "Add Training Module"}
-            </DialogTitle>
+            <DialogTitle>{editingFolder ? "Edit Folder" : "Create Training Folder"}</DialogTitle>
             <DialogDescription>
-              {editingModule 
-                ? "Update the training module details." 
-                : "Add a new training resource to the library."}
+              {editingFolder ? "Update the folder details below." : "Add a new folder to organize training courses."}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="folder-name">Folder Name</Label>
               <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g., Fire Safety Awareness"
-                data-testid="input-training-title"
+                id="folder-name"
+                value={folderForm.name}
+                onChange={(e) => setFolderForm({ ...folderForm, name: e.target.value })}
+                placeholder="e.g., Fire Safety Training"
+                data-testid="input-folder-name"
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="folder-description">Description</Label>
               <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of the training..."
-                rows={3}
-                data-testid="input-training-description"
+                id="folder-description"
+                value={folderForm.description}
+                onChange={(e) => setFolderForm({ ...folderForm, description: e.target.value })}
+                placeholder="Brief description of this folder..."
+                data-testid="input-folder-description"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Module</Label>
-                <Select
-                  value={formData.module}
-                  onValueChange={(v) => setFormData((prev) => ({ 
-                    ...prev, 
-                    module: v as ModuleType,
-                    folderTemplateId: "", // Reset folder when module changes
-                  }))}
-                >
-                  <SelectTrigger data-testid="select-training-module">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="health_safety">Health & Safety</SelectItem>
-                    <SelectItem value="human_resources">Human Resources</SelectItem>
-                    <SelectItem value="employment_law">Employment Law</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Folder (Optional)</Label>
-                <Select
-                  value={formData.folderTemplateId || "none"}
-                  onValueChange={(v) => setFormData((prev) => ({ ...prev, folderTemplateId: v === "none" ? "" : v }))}
-                >
-                  <SelectTrigger data-testid="select-training-folder">
-                    <SelectValue placeholder="Select folder..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No folder</SelectItem>
-                    {folderTemplates
-                      ?.filter((f) => f.module === formData.module && f.isActive)
-                      .map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="externalLink">External Link *</Label>
-              <Input
-                id="externalLink"
-                type="url"
-                value={formData.externalLink}
-                onChange={(e) => setFormData((prev) => ({ ...prev, externalLink: e.target.value }))}
-                placeholder="https://training-provider.com/course"
-                data-testid="input-training-link"
-              />
+              <Label htmlFor="folder-module">Module</Label>
+              <Select
+                value={folderForm.module}
+                onValueChange={(v) => setFolderForm({ ...folderForm, module: v as ModuleType })}
+              >
+                <SelectTrigger data-testid="select-folder-module">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => (
+                    <SelectItem key={mod} value={mod}>{moduleNames[mod]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="provider">Provider</Label>
-                <Input
-                  id="provider"
-                  value={formData.provider}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, provider: e.target.value }))}
-                  placeholder="e.g., IOSH, HSE"
-                  data-testid="input-training-provider"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration</Label>
-                <Input
-                  id="duration"
-                  value={formData.duration}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value }))}
-                  placeholder="e.g., 2 hours, 1 day"
-                  data-testid="input-training-duration"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label>Required Training</Label>
-                <p className="text-sm text-muted-foreground">
-                  Mark this training as mandatory
-                </p>
-              </div>
-              <Switch
-                checked={formData.isRequired}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isRequired: checked }))}
-                data-testid="switch-training-required"
-              />
-            </div>
-
-            {formData.isRequired && (
-              <div className="space-y-2">
-                <Label htmlFor="renewalPeriod">Renewal Period (months)</Label>
-                <Input
-                  id="renewalPeriod"
-                  type="number"
-                  min="1"
-                  value={formData.renewalPeriodMonths || ""}
-                  onChange={(e) => setFormData((prev) => ({ 
-                    ...prev, 
-                    renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null 
-                  }))}
-                  placeholder="e.g., 12"
-                  data-testid="input-training-renewal"
-                />
-              </div>
-            )}
           </div>
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddDialog(false);
-                setEditingModule(null);
-                resetForm();
-              }}
-            >
+            <Button variant="outline" onClick={() => {
+              setShowFolderDialog(false);
+              setEditingFolder(null);
+              resetFolderForm();
+            }}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              data-testid="button-save-training"
+            <Button 
+              onClick={handleFolderSubmit}
+              disabled={!folderForm.name.trim() || createFolderMutation.isPending || updateFolderMutation.isPending}
+              data-testid="button-save-folder"
             >
-              {createMutation.isPending || updateMutation.isPending
-                ? "Saving..."
-                : editingModule
-                ? "Update"
-                : "Create"}
+              {editingFolder ? "Update" : "Create"} Folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Course Dialog */}
+      <Dialog open={showCourseDialog || !!editingCourse} onOpenChange={(open) => {
+        if (!open) {
+          setShowCourseDialog(false);
+          setEditingCourse(null);
+          resetCourseForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCourse ? "Edit Course" : "Create Training Course"}</DialogTitle>
+            <DialogDescription>
+              {editingCourse ? "Update the course details below." : "Add a new training course to the library."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-muted-foreground">Basic Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="course-title">Course Title</Label>
+                  <Input
+                    id="course-title"
+                    value={courseForm.title}
+                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                    placeholder="e.g., Fire Warden Training"
+                    data-testid="input-course-title"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course-provider">Provider</Label>
+                  <Input
+                    id="course-provider"
+                    value={courseForm.provider}
+                    onChange={(e) => setCourseForm({ ...courseForm, provider: e.target.value })}
+                    placeholder="e.g., IOSH, HSE Direct"
+                    data-testid="input-course-provider"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="course-summary">Summary</Label>
+                <Textarea
+                  id="course-summary"
+                  value={courseForm.summary}
+                  onChange={(e) => setCourseForm({ ...courseForm, summary: e.target.value })}
+                  placeholder="Brief summary of the training course..."
+                  rows={3}
+                  data-testid="input-course-summary"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="course-module">Module</Label>
+                  <Select
+                    value={courseForm.module}
+                    onValueChange={(v) => setCourseForm({ ...courseForm, module: v as ModuleType })}
+                  >
+                    <SelectTrigger data-testid="select-course-module">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => (
+                        <SelectItem key={mod} value={mod}>{moduleNames[mod]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course-folder">Folder</Label>
+                  <Select
+                    value={courseForm.trainingFolderId || "none"}
+                    onValueChange={(v) => setCourseForm({ ...courseForm, trainingFolderId: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger data-testid="select-course-folder">
+                      <SelectValue placeholder="Select folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Folder</SelectItem>
+                      {(trainingFolders || [])
+                        .filter(f => f.module === courseForm.module)
+                        .map((folder) => (
+                          <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course-duration">Duration</Label>
+                  <Input
+                    id="course-duration"
+                    value={courseForm.duration}
+                    onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
+                    placeholder="e.g., 2 hours"
+                    data-testid="input-course-duration"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="course-link">External Link (optional)</Label>
+                <Input
+                  id="course-link"
+                  value={courseForm.externalLink}
+                  onChange={(e) => setCourseForm({ ...courseForm, externalLink: e.target.value })}
+                  placeholder="https://..."
+                  data-testid="input-course-link"
+                />
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="course-required"
+                    checked={courseForm.isRequired}
+                    onCheckedChange={(checked) => setCourseForm({ ...courseForm, isRequired: checked })}
+                    data-testid="switch-course-required"
+                  />
+                  <Label htmlFor="course-required">Required Training</Label>
+                </div>
+                {courseForm.isRequired && (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="course-renewal">Renewal (months)</Label>
+                    <Input
+                      id="course-renewal"
+                      type="number"
+                      className="w-20"
+                      value={courseForm.renewalPeriodMonths || ""}
+                      onChange={(e) => setCourseForm({ 
+                        ...courseForm, 
+                        renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null 
+                      })}
+                      data-testid="input-course-renewal"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Course Overview */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <List className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-medium text-sm text-muted-foreground">Course Overview</h4>
+              </div>
+              <div className="space-y-2">
+                {courseForm.courseOverview.map((item, index) => (
+                  <Input
+                    key={index}
+                    value={item}
+                    onChange={(e) => {
+                      const newOverview = [...courseForm.courseOverview];
+                      newOverview[index] = e.target.value;
+                      setCourseForm({ ...courseForm, courseOverview: newOverview });
+                    }}
+                    placeholder={`Topic ${index + 1}`}
+                    data-testid={`input-overview-${index}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* FAQs */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-medium text-sm text-muted-foreground">FAQs (up to 5)</h4>
+              </div>
+              <div className="space-y-4">
+                {courseForm.faqs.map((faq, index) => (
+                  <div key={index} className="space-y-2 p-3 border rounded-lg">
+                    <Input
+                      value={faq.question}
+                      onChange={(e) => {
+                        const newFaqs = [...courseForm.faqs];
+                        newFaqs[index] = { ...newFaqs[index], question: e.target.value };
+                        setCourseForm({ ...courseForm, faqs: newFaqs });
+                      }}
+                      placeholder={`Question ${index + 1}`}
+                      data-testid={`input-faq-question-${index}`}
+                    />
+                    <Textarea
+                      value={faq.answer}
+                      onChange={(e) => {
+                        const newFaqs = [...courseForm.faqs];
+                        newFaqs[index] = { ...newFaqs[index], answer: e.target.value };
+                        setCourseForm({ ...courseForm, faqs: newFaqs });
+                      }}
+                      placeholder={`Answer ${index + 1}`}
+                      rows={2}
+                      data-testid={`input-faq-answer-${index}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowCourseDialog(false);
+              setEditingCourse(null);
+              resetCourseForm();
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCourseSubmit}
+              disabled={!courseForm.title.trim() || createCourseMutation.isPending || updateCourseMutation.isPending}
+              data-testid="button-save-course"
+            >
+              {editingCourse ? "Update" : "Create"} Course
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -648,116 +796,323 @@ export default function TrainingLibrary() {
   );
 }
 
-// Training table component
-function TrainingTable({
-  modules,
-  moduleColor,
+// Folder View Component
+function FolderView({
+  folders,
+  courses,
+  getCoursesByFolder,
+  getUnassignedCourses,
+  isAdmin,
+  onEditFolder,
+  onDeleteFolder,
+  onEditCourse,
+  onDeleteCourse,
+  moduleColors,
+  activeModule,
+}: {
+  folders: TrainingFolder[];
+  courses: TrainingCourse[];
+  getCoursesByFolder: (folderId: string) => TrainingCourse[];
+  getUnassignedCourses: () => TrainingCourse[];
+  isAdmin: boolean;
+  onEditFolder: (folder: TrainingFolder) => void;
+  onDeleteFolder: (id: string) => void;
+  onEditCourse: (course: TrainingCourse) => void;
+  onDeleteCourse: (id: string) => void;
+  moduleColors: Record<string, string>;
+  activeModule: ModuleType;
+}) {
+  const unassignedCourses = getUnassignedCourses();
+
+  if (folders.length === 0 && unassignedCourses.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Training Content</h3>
+          <p className="text-muted-foreground text-center">
+            {isAdmin 
+              ? "Create folders and add training courses to get started."
+              : "No training content available for this module yet."}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {folders.map((folder) => {
+        const folderCourses = getCoursesByFolder(folder.id);
+        return (
+          <Card key={folder.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FolderOpen className={`h-5 w-5 ${moduleColors[activeModule]}`} />
+                  <div>
+                    <CardTitle className="text-lg">{folder.name}</CardTitle>
+                    {folder.description && (
+                      <CardDescription>{folder.description}</CardDescription>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="ml-2">
+                    {folderCourses.length} course{folderCourses.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" data-testid={`button-folder-menu-${folder.id}`}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEditFolder(folder)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Folder
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDeleteFolder(folder.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Folder
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </CardHeader>
+            {folderCourses.length > 0 && (
+              <CardContent>
+                <div className="space-y-2">
+                  {folderCourses.map((course) => (
+                    <CourseRow 
+                      key={course.id} 
+                      course={course} 
+                      isAdmin={isAdmin}
+                      onEdit={() => onEditCourse(course)}
+                      onDelete={() => onDeleteCourse(course.id)}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
+
+      {/* Unassigned Courses */}
+      {unassignedCourses.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <BookOpen className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-lg">Unassigned Courses</CardTitle>
+              <Badge variant="outline">
+                {unassignedCourses.length} course{unassignedCourses.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {unassignedCourses.map((course) => (
+                <CourseRow 
+                  key={course.id} 
+                  course={course} 
+                  isAdmin={isAdmin}
+                  onEdit={() => onEditCourse(course)}
+                  onDelete={() => onDeleteCourse(course.id)}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Course List View Component
+function CourseListView({
+  courses,
+  folders,
+  isAdmin,
+  onEditCourse,
+  onDeleteCourse,
+  moduleColors,
+  activeModule,
+}: {
+  courses: TrainingCourse[];
+  folders: TrainingFolder[];
+  isAdmin: boolean;
+  onEditCourse: (course: TrainingCourse) => void;
+  onDeleteCourse: (id: string) => void;
+  moduleColors: Record<string, string>;
+  activeModule: ModuleType;
+}) {
+  const getFolderName = (folderId: string | null) => {
+    if (!folderId) return "Unassigned";
+    const folder = folders.find(f => f.id === folderId);
+    return folder?.name || "Unknown";
+  };
+
+  if (courses.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Training Courses</h3>
+          <p className="text-muted-foreground text-center">
+            {isAdmin 
+              ? "Add training courses to this module to get started."
+              : "No training courses available for this module yet."}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Course</TableHead>
+            <TableHead>Folder</TableHead>
+            <TableHead>Provider</TableHead>
+            <TableHead>Duration</TableHead>
+            <TableHead>Status</TableHead>
+            {isAdmin && <TableHead className="w-[50px]"></TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {courses.map((course) => (
+            <TableRow key={course.id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <GraduationCap className={`h-4 w-4 ${moduleColors[activeModule]}`} />
+                  <div>
+                    <div className="font-medium">{course.title}</div>
+                    {course.summary && (
+                      <div className="text-sm text-muted-foreground line-clamp-1">{course.summary}</div>
+                    )}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">{getFolderName(course.trainingFolderId)}</Badge>
+              </TableCell>
+              <TableCell>{course.provider || "-"}</TableCell>
+              <TableCell>
+                {course.duration && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <Clock className="h-3 w-3" />
+                    {course.duration}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                {course.isRequired ? (
+                  <Badge variant="destructive" className="gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Required
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">Optional</Badge>
+                )}
+              </TableCell>
+              {isAdmin && (
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" data-testid={`button-course-menu-${course.id}`}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onEditCourse(course)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Course
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDeleteCourse(course.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Course
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+}
+
+// Course Row Component for Folder View
+function CourseRow({
+  course,
+  isAdmin,
   onEdit,
   onDelete,
 }: {
-  modules: TrainingModule[];
-  moduleColor: string;
-  onEdit: (module: TrainingModule) => void;
-  onDelete: (id: string) => void;
+  course: TrainingCourse;
+  isAdmin: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Training</TableHead>
-          <TableHead>Provider</TableHead>
-          <TableHead>Duration</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="w-12"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {modules.map((module) => (
-          <TableRow key={module.id} data-testid={`row-training-${module.id}`}>
-            <TableCell>
-              <div className="space-y-1">
-                <div className="font-medium flex items-center gap-2">
-                  {module.title}
-                  <a
-                    href={module.externalLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`${moduleColor} hover:underline`}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-                {module.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-1">
-                    {module.description}
-                  </p>
-                )}
-              </div>
-            </TableCell>
-            <TableCell>
-              {module.provider ? (
-                <div className="flex items-center gap-1.5 text-sm">
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  {module.provider}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              )}
-            </TableCell>
-            <TableCell>
-              {module.duration ? (
-                <div className="flex items-center gap-1.5 text-sm">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                  {module.duration}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              )}
-            </TableCell>
-            <TableCell>
-              {module.isRequired ? (
-                <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
-                  Required
-                  {module.renewalPeriodMonths && (
-                    <span className="ml-1 opacity-75">
-                      ({module.renewalPeriodMonths}mo)
-                    </span>
-                  )}
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Recommended</Badge>
-              )}
-            </TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    data-testid={`button-training-menu-${module.id}`}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEdit(module)}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => onDelete(module.id)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="flex items-center justify-between p-3 rounded-lg border hover-elevate">
+      <div className="flex items-center gap-3">
+        <GraduationCap className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <div className="font-medium">{course.title}</div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            {course.provider && <span>{course.provider}</span>}
+            {course.duration && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {course.duration}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {course.isRequired ? (
+          <Badge variant="destructive" className="gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Required
+          </Badge>
+        ) : (
+          <Badge variant="secondary">Optional</Badge>
+        )}
+        {isAdmin && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" data-testid={`button-course-menu-${course.id}`}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Course
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Course
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </div>
   );
 }

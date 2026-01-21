@@ -1,9 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Accordion,
   AccordionContent,
@@ -22,10 +32,20 @@ import {
   Building2,
   BookOpen,
   AlertCircle,
+  FolderOpen,
+  ChevronRight,
+  List,
+  HelpCircle,
+  Mail,
+  Calendar,
+  X,
+  CheckCircle,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import type { TrainingModule, FolderTemplate, ModuleType } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { TrainingFolder, TrainingCourse, TrainingFAQ, ModuleType, Site } from "@shared/schema";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -75,67 +95,127 @@ interface ModuleTrainingProps {
 
 export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [openFolders, setOpenFolders] = useState<string[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
+  const [showRequestDialog, setShowRequestDialog] = useState(false);
+  const [requestType, setRequestType] = useState<"info" | "booking">("info");
+  const [requestMessage, setRequestMessage] = useState("");
 
-  // Fetch training modules for this module
-  const { data: trainingModules, isLoading: modulesLoading } = useQuery<TrainingModule[]>({
-    queryKey: ["/api/training-modules", { module }],
+  // Fetch training folders for this module
+  const { data: trainingFolders, isLoading: foldersLoading } = useQuery<TrainingFolder[]>({
+    queryKey: ["/api/training-folders", { module }],
     queryFn: async () => {
-      const response = await fetch(`/api/training-modules?module=${module}`);
-      if (!response.ok) throw new Error("Failed to fetch training modules");
+      const response = await fetch(`/api/training-folders?module=${module}`);
+      if (!response.ok) throw new Error("Failed to fetch training folders");
       return response.json();
     },
   });
 
-  // Fetch folder templates for organization
-  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
-    queryKey: ["/api/folder-templates"],
+  // Fetch training courses for this module
+  const { data: trainingCourses, isLoading: coursesLoading } = useQuery<TrainingCourse[]>({
+    queryKey: ["/api/training-courses", { module }],
+    queryFn: async () => {
+      const response = await fetch(`/api/training-courses?module=${module}`);
+      if (!response.ok) throw new Error("Failed to fetch training courses");
+      return response.json();
+    },
   });
 
-  // Filter modules by search
-  const filteredModules = useMemo(() => {
-    if (!trainingModules) return [];
+  // Fetch user's sites for request submission
+  const { data: sites } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
+    enabled: !!user,
+  });
+
+  // Submit training request mutation
+  const submitRequestMutation = useMutation({
+    mutationFn: async (data: { trainingCourseId: string; siteId: string; requestType: "info" | "booking"; message?: string }) => {
+      const response = await apiRequest("POST", "/api/training-requests", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: requestType === "info" ? "Request Submitted" : "Booking Request Submitted",
+        description: requestType === "info" 
+          ? "We'll get back to you with more information soon." 
+          : "Your training booking request has been submitted.",
+      });
+      setShowRequestDialog(false);
+      setRequestMessage("");
+      setSelectedCourse(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Filter courses by search
+  const filteredCourses = useMemo(() => {
+    if (!trainingCourses) return [];
     
-    if (!searchQuery) return trainingModules;
+    if (!searchQuery) return trainingCourses;
     
     const query = searchQuery.toLowerCase();
-    return trainingModules.filter((m) => 
-      m.title.toLowerCase().includes(query) ||
-      m.description?.toLowerCase().includes(query) ||
-      m.provider?.toLowerCase().includes(query)
+    return trainingCourses.filter((c) => 
+      c.title.toLowerCase().includes(query) ||
+      c.summary?.toLowerCase().includes(query) ||
+      c.provider?.toLowerCase().includes(query)
     );
-  }, [trainingModules, searchQuery]);
+  }, [trainingCourses, searchQuery]);
 
-  // Get folder templates for this module
-  const moduleFolders = useMemo(() => {
-    if (!folderTemplates) return [];
-    return folderTemplates.filter((f) => f.module === module && f.isActive);
-  }, [folderTemplates, module]);
-
-  // Group modules by folder
+  // Group courses by folder
   const groupedByFolder = useMemo(() => {
-    const groups: Record<string, TrainingModule[]> = { unfiled: [] };
+    const groups: Record<string, TrainingCourse[]> = { unfiled: [] };
     
-    moduleFolders.forEach((folder) => {
+    (trainingFolders || []).forEach((folder) => {
       groups[folder.id] = [];
     });
     
-    filteredModules.forEach((trainingModule) => {
-      if (trainingModule.folderTemplateId && groups[trainingModule.folderTemplateId]) {
-        groups[trainingModule.folderTemplateId].push(trainingModule);
+    filteredCourses.forEach((course) => {
+      if (course.trainingFolderId && groups[course.trainingFolderId]) {
+        groups[course.trainingFolderId].push(course);
       } else {
-        groups.unfiled.push(trainingModule);
+        groups.unfiled.push(course);
       }
     });
     
     return groups;
-  }, [filteredModules, moduleFolders]);
+  }, [filteredCourses, trainingFolders]);
 
   // Count training by status
-  const requiredCount = filteredModules.filter((m) => m.isRequired).length;
-  const recommendedCount = filteredModules.filter((m) => !m.isRequired).length;
+  const requiredCount = filteredCourses.filter((c) => c.isRequired).length;
+  const recommendedCount = filteredCourses.filter((c) => !c.isRequired).length;
 
+  const handleRequestInfo = (course: TrainingCourse) => {
+    setSelectedCourse(course);
+    setRequestType("info");
+    setShowRequestDialog(true);
+  };
+
+  const handleBookTraining = (course: TrainingCourse) => {
+    setSelectedCourse(course);
+    setRequestType("booking");
+    setShowRequestDialog(true);
+  };
+
+  const handleSubmitRequest = () => {
+    if (!selectedCourse || !sites || sites.length === 0) return;
+    
+    submitRequestMutation.mutate({
+      trainingCourseId: selectedCourse.id,
+      siteId: sites[0].id, // Use first available site
+      requestType,
+      message: requestMessage || undefined,
+    });
+  };
+
+  const isLoading = foldersLoading || coursesLoading;
   const ModuleIcon = moduleIcons[module];
 
   return (
@@ -185,20 +265,20 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {modulesLoading ? (
+        {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-        ) : filteredModules.length === 0 ? (
+        ) : filteredCourses.length === 0 ? (
           <Card className="p-12 text-center">
             <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No training available</h3>
             <p className="text-muted-foreground">
               {searchQuery 
-                ? "No training modules match your search." 
-                : "Training resources for this module will appear here once added."}
+                ? "No training courses match your search." 
+                : "Training courses for this module will appear here once added."}
             </p>
           </Card>
         ) : (
@@ -213,12 +293,15 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {groupedByFolder.unfiled.map((training) => (
+                  {groupedByFolder.unfiled.map((course) => (
                     <TrainingCard 
-                      key={training.id} 
-                      training={training} 
+                      key={course.id} 
+                      course={course} 
                       moduleColor={moduleColors[module]}
                       buttonColor={moduleButtonColors[module]}
+                      onViewDetails={() => setSelectedCourse(course)}
+                      onRequestInfo={() => handleRequestInfo(course)}
+                      onBookTraining={() => handleBookTraining(course)}
                     />
                   ))}
                 </CardContent>
@@ -232,9 +315,9 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
               onValueChange={setOpenFolders}
               className="space-y-3"
             >
-              {moduleFolders.map((folder) => {
-                const folderModules = groupedByFolder[folder.id] || [];
-                if (folderModules.length === 0) return null;
+              {(trainingFolders || []).map((folder) => {
+                const folderCourses = groupedByFolder[folder.id] || [];
+                if (folderCourses.length === 0) return null;
                 
                 return (
                   <AccordionItem 
@@ -244,18 +327,24 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                   >
                     <AccordionTrigger className="px-4 hover:no-underline">
                       <div className="flex items-center gap-3">
-                        <GraduationCap className={`h-5 w-5 ${moduleColors[module]}`} />
+                        <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
                         <span className="font-medium">{folder.name}</span>
-                        <Badge variant="secondary">{folderModules.length}</Badge>
+                        <Badge variant="secondary">{folderCourses.length}</Badge>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4 space-y-3">
-                      {folderModules.map((training) => (
+                      {folder.description && (
+                        <p className="text-sm text-muted-foreground mb-4">{folder.description}</p>
+                      )}
+                      {folderCourses.map((course) => (
                         <TrainingCard 
-                          key={training.id} 
-                          training={training} 
+                          key={course.id} 
+                          course={course} 
                           moduleColor={moduleColors[module]}
                           buttonColor={moduleButtonColors[module]}
+                          onViewDetails={() => setSelectedCourse(course)}
+                          onRequestInfo={() => handleRequestInfo(course)}
+                          onBookTraining={() => handleBookTraining(course)}
                         />
                       ))}
                     </AccordionContent>
@@ -266,36 +355,112 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
           </div>
         )}
       </div>
+
+      {/* Course Detail Dialog */}
+      <Dialog open={!!selectedCourse && !showRequestDialog} onOpenChange={(open) => !open && setSelectedCourse(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedCourse && (
+            <CourseDetailView
+              course={selectedCourse}
+              module={module}
+              onClose={() => setSelectedCourse(null)}
+              onRequestInfo={() => handleRequestInfo(selectedCourse)}
+              onBookTraining={() => handleBookTraining(selectedCourse)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Request Dialog */}
+      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {requestType === "info" ? "Request More Information" : "Book Training"}
+            </DialogTitle>
+            <DialogDescription>
+              {requestType === "info" 
+                ? `Request more details about "${selectedCourse?.title}"`
+                : `Submit a booking request for "${selectedCourse?.title}"`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="request-message">Message (optional)</Label>
+              <Textarea
+                id="request-message"
+                value={requestMessage}
+                onChange={(e) => setRequestMessage(e.target.value)}
+                placeholder={requestType === "info" 
+                  ? "What would you like to know about this training?"
+                  : "Any specific requirements or preferred dates?"
+                }
+                rows={4}
+                data-testid="input-request-message"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRequestDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitRequest}
+              disabled={submitRequestMutation.isPending}
+              data-testid="button-submit-request"
+            >
+              {requestType === "info" ? (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Request Info
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Training
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 // Training card component for client view
 function TrainingCard({
-  training,
+  course,
   moduleColor,
   buttonColor,
+  onViewDetails,
+  onRequestInfo,
+  onBookTraining,
 }: {
-  training: TrainingModule;
+  course: TrainingCourse;
   moduleColor: string;
   buttonColor: string;
+  onViewDetails: () => void;
+  onRequestInfo: () => void;
+  onBookTraining: () => void;
 }) {
   return (
     <Card 
-      className="hover-elevate transition-shadow"
-      data-testid={`card-training-${training.id}`}
+      className="hover-elevate transition-shadow cursor-pointer"
+      onClick={onViewDetails}
+      data-testid={`card-training-${course.id}`}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
-              <h4 className="font-medium">{training.title}</h4>
-              {training.isRequired ? (
+              <h4 className="font-medium">{course.title}</h4>
+              {course.isRequired ? (
                 <Badge className="bg-amber-500 hover:bg-amber-600">
                   Required
-                  {training.renewalPeriodMonths && (
+                  {course.renewalPeriodMonths && (
                     <span className="ml-1 opacity-75">
-                      ({training.renewalPeriodMonths}mo renewal)
+                      ({course.renewalPeriodMonths}mo renewal)
                     </span>
                   )}
                 </Badge>
@@ -304,45 +469,182 @@ function TrainingCard({
               )}
             </div>
             
-            {training.description && (
-              <p className="text-sm text-muted-foreground">
-                {training.description}
+            {course.summary && (
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {course.summary}
               </p>
             )}
             
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {training.provider && (
+              {course.provider && (
                 <div className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" />
-                  {training.provider}
+                  {course.provider}
                 </div>
               )}
-              {training.duration && (
+              {course.duration && (
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5" />
-                  {training.duration}
+                  {course.duration}
                 </div>
               )}
             </div>
           </div>
           
-          <Button
-            asChild
-            className={buttonColor}
-            data-testid={`button-start-training-${training.id}`}
-          >
-            <a
-              href={training.externalLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gap-2"
+          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRequestInfo}
+              data-testid={`button-request-info-${course.id}`}
             >
-              <ExternalLink className="h-4 w-4" />
-              Start Training
-            </a>
-          </Button>
+              <Mail className="h-4 w-4 mr-1" />
+              Info
+            </Button>
+            <Button
+              size="sm"
+              className={buttonColor}
+              onClick={onBookTraining}
+              data-testid={`button-book-training-${course.id}`}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Book
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Course detail view component
+function CourseDetailView({
+  course,
+  module,
+  onClose,
+  onRequestInfo,
+  onBookTraining,
+}: {
+  course: TrainingCourse;
+  module: ModuleType;
+  onClose: () => void;
+  onRequestInfo: () => void;
+  onBookTraining: () => void;
+}) {
+  const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
+  const overview = course.courseOverview || [];
+
+  return (
+    <>
+      <DialogHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${moduleBgColors[module]}`}>
+              <GraduationCap className={`h-5 w-5 ${moduleColors[module]}`} />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">{course.title}</DialogTitle>
+              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                {course.provider && (
+                  <span className="flex items-center gap-1">
+                    <Building2 className="h-3.5 w-3.5" />
+                    {course.provider}
+                  </span>
+                )}
+                {course.duration && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {course.duration}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {course.isRequired ? (
+              <Badge className="bg-amber-500 hover:bg-amber-600">
+                Required
+                {course.renewalPeriodMonths && ` (${course.renewalPeriodMonths}mo)`}
+              </Badge>
+            ) : (
+              <Badge variant="secondary">Recommended</Badge>
+            )}
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="space-y-6 py-4">
+        {/* Summary */}
+        {course.summary && (
+          <div>
+            <h4 className="font-medium mb-2">Summary</h4>
+            <p className="text-muted-foreground">{course.summary}</p>
+          </div>
+        )}
+
+        {/* Course Overview */}
+        {overview.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Course Overview
+            </h4>
+            <ul className="space-y-2">
+              {overview.map((item, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* FAQs */}
+        {parsedFaqs.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Frequently Asked Questions
+            </h4>
+            <Accordion type="single" collapsible className="space-y-2">
+              {parsedFaqs.map((faq, index) => (
+                <AccordionItem key={index} value={`faq-${index}`} className="border rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        )}
+
+        {/* External Link */}
+        {course.externalLink && (
+          <div>
+            <Button asChild variant="outline" className="w-full">
+              <a href={course.externalLink} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View External Course Page
+              </a>
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter className="gap-2 sm:gap-0">
+        <Button variant="outline" onClick={onRequestInfo} data-testid="button-detail-request-info">
+          <Mail className="h-4 w-4 mr-2" />
+          Request More Info
+        </Button>
+        <Button onClick={onBookTraining} className={moduleButtonColors[module]} data-testid="button-detail-book-training">
+          <Calendar className="h-4 w-4 mr-2" />
+          Book Training
+        </Button>
+      </DialogFooter>
+    </>
   );
 }
