@@ -834,6 +834,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({
