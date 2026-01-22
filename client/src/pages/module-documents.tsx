@@ -199,12 +199,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const urlParams = new URLSearchParams(searchParams);
   const urlSiteId = urlParams.get("siteId");
   const urlCompany = urlParams.get("company");
+  const urlRenewal = urlParams.get("renewal");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [folderFilter, setFolderFilter] = useState<string>("all");
-  const [renewalFilter, setRenewalFilter] = useState<string>("all");
+  const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");

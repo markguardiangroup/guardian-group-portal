@@ -21,8 +21,18 @@ import {
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
-import type { ComplianceSummary, Document, AuditLog, ModuleType, Site } from "@shared/schema";
+import type { ComplianceSummary, Document, AuditLog, ModuleType } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
+
+interface SiteWithCompany {
+  id: string;
+  name: string;
+  companyId: string;
+  companyName: string;
+  address: string | null;
+  siteManager: string | null;
+  contactPhone: string | null;
+}
 
 interface ModuleDashboardData {
   summary: ComplianceSummary;
@@ -137,7 +147,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for admin/consultant users
-  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+  const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
     enabled: canSelectSites,
   });
@@ -165,7 +175,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // If a specific site is selected, use that
   // If a company is selected (no specific site), we'll pass company name to filter
   const siteId = user?.role === "client" 
-    ? user?.siteId 
+    ? (user as any)?.siteId 
     : (selectedSiteId === "all" ? null : (selectedSiteId || null));
   
   // Get site IDs for selected company (for API filtering)
@@ -199,11 +209,64 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     },
   });
   
+  // Fetch documents for renewal date calculations
+  const { data: documents } = useQuery<Document[]>({
+    queryKey: ["/api/documents/module", module],
+  });
+  
+  // Calculate renewal compliance metrics
+  const renewalMetrics = useMemo(() => {
+    if (!documents) return { overdue: 0, due30Days: 0, due60Days: 0, upcomingRenewals: [] };
+    
+    const now = new Date();
+    let overdue = 0;
+    let due30Days = 0;
+    let due60Days = 0;
+    const upcomingRenewals: Document[] = [];
+    
+    // Filter by selected site/company if applicable
+    const filteredDocs = documents.filter(doc => {
+      if (doc.isArchived) return false;
+      if (siteId) return doc.siteId === siteId;
+      if (companySiteIds && companySiteIds.length > 0) {
+        return companySiteIds.includes(doc.siteId);
+      }
+      return true;
+    });
+    
+    filteredDocs.forEach(doc => {
+      if (!doc.renewalDate) return;
+      
+      const renewalDate = new Date(doc.renewalDate);
+      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilRenewal < 0) {
+        overdue++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 30) {
+        due30Days++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 60) {
+        due60Days++;
+        upcomingRenewals.push(doc);
+      }
+    });
+    
+    // Sort by renewal date (soonest first)
+    upcomingRenewals.sort((a, b) => {
+      const dateA = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
+      const dateB = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
+      return dateA - dateB;
+    });
+    
+    return { overdue, due30Days, due60Days, upcomingRenewals };
+  }, [documents, siteId, companySiteIds]);
+  
   // Build context description for display
   const currentContextName = useMemo(() => {
     if (!canSelectSites) return null;
     if (selectedSiteId && selectedSiteId !== "all") {
-      return sites?.find((s: Site) => s.id === selectedSiteId)?.name || null;
+      return sites?.find((s) => s.id === selectedSiteId)?.name || null;
     }
     if (selectedCompany && selectedCompany !== "all") {
       return `${selectedCompany} (all sites)`;
@@ -346,6 +409,102 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           testId="card-module-overdue"
         />
       </div>
+
+      {/* Renewal Compliance Section */}
+      {(renewalMetrics.overdue > 0 || renewalMetrics.due30Days > 0 || renewalMetrics.due60Days > 0) && (
+        <Card data-testid="card-renewal-compliance">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Renewal Compliance
+              </CardTitle>
+              <CardDescription>Documents approaching or past renewal dates</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`${basePath}/documents?renewal=30days`} data-testid="link-view-renewals">
+                View All Renewals
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
+                  <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-renewals-overdue">{renewalMetrics.overdue}</p>
+                  <p className="text-sm text-muted-foreground">Overdue Renewals</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-renewals-30days">{renewalMetrics.due30Days}</p>
+                  <p className="text-sm text-muted-foreground">Due in 30 Days</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-renewals-60days">{renewalMetrics.due60Days}</p>
+                  <p className="text-sm text-muted-foreground">Due in 60 Days</p>
+                </div>
+              </div>
+            </div>
+            
+            {renewalMetrics.upcomingRenewals.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
+                <div className="divide-y">
+                  {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
+                    const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
+                    const daysUntilRenewal = renewalDate 
+                      ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
+                    
+                    return (
+                      <Link 
+                        key={doc.id} 
+                        href={`${basePath}/documents/${doc.id}`}
+                        className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
+                        data-testid={`link-renewal-doc-${doc.id}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{doc.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs font-medium whitespace-nowrap ${
+                          daysUntilRenewal !== null && daysUntilRenewal < 0
+                            ? "text-red-600 dark:text-red-400" 
+                            : daysUntilRenewal !== null && daysUntilRenewal <= 30 
+                            ? "text-amber-600 dark:text-amber-400" 
+                            : "text-blue-600 dark:text-blue-400"
+                        }`}>
+                          {daysUntilRenewal !== null && daysUntilRenewal < 0 
+                            ? `${Math.abs(daysUntilRenewal)}d overdue` 
+                            : `${daysUntilRenewal}d remaining`}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
