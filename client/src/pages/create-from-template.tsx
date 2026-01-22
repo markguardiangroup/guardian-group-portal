@@ -289,11 +289,41 @@ export default function CreateFromTemplate() {
     },
   });
 
-  const handleDownloadTemplate = () => {
-    toast({
-      title: "Template Downloaded",
-      description: "Open the file, replace placeholder values, then upload the completed document.",
-    });
+  const handleDownloadTemplate = async () => {
+    if (!selectedTemplate?.fileUrl || !selectedTemplate?.fileName) {
+      toast({
+        title: "Download Failed",
+        description: "Template file not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${selectedTemplate.fileUrl}?download=${encodeURIComponent(selectedTemplate.fileName)}`);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = decodeURIComponent(selectedTemplate.fileName);
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Template Downloaded",
+        description: "Open the file, replace placeholder values, then upload the completed document.",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: "There was a problem downloading the template.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
