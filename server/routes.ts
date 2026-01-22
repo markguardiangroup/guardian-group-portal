@@ -1130,9 +1130,30 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Invalid action" });
       }
 
+      // Calculate renewal date when approving
+      let lastApprovedAt: Date | undefined;
+      let renewalDate: Date | undefined;
+      
+      if (action === "approve") {
+        lastApprovedAt = new Date();
+        
+        // Look up renewal period from template if document has one
+        if (existingDoc.templateId) {
+          const template = await storage.getDocumentTemplate(existingDoc.templateId);
+          if (template?.renewalPeriodMonths) {
+            // renewalDate = lastApprovedAt + renewalPeriodMonths - 30 days (buffer)
+            renewalDate = new Date(lastApprovedAt);
+            renewalDate.setMonth(renewalDate.getMonth() + template.renewalPeriodMonths);
+            renewalDate.setDate(renewalDate.getDate() - 30); // 30-day buffer
+          }
+        }
+      }
+
       const document = await storage.updateDocument(documentId, {
         approvalStatus,
         status: documentStatus,
+        ...(lastApprovedAt && { lastApprovedAt }),
+        ...(renewalDate && { renewalDate }),
       });
 
       if (!document) {

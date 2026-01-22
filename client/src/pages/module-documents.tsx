@@ -162,6 +162,8 @@ interface HierarchyDocument {
   documentTypeId?: string | null;
   isRequired?: boolean;
   renewalPeriodMonths?: number | null;
+  lastApprovedAt?: string | null;
+  renewalDate?: string | null;
 }
 
 interface HierarchyFolder {
@@ -602,13 +604,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   <div className="flex items-center gap-3">
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                     <div>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <p className="font-medium text-sm">{doc.title}</p>
                                         {doc.isRequired && (
                                           <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
                                         )}
                                         {doc.renewalPeriodMonths && (
                                           <Badge variant="secondary" className="text-xs">{doc.renewalPeriodMonths}mo</Badge>
+                                        )}
+                                        {doc.renewalDate && (
+                                          <Badge variant="outline" className="text-xs">Renew: {format(new Date(doc.renewalDate), "MMM d, yyyy")}</Badge>
                                         )}
                                       </div>
                                       <p className="text-xs text-muted-foreground">v{doc.version}</p>
@@ -759,7 +764,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <TableHead>Document</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Required</TableHead>
-                  <TableHead>Renewal</TableHead>
+                  <TableHead>Renewal Period</TableHead>
+                  <TableHead>Renewal Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Approval</TableHead>
                   <TableHead>Last Modified</TableHead>
@@ -799,6 +805,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <Badge variant="secondary">{(doc as any).renewalPeriodMonths}mo</Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(doc as any).renewalDate ? (
+                        <span className="text-sm">{format(new Date((doc as any).renewalDate), "MMM d, yyyy")}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
                     <TableCell>

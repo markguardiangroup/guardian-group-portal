@@ -493,6 +493,8 @@ export const documents = pgTable("documents", {
   approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default("pending"),
   reviewDate: timestamp("review_date"),
   expiryDate: timestamp("expiry_date"),
+  lastApprovedAt: timestamp("last_approved_at"), // When document was last approved
+  renewalDate: timestamp("renewal_date"), // Calculated: lastApprovedAt + renewalPeriodMonths - 30 days
   uploadedBy: varchar("uploaded_by").notNull(),
   assignedTo: varchar("assigned_to"),
   isArchived: boolean("is_archived").notNull().default(false),
