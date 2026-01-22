@@ -661,6 +661,9 @@ export async function registerRoutes(
       }
       
       const module = req.query.module as ModuleType | undefined;
+      const siteId = req.query.siteId as string | undefined;
+      const siteIds = req.query.siteIds as string | undefined;
+      
       const allDocuments = await storage.getDocuments(module);
       
       // Filter documents by sites the user can access
@@ -671,7 +674,17 @@ export async function registerRoutes(
         })
       );
       
-      res.json(accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null));
+      let filteredDocuments = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
+      
+      // Apply additional siteId/siteIds filter if provided
+      if (siteId) {
+        filteredDocuments = filteredDocuments.filter(d => d.siteId === siteId);
+      } else if (siteIds) {
+        const siteIdArray = siteIds.split(",");
+        filteredDocuments = filteredDocuments.filter(d => siteIdArray.includes(d.siteId));
+      }
+      
+      res.json(filteredDocuments);
     } catch (error) {
       console.error("Documents error:", error);
       res.status(500).json({ error: "Failed to fetch documents" });
