@@ -301,16 +301,41 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-        ) : filteredCourses.length === 0 ? (
+        ) : filteredCourses.length === 0 && (trainingFolders || []).length === 0 ? (
           <Card className="p-12 text-center">
             <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No training available</h3>
             <p className="text-muted-foreground">
-              {searchQuery 
-                ? "No training courses match your search." 
-                : "Training courses for this module will appear here once added."}
+              Training folders and courses for this module will appear here once added.
             </p>
           </Card>
+        ) : searchQuery && filteredCourses.length === 0 ? (
+          <div className="space-y-6">
+            <Card className="p-8 text-center">
+              <Search className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+              <h3 className="font-semibold mb-1">No matching courses</h3>
+              <p className="text-sm text-muted-foreground">
+                No training courses match "{searchQuery}"
+              </p>
+            </Card>
+            {/* Still show folders for reference */}
+            {(trainingFolders || []).length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Available Folders</h4>
+                <div className="grid gap-2">
+                  {(trainingFolders || []).map((folder) => (
+                    <div 
+                      key={folder.id}
+                      className={`flex items-center gap-2 p-3 rounded-lg border ${moduleBorderColors[module]} bg-card`}
+                    >
+                      <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
+                      <span className="text-sm font-medium">{folder.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Unfiled / General Training */}
@@ -339,49 +364,58 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             )}
 
             {/* Grouped by folder */}
-            <Accordion
-              type="multiple"
-              value={openFolders}
-              onValueChange={setOpenFolders}
-              className="space-y-3"
-            >
-              {(trainingFolders || []).map((folder) => {
-                const folderCourses = groupedByFolder[folder.id] || [];
-                if (folderCourses.length === 0) return null;
-                
-                return (
-                  <AccordionItem 
-                    key={folder.id} 
-                    value={folder.id}
-                    className={`border rounded-lg ${moduleBorderColors[module]}`}
-                  >
-                    <AccordionTrigger className="px-4 hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
-                        <span className="font-medium">{folder.name}</span>
-                        <Badge variant="secondary">{folderCourses.length}</Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4 space-y-3">
-                      {folder.description && (
-                        <p className="text-sm text-muted-foreground mb-4">{folder.description}</p>
-                      )}
-                      {folderCourses.map((course) => (
-                        <TrainingCard 
-                          key={course.id} 
-                          course={course} 
-                          moduleColor={moduleColors[module]}
-                          buttonColor={moduleButtonColors[module]}
-                          onViewDetails={() => setSelectedCourse(course)}
-                          onRequestInfo={() => handleRequestInfo(course)}
-                          onBookTraining={() => handleBookTraining(course)}
-                        />
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
+            {(trainingFolders || []).length > 0 && (
+              <Accordion
+                type="multiple"
+                value={openFolders}
+                onValueChange={setOpenFolders}
+                className="space-y-3"
+              >
+                {(trainingFolders || []).map((folder) => {
+                  const folderCourses = groupedByFolder[folder.id] || [];
+                  
+                  return (
+                    <AccordionItem 
+                      key={folder.id} 
+                      value={folder.id}
+                      className={`border rounded-lg ${moduleBorderColors[module]}`}
+                      data-testid={`folder-${folder.id}`}
+                    >
+                      <AccordionTrigger className="px-4 hover:no-underline">
+                        <div className="flex items-center gap-3">
+                          <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                          <span className="font-medium">{folder.name}</span>
+                          <Badge variant="secondary">{folderCourses.length}</Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4 space-y-3">
+                        {folder.description && (
+                          <p className="text-sm text-muted-foreground mb-4">{folder.description}</p>
+                        )}
+                        {folderCourses.length === 0 ? (
+                          <div className="text-center py-6 text-muted-foreground">
+                            <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No courses in this folder yet</p>
+                          </div>
+                        ) : (
+                          folderCourses.map((course) => (
+                            <TrainingCard 
+                              key={course.id} 
+                              course={course} 
+                              moduleColor={moduleColors[module]}
+                              buttonColor={moduleButtonColors[module]}
+                              onViewDetails={() => setSelectedCourse(course)}
+                              onRequestInfo={() => handleRequestInfo(course)}
+                              onBookTraining={() => handleBookTraining(course)}
+                            />
+                          ))
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
           </div>
         )}
       </div>
