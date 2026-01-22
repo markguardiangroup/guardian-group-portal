@@ -327,6 +327,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
+    // Filter by site - only show documents for the selected site
+    let matchesSite = true;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      matchesSite = doc.siteId === selectedSiteId;
+    }
+    
+    // Filter by company - only show documents for sites in the selected company
+    let matchesCompany = true;
+    if (selectedCompany && selectedCompany !== "all") {
+      const docSite = sites?.find(s => s.id === doc.siteId);
+      matchesCompany = docSite?.companyName === selectedCompany;
+    }
+    
     // Filter by folder - match documents whose document type is assigned to the selected folder
     let matchesFolder = true;
     if (folderFilter !== "all") {
@@ -335,7 +348,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       matchesFolder = docFolderName === folderFilter;
     }
     
-    return matchesSearch && matchesType && matchesStatus && matchesFolder && !doc.isArchived;
+    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && !doc.isArchived;
   });
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
