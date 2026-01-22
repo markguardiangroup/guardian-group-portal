@@ -21,11 +21,13 @@ import {
   Headphones,
   MessageCircle,
   CheckCheck,
+  Calendar,
 } from "lucide-react";
+import { format } from "date-fns";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -441,6 +443,60 @@ export default function Dashboard() {
       return res.json();
     },
   });
+  
+  // Fetch all documents for renewal compliance tracking
+  const { data: allDocuments = [] } = useQuery<Document[]>({
+    queryKey: ["/api/documents", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/documents";
+      if (siteId) {
+        url = `/api/documents?siteId=${siteId}`;
+      } else if (companySiteIds && companySiteIds.length > 0) {
+        url = `/api/documents?siteIds=${companySiteIds.join(",")}`;
+      }
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
+  });
+  
+  // Calculate renewal metrics across all documents
+  const renewalMetrics = useMemo(() => {
+    if (!allDocuments) return { overdue: 0, due30Days: 0, due60Days: 0, upcomingRenewals: [] as Document[] };
+    
+    const now = new Date();
+    let overdue = 0;
+    let due30Days = 0;
+    let due60Days = 0;
+    const upcomingRenewals: Document[] = [];
+    
+    allDocuments.forEach((doc) => {
+      if (!doc.renewalDate) return;
+      
+      const renewalDate = new Date(doc.renewalDate);
+      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilRenewal < 0) {
+        overdue++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 30) {
+        due30Days++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 60) {
+        due60Days++;
+        upcomingRenewals.push(doc);
+      }
+    });
+    
+    upcomingRenewals.sort((a, b) => {
+      const dateA = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
+      const dateB = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
+      return dateA - dateB;
+    });
+    
+    return { overdue, due30Days, due60Days, upcomingRenewals };
+  }, [allDocuments]);
+  
   const { hasActiveAccess, isHidden, hasPendingRequest } = useModuleAccess();
   
   // Build current context label
@@ -520,6 +576,117 @@ export default function Dashboard() {
       </div>
 
       <OverallComplianceCard summaries={complianceSummaries} />
+
+      {/* Renewal Compliance Section */}
+      <Card data-testid="card-renewal-compliance-overview">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Renewal Compliance
+            </CardTitle>
+            <CardDescription>Documents approaching or past renewal dates across all modules</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3 mb-6">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-overview-renewals-overdue">{renewalMetrics.overdue}</p>
+                <p className="text-sm text-muted-foreground">Overdue Renewals</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-overview-renewals-30days">{renewalMetrics.due30Days}</p>
+                <p className="text-sm text-muted-foreground">Due in 30 Days</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-overview-renewals-60days">{renewalMetrics.due60Days}</p>
+                <p className="text-sm text-muted-foreground">Due in 60 Days</p>
+              </div>
+            </div>
+          </div>
+          
+          {renewalMetrics.upcomingRenewals.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
+              <div className="divide-y">
+                {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
+                  const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
+                  const daysUntilRenewal = renewalDate 
+                    ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  
+                  // Determine module path for linking
+                  const modulePath = doc.module === "health_safety" ? "/health-safety" 
+                    : doc.module === "employment_law" ? "/employment-law" 
+                    : doc.module === "human_resources" ? "/human-resources" 
+                    : "/support";
+                  
+                  // Module badge color
+                  const moduleBadgeClass = doc.module === "health_safety" 
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : doc.module === "employment_law"
+                    ? "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300"
+                    : doc.module === "human_resources"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    : "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300";
+                  
+                  const moduleLabel = doc.module === "health_safety" ? "H&S"
+                    : doc.module === "employment_law" ? "EL"
+                    : doc.module === "human_resources" ? "HR"
+                    : "Support";
+                  
+                  return (
+                    <Link 
+                      key={doc.id} 
+                      href={`${modulePath}/documents/${doc.id}`}
+                      className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
+                      data-testid={`link-overview-renewal-doc-${doc.id}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium">{doc.title}</p>
+                            <Badge variant="secondary" className={`text-xs shrink-0 ${moduleBadgeClass}`}>{moduleLabel}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-medium whitespace-nowrap ${
+                        daysUntilRenewal !== null && daysUntilRenewal < 0
+                          ? "text-red-600 dark:text-red-400" 
+                          : daysUntilRenewal !== null && daysUntilRenewal <= 30 
+                          ? "text-amber-600 dark:text-amber-400" 
+                          : "text-blue-600 dark:text-blue-400"
+                      }`}>
+                        {daysUntilRenewal !== null && daysUntilRenewal < 0 
+                          ? `${Math.abs(daysUntilRenewal)}d overdue` 
+                          : `${daysUntilRenewal}d remaining`}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Compliance Modules</h2>
