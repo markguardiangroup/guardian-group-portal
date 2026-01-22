@@ -346,13 +346,44 @@ export async function registerRoutes(
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const module = req.params.module as ModuleType;
-      const siteId = req.query.siteId as string | undefined;
-      if (module !== "health_safety" && module !== "human_resources") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const summary = await storage.getComplianceSummary(undefined, undefined, module);
-      const documents = await storage.getDocuments(module);
+      
+      const allDocuments = await storage.getDocuments(module);
+      
+      // Filter documents by sites the user can access
+      const accessibleDocuments = await Promise.all(
+        allDocuments.map(async (doc) => {
+          const canAccess = await canUserAccessSite(user, doc.siteId);
+          return canAccess ? doc : null;
+        })
+      );
+      const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
+      
+      // Calculate summary from accessible documents only
+      const totalDocuments = documents.length;
+      const compliantDocuments = documents.filter(d => d.status === "compliant").length;
+      const reviewRequired = documents.filter(d => d.status === "review_required").length;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending").length;
+      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      
+      const summary = {
+        totalDocuments,
+        compliantDocuments,
+        reviewRequired,
+        overdueDocuments,
+        pendingApprovals,
+        complianceScore,
+      };
+      
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
       const recentDocuments = documents.slice(0, 5);
@@ -380,9 +411,40 @@ export async function registerRoutes(
   // Main Dashboard (overview of all modules)
   app.get("/api/dashboard", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const module = req.query.module as ModuleType | undefined;
-      const summary = await storage.getComplianceSummary(undefined, undefined, module);
-      const documents = await storage.getDocuments(module);
+      const allDocuments = await storage.getDocuments(module);
+      
+      // Filter documents by sites the user can access
+      const accessibleDocuments = await Promise.all(
+        allDocuments.map(async (doc) => {
+          const canAccess = await canUserAccessSite(user, doc.siteId);
+          return canAccess ? doc : null;
+        })
+      );
+      const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
+      
+      // Calculate summary from accessible documents only
+      const totalDocuments = documents.length;
+      const compliantDocuments = documents.filter(d => d.status === "compliant").length;
+      const reviewRequired = documents.filter(d => d.status === "review_required").length;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending").length;
+      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      
+      const summary = {
+        totalDocuments,
+        compliantDocuments,
+        reviewRequired,
+        overdueDocuments,
+        pendingApprovals,
+        complianceScore,
+      };
+      
       const auditLogs = await storage.getAuditLogs(undefined, module);
       
       const recentDocuments = documents.slice(0, 5);
