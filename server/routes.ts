@@ -539,12 +539,26 @@ export async function registerRoutes(
   // Documents by module
   app.get("/api/documents/module/:module", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const module = req.params.module as ModuleType;
-      if (module !== "health_safety" && module !== "human_resources") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
         return res.status(400).json({ error: "Invalid module" });
       }
-      const documents = await storage.getDocuments(module);
-      res.json(documents);
+      const allDocuments = await storage.getDocuments(module);
+      
+      // Filter documents by sites the user can access
+      const accessibleDocuments = await Promise.all(
+        allDocuments.map(async (doc) => {
+          const canAccess = await canUserAccessSite(user, doc.siteId);
+          return canAccess ? doc : null;
+        })
+      );
+      
+      res.json(accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null));
     } catch (error) {
       console.error("Module documents error:", error);
       res.status(500).json({ error: "Failed to fetch module documents" });
@@ -554,9 +568,23 @@ export async function registerRoutes(
   // Documents
   app.get("/api/documents", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const module = req.query.module as ModuleType | undefined;
-      const documents = await storage.getDocuments(module);
-      res.json(documents);
+      const allDocuments = await storage.getDocuments(module);
+      
+      // Filter documents by sites the user can access
+      const accessibleDocuments = await Promise.all(
+        allDocuments.map(async (doc) => {
+          const canAccess = await canUserAccessSite(user, doc.siteId);
+          return canAccess ? doc : null;
+        })
+      );
+      
+      res.json(accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null));
     } catch (error) {
       console.error("Documents error:", error);
       res.status(500).json({ error: "Failed to fetch documents" });
@@ -565,26 +593,34 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
       
-      // Log document view (only if authenticated user)
-      const user = (req as any).session?.user;
-      if (user) {
-        await storage.createAuditLog({
-          action: "document_viewed",
-          userId: user.id,
-          userName: user.fullName,
-          siteId: document.siteId,
-          documentId: document.id,
-          supportRequestId: null,
-          module: document.module,
-          details: `Viewed ${document.title}`,
-          metadata: null,
-        });
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
       }
+      
+      // Log document view
+      await storage.createAuditLog({
+        action: "document_viewed",
+        userId: user.id,
+        userName: user.fullName,
+        siteId: document.siteId,
+        documentId: document.id,
+        supportRequestId: null,
+        module: document.module,
+        details: `Viewed ${document.title}`,
+        metadata: null,
+      });
       
       res.json(document);
     } catch (error) {
@@ -595,6 +631,22 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id/versions", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+      
       const versions = await storage.getDocumentVersions(req.params.id);
       res.json(versions);
     } catch (error) {
@@ -605,6 +657,22 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id/audit", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+      
       const logs = await storage.getAuditLogs(req.params.id);
       res.json(logs);
     } catch (error) {
@@ -616,26 +684,34 @@ export async function registerRoutes(
   // Document download endpoint - generates PDF
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
+      
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
 
       // Log document download
-      const user = (req as any).session?.user;
-      if (user) {
-        await storage.createAuditLog({
-          action: "document_downloaded",
-          userId: user.id,
-          userName: user.fullName,
-          siteId: document.siteId,
-          documentId: document.id,
-          supportRequestId: null,
-          module: document.module,
-          details: `Downloaded ${document.title}${req.query.version ? ` (Version ${req.query.version})` : ''}`,
-          metadata: null,
-        });
-      }
+      await storage.createAuditLog({
+        action: "document_downloaded",
+        userId: user.id,
+        userName: user.fullName,
+        siteId: document.siteId,
+        documentId: document.id,
+        supportRequestId: null,
+        module: document.module,
+        details: `Downloaded ${document.title}${req.query.version ? ` (Version ${req.query.version})` : ''}`,
+        metadata: null,
+      });
 
       // Check if a specific version is requested
       const requestedVersion = req.query.version ? parseInt(req.query.version as string) : null;
@@ -770,6 +846,11 @@ export async function registerRoutes(
 
   app.post("/api/documents", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const parseResult = createDocumentSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
@@ -777,9 +858,11 @@ export async function registerRoutes(
       
       const body = parseResult.data;
       
-      // Get current user for uploadedBy
-      const userId = (req.session as any)?.userId || "user-1";
-      const user = await storage.getUser(userId);
+      // Authorization: check if user can access this site
+      const canAccess = await canUserAccessSite(user, body.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to upload documents to this site" });
+      }
       
       const document = await storage.createDocument({
         title: body.title,
@@ -799,7 +882,7 @@ export async function registerRoutes(
         approvalStatus: "pending",
         reviewDate: body.reviewDate ? new Date(body.reviewDate) : null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
-        uploadedBy: userId,
+        uploadedBy: user.id,
         assignedTo: null,
         isArchived: false,
         source: body.source || "external",
@@ -809,8 +892,8 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         action: "document_uploaded",
-        userId: userId,
-        userName: user?.fullName || "Unknown User",
+        userId: user.id,
+        userName: user.fullName,
         siteId: body.siteId,
         documentId: document.id,
         supportRequestId: null,
@@ -828,6 +911,11 @@ export async function registerRoutes(
 
   app.post("/api/documents/:id/approval", async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
       const parseResult = approvalSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid request", details: parseResult.error.errors });
@@ -839,6 +927,17 @@ export async function registerRoutes(
       const existingDoc = await storage.getDocument(documentId);
       if (!existingDoc) {
         return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+      
+      // Additional check: Only admins and consultants can approve documents
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot approve documents" });
       }
 
       let approvalStatus: "approved" | "rejected" | "changes_requested";
