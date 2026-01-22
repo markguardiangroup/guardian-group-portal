@@ -370,8 +370,9 @@ export default function TemplateLibraryPage() {
   const invalidateDocumentsHierarchy = () => {
     queryClient.invalidateQueries({ 
       predicate: (query) => {
-        const key = query.queryKey[0];
-        return typeof key === 'string' && key.includes('documents-hierarchy');
+        return query.queryKey.some(
+          (key) => typeof key === 'string' && key.includes('documents-hierarchy')
+        );
       }
     });
   };
