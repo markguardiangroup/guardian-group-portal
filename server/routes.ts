@@ -626,11 +626,22 @@ export async function registerRoutes(
       }
       const allDocuments = await storage.getDocuments(module);
       
+      // Get document templates to enrich documents with isRequired/renewalPeriodMonths
+      const docTemplates = await storage.getDocumentTemplates(module);
+      
       // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
           const canAccess = await canUserAccessSite(user, doc.siteId);
-          return canAccess ? doc : null;
+          if (!canAccess) return null;
+          
+          // Enrich document with template properties
+          const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
+          return {
+            ...doc,
+            isRequired: docTemplate?.isRequired || false,
+            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+          };
         })
       );
       
@@ -4261,17 +4272,22 @@ export async function registerRoutes(
                 id: childSiteFolder.id,
                 name: childSiteFolder.name,
               } : null,
-              documents: childFolderDocs.map(d => ({
-                id: d.id,
-                title: d.title,
-                fileName: d.fileName,
-                status: d.status,
-                approvalStatus: d.approvalStatus,
-                source: d.source,
-                templateId: d.templateId,
-                expiryDate: d.expiryDate,
-                updatedAt: d.updatedAt,
-              })),
+              documents: childFolderDocs.map(d => {
+                const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+                return {
+                  id: d.id,
+                  title: d.title,
+                  fileName: d.fileName,
+                  status: d.status,
+                  approvalStatus: d.approvalStatus,
+                  source: d.source,
+                  templateId: d.templateId,
+                  expiryDate: d.expiryDate,
+                  updatedAt: d.updatedAt,
+                  isRequired: docTemplate?.isRequired || false,
+                  renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+                };
+              }),
               stats: {
                 totalDocuments: childFolderDocs.length,
                 compliant: childFolderDocs.filter(d => d.status === "compliant").length,
@@ -4293,17 +4309,22 @@ export async function registerRoutes(
               id: siteFolder.id,
               name: siteFolder.name,
             } : null,
-            documents: folderDocuments.map(d => ({
-              id: d.id,
-              title: d.title,
-              fileName: d.fileName,
-              status: d.status,
-              approvalStatus: d.approvalStatus,
-              source: d.source,
-              templateId: d.templateId,
-              expiryDate: d.expiryDate,
-              updatedAt: d.updatedAt,
-            })),
+            documents: folderDocuments.map(d => {
+              const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+              return {
+                id: d.id,
+                title: d.title,
+                fileName: d.fileName,
+                status: d.status,
+                approvalStatus: d.approvalStatus,
+                source: d.source,
+                templateId: d.templateId,
+                expiryDate: d.expiryDate,
+                updatedAt: d.updatedAt,
+                isRequired: docTemplate?.isRequired || false,
+                renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+              };
+            }),
             childFolders,
             stats: {
               totalDocuments: folderDocuments.length,
@@ -4332,17 +4353,22 @@ export async function registerRoutes(
         siteId,
         module,
         folders: hierarchy,
-        unfiledDocuments: unfiledDocuments.map(d => ({
-          id: d.id,
-          title: d.title,
-          fileName: d.fileName,
-          status: d.status,
-          approvalStatus: d.approvalStatus,
-          source: d.source,
-          templateId: d.templateId,
-          expiryDate: d.expiryDate,
-          updatedAt: d.updatedAt,
-        })),
+        unfiledDocuments: unfiledDocuments.map(d => {
+          const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+          return {
+            id: d.id,
+            title: d.title,
+            fileName: d.fileName,
+            status: d.status,
+            approvalStatus: d.approvalStatus,
+            source: d.source,
+            templateId: d.templateId,
+            expiryDate: d.expiryDate,
+            updatedAt: d.updatedAt,
+            isRequired: docTemplate?.isRequired || false,
+            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+          };
+        }),
         summary: {
           totalFolders: hierarchy.length,
           totalDocuments: siteDocuments.length,

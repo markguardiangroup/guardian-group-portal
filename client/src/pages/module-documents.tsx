@@ -160,6 +160,8 @@ interface HierarchyDocument {
   approvalStatus: string;
   updatedAt: string;
   documentTypeId?: string | null;
+  isRequired?: boolean;
+  renewalPeriodMonths?: number | null;
 }
 
 interface HierarchyFolder {
@@ -600,7 +602,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   <div className="flex items-center gap-3">
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                     <div>
-                                      <p className="font-medium text-sm">{doc.title}</p>
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-sm">{doc.title}</p>
+                                        {doc.isRequired && (
+                                          <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                                        )}
+                                        {doc.renewalPeriodMonths && (
+                                          <Badge variant="secondary" className="text-xs">{doc.renewalPeriodMonths}mo</Badge>
+                                        )}
+                                      </div>
                                       <p className="text-xs text-muted-foreground">v{doc.version}</p>
                                     </div>
                                   </div>
@@ -748,6 +758,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <TableRow>
                   <TableHead>Document</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Required</TableHead>
+                  <TableHead>Renewal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Approval</TableHead>
                   <TableHead>Last Modified</TableHead>
@@ -774,6 +786,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <Badge variant="secondary" className="font-normal">
                         {getDocTypeLabel(doc.type, (doc as any).documentTypeId)}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(doc as any).isRequired ? (
+                        <Badge variant="outline" className={`${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Optional</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(doc as any).renewalPeriodMonths ? (
+                        <Badge variant="secondary">{(doc as any).renewalPeriodMonths}mo</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">None</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <RAGBadge status={doc.status} />
