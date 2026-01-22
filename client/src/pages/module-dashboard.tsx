@@ -411,8 +411,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       </div>
 
       {/* Renewal Compliance Section */}
-      {(renewalMetrics.overdue > 0 || renewalMetrics.due30Days > 0 || renewalMetrics.due60Days > 0) && (
-        <Card data-testid="card-renewal-compliance">
+      <Card data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -504,7 +503,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             )}
           </CardContent>
         </Card>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
