@@ -231,6 +231,9 @@ export default function CreateFromTemplate() {
       if (!selectedTemplate || !selectedSite || !selectedFile) {
         throw new Error("Missing required data");
       }
+      if (!selectedFolderId) {
+        throw new Error("Please select a folder");
+      }
 
       // Step 1: Upload the file to object storage
       const uploadResponse = await fetch("/api/uploads/file", {
@@ -652,10 +655,10 @@ export default function CreateFromTemplate() {
 
             {moduleFolders.length > 0 && (
               <div>
-                <Label htmlFor="folder">Folder</Label>
+                <Label htmlFor="folder">Folder *</Label>
                 <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
                   <SelectTrigger className="mt-1" data-testid="select-folder">
-                    <SelectValue placeholder="Select folder" />
+                    <SelectValue placeholder="Select a folder" />
                   </SelectTrigger>
                   <SelectContent>
                     {moduleFolders.map((folder) => (
@@ -665,6 +668,7 @@ export default function CreateFromTemplate() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">Required - select a folder to organize this document</p>
               </div>
             )}
 

@@ -59,6 +59,15 @@ const documentUploadSchema = z.object({
 }, {
   message: "Please select a site",
   path: ["siteId"],
+}).refine((data) => {
+  // If scope is "site", require folderId
+  if (data.uploadScope === "site" && !data.folderId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select a folder",
+  path: ["folderId"],
 });
 
 type DocumentUploadForm = z.infer<typeof documentUploadSchema>;
@@ -611,18 +620,17 @@ export default function DocumentUpload() {
                       name="folderId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Folder</FormLabel>
+                          <FormLabel>Folder *</FormLabel>
                           <Select 
-                            onValueChange={(value) => field.onChange(value === "none" ? "" : value)} 
-                            value={field.value || suggestedFolderId || "none"}
+                            onValueChange={field.onChange} 
+                            value={field.value || suggestedFolderId || ""}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-folder">
-                                <SelectValue placeholder="Select folder (optional)" />
+                                <SelectValue placeholder="Select a folder" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="none">No folder</SelectItem>
                               {moduleFolders.map((folder) => (
                                 <SelectItem key={folder.id} value={folder.id}>
                                   {folder.name}
@@ -634,7 +642,7 @@ export default function DocumentUpload() {
                           <FormDescription>
                             {suggestedFolderId 
                               ? "Folder auto-selected based on document type assignment" 
-                              : "Optionally organize this document in a folder"}
+                              : "Select a folder to organize this document"}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
