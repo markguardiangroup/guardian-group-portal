@@ -232,6 +232,24 @@ export default function CreateFromTemplate() {
         throw new Error("Missing required data");
       }
 
+      // Step 1: Upload the file to object storage
+      const uploadResponse = await fetch("/api/uploads/file", {
+        method: "POST",
+        headers: {
+          "Content-Type": selectedFile.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(selectedFile.name),
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileUrl = uploadResult.objectPath;
+
+      // Step 2: Create the document record with the file URL
       const docType = documentTypes.find(dt => dt.id === selectedTemplate.documentTypeId);
 
       const formData = {
@@ -243,6 +261,7 @@ export default function CreateFromTemplate() {
         folderId: selectedFolderId || undefined,
         type: docType?.code || "policy",
         fileName: selectedFile.name,
+        fileUrl: fileUrl,
         fileSize: selectedFile.size,
         mimeType: selectedFile.type,
         source: "template" as const,

@@ -17,8 +17,10 @@ const createDocumentSchema = z.object({
   type: z.string().min(1),
   documentTypeId: z.string().optional(),
   siteId: z.string().min(1),
+  folderId: z.string().optional(),
   caseId: z.string().optional(),
   fileName: z.string().min(1),
+  fileUrl: z.string().optional(),
   fileSize: z.number().positive(),
   mimeType: z.string().min(1),
   reviewDate: z.string().optional(),
@@ -775,6 +777,10 @@ export async function registerRoutes(
       
       const body = parseResult.data;
       
+      // Get current user for uploadedBy
+      const userId = (req.session as any)?.userId || "user-1";
+      const user = await storage.getUser(userId);
+      
       const document = await storage.createDocument({
         title: body.title,
         description: body.description || null,
@@ -782,8 +788,10 @@ export async function registerRoutes(
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,
         siteId: body.siteId,
+        folderId: body.folderId || null,
         caseId: body.caseId || null,
         fileName: body.fileName,
+        fileUrl: body.fileUrl || null,
         fileSize: body.fileSize,
         mimeType: body.mimeType,
         version: 1,
@@ -791,7 +799,7 @@ export async function registerRoutes(
         approvalStatus: "pending",
         reviewDate: body.reviewDate ? new Date(body.reviewDate) : null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
-        uploadedBy: "user-1",
+        uploadedBy: userId,
         assignedTo: null,
         isArchived: false,
         source: body.source || "external",
@@ -801,8 +809,8 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
+        userId: userId,
+        userName: user?.fullName || "Unknown User",
         siteId: body.siteId,
         documentId: document.id,
         supportRequestId: null,
