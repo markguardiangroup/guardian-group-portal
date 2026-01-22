@@ -88,8 +88,8 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/employment-law" },
       { title: "Documents", url: "/employment-law/documents" },
-      { title: "Training", url: "/employment-law/training" },
       { title: "Cases", url: "/employment-law/cases" },
+      { title: "Training", url: "/employment-law/training" },
     ],
   },
   {
