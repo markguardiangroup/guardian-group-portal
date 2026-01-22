@@ -890,7 +890,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [changeNote, setChangeNote] = useState("");
 
   const config = moduleConfig[module];
-  const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
 
   const { data: document, isLoading } = useQuery<DocumentWithDetails>({
     queryKey: ["/api/documents", id],
@@ -1379,7 +1379,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 }
 
 export default function ModuleDocuments({ module }: ModuleDocumentsProps) {
-  const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
   const [matchDetail, params] = useRoute(`${basePath}/documents/:id`);
 
   if (matchDetail && params?.id) {
