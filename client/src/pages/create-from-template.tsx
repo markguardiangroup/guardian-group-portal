@@ -274,6 +274,8 @@ export default function CreateFromTemplate() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
       toast({
         title: "Document Created",
         description: "Document has been created from the template and uploaded to the site.",
