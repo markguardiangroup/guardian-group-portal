@@ -95,21 +95,35 @@ export class ObjectStorageService {
   }
 
   // Downloads an object to the response.
-  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600) {
+  async downloadObject(file: File, res: Response, cacheTtlSec: number = 3600, downloadFilename?: string) {
     try {
       // Get file metadata
       const [metadata] = await file.getMetadata();
       // Get the ACL policy for the object.
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";
-      // Set appropriate headers
-      res.set({
+      
+      // Build headers
+      const headers: Record<string, string | number> = {
         "Content-Type": metadata.contentType || "application/octet-stream",
-        "Content-Length": metadata.size,
         "Cache-Control": `${
           isPublic ? "public" : "private"
         }, max-age=${cacheTtlSec}`,
-      });
+      };
+      
+      if (metadata.size) {
+        headers["Content-Length"] = metadata.size;
+      }
+      
+      // Add Content-Disposition for downloads
+      if (downloadFilename) {
+        // Sanitize filename for header
+        const safeName = downloadFilename.replace(/[^\w\s.-]/g, '_');
+        headers["Content-Disposition"] = `attachment; filename="${safeName}"`;
+      }
+      
+      // Set appropriate headers
+      res.set(headers);
 
       // Stream the file to the response
       const stream = file.createReadStream();

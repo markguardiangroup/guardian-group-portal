@@ -122,13 +122,17 @@ export function registerObjectStorageRoutes(app: Express): void {
    *
    * GET /objects/:objectPath(*)
    *
+   * Query parameters:
+   * - download: optional filename for Content-Disposition header (triggers download)
+   *
    * This serves files from object storage. For public files, no auth needed.
    * For protected files, add authentication middleware and ACL checks.
    */
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
+      const downloadFilename = req.query.download as string | undefined;
+      await objectStorageService.downloadObject(objectFile, res, 3600, downloadFilename);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {

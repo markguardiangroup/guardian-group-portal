@@ -1127,7 +1127,7 @@ export default function TemplateLibraryPage() {
                       Preview
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <a href={template.fileUrl} target="_blank" rel="noopener noreferrer" download={template.fileName} data-testid={`link-download-template-${template.id}`}>
+                      <a href={`${template.fileUrl}?download=${encodeURIComponent(template.fileName)}`} data-testid={`link-download-template-${template.id}`}>
                         <Download className="h-4 w-4 mr-2" />
                         Download
                       </a>
@@ -1692,7 +1692,7 @@ export default function TemplateLibraryPage() {
                     : "This file type cannot be previewed in the browser."}
                 </p>
                 <Button asChild>
-                  <a href={previewTemplate?.fileUrl || ""} download={previewTemplate?.fileName} data-testid="button-preview-download">
+                  <a href={previewTemplate ? `${previewTemplate.fileUrl}?download=${encodeURIComponent(previewTemplate.fileName)}` : ""} data-testid="button-preview-download">
                     <Download className="h-4 w-4 mr-2" />
                     Download to View
                   </a>
@@ -1705,7 +1705,7 @@ export default function TemplateLibraryPage() {
               Close
             </Button>
             <Button asChild>
-              <a href={previewTemplate?.fileUrl || ""} download={previewTemplate?.fileName} data-testid="button-preview-download-footer">
+              <a href={previewTemplate ? `${previewTemplate.fileUrl}?download=${encodeURIComponent(previewTemplate.fileName)}` : ""} data-testid="button-preview-download-footer">
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </a>
@@ -2127,7 +2127,7 @@ export default function TemplateLibraryPage() {
                       asChild
                       className="shrink-0"
                     >
-                      <a href={version.fileUrl} download={version.fileName} data-testid={`button-download-version-${version.id}`}>
+                      <a href={`${version.fileUrl}?download=${encodeURIComponent(version.fileName)}`} data-testid={`button-download-version-${version.id}`}>
                         <Download className="h-4 w-4" />
                       </a>
                     </Button>
