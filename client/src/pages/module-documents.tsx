@@ -316,9 +316,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Determine which site to show access for
   // "all" means show data across all sites
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
-  const siteId = isClientUser 
-    ? (user?.siteId || null)
-    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
+  // Client users see their company's sites (filtered in filteredDocuments below)
+  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
     
 
   const filteredDocuments = documents?.filter((doc) => {
@@ -336,8 +335,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // Filter by company - only show documents for sites in the selected company
     let matchesCompany = true;
     if (selectedCompany && selectedCompany !== "all") {
-      const docSite = sites?.find(s => s.id === doc.siteId);
-      matchesCompany = docSite?.companyName === selectedCompany;
+      // Use document's companyName directly if available, otherwise look up from sites
+      const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
+      matchesCompany = docCompanyName === selectedCompany;
     }
     
     // Filter by folder - match documents whose document type is assigned to the selected folder
