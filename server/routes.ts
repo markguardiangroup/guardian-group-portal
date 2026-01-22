@@ -1179,6 +1179,60 @@ export async function registerRoutes(
     }
   });
 
+  // Archive a document
+  app.post("/api/documents/:id/archive", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const documentId = req.params.id;
+      const { reason } = req.body;
+
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+
+      // Only admins and consultants can archive documents
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot archive documents" });
+      }
+
+      const document = await storage.updateDocument(documentId, {
+        isArchived: true,
+      });
+
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      await storage.createAuditLog({
+        action: "document_archived",
+        userId: user.id,
+        userName: user.fullName,
+        siteId: document.siteId,
+        documentId: document.id,
+        supportRequestId: null,
+        module: existingDoc.module,
+        details: reason || "Document archived",
+        metadata: null,
+      });
+
+      res.json({ message: "Document archived successfully", document });
+    } catch (error) {
+      console.error("Document archive error:", error);
+      res.status(500).json({ error: "Failed to archive document" });
+    }
+  });
+
   // Document Folders
   app.get("/api/folders", requireAuth, async (req, res) => {
     try {

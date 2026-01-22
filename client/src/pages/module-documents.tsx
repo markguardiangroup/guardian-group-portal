@@ -931,6 +931,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [changeNote, setChangeNote] = useState("");
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [archiveReason, setArchiveReason] = useState("");
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
@@ -1013,6 +1015,44 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       mimeType: newVersionFile.mimeType,
       changeNote: changeNote || undefined,
     });
+  };
+
+  const archiveMutation = useMutation({
+    mutationFn: async (data: { reason?: string }) => {
+      return apiRequest("POST", `/api/documents/${id}/archive`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey.some(
+          (key) => typeof key === 'string' && key.includes('documents-hierarchy')
+        )
+      });
+      setShowArchiveDialog(false);
+      setArchiveReason("");
+      toast({
+        title: "Document archived",
+        description: "The document has been archived successfully.",
+      });
+      navigate(`${basePath}/documents`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to archive document",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleArchive = () => {
+    archiveMutation.mutate({ reason: archiveReason || undefined });
   };
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -1283,6 +1323,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <Upload className="mr-2 h-4 w-4" />
                 Upload New Version
               </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-destructive hover:text-destructive" 
+                data-testid="button-archive-document"
+                onClick={() => setShowArchiveDialog(true)}
+              >
+                <Archive className="mr-2 h-4 w-4" />
+                Archive Document
+              </Button>
             </CardContent>
           </Card>
 
@@ -1413,6 +1462,49 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               disabled={!newVersionFile || uploadVersionMutation.isPending}
             >
               {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Archive Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive "{document?.title}"? Archived documents will no longer appear in active lists.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason for archiving (optional)</label>
+              <Textarea
+                placeholder="Enter a reason for archiving this document..."
+                value={archiveReason}
+                onChange={(e) => setArchiveReason(e.target.value)}
+                rows={3}
+                data-testid="input-archive-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowArchiveDialog(false);
+                setArchiveReason("");
+              }}
+              data-testid="button-cancel-archive"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleArchive}
+              disabled={archiveMutation.isPending}
+              data-testid="button-confirm-archive"
+            >
+              {archiveMutation.isPending ? "Archiving..." : "Archive Document"}
             </Button>
           </DialogFooter>
         </DialogContent>
