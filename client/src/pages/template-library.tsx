@@ -150,6 +150,24 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const downloadFile = async (fileUrl: string, fileName: string) => {
+  try {
+    const response = await fetch(`${fileUrl}?download=${encodeURIComponent(fileName)}`);
+    if (!response.ok) throw new Error('Download failed');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = decodeURIComponent(fileName);
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Download error:', error);
+  }
+};
+
 type TemplateFormData = {
   name: string;
   description: string;
@@ -1126,11 +1144,9 @@ export default function TemplateLibraryPage() {
                       <Eye className="h-4 w-4 mr-2" />
                       Preview
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href={`${template.fileUrl}?download=${encodeURIComponent(template.fileName)}`} data-testid={`link-download-template-${template.id}`}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </a>
+                    <DropdownMenuItem onClick={() => downloadFile(template.fileUrl, template.fileName)} data-testid={`link-download-template-${template.id}`}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                   </>
@@ -1691,11 +1707,9 @@ export default function TemplateLibraryPage() {
                     ? "Excel spreadsheets cannot be previewed in the browser."
                     : "This file type cannot be previewed in the browser."}
                 </p>
-                <Button asChild>
-                  <a href={previewTemplate ? `${previewTemplate.fileUrl}?download=${encodeURIComponent(previewTemplate.fileName)}` : ""} data-testid="button-preview-download">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download to View
-                  </a>
+                <Button onClick={() => previewTemplate && downloadFile(previewTemplate.fileUrl, previewTemplate.fileName)} data-testid="button-preview-download">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download to View
                 </Button>
               </div>
             )}
@@ -1704,11 +1718,9 @@ export default function TemplateLibraryPage() {
             <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)} data-testid="button-close-preview">
               Close
             </Button>
-            <Button asChild>
-              <a href={previewTemplate ? `${previewTemplate.fileUrl}?download=${encodeURIComponent(previewTemplate.fileName)}` : ""} data-testid="button-preview-download-footer">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </a>
+            <Button onClick={() => previewTemplate && downloadFile(previewTemplate.fileUrl, previewTemplate.fileName)} data-testid="button-preview-download-footer">
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2124,12 +2136,11 @@ export default function TemplateLibraryPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      asChild
                       className="shrink-0"
+                      onClick={() => downloadFile(version.fileUrl, version.fileName)}
+                      data-testid={`button-download-version-${version.id}`}
                     >
-                      <a href={`${version.fileUrl}?download=${encodeURIComponent(version.fileName)}`} data-testid={`button-download-version-${version.id}`}>
-                        <Download className="h-4 w-4" />
-                      </a>
+                      <Download className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
