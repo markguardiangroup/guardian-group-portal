@@ -370,7 +370,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
     // Filter by folder - match documents whose document type is assigned to the selected folder
     let matchesFolder = true;
-    if (folderFilter !== "all") {
+    if (folderFilter === "unfiled") {
+      // Show only documents that have no folderId
+      matchesFolder = !(doc as any).folderId;
+    } else if (folderFilter !== "all") {
       const docTypeId = (doc as any).documentTypeId;
       const docFolderName = docTypeId ? docTypeToFolderName.get(docTypeId) : null;
       matchesFolder = docFolderName === folderFilter;
@@ -777,6 +780,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Folders</SelectItem>
+                    <SelectItem value="unfiled">Unfiled</SelectItem>
                     {moduleFolderTemplates.map((folder) => (
                       <SelectItem key={folder.id} value={folder.name}>{folder.name}</SelectItem>
                     ))}
