@@ -497,7 +497,10 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRequestDialog(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowRequestDialog(false);
+              setSelectedCourse(null);
+            }}>
               Cancel
             </Button>
             <Button 
