@@ -16,6 +16,7 @@ import {
   Calendar,
   HardHat,
   Users,
+  Building2,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -280,22 +281,24 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <div className="flex flex-wrap items-center gap-3">
             {/* Company and Site selectors for admin/consultant oversight */}
             {canSelectSites && sites && sites.length > 0 && (
-              <>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 <CompanyCombobox
                   sites={sites}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-48"
+                  className="w-44"
                   testId="select-company-module-dashboard"
                 />
+                <span className="text-muted-foreground">/</span>
                 <SiteCombobox
                   sites={filteredSites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
-                  className="w-48"
+                  className="w-44"
                   testId="select-site-module-dashboard"
                 />
-              </>
+              </div>
             )}
             <Button variant="outline" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">

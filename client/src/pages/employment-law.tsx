@@ -49,6 +49,7 @@ import {
   XCircle,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   History,
   Lock,
   User,
@@ -60,9 +61,11 @@ import {
   Download,
   LayoutDashboard,
   FolderOpen,
+  Building2,
+  TrendingUp,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, Site, ComplianceSummary } from "@shared/schema";
+import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -122,7 +125,7 @@ function CasesList() {
   
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
-  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+  const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
     enabled: canSelectSites,
   });
@@ -1078,6 +1081,87 @@ function CreateMilestoneForm({
   );
 }
 
+// Metric Card component (matches module-dashboard.tsx pattern)
+function ELMetricCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  variant = "default",
+  testId,
+}: {
+  title: string;
+  value: number | string;
+  description: string;
+  icon: React.ElementType;
+  variant?: "default" | "success" | "warning" | "danger";
+  testId?: string;
+}) {
+  const variantStyles = {
+    default: "bg-primary/10 text-primary",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    danger: "bg-red-500/10 text-red-600 dark:text-red-400",
+  };
+
+  return (
+    <Card data-testid={testId}>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-md ${variantStyles[variant]}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-semibold" data-testid={testId ? `${testId}-value` : undefined}>{value}</div>
+        <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Compliance Score Card for Employment Law
+function ELComplianceScoreCard({ score }: { score: number }) {
+  const getScoreColor = (s: number) => {
+    if (s >= 90) return "text-emerald-600 dark:text-emerald-400";
+    if (s >= 70) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  const getScoreBg = (s: number) => {
+    if (s >= 90) return "bg-emerald-500";
+    if (s >= 70) return "bg-amber-500";
+    return "bg-red-500";
+  };
+
+  return (
+    <Card data-testid="card-el-compliance-score">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          Employment Law Compliance
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-end gap-3">
+          <span className={`text-5xl font-bold ${getScoreColor(score)}`} data-testid="text-el-compliance-score">
+            {score}%
+          </span>
+        </div>
+        <div className="mt-4">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div 
+              className={`h-full transition-all ${getScoreBg(score)}`}
+              style={{ width: `${score}%` }}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
@@ -1086,9 +1170,9 @@ function EmploymentLawDashboardView() {
   
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
-  const { data: sites, isLoading: sitesLoading } = useQuery<Site[]>({
+  // Fetch sites for all users (needed for site name lookup in recent docs/cases)
+  const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectSites,
   });
   
   // Filter sites by selected company
@@ -1122,7 +1206,7 @@ function EmploymentLawDashboardView() {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (selectedCompany && selectedCompany !== "all") {
-      return selectedCompany;
+      return `${selectedCompany} (all sites)`;
     }
     return "All Clients";
   }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
@@ -1165,14 +1249,44 @@ function EmploymentLawDashboardView() {
     },
   });
   
+  // Fetch recent documents for Employment Law
+  const { data: recentDocuments } = useQuery<Document[]>({
+    queryKey: ["/api/documents/module", "employment_law", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/documents/module/employment_law";
+      const params = new URLSearchParams();
+      if (siteId) params.set("siteId", siteId);
+      else if (companySiteIds && companySiteIds.length > 0) params.set("siteIds", companySiteIds.join(","));
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+  
   const isLoading = summaryLoading || casesLoading || (canSelectSites && sitesLoading);
   
   const openCases = cases?.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length || 0;
-  const resolvedCases = cases?.filter(c => c.status === "resolved" || c.status === "closed").length || 0;
   const urgentCases = cases?.filter(c => {
     if (!c.responseDeadline) return false;
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length || 0;
+  
+  // Get recent 5 documents and cases
+  const recentDocs = useMemo(() => {
+    if (!recentDocuments) return [];
+    return [...recentDocuments]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5);
+  }, [recentDocuments]);
+  
+  const recentCases = useMemo(() => {
+    if (!cases) return [];
+    return [...cases]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5);
+  }, [cases]);
   
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
@@ -1204,17 +1318,26 @@ function EmploymentLawDashboardView() {
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
           <Skeleton className="h-14 w-96" />
         </div>
-        <div className="space-y-6 p-8">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+        <div className="space-y-8 p-8">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="mt-2 h-3 w-32" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
     );
   }
+
+  const complianceScore = summary?.complianceScore || 0;
   
   return (
     <div className="theme-el">
@@ -1235,22 +1358,24 @@ function EmploymentLawDashboardView() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {canSelectSites && sites && sites.length > 0 && (
-              <>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 <CompanyCombobox
                   sites={sites}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-48"
+                  className="w-44"
                   testId="select-company-el"
                 />
+                <span className="text-muted-foreground">/</span>
                 <SiteCombobox
                   sites={filteredSites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
-                  className="w-48"
+                  className="w-44"
                   testId="select-site-el"
                 />
-              </>
+              </div>
             )}
             <Button variant="outline" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
@@ -1268,65 +1393,137 @@ function EmploymentLawDashboardView() {
         </div>
       </div>
       
-      <div className="space-y-6 p-8">
-      
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-l-4 border-l-pink-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
-            <div className="rounded-full bg-pink-100 dark:bg-pink-900/40 p-2">
-              <FileText className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-              {summary?.totalDocuments || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Employment law documents</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Compliant</CardTitle>
-            <div className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 p-2">
-              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {summary?.compliantDocuments || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">Up to date</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-l-4 border-l-amber-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
-            <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
-              <Briefcase className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{openCases}</div>
-            <p className="text-xs text-muted-foreground">Currently being managed</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Urgent Deadlines</CardTitle>
-            <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
-              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{urgentCases}</div>
-            <p className="text-xs text-muted-foreground">Within 7 days</p>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="space-y-8 p-8">
+        {/* Metrics Grid - 5 columns like other module dashboards */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <ELComplianceScoreCard score={complianceScore} />
+          <ELMetricCard
+            title="Total Documents"
+            value={summary?.totalDocuments || 0}
+            description="In this module"
+            icon={FileText}
+            testId="card-el-total-documents"
+          />
+          <ELMetricCard
+            title="Compliant"
+            value={summary?.compliantDocuments || 0}
+            description="Up to date"
+            icon={CheckCircle}
+            variant="success"
+            testId="card-el-compliant"
+          />
+          <ELMetricCard
+            title="Active Cases"
+            value={openCases}
+            description="Currently being managed"
+            icon={Briefcase}
+            variant="warning"
+            testId="card-el-active-cases"
+          />
+          <ELMetricCard
+            title="Urgent Deadlines"
+            value={urgentCases}
+            description="Within 7 days"
+            icon={AlertTriangle}
+            variant="danger"
+            testId="card-el-urgent"
+          />
+        </div>
+
+        {/* Recent Documents and Cases Section */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Recent Documents */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle>Recent Documents</CardTitle>
+                <CardDescription>Latest employment law documents</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={viewDocumentsUrl} data-testid="link-all-documents-el">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {recentDocs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6" data-testid="text-no-documents-el">No documents yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentDocs.map((doc) => (
+                    <Link
+                      key={doc.id}
+                      href={`/employment-law/documents/${doc.id}`}
+                      className="flex items-center justify-between rounded-lg border p-3 hover-elevate"
+                      data-testid={`link-document-${doc.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-pink-600" />
+                        <div>
+                          <p className="text-sm font-medium" data-testid={`text-document-title-${doc.id}`}>{doc.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {sites?.find(s => s.id === doc.siteId)?.name || "Site"} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge 
+                        variant={doc.status === "compliant" ? "default" : doc.status === "review_required" ? "secondary" : "destructive"}
+                        className={doc.status === "compliant" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : ""}
+                        data-testid={`badge-document-status-${doc.id}`}
+                      >
+                        {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review" : "Overdue"}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Cases */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
+              <div>
+                <CardTitle>Recent Cases</CardTitle>
+                <CardDescription>Latest employment law cases</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={viewCasesUrl} data-testid="link-all-cases-el">
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {recentCases.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6" data-testid="text-no-cases-el">No cases yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentCases.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/employment-law/cases/${c.id}`}
+                      className="flex items-center justify-between rounded-lg border p-3 hover-elevate"
+                      data-testid={`link-case-${c.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Briefcase className="h-4 w-4 text-pink-600" />
+                        <div>
+                          <p className="text-sm font-medium" data-testid={`text-case-ref-${c.id}`}>{c.caseReference} - {c.employeeName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {sites?.find(s => s.id === c.siteId)?.name || "Site"} - {c.caseType.replace(/_/g, " ")}
+                          </p>
+                        </div>
+                      </div>
+                      <CaseStatusBadge status={c.status} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
