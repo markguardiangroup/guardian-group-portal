@@ -120,6 +120,7 @@ interface SiteBasic {
 }
 
 interface SiteWithCompany extends SiteBasic {
+  companyId?: string;
   companyName?: string | null;
 }
 
@@ -269,13 +270,33 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   });
   
   // Get the effective site ID for hierarchy query
-  const hierarchySiteId = selectedSiteId || (sites && sites.length === 1 ? sites[0].id : null);
+  // Support "all" when a company is selected or when viewing all sites
+  const hierarchySiteId = selectedSiteId 
+    ? selectedSiteId 
+    : (selectedCompany && selectedCompany !== "all") 
+      ? "all" 
+      : (sites && sites.length === 1 ? sites[0].id : "all");
+  
+  // Get companyId from selected company name (for filtering when viewing all sites)
+  const selectedCompanyId = useMemo(() => {
+    if (!selectedCompany || selectedCompany === "all" || !sites) return null;
+    const siteInCompany = sites.find(s => s.companyName === selectedCompany);
+    return siteInCompany?.companyId || null;
+  }, [selectedCompany, sites]);
   
   // Fetch document hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
-    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy"],
+    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy`);
+      const params = new URLSearchParams();
+      if (selectedCompanyId) {
+        params.set("companyId", selectedCompanyId);
+      }
+      const queryString = params.toString();
+      const url = queryString 
+        ? `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`
+        : `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch hierarchy");
       return res.json();
     },

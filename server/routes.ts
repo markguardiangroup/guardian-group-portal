@@ -356,13 +356,27 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid module" });
       }
       
+      // Parse optional filter params from frontend
+      const requestedSiteId = req.query.siteId as string | undefined;
+      const requestedSiteIds = req.query.siteIds as string | undefined;
+      
       const allDocuments = await storage.getDocuments(module);
       
-      // Filter documents by sites the user can access
+      // Filter documents by sites the user can access AND by requested filters
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
           const canAccess = await canUserAccessSite(user, doc.siteId);
-          return canAccess ? doc : null;
+          if (!canAccess) return null;
+          
+          // Apply additional site filter if specified
+          if (requestedSiteId && requestedSiteId !== "all") {
+            if (doc.siteId !== requestedSiteId) return null;
+          } else if (requestedSiteIds) {
+            const siteIdList = requestedSiteIds.split(",");
+            if (!siteIdList.includes(doc.siteId)) return null;
+          }
+          
+          return doc;
         })
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
@@ -4046,11 +4060,17 @@ export async function registerRoutes(
       }
       
       const { siteId, module } = req.params;
+      const requestedCompanyId = req.query.companyId as string | undefined;
       
-      // Authorization: check site access
-      const canAccess = await canUserAccessSite(user, siteId);
-      if (!canAccess) {
-        return res.status(403).json({ error: "Not authorized to view this site's documents" });
+      // Handle "all" siteId - aggregate across multiple sites
+      const isAllSites = siteId === "all";
+      
+      // Authorization: check site access (or skip for "all" since we filter below)
+      if (!isAllSites) {
+        const canAccess = await canUserAccessSite(user, siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Not authorized to view this site's documents" });
+        }
       }
       
       // Validate module type (using ModuleType values from schema)
@@ -4066,28 +4086,56 @@ export async function registerRoutes(
       const allDocTemplates = await storage.getDocumentTemplates();
       const moduleDocTemplates = allDocTemplates.filter(dt => dt.module === module && dt.isActive);
       
-      // Get actual document folders provisioned for this site
-      const siteFolders = await storage.getDocumentFolders(siteId, module as any);
+      // Determine which sites to include
+      let targetSiteIds: string[] = [];
+      if (isAllSites) {
+        // Get all sites user can access
+        const allSites = await storage.getSites();
+        for (const site of allSites) {
+          const canAccess = await canUserAccessSite(user, site.id);
+          if (canAccess) {
+            // Apply company filter if specified
+            if (requestedCompanyId) {
+              if (site.companyId === requestedCompanyId) {
+                targetSiteIds.push(site.id);
+              }
+            } else {
+              targetSiteIds.push(site.id);
+            }
+          }
+        }
+      } else {
+        targetSiteIds = [siteId];
+      }
       
-      // Get all documents for this site in this module
+      // Get actual document folders provisioned for target sites
+      let siteFolders: any[] = [];
+      for (const targetId of targetSiteIds) {
+        const folders = await storage.getDocumentFolders(targetId, module as any);
+        siteFolders = siteFolders.concat(folders);
+      }
+      
+      // Get all documents for target sites in this module
       const allDocuments = await storage.getDocuments(module as any);
-      const siteDocuments = allDocuments.filter(d => d.siteId === siteId && !d.isArchived);
+      const siteDocuments = allDocuments.filter(d => targetSiteIds.includes(d.siteId) && !d.isArchived);
       
-      // Build the hierarchy: for each folder template, find matching site folder and its documents
+      // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
         .filter(ft => !ft.parentId) // Only top-level folders
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(folderTemplate => {
-          // Find the provisioned folder for this template
-          const siteFolder = siteFolders.find(sf => sf.templateId === folderTemplate.id);
+          // Find ALL provisioned folders matching this template (can be multiple across sites)
+          const matchingSiteFolders = siteFolders.filter(sf => sf.templateId === folderTemplate.id);
+          const siteFolder = matchingSiteFolders[0]; // For display purposes, use first one
           
           // Get document templates in this folder template
           const folderDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === folderTemplate.id);
           const requiredTemplates = folderDocTemplates.filter(dt => dt.isRequired);
           
-          // Get documents in this folder (if folder exists)
-          const folderDocuments = siteFolder 
-            ? siteDocuments.filter(d => d.folderId === siteFolder.id)
+          // Get documents from ALL matching folders across all sites
+          const matchingFolderIds = matchingSiteFolders.map(sf => sf.id);
+          const folderDocuments = matchingFolderIds.length > 0
+            ? siteDocuments.filter(d => matchingFolderIds.includes(d.folderId))
             : [];
           
           // Calculate compliance stats
@@ -4112,9 +4160,11 @@ export async function registerRoutes(
           // Get child folders (sub-folders) if any
           const childFolderTemplates = folderTemplates.filter(ft => ft.parentId === folderTemplate.id);
           const childFolders = childFolderTemplates.map(childTemplate => {
-            const childSiteFolder = siteFolders.find(sf => sf.templateId === childTemplate.id);
-            const childFolderDocs = childSiteFolder
-              ? siteDocuments.filter(d => d.folderId === childSiteFolder.id)
+            const matchingChildFolders = siteFolders.filter(sf => sf.templateId === childTemplate.id);
+            const childSiteFolder = matchingChildFolders[0]; // For display purposes
+            const childFolderIds = matchingChildFolders.map(sf => sf.id);
+            const childFolderDocs = childFolderIds.length > 0
+              ? siteDocuments.filter(d => childFolderIds.includes(d.folderId))
               : [];
             
             const childDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === childTemplate.id);
