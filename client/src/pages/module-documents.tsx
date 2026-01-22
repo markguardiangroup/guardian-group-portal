@@ -204,6 +204,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [folderFilter, setFolderFilter] = useState<string>("all");
+  const [renewalFilter, setRenewalFilter] = useState<string>("all");
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
@@ -374,7 +375,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       matchesFolder = docFolderName === folderFilter;
     }
     
-    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && !doc.isArchived;
+    // Filter by renewal date
+    let matchesRenewal = true;
+    if (renewalFilter !== "all" && doc.renewalDate) {
+      const now = new Date();
+      const renewalDate = new Date(doc.renewalDate);
+      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      switch (renewalFilter) {
+        case "overdue":
+          matchesRenewal = daysUntilRenewal < 0;
+          break;
+        case "30days":
+          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+          break;
+        case "60days":
+          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 60;
+          break;
+        case "90days":
+          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 90;
+          break;
+        case "none":
+          matchesRenewal = false; // Will be handled below
+          break;
+      }
+    } else if (renewalFilter === "none") {
+      matchesRenewal = !doc.renewalDate;
+    }
+    
+    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
   });
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -753,6 +782,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </SelectContent>
                 </Select>
               )}
+              <Select value={renewalFilter} onValueChange={setRenewalFilter}>
+                <SelectTrigger className="w-44" data-testid="select-renewal-filter">
+                  <SelectValue placeholder="Renewal Date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Renewals</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="30days">Next 30 Days</SelectItem>
+                  <SelectItem value="60days">Next 60 Days</SelectItem>
+                  <SelectItem value="90days">Next 90 Days</SelectItem>
+                  <SelectItem value="none">No Renewal Date</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -858,7 +900,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <FileText className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-medium">No documents found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || typeFilter !== "all" || statusFilter !== "all"
+                {searchQuery || typeFilter !== "all" || statusFilter !== "all" || renewalFilter !== "all"
                   ? "Try adjusting your search or filters"
                   : `Upload your first ${config.shortName} document to get started`}
               </p>
