@@ -40,6 +40,7 @@ import {
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
+import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -845,6 +846,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
+  const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
+  const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
+  const [changeNote, setChangeNote] = useState("");
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
@@ -887,6 +891,46 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const handleApproval = () => {
     approvalMutation.mutate({ action: approvalAction, feedback });
+  };
+
+  const uploadVersionMutation = useMutation({
+    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string }) => {
+      return apiRequest("POST", `/api/documents/${id}/versions`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "versions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      setShowUploadVersionDialog(false);
+      setNewVersionFile(null);
+      setChangeNote("");
+      toast({
+        title: "Success",
+        description: "New version uploaded successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload new version",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUploadVersion = () => {
+    if (!newVersionFile) return;
+    uploadVersionMutation.mutate({
+      fileName: newVersionFile.fileName,
+      fileUrl: newVersionFile.objectPath,
+      fileSize: newVersionFile.fileSize,
+      mimeType: newVersionFile.mimeType,
+      changeNote: changeNote || undefined,
+    });
   };
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -1148,7 +1192,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <Download className="mr-2 h-4 w-4" />
                 Download Document
               </Button>
-              <Button variant="outline" className="w-full justify-start" data-testid="button-upload-version">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start" 
+                data-testid="button-upload-version"
+                onClick={() => setShowUploadVersionDialog(true)}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload New Version
               </Button>
@@ -1221,6 +1270,67 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               data-testid="button-confirm-approval"
             >
               {approvalMutation.isPending ? "Processing..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUploadVersionDialog} onOpenChange={setShowUploadVersionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload New Version</DialogTitle>
+            <DialogDescription>
+              Upload a new version of "{document?.title}". The current version will be archived.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {newVersionFile ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/50">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{decodeURIComponent(newVersionFile.fileName)}</p>
+                  <p className="text-xs text-muted-foreground">{(newVersionFile.fileSize / 1024).toFixed(1)} KB</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setNewVersionFile(null)}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <SimpleFileUpload
+                onUploadComplete={(result) => setNewVersionFile(result)}
+                uploadPath="uploads"
+              />
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Change Notes (optional)</label>
+              <Textarea
+                placeholder="Describe what changed in this version..."
+                value={changeNote}
+                onChange={(e) => setChangeNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowUploadVersionDialog(false);
+                setNewVersionFile(null);
+                setChangeNote("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadVersion}
+              disabled={!newVersionFile || uploadVersionMutation.isPending}
+            >
+              {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
             </Button>
           </DialogFooter>
         </DialogContent>

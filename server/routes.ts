@@ -731,6 +731,85 @@ export async function registerRoutes(
     }
   });
 
+  // Upload new version of a document
+  app.post("/api/documents/:id/versions", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admins and consultants can upload new versions
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can upload new document versions" });
+      }
+      
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+      
+      const { fileName, fileUrl, fileSize, mimeType, changeNote } = req.body;
+      
+      if (!fileName || !fileUrl || !fileSize || !mimeType) {
+        return res.status(400).json({ error: "Missing required file information" });
+      }
+      
+      const newVersionNumber = document.version + 1;
+      
+      // Create version record for the current document state (archiving current version)
+      await storage.createDocumentVersion({
+        documentId: document.id,
+        version: document.version,
+        fileName: document.fileName,
+        fileUrl: document.fileUrl,
+        fileSize: document.fileSize,
+        mimeType: document.mimeType,
+        uploadedBy: document.uploadedBy,
+        changeNote: changeNote || `Replaced by version ${newVersionNumber}`,
+      });
+      
+      // Update the main document with new file info
+      const updatedDocument = await storage.updateDocument(document.id, {
+        fileName,
+        fileUrl,
+        fileSize,
+        mimeType,
+        version: newVersionNumber,
+        status: "review_required", // New version requires review
+        approvalStatus: "pending", // Reset approval status
+        updatedAt: new Date(),
+      });
+      
+      // Log the version upload
+      await storage.createAuditLog({
+        action: "document_version_uploaded",
+        userId: user.id,
+        userName: user.name,
+        siteId: document.siteId,
+        documentId: document.id,
+        module: document.module,
+        details: `Uploaded version ${newVersionNumber} of "${document.title}"`,
+        metadata: JSON.stringify({ 
+          previousVersion: document.version, 
+          newVersion: newVersionNumber,
+          changeNote 
+        }),
+      });
+      
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error("Upload document version error:", error);
+      res.status(500).json({ error: "Failed to upload new document version" });
+    }
+  });
+
   app.get("/api/documents/:id/audit", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
