@@ -366,6 +366,15 @@ export default function TemplateLibraryPage() {
     queryKey: ["/api/folder-document-type-rules"],
   });
   
+  // Helper to invalidate documents hierarchy cache (depends on folder/document templates)
+  const invalidateDocumentsHierarchy = () => {
+    queryClient.invalidateQueries({ 
+      predicate: (query) => {
+        const key = query.queryKey[0];
+        return typeof key === 'string' && key.includes('documents-hierarchy');
+      }
+    });
+  };
   
   // Template mutations
   const createTemplateMutation = useMutation({
@@ -374,6 +383,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      invalidateDocumentsHierarchy();
       setIsTemplateDialogOpen(false);
       setTemplateFormData(defaultTemplateFormData);
       toast({ title: "Template created", description: "The document template has been created successfully." });
@@ -389,6 +399,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      invalidateDocumentsHierarchy();
       setIsEditTemplateDialogOpen(false);
       setSelectedTemplate(null);
       toast({ title: "Template updated", description: "The document template has been updated successfully." });
@@ -405,6 +416,7 @@ export default function TemplateLibraryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      invalidateDocumentsHierarchy();
       setIsDeleteDialogOpen(false);
       setTemplateToDelete(null);
       setDeleteReason("");
@@ -422,6 +434,7 @@ export default function TemplateLibraryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      invalidateDocumentsHierarchy();
       toast({ title: "Template restored", description: "The document template has been restored and is now active." });
     },
     onError: (error: Error) => {
@@ -467,7 +480,7 @@ export default function TemplateLibraryPage() {
     queryKey: ["/api/document-templates", selectedTemplate?.id, "versions"],
     enabled: !!selectedTemplate && isVersionHistoryDialogOpen,
   });
-  
+
   // Folder mutations
   const createFolderMutation = useMutation({
     mutationFn: async (data: FolderFormData) => {
@@ -475,6 +488,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      invalidateDocumentsHierarchy();
       setIsFolderDialogOpen(false);
       setFolderFormData(defaultFolderFormData);
       toast({ title: "Folder created", description: "The folder template has been created successfully." });
@@ -490,6 +504,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      invalidateDocumentsHierarchy();
       setIsEditFolderDialogOpen(false);
       setSelectedFolder(null);
       toast({ title: "Folder updated", description: "The folder template has been updated successfully." });
@@ -505,6 +520,7 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      invalidateDocumentsHierarchy();
       toast({ title: "Folder deleted", description: "The folder template has been removed." });
     },
     onError: (error: Error) => {
