@@ -436,7 +436,10 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
       </Dialog>
 
       {/* Request Dialog */}
-      <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+      <Dialog open={showRequestDialog} onOpenChange={(open) => {
+        setShowRequestDialog(open);
+        if (!open) setSelectedCourse(null);
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
