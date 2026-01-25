@@ -836,6 +836,11 @@ function TrainingCard({
                     <span>{course.duration}</span>
                   </div>
                 )}
+                {/* Click hint */}
+                <div className="flex items-center gap-1 text-muted-foreground/60 group-hover:text-primary/60 transition-colors">
+                  <BookOpen className="h-3 w-3" />
+                  <span>Click for details</span>
+                </div>
               </div>
               
               <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
