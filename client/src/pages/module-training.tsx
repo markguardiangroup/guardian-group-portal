@@ -47,6 +47,15 @@ import {
   Calendar,
   X,
   CheckCircle,
+  Star,
+  Award,
+  TrendingUp,
+  Target,
+  Sparkles,
+  PlayCircle,
+  Users2,
+  Monitor,
+  MapPin,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -102,6 +111,27 @@ const moduleButtonColors: Record<string, string> = {
   human_resources: "bg-blue-600 hover:bg-blue-700 text-white",
   employment_law: "bg-pink-600 hover:bg-pink-700 text-white",
   support: "bg-purple-600 hover:bg-purple-700 text-white",
+};
+
+const moduleGradients: Record<string, string> = {
+  health_safety: "from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/10",
+  human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
+  employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
+  support: "from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/10",
+};
+
+const moduleAccentBg: Record<string, string> = {
+  health_safety: "bg-emerald-500",
+  human_resources: "bg-blue-500",
+  employment_law: "bg-pink-500",
+  support: "bg-purple-500",
+};
+
+const moduleTaglines: Record<string, string> = {
+  health_safety: "Essential training to keep your workplace safe and compliant",
+  human_resources: "Build stronger teams with expert HR training courses",
+  employment_law: "Stay informed on the latest employment regulations",
+  support: "Get the help you need with dedicated support resources",
 };
 
 interface ModuleTrainingProps {
@@ -204,9 +234,23 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
     return groups;
   }, [filteredCourses, trainingFolders]);
 
+  // Get featured courses (required ones first, then by title)
+  const featuredCourses = useMemo(() => {
+    if (!trainingCourses) return [];
+    return [...trainingCourses]
+      .sort((a, b) => {
+        if (a.isRequired && !b.isRequired) return -1;
+        if (!a.isRequired && b.isRequired) return 1;
+        return a.title.localeCompare(b.title);
+      })
+      .slice(0, 3);
+  }, [trainingCourses]);
+
   // Count training by status
   const requiredCount = filteredCourses.filter((c) => c.isRequired).length;
   const recommendedCount = filteredCourses.filter((c) => !c.isRequired).length;
+  const totalCourses = trainingCourses?.length || 0;
+  const totalFolders = trainingFolders?.length || 0;
 
   const handleRequestInfo = (course: TrainingCourse) => {
     setSelectedCourse(course);
@@ -249,173 +293,255 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const ModuleIcon = moduleIcons[module];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${moduleBgColors[module]}`}>
-              <GraduationCap className={`h-6 w-6 ${moduleColors[module]}`} />
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Hero Header */}
+      <div className={`flex-shrink-0 bg-gradient-to-br ${moduleGradients[module]} border-b`}>
+        <div className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-xl ${moduleAccentBg[module]} shadow-lg`}>
+                <GraduationCap className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{moduleNames[module]} Training</h1>
+                <p className="text-muted-foreground mt-1 max-w-xl">
+                  {moduleTaglines[module]}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">{moduleNames[module]} Training</h1>
-              <p className="text-sm text-muted-foreground">
-                Training resources and courses
-              </p>
+            
+            {/* Quick Stats */}
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background/80 backdrop-blur border shadow-sm">
+                <BookOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                <div>
+                  <p className="text-lg font-bold">{totalCourses}</p>
+                  <p className="text-xs text-muted-foreground">Courses</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background/80 backdrop-blur border shadow-sm">
+                <Target className="h-5 w-5 text-amber-500" />
+                <div>
+                  <p className="text-lg font-bold">{requiredCount}</p>
+                  <p className="text-xs text-muted-foreground">Required</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background/80 backdrop-blur border shadow-sm">
+                <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                <div>
+                  <p className="text-lg font-bold">{totalFolders}</p>
+                  <p className="text-xs text-muted-foreground">Categories</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="px-6 pb-4 flex gap-4">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${moduleBgColors[module]}`}>
-            <AlertCircle className={`h-4 w-4 ${moduleColors[module]}`} />
-            <span className="text-sm font-medium">{requiredCount} Required</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{recommendedCount} Recommended</span>
           </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex-shrink-0 p-4 border-b">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search training..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-training"
-          />
+      {/* Search Bar */}
+      <div className="flex-shrink-0 p-4 border-b bg-background/50 backdrop-blur-sm">
+        <div className="flex items-center gap-4 max-w-2xl mx-auto">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search courses by title, provider, or topic..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-background"
+              data-testid="input-search-training"
+            />
+          </div>
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              className="text-muted-foreground"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
+          <div className="p-6 space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-48 rounded-xl" />
+              ))}
+            </div>
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
           </div>
         ) : filteredCourses.length === 0 && (trainingFolders || []).length === 0 ? (
-          <Card className="p-12 text-center">
-            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No training available</h3>
-            <p className="text-muted-foreground">
-              Training folders and courses for this module will appear here once added.
-            </p>
-          </Card>
+          <div className="p-6">
+            <Card className="p-12 text-center max-w-lg mx-auto">
+              <div className={`w-16 h-16 mx-auto mb-6 rounded-full ${moduleBgColors[module]} flex items-center justify-center`}>
+                <BookOpen className={`h-8 w-8 ${moduleColors[module]}`} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No training available yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Training courses for {moduleNames[module]} will appear here once they're added by your administrator.
+              </p>
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" asChild>
+                  <a href="/support">
+                    <Headphones className="h-4 w-4 mr-2" />
+                    Contact Support
+                  </a>
+                </Button>
+              </div>
+            </Card>
+          </div>
         ) : searchQuery && filteredCourses.length === 0 ? (
-          <div className="space-y-6">
-            <Card className="p-8 text-center">
-              <Search className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-              <h3 className="font-semibold mb-1">No matching courses</h3>
-              <p className="text-sm text-muted-foreground">
+          <div className="p-6">
+            <Card className="p-8 text-center max-w-lg mx-auto">
+              <Search className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-2">No matching courses</h3>
+              <p className="text-sm text-muted-foreground mb-4">
                 No training courses match "{searchQuery}"
               </p>
+              <Button variant="outline" size="sm" onClick={() => setSearchQuery("")}>
+                Clear Search
+              </Button>
             </Card>
-            {/* Still show folders for reference */}
-            {(trainingFolders || []).length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Available Folders</h4>
-                <div className="grid gap-2">
-                  {(trainingFolders || []).map((folder) => (
-                    <div 
-                      key={folder.id}
-                      className={`flex items-center gap-2 p-3 rounded-lg border ${moduleBorderColors[module]} bg-card`}
-                    >
-                      <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
-                      <span className="text-sm font-medium">{folder.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Unfiled / General Training */}
-            {groupedByFolder.unfiled.length > 0 && (
-              <Card className={`border ${moduleBorderColors[module]}`}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <GraduationCap className={`h-5 w-5 ${moduleColors[module]}`} />
-                    General Training
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {groupedByFolder.unfiled.map((course) => (
-                    <TrainingCard 
-                      key={course.id} 
-                      course={course} 
+          <div className="p-6 space-y-8">
+            {/* Featured Courses Section */}
+            {!searchQuery && featuredCourses.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className={`h-5 w-5 ${moduleColors[module]}`} />
+                  <h2 className="text-lg font-semibold">Featured Courses</h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {featuredCourses.map((course) => (
+                    <FeaturedCourseCard
+                      key={course.id}
+                      course={course}
+                      module={module}
                       moduleColor={moduleColors[module]}
+                      moduleBgColor={moduleBgColors[module]}
                       buttonColor={moduleButtonColors[module]}
                       onViewDetails={() => setSelectedCourse(course)}
                       onRequestInfo={() => handleRequestInfo(course)}
                       onBookTraining={() => handleBookTraining(course)}
                     />
                   ))}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
             )}
 
-            {/* Grouped by folder */}
-            {(trainingFolders || []).length > 0 && (
-              <Accordion
-                type="multiple"
-                value={openFolders}
-                onValueChange={setOpenFolders}
-                className="space-y-3"
-              >
-                {(trainingFolders || []).map((folder) => {
-                  const folderCourses = groupedByFolder[folder.id] || [];
-                  
-                  return (
-                    <AccordionItem 
-                      key={folder.id} 
-                      value={folder.id}
-                      className={`border rounded-lg ${moduleBorderColors[module]}`}
-                      data-testid={`folder-${folder.id}`}
-                    >
-                      <AccordionTrigger className="px-4 hover:no-underline">
-                        <div className="flex items-center gap-3">
-                          <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
-                          <span className="font-medium">{folder.name}</span>
-                          <Badge variant="secondary">{folderCourses.length}</Badge>
+            {/* All Courses by Folder */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                <h2 className="text-lg font-semibold">
+                  {searchQuery ? `Search Results (${filteredCourses.length})` : "All Courses"}
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                {/* Unfiled / General Training */}
+                {groupedByFolder.unfiled.length > 0 && (
+                  <Card className={`overflow-hidden border-2 ${moduleBorderColors[module]}`}>
+                    <CardHeader className={`pb-3 bg-gradient-to-r ${moduleGradients[module]}`}>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg ${moduleBgColors[module]}`}>
+                          <GraduationCap className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4 space-y-3">
-                        {folder.description && (
-                          <p className="text-sm text-muted-foreground mb-4">{folder.description}</p>
-                        )}
-                        {folderCourses.length === 0 ? (
-                          <div className="text-center py-6 text-muted-foreground">
-                            <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No courses in this folder yet</p>
-                          </div>
-                        ) : (
-                          folderCourses.map((course) => (
-                            <TrainingCard 
-                              key={course.id} 
-                              course={course} 
-                              moduleColor={moduleColors[module]}
-                              buttonColor={moduleButtonColors[module]}
-                              onViewDetails={() => setSelectedCourse(course)}
-                              onRequestInfo={() => handleRequestInfo(course)}
-                              onBookTraining={() => handleBookTraining(course)}
-                            />
-                          ))
-                        )}
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
+                        General Training
+                        <Badge variant="secondary" className="ml-auto">{groupedByFolder.unfiled.length}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 grid gap-3 md:grid-cols-2">
+                      {groupedByFolder.unfiled.map((course) => (
+                        <TrainingCard 
+                          key={course.id} 
+                          course={course} 
+                          moduleColor={moduleColors[module]}
+                          moduleBgColor={moduleBgColors[module]}
+                          buttonColor={moduleButtonColors[module]}
+                          onViewDetails={() => setSelectedCourse(course)}
+                          onRequestInfo={() => handleRequestInfo(course)}
+                          onBookTraining={() => handleBookTraining(course)}
+                        />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Grouped by folder */}
+                {(trainingFolders || []).length > 0 && (
+                  <Accordion
+                    type="multiple"
+                    value={openFolders}
+                    onValueChange={setOpenFolders}
+                    className="space-y-3"
+                  >
+                    {(trainingFolders || []).map((folder) => {
+                      const folderCourses = groupedByFolder[folder.id] || [];
+                      
+                      return (
+                        <AccordionItem 
+                          key={folder.id} 
+                          value={folder.id}
+                          className={`border-2 rounded-xl overflow-hidden ${moduleBorderColors[module]} bg-card`}
+                          data-testid={`folder-${folder.id}`}
+                        >
+                          <AccordionTrigger className={`px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors [&[data-state=open]]:bg-gradient-to-r ${openFolders.includes(folder.id) ? moduleGradients[module] : ''}`}>
+                            <div className="flex items-center gap-3 flex-1">
+                              <div className={`p-2 rounded-lg ${moduleBgColors[module]}`}>
+                                <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                              </div>
+                              <div className="text-left">
+                                <span className="font-semibold">{folder.name}</span>
+                                {folder.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{folder.description}</p>
+                                )}
+                              </div>
+                              <Badge variant="secondary" className="ml-auto mr-2">
+                                {folderCourses.length} {folderCourses.length === 1 ? 'course' : 'courses'}
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            {folderCourses.length === 0 ? (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <div className={`w-12 h-12 mx-auto mb-3 rounded-full ${moduleBgColors[module]} flex items-center justify-center`}>
+                                  <BookOpen className={`h-6 w-6 ${moduleColors[module]} opacity-50`} />
+                                </div>
+                                <p className="text-sm">No courses in this category yet</p>
+                              </div>
+                            ) : (
+                              <div className="grid gap-3 md:grid-cols-2 pt-2">
+                                {folderCourses.map((course) => (
+                                  <TrainingCard 
+                                    key={course.id} 
+                                    course={course} 
+                                    moduleColor={moduleColors[module]}
+                                    moduleBgColor={moduleBgColors[module]}
+                                    buttonColor={moduleButtonColors[module]}
+                                    onViewDetails={() => setSelectedCourse(course)}
+                                    onRequestInfo={() => handleRequestInfo(course)}
+                                    onBookTraining={() => handleBookTraining(course)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                )}
+              </div>
+            </section>
           </div>
         )}
       </div>
@@ -527,17 +653,21 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   );
 }
 
-// Training card component for client view
-function TrainingCard({
+// Featured course card with larger visual treatment
+function FeaturedCourseCard({
   course,
+  module,
   moduleColor,
+  moduleBgColor,
   buttonColor,
   onViewDetails,
   onRequestInfo,
   onBookTraining,
 }: {
   course: TrainingCourse;
+  module: ModuleType;
   moduleColor: string;
+  moduleBgColor: string;
   buttonColor: string;
   onViewDetails: () => void;
   onRequestInfo: () => void;
@@ -545,75 +675,177 @@ function TrainingCard({
 }) {
   return (
     <Card 
-      className="hover-elevate transition-shadow cursor-pointer"
+      className="group hover-elevate transition-all cursor-pointer overflow-hidden border-2 hover:border-primary/30"
       onClick={onViewDetails}
-      data-testid={`card-training-${course.id}`}
+      data-testid={`card-featured-${course.id}`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-medium">{course.title}</h4>
-              {course.productCode && (
-                <Badge variant="outline" className="font-mono text-xs">
-                  {course.productCode}
-                </Badge>
-              )}
-              {course.isRequired ? (
-                <Badge className="bg-amber-500 hover:bg-amber-600">
-                  Required
-                  {course.renewalPeriodMonths && (
-                    <span className="ml-1 opacity-75">
-                      ({course.renewalPeriodMonths}mo renewal)
-                    </span>
-                  )}
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Recommended</Badge>
-              )}
-            </div>
-            
-            {course.summary && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {course.summary}
-              </p>
-            )}
-            
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {course.provider && (
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" />
-                  {course.provider}
-                </div>
-              )}
-              {course.duration && (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  {course.duration}
-                </div>
-              )}
+      <div className={`h-2 ${moduleButtonColors[module].split(' ')[0]}`} />
+      <CardContent className="p-5">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                {course.isRequired && (
+                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                    <Target className="h-3 w-3 mr-1" />
+                    Required
+                  </Badge>
+                )}
+                {course.productCode && (
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {course.productCode}
+                  </Badge>
+                )}
+              </div>
+              <h3 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
+                {course.title}
+              </h3>
             </div>
           </div>
           
-          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+          {course.summary && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {course.summary}
+            </p>
+          )}
+          
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {course.provider && (
+              <div className="flex items-center gap-1">
+                <Building2 className="h-3.5 w-3.5" />
+                <span>{course.provider}</span>
+              </div>
+            )}
+            {course.duration && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{course.duration}</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
+              className="flex-1"
               onClick={onRequestInfo}
-              data-testid={`button-request-info-${course.id}`}
+              data-testid={`button-featured-info-${course.id}`}
             >
               <Mail className="h-4 w-4 mr-1" />
-              Info
+              More Info
             </Button>
             <Button
               size="sm"
-              className={buttonColor}
+              className={`flex-1 ${buttonColor}`}
               onClick={onBookTraining}
-              data-testid={`button-book-training-${course.id}`}
+              data-testid={`button-featured-book-${course.id}`}
             >
               <Calendar className="h-4 w-4 mr-1" />
               Book
             </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Training card component for list view
+function TrainingCard({
+  course,
+  moduleColor,
+  moduleBgColor,
+  buttonColor,
+  onViewDetails,
+  onRequestInfo,
+  onBookTraining,
+}: {
+  course: TrainingCourse;
+  moduleColor: string;
+  moduleBgColor: string;
+  buttonColor: string;
+  onViewDetails: () => void;
+  onRequestInfo: () => void;
+  onBookTraining: () => void;
+}) {
+  return (
+    <Card 
+      className="hover-elevate transition-all cursor-pointer group"
+      onClick={onViewDetails}
+      data-testid={`card-training-${course.id}`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg ${moduleBgColor} shrink-0`}>
+            <GraduationCap className={`h-4 w-4 ${moduleColor}`} />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <h4 className="font-medium truncate group-hover:text-primary transition-colors">{course.title}</h4>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {course.productCode && (
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {course.productCode}
+                    </Badge>
+                  )}
+                  {course.isRequired ? (
+                    <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                      Required
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {course.summary && (
+              <p className="text-sm text-muted-foreground line-clamp-1">
+                {course.summary}
+              </p>
+            )}
+            
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {course.provider && (
+                  <div className="flex items-center gap-1">
+                    <Building2 className="h-3 w-3" />
+                    <span className="truncate max-w-[100px]">{course.provider}</span>
+                  </div>
+                )}
+                {course.duration && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{course.duration}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={onRequestInfo}
+                  data-testid={`button-request-info-${course.id}`}
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  className={`h-7 text-xs ${buttonColor}`}
+                  onClick={onBookTraining}
+                  data-testid={`button-book-training-${course.id}`}
+                >
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Book
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -639,124 +871,106 @@ function CourseDetailView({
   let parsedPricingTable: PricingTable | null = null;
   try {
     if (course.pricingTable) {
-      const parsed = JSON.parse(course.pricingTable);
-      if (parsed && parsed.headingRow && Array.isArray(parsed.dataRows) && parsed.dataRows.length > 0) {
-        parsedPricingTable = parsed;
-      }
+      parsedPricingTable = JSON.parse(course.pricingTable);
     }
-  } catch {
-    parsedPricingTable = null;
+  } catch (e) {
+    console.error("Failed to parse pricing table:", e);
   }
-  const overview = course.courseOverview || [];
+  const courseOverviewList: string[] = course.courseOverview || [];
 
   return (
     <>
       <DialogHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${moduleBgColors[module]}`}>
-              <GraduationCap className={`h-5 w-5 ${moduleColors[module]}`} />
-            </div>
-            <div>
-              <DialogTitle className="text-xl">{course.title}</DialogTitle>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                {course.productCode && (
-                  <span className="font-medium text-foreground">
-                    {course.productCode}
-                  </span>
-                )}
-                {course.provider && (
-                  <span className="flex items-center gap-1">
-                    <Building2 className="h-3.5 w-3.5" />
-                    {course.provider}
-                  </span>
-                )}
-                {course.duration && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {course.duration}
-                  </span>
-                )}
-              </div>
-            </div>
+        <div className="flex items-start gap-3">
+          <div className={`p-2.5 rounded-xl ${moduleBgColors[module]}`}>
+            <GraduationCap className={`h-6 w-6 ${moduleColors[module]}`} />
           </div>
-          <div className="flex items-center gap-2">
-            {course.isRequired ? (
-              <Badge className="bg-amber-500 hover:bg-amber-600">
-                Required
-                {course.renewalPeriodMonths && ` (${course.renewalPeriodMonths}mo)`}
-              </Badge>
-            ) : (
-              <Badge variant="secondary">Recommended</Badge>
-            )}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              {course.productCode && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {course.productCode}
+                </Badge>
+              )}
+              {course.isRequired ? (
+                <Badge className="bg-amber-500 hover:bg-amber-600">
+                  <Target className="h-3 w-3 mr-1" />
+                  Required
+                  {course.renewalPeriodMonths && (
+                    <span className="ml-1 opacity-75">
+                      ({course.renewalPeriodMonths}mo renewal)
+                    </span>
+                  )}
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Recommended</Badge>
+              )}
+            </div>
+            <DialogTitle className="text-xl">{course.title}</DialogTitle>
           </div>
         </div>
       </DialogHeader>
 
-      <div className="space-y-6 py-4">
+      <div className="space-y-6 mt-4">
+        {/* Meta info */}
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          {course.provider && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              <span>{course.provider}</span>
+            </div>
+          )}
+          {course.duration && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>{course.duration}</span>
+            </div>
+          )}
+        </div>
+
         {/* Summary */}
         {course.summary && (
-          <div>
-            <h4 className="font-medium mb-2">Summary</h4>
-            <p className="text-muted-foreground">{course.summary}</p>
+          <div className="p-4 rounded-lg bg-muted/50">
+            <p className="text-sm leading-relaxed">{course.summary}</p>
           </div>
         )}
 
         {/* Course Overview */}
-        {overview.length > 0 && (
+        {courseOverviewList.length > 0 && (
           <div>
-            <h4 className="font-medium mb-3 flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Course Overview
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <List className={`h-4 w-4 ${moduleColors[module]}`} />
+              What You'll Learn
             </h4>
             <ul className="space-y-2">
-              {overview.map((item, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-muted-foreground">{item}</span>
+              {courseOverviewList.map((item, index) => (
+                <li key={index} className="flex items-start gap-3 text-sm">
+                  <CheckCircle className={`h-4 w-4 mt-0.5 ${moduleColors[module]} shrink-0`} />
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* FAQs */}
-        {parsedFaqs.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-3 flex items-center gap-2">
-              <HelpCircle className="h-4 w-4" />
-              Frequently Asked Questions
-            </h4>
-            <Accordion type="single" collapsible className="space-y-2">
-              {parsedFaqs.map((faq, index) => (
-                <AccordionItem key={index} value={`faq-${index}`} className="border rounded-lg px-4">
-                  <AccordionTrigger className="hover:no-underline text-left">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </div>
-        )}
-
         {/* Pricing Table */}
-        {parsedPricingTable && parsedPricingTable.dataRows.length > 0 && (
+        {parsedPricingTable && parsedPricingTable.dataRows && parsedPricingTable.dataRows.length > 0 && (
           <div>
-            <h4 className="font-medium mb-3">Pricing</h4>
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <Award className={`h-4 w-4 ${moduleColors[module]}`} />
+              Pricing
+            </h4>
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column1 || "Item"}</TableHead>
-                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column2 || "Price"}</TableHead>
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow?.column1}</TableHead>
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow?.column2}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parsedPricingTable.dataRows.map((row, index) => (
-                    <TableRow key={index}>
+                  {parsedPricingTable.dataRows.map((row, rowIdx) => (
+                    <TableRow key={rowIdx}>
                       <TableCell>{row.column1}</TableCell>
                       <TableCell>{row.column2}</TableCell>
                     </TableRow>
@@ -767,29 +981,63 @@ function CourseDetailView({
           </div>
         )}
 
-        {/* External Link */}
-        {course.externalLink && (
+        {/* FAQs */}
+        {parsedFaqs.length > 0 && (
           <div>
-            <Button asChild variant="outline" className="w-full">
-              <a href={course.externalLink} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View External Course Page
-              </a>
-            </Button>
+            <h4 className="font-semibold flex items-center gap-2 mb-3">
+              <HelpCircle className={`h-4 w-4 ${moduleColors[module]}`} />
+              Frequently Asked Questions
+            </h4>
+            <Accordion type="single" collapsible className="space-y-2">
+              {parsedFaqs.map((faq, index) => (
+                <AccordionItem
+                  key={index}
+                  value={`faq-${index}`}
+                  className={`border rounded-lg px-4 ${moduleBorderColors[module]}`}
+                >
+                  <AccordionTrigger className="text-sm font-medium hover:no-underline py-3">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground pb-3">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         )}
-      </div>
 
-      <DialogFooter className="gap-2 sm:gap-0">
-        <Button variant="outline" onClick={onRequestInfo} data-testid="button-detail-request-info">
-          <Mail className="h-4 w-4 mr-2" />
-          Request More Info
-        </Button>
-        <Button onClick={onBookTraining} className={moduleButtonColors[module]} data-testid="button-detail-book-training">
-          <Calendar className="h-4 w-4 mr-2" />
-          Book Training
-        </Button>
-      </DialogFooter>
+        {/* External Link */}
+        {course.externalLink && (
+          <Button variant="outline" className="w-full" asChild>
+            <a href={course.externalLink} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Full Course Details
+            </a>
+          </Button>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex gap-3 pt-2 border-t">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={onRequestInfo}
+            data-testid="button-detail-request-info"
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Request More Info
+          </Button>
+          <Button
+            className={`flex-1 ${moduleButtonColors[module]}`}
+            onClick={onBookTraining}
+            data-testid="button-detail-book-training"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Book This Training
+          </Button>
+        </div>
+      </div>
     </>
   );
 }
