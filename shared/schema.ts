@@ -919,6 +919,9 @@ export type PricingTable = {
   dataRows: PricingTableRow[]; // Up to 5 rows
 };
 
+// Training Method type
+export type TrainingMethod = "online" | "in_person";
+
 // Training Courses (Admin-managed training library)
 export const trainingCourses = pgTable("training_courses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -928,6 +931,7 @@ export const trainingCourses = pgTable("training_courses", {
   module: text("module").$type<ModuleType>().notNull(),
   trainingFolderId: varchar("training_folder_id"), // Links to training folders
   provider: text("provider"), // e.g., "IOSH", "HSE Direct", "CIPD"
+  trainingMethod: text("training_method").$type<TrainingMethod>(), // Online or In Person
   externalLink: text("external_link"), // Optional URL to 3rd party training
   duration: text("duration"), // e.g., "2 hours", "1 day", "Self-paced"
   courseOverview: text("course_overview").array(), // List of course topics/sections

@@ -56,6 +56,7 @@ import {
   Users2,
   Monitor,
   MapPin,
+  Filter,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -148,6 +149,11 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const [requestType, setRequestType] = useState<"info" | "booking">("info");
   const [requestMessage, setRequestMessage] = useState("");
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
+  
+  // Filter states
+  const [filterRequired, setFilterRequired] = useState<"all" | "required" | "recommended">("all");
+  const [filterMethod, setFilterMethod] = useState<"all" | "online" | "in_person">("all");
+  const [filterProvider, setFilterProvider] = useState<string>("all");
 
   // Fetch training folders for this module
   const { data: trainingFolders, isLoading: foldersLoading } = useQuery<TrainingFolder[]>({
@@ -201,19 +207,43 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
     },
   });
 
-  // Filter courses by search
+  // Get unique providers for filter dropdown
+  const uniqueProviders = useMemo(() => {
+    if (!trainingCourses) return [];
+    const providers = trainingCourses
+      .map((c) => c.provider)
+      .filter((p): p is string => !!p && p.trim() !== "");
+    return Array.from(new Set(providers)).sort();
+  }, [trainingCourses]);
+
+  // Filter courses by search and filters
   const filteredCourses = useMemo(() => {
     if (!trainingCourses) return [];
     
-    if (!searchQuery) return trainingCourses;
-    
-    const query = searchQuery.toLowerCase();
-    return trainingCourses.filter((c) => 
-      c.title.toLowerCase().includes(query) ||
-      c.summary?.toLowerCase().includes(query) ||
-      c.provider?.toLowerCase().includes(query)
-    );
-  }, [trainingCourses, searchQuery]);
+    return trainingCourses.filter((c) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          c.title.toLowerCase().includes(query) ||
+          c.summary?.toLowerCase().includes(query) ||
+          c.provider?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Required filter
+      if (filterRequired === "required" && !c.isRequired) return false;
+      if (filterRequired === "recommended" && c.isRequired) return false;
+      
+      // Training method filter
+      if (filterMethod !== "all" && c.trainingMethod !== filterMethod) return false;
+      
+      // Provider filter
+      if (filterProvider !== "all" && c.provider !== filterProvider) return false;
+      
+      return true;
+    });
+  }, [trainingCourses, searchQuery, filterRequired, filterMethod, filterProvider]);
 
   // Group courses by folder
   const groupedByFolder = useMemo(() => {
@@ -338,8 +368,8 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex-shrink-0 p-4 border-b bg-background/50 backdrop-blur-sm">
+      {/* Search Bar and Filters */}
+      <div className="flex-shrink-0 p-4 border-b bg-background/50 backdrop-blur-sm space-y-3">
         <div className="flex items-center gap-4 max-w-2xl mx-auto">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -360,6 +390,67 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             >
               <X className="h-4 w-4 mr-1" />
               Clear
+            </Button>
+          )}
+        </div>
+        
+        {/* Filter Row */}
+        <div className="flex flex-wrap items-center gap-3 max-w-2xl mx-auto">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Filters:</span>
+          </div>
+          
+          <Select value={filterRequired} onValueChange={(v) => setFilterRequired(v as typeof filterRequired)}>
+            <SelectTrigger className="w-[140px] h-8 text-sm" data-testid="select-filter-required">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Courses</SelectItem>
+              <SelectItem value="required">Required</SelectItem>
+              <SelectItem value="recommended">Recommended</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={filterMethod} onValueChange={(v) => setFilterMethod(v as typeof filterMethod)}>
+            <SelectTrigger className="w-[140px] h-8 text-sm" data-testid="select-filter-method">
+              <SelectValue placeholder="Method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any Method</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="in_person">In Person</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {uniqueProviders.length > 0 && (
+            <Select value={filterProvider} onValueChange={setFilterProvider}>
+              <SelectTrigger className="w-[160px] h-8 text-sm" data-testid="select-filter-provider">
+                <SelectValue placeholder="Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Provider</SelectItem>
+                {uniqueProviders.map((provider) => (
+                  <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {(filterRequired !== "all" || filterMethod !== "all" || filterProvider !== "all") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-sm"
+              onClick={() => {
+                setFilterRequired("all");
+                setFilterMethod("all");
+                setFilterProvider("all");
+              }}
+              data-testid="button-clear-filters"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Clear filters
             </Button>
           )}
         </div>
@@ -836,6 +927,15 @@ function TrainingCard({
                     <span>{course.duration}</span>
                   </div>
                 )}
+                {course.trainingMethod && (
+                  <Badge variant="outline" className="text-xs">
+                    {course.trainingMethod === "online" ? (
+                      <><Monitor className="h-3 w-3 mr-1" />Online</>
+                    ) : (
+                      <><Users2 className="h-3 w-3 mr-1" />In Person</>
+                    )}
+                  </Badge>
+                )}
                 {/* Click hint */}
                 <div className="flex items-center gap-1 text-muted-foreground/60 group-hover:text-primary/60 transition-colors">
                   <BookOpen className="h-3 w-3" />
@@ -947,6 +1047,15 @@ function CourseDetailView({
               <Clock className="h-4 w-4" />
               <span>{course.duration}</span>
             </div>
+          )}
+          {course.trainingMethod && (
+            <Badge variant="outline">
+              {course.trainingMethod === "online" ? (
+                <><Monitor className="h-3.5 w-3.5 mr-1" />Online</>
+              ) : (
+                <><Users2 className="h-3.5 w-3.5 mr-1" />In Person</>
+              )}
+            </Badge>
           )}
         </div>
 

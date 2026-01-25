@@ -65,12 +65,13 @@ import {
   ExternalLink,
   Building2,
   DollarSign,
+  Monitor,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { TrainingFolder, TrainingCourse, ModuleType, TrainingFAQ, PricingTable, PricingTableRow } from "@shared/schema";
+import type { TrainingFolder, TrainingCourse, ModuleType, TrainingFAQ, PricingTable, PricingTableRow, TrainingMethod } from "@shared/schema";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -146,6 +147,7 @@ export default function TrainingLibrary() {
     module: "health_safety" as ModuleType,
     trainingFolderId: "",
     provider: "",
+    trainingMethod: null as TrainingMethod | null,
     externalLink: "",
     duration: "",
     courseOverview: ["", "", "", "", ""],
@@ -308,6 +310,7 @@ export default function TrainingLibrary() {
       module: activeModule,
       trainingFolderId: "",
       provider: "",
+      trainingMethod: null,
       externalLink: "",
       duration: "",
       courseOverview: ["", "", "", "", ""],
@@ -367,6 +370,7 @@ export default function TrainingLibrary() {
       module: course.module,
       trainingFolderId: course.trainingFolderId || "",
       provider: course.provider || "",
+      trainingMethod: course.trainingMethod || null,
       externalLink: course.externalLink || "",
       duration: course.duration || "",
       courseOverview: paddedOverview,
@@ -748,15 +752,33 @@ export default function TrainingLibrary() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="course-link">External Link (optional)</Label>
-                <Input
-                  id="course-link"
-                  value={courseForm.externalLink}
-                  onChange={(e) => setCourseForm({ ...courseForm, externalLink: e.target.value })}
-                  placeholder="https://..."
-                  data-testid="input-course-link"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="course-method">Training Method</Label>
+                  <Select
+                    value={courseForm.trainingMethod || "none"}
+                    onValueChange={(v) => setCourseForm({ ...courseForm, trainingMethod: v === "none" ? null : v as TrainingMethod })}
+                  >
+                    <SelectTrigger data-testid="select-course-method">
+                      <SelectValue placeholder="Select delivery method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="in_person">In Person</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course-link">External Link (optional)</Label>
+                  <Input
+                    id="course-link"
+                    value={courseForm.externalLink}
+                    onChange={(e) => setCourseForm({ ...courseForm, externalLink: e.target.value })}
+                    placeholder="https://..."
+                    data-testid="input-course-link"
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
@@ -1063,6 +1085,17 @@ function CourseDetailView({
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Duration:</span>
               <span>{course.duration}</span>
+            </div>
+          )}
+          {course.trainingMethod && (
+            <div className="flex items-center gap-2">
+              {course.trainingMethod === "online" ? (
+                <Monitor className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Users className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="text-muted-foreground">Method:</span>
+              <span>{course.trainingMethod === "online" ? "Online" : "In Person"}</span>
             </div>
           )}
           {course.externalLink && (

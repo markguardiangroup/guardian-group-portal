@@ -47,7 +47,7 @@ Core entities include:
 - **Audit Logs**: Activity tracking with timestamps and user attribution
 - **Support Requests**: Client support ticket system
 - **Training Folders**: Organizational structure for training content per module (separate from document folders)
-- **Training Courses**: Training content with enhanced fields (summary, course overview list, FAQs)
+- **Training Courses**: Training content with enhanced fields (summary, course overview list, FAQs, training method: online/in_person)
 - **Training Requests**: Client requests for training info or booking
 
 ### Authorization Model
@@ -100,8 +100,13 @@ Key API Routes for Site Management:
 ### Training Library
 The Training Library has its own dedicated folder structure separate from document template folders:
 - **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
-- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs)
+- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person)
 - **Training Requests**: Client requests for more info or booking training
+
+Module Training Page Features:
+- **Filters**: Required status (all/required/recommended), Training Method (all/online/in_person), Provider (dynamic list)
+- **Search**: Search by title, summary, or provider
+- **Badges**: Training method displayed as badges on course cards (Monitor icon for Online, Users icon for In Person)
 
 Key API Routes:
 - `GET /api/training-folders` - Get all training folders (filter by ?module=)
