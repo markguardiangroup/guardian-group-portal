@@ -928,6 +928,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleType }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
@@ -1155,41 +1156,118 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </CardContent>
           </Card>
 
-          {document.approvalStatus === "pending" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Approval Actions</CardTitle>
-                <CardDescription>Review and approve or reject this document</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
-                    data-testid="button-approve"
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
-                    data-testid="button-request-changes"
-                  >
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Request Changes
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => { setApprovalAction("reject"); setShowApprovalDialog(true); }}
-                    data-testid="button-reject"
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Reject
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {(document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off") && (() => {
+            const isClient = user?.role === "client";
+            const isConsultantOrAdmin = user?.role === "consultant" || user?.role === "admin";
+            const isPending = document.approvalStatus === "pending";
+            const isSignedOff = document.approvalStatus === "client_signed_off";
+            
+            // Check if client has approval permissions (owner or approver role)
+            const clientHasApprovalPermission = isClient && 
+              (user?.clientPermissionRole === "owner" || user?.clientPermissionRole === "approver");
+            
+            // Determine which approval action is appropriate based on document uploader and current user
+            // We need to know if the document was uploaded by a client or consultant
+            // For now, we check document.uploadedBy against the current user
+            // The backend enforces the actual rules, so we show UI optimistically based on approval status
+            
+            // Clients can only sign off on consultant-uploaded docs (pending status)
+            // Consultants can approve client-uploaded docs (pending) or give final approval (client_signed_off)
+            
+            // Determine if current user can take action:
+            // - Client with permissions + pending status = can sign off (if doc was consultant-uploaded, backend validates)
+            // - Consultant/admin + pending status = can approve (if doc was client-uploaded, backend validates)
+            // - Consultant/admin + client_signed_off = can final approve
+            // - Client + client_signed_off = NO action (awaiting consultant)
+            
+            const canClientAct = isClient && clientHasApprovalPermission && isPending;
+            const canConsultantAct = isConsultantOrAdmin && (isPending || isSignedOff);
+            
+            // If neither can act, don't show the card
+            if (!canClientAct && !canConsultantAct) {
+              // Show info-only card for clients on client_signed_off status
+              if (isClient && isSignedOff) {
+                return (
+                  <Card data-testid="card-awaiting-final-approval">
+                    <CardHeader>
+                      <CardTitle>Awaiting Final Approval</CardTitle>
+                      <CardDescription>
+                        You have signed off on this document. It is now awaiting final approval from the consultant.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Badge variant="secondary" className="w-fit">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Client signed off - awaiting consultant final approval
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              return null;
+            }
+            
+            const getTitle = () => {
+              if (canClientAct) return "Client Sign-Off";
+              if (isSignedOff) return "Final Approval";
+              return "Approval Actions";
+            };
+            
+            const getDescription = () => {
+              if (canClientAct) return "Review and sign off on this document to confirm you've received and read it";
+              if (isSignedOff) return "The client has signed off. Give final approval to complete the workflow";
+              if (canConsultantAct && isPending) return "Review and approve this client-uploaded document";
+              return "Review and approve or reject this document";
+            };
+            
+            const getApproveLabel = () => {
+              if (canClientAct) return "Sign Off";
+              if (isSignedOff) return "Final Approval";
+              return "Approve";
+            };
+            
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{getTitle()}</CardTitle>
+                  <CardDescription>{getDescription()}</CardDescription>
+                  {isSignedOff && (
+                    <Badge variant="secondary" className="mt-2 w-fit">
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Client signed off - awaiting final approval
+                    </Badge>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
+                      data-testid="button-approve"
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      {getApproveLabel()}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
+                      data-testid="button-request-changes"
+                    >
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Request Changes
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => { setApprovalAction("reject"); setShowApprovalDialog(true); }}
+                      data-testid="button-reject"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Reject
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {auditLogs && auditLogs.length > 0 && (() => {
             const INITIAL_DISPLAY_COUNT = 3;
@@ -1202,6 +1280,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
                 case 'document_approved':
                   return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
+                case 'document_signed_off':
+                  return { icon: CheckCircle, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
                 case 'document_rejected':
                   return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
                 case 'changes_requested':

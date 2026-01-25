@@ -1886,7 +1886,7 @@ export class MemStorage implements IStorage {
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
     const overdue = docs.filter(d => d.status === "overdue").length;
-    const pending = docs.filter(d => d.approvalStatus === "pending").length;
+    const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
       totalDocuments: total,
@@ -1894,6 +1894,8 @@ export class MemStorage implements IStorage {
       reviewRequired: review,
       overdueDocuments: overdue,
       pendingApprovals: pending,
+      awaitingYourApproval: 0,
+      awaitingOthersApproval: 0,
       complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
     };
   }
@@ -2091,7 +2093,7 @@ export class MemStorage implements IStorage {
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
     const overdue = docs.filter(d => d.status === "overdue").length;
-    const pending = docs.filter(d => d.approvalStatus === "pending").length;
+    const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
       totalDocuments: total,
@@ -2099,6 +2101,8 @@ export class MemStorage implements IStorage {
       reviewRequired: review,
       overdueDocuments: overdue,
       pendingApprovals: pending,
+      awaitingYourApproval: 0,
+      awaitingOthersApproval: 0,
       complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
     };
   }
@@ -2143,7 +2147,7 @@ export class MemStorage implements IStorage {
       const compliant = docs.filter(d => d.status === "compliant").length;
       const review = docs.filter(d => d.status === "review_required").length;
       const overdue = docs.filter(d => d.status === "overdue").length;
-      const pending = docs.filter(d => d.approvalStatus === "pending").length;
+      const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       
       return {
         module,
@@ -2153,6 +2157,8 @@ export class MemStorage implements IStorage {
         reviewRequired: review,
         overdueDocuments: overdue,
         pendingApprovals: pending,
+        awaitingYourApproval: 0,
+        awaitingOthersApproval: 0,
         complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
       };
     }));

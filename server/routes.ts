@@ -386,8 +386,49 @@ export async function registerRoutes(
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
       const overdueDocuments = documents.filter(d => d.status === "overdue").length;
-      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending").length;
+      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      
+      // Calculate split approval metrics based on user role
+      let awaitingYourApproval = 0;
+      let awaitingOthersApproval = 0;
+      
+      for (const doc of documents) {
+        if (doc.approvalStatus !== "pending" && doc.approvalStatus !== "client_signed_off") {
+          continue;
+        }
+        
+        const uploader = await storage.getUser(doc.uploadedBy);
+        if (!uploader) continue;
+        
+        const uploaderIsClient = uploader.role === "client";
+        const uploadedByCurrentUser = doc.uploadedBy === user.id;
+        
+        if (user.role === "client") {
+          // For clients:
+          // - awaitingYourApproval: consultant-uploaded docs with status "pending" (need client sign-off)
+          // - awaitingOthersApproval: YOUR uploads pending consultant approval
+          if (!uploaderIsClient && doc.approvalStatus === "pending") {
+            awaitingYourApproval++;
+          } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
+            // Only count documents YOU uploaded as "awaiting others"
+            awaitingOthersApproval++;
+          }
+          // Note: client_signed_off docs don't show for clients - they're waiting on consultant
+        } else {
+          // For consultants/admins:
+          // - awaitingYourApproval: client-uploaded docs pending OR docs awaiting final approval
+          // - awaitingOthersApproval: YOUR uploads pending client sign-off
+          if (uploaderIsClient && doc.approvalStatus === "pending") {
+            awaitingYourApproval++;
+          } else if (doc.approvalStatus === "client_signed_off") {
+            awaitingYourApproval++;
+          } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
+            // Only count documents YOU uploaded as "awaiting others"
+            awaitingOthersApproval++;
+          }
+        }
+      }
       
       const summary = {
         totalDocuments,
@@ -395,6 +436,8 @@ export async function registerRoutes(
         reviewRequired,
         overdueDocuments,
         pendingApprovals,
+        awaitingYourApproval,
+        awaitingOthersApproval,
         complianceScore,
       };
       
@@ -447,8 +490,49 @@ export async function registerRoutes(
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
       const overdueDocuments = documents.filter(d => d.status === "overdue").length;
-      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending").length;
+      const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      
+      // Calculate split approval metrics based on user role
+      let awaitingYourApproval = 0;
+      let awaitingOthersApproval = 0;
+      
+      for (const doc of documents) {
+        if (doc.approvalStatus !== "pending" && doc.approvalStatus !== "client_signed_off") {
+          continue;
+        }
+        
+        const uploader = await storage.getUser(doc.uploadedBy);
+        if (!uploader) continue;
+        
+        const uploaderIsClient = uploader.role === "client";
+        const uploadedByCurrentUser = doc.uploadedBy === user.id;
+        
+        if (user.role === "client") {
+          // For clients:
+          // - awaitingYourApproval: consultant-uploaded docs with status "pending" (need client sign-off)
+          // - awaitingOthersApproval: YOUR uploads pending consultant approval
+          if (!uploaderIsClient && doc.approvalStatus === "pending") {
+            awaitingYourApproval++;
+          } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
+            // Only count documents YOU uploaded as "awaiting others"
+            awaitingOthersApproval++;
+          }
+          // Note: client_signed_off docs don't show for clients - they're waiting on consultant
+        } else {
+          // For consultants/admins:
+          // - awaitingYourApproval: client-uploaded docs pending OR docs awaiting final approval
+          // - awaitingOthersApproval: YOUR uploads pending client sign-off
+          if (uploaderIsClient && doc.approvalStatus === "pending") {
+            awaitingYourApproval++;
+          } else if (doc.approvalStatus === "client_signed_off") {
+            awaitingYourApproval++;
+          } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
+            // Only count documents YOU uploaded as "awaiting others"
+            awaitingOthersApproval++;
+          }
+        }
+      }
       
       const summary = {
         totalDocuments,
@@ -456,6 +540,8 @@ export async function registerRoutes(
         reviewRequired,
         overdueDocuments,
         pendingApprovals,
+        awaitingYourApproval,
+        awaitingOthersApproval,
         complianceScore,
       };
       
@@ -1114,9 +1200,15 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
       
-      // Two-way approval workflow:
-      // - If document was uploaded by consultant/admin → clients with approval permission can approve
-      // - If document was uploaded by client → only consultants/admins can approve
+      // Three-stage approval workflow for consultant-uploaded documents:
+      // 1. Consultant uploads → status: "pending" (awaiting client sign-off)
+      // 2. Client signs off → status: "client_signed_off" (awaiting consultant final approval)
+      // 3. Consultant final approves → status: "approved" (triggers renewal date)
+      //
+      // Two-stage workflow for client-uploaded documents:
+      // 1. Client uploads → status: "pending"
+      // 2. Consultant/admin approves → status: "approved" (triggers renewal date)
+      
       const uploader = await storage.getUser(existingDoc.uploadedBy);
       
       // If uploader not found, block approval for safety (can't determine workflow)
@@ -1125,15 +1217,25 @@ export async function registerRoutes(
       }
       
       const uploaderRole = uploader.role;
+      const currentApprovalStatus = existingDoc.approvalStatus;
+      
+      // Determine what kind of approval action this is
+      let isClientSignOff = false; // Client signing off on consultant-uploaded doc
+      let isConsultantFinalApproval = false; // Consultant final approving after client sign-off
+      let isConsultantApprovalOfClientDoc = false; // Consultant approving client-uploaded doc
       
       if (user.role === "client") {
-        // Clients can only approve documents uploaded by consultants/admins
+        // Clients can only sign off on documents uploaded by consultants/admins
         if (uploaderRole === "client") {
           return res.status(403).json({ error: "Client-uploaded documents must be approved by a consultant or admin" });
         }
         
+        // Document must be pending for client sign-off
+        if (currentApprovalStatus !== "pending") {
+          return res.status(400).json({ error: "This document is not awaiting your sign-off" });
+        }
+        
         // Check if client has approval permission (owner or approver role)
-        // Explicitly check for valid permission role - undefined/null means no approval permission
         if (!user.clientPermissionRole) {
           return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
         }
@@ -1141,22 +1243,46 @@ export async function registerRoutes(
         if (!capabilities.canApproveDocuments) {
           return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
         }
+        
+        isClientSignOff = true;
       } else {
-        // Admins and consultants can only approve client-uploaded documents
-        if (uploaderRole !== "client") {
-          return res.status(403).json({ error: "Consultant/admin-uploaded documents must be approved by the client" });
+        // Consultants/admins
+        if (uploaderRole === "client") {
+          // Approving a client-uploaded document (direct approval)
+          if (currentApprovalStatus !== "pending") {
+            return res.status(400).json({ error: "This document is not awaiting approval" });
+          }
+          isConsultantApprovalOfClientDoc = true;
+        } else {
+          // This is a consultant/admin-uploaded document
+          // Check if it's awaiting final approval (client already signed off)
+          if (currentApprovalStatus === "client_signed_off") {
+            isConsultantFinalApproval = true;
+          } else if (currentApprovalStatus === "pending") {
+            return res.status(400).json({ error: "This document is awaiting client sign-off first" });
+          } else {
+            return res.status(400).json({ error: "This document is not awaiting approval" });
+          }
         }
       }
 
-      let approvalStatus: "approved" | "rejected" | "changes_requested";
+      let approvalStatus: "approved" | "rejected" | "changes_requested" | "client_signed_off";
       let documentStatus: "compliant" | "review_required" | "overdue";
-      let auditAction: "document_approved" | "document_rejected" | "changes_requested";
+      let auditAction: "document_approved" | "document_rejected" | "changes_requested" | "document_signed_off";
 
       switch (action) {
         case "approve":
-          approvalStatus = "approved";
-          documentStatus = "compliant";
-          auditAction = "document_approved";
+          if (isClientSignOff) {
+            // Client sign-off: move to awaiting consultant final approval
+            approvalStatus = "client_signed_off";
+            documentStatus = "review_required"; // Still needs final approval
+            auditAction = "document_signed_off";
+          } else {
+            // Consultant final approval or direct approval of client doc
+            approvalStatus = "approved";
+            documentStatus = "compliant";
+            auditAction = "document_approved";
+          }
           break;
         case "reject":
           approvalStatus = "rejected";
@@ -1172,11 +1298,12 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Invalid action" });
       }
 
-      // Calculate renewal date when approving
+      // Calculate renewal date ONLY when consultant gives final approval
       let lastApprovedAt: Date | undefined;
       let renewalDate: Date | undefined;
       
-      if (action === "approve") {
+      const isFinalApproval = action === "approve" && (isConsultantFinalApproval || isConsultantApprovalOfClientDoc);
+      if (isFinalApproval) {
         lastApprovedAt = new Date();
         
         // Look up renewal period from template if document has one
@@ -4351,7 +4478,7 @@ export async function registerRoutes(
           const compliantCount = folderDocuments.filter(d => d.status === "compliant").length;
           const reviewRequiredCount = folderDocuments.filter(d => d.status === "review_required").length;
           const overdueCount = folderDocuments.filter(d => d.status === "overdue").length;
-          const pendingApprovalCount = folderDocuments.filter(d => d.approvalStatus === "pending").length;
+          const pendingApprovalCount = folderDocuments.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
           
           // Check if required templates have been fulfilled
           const fulfilledRequiredCount = requiredTemplates.filter(rt => 

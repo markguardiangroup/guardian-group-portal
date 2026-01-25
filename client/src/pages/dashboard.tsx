@@ -218,6 +218,8 @@ function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
   const reviewDocs = summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
   const overdueDocs = summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
   const pendingApprovals = summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
+  const awaitingYourApproval = summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
+  const awaitingOthersApproval = summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
   const overallScore = totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 100;
 
   const getScoreColor = (score: number) => {
@@ -294,11 +296,22 @@ function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
           </div>
         </div>
 
-        {pendingApprovals > 0 && (
-          <div className="rounded-md bg-amber-500/10 p-3 text-center">
-            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-              {pendingApprovals} document{pendingApprovals > 1 ? "s" : ""} pending approval
-            </p>
+        {(awaitingYourApproval > 0 || awaitingOthersApproval > 0) && (
+          <div className="space-y-2">
+            {awaitingYourApproval > 0 && (
+              <div className="rounded-md bg-amber-500/10 p-3 text-center">
+                <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {awaitingYourApproval} document{awaitingYourApproval > 1 ? "s" : ""} awaiting your review
+                </p>
+              </div>
+            )}
+            {awaitingOthersApproval > 0 && (
+              <div className="rounded-md bg-blue-500/10 p-3 text-center">
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  {awaitingOthersApproval} of your document{awaitingOthersApproval > 1 ? "s" : ""} pending approval
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

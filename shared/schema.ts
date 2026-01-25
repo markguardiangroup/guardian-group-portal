@@ -544,6 +544,7 @@ export type AuditAction =
   | "document_viewed" 
   | "document_downloaded"
   | "document_approved" 
+  | "document_signed_off"
   | "document_rejected" 
   | "document_updated" 
   | "document_archived"
@@ -676,6 +677,8 @@ export interface ComplianceSummary {
   reviewRequired: number;
   overdueDocuments: number;
   pendingApprovals: number;
+  awaitingYourApproval: number;
+  awaitingOthersApproval: number;
   complianceScore: number;
 }
 

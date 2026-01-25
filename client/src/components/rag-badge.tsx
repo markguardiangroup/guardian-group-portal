@@ -52,6 +52,11 @@ export function ApprovalBadge({ status, className }: ApprovalBadgeProps) {
       icon: Clock,
       className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20",
     },
+    client_signed_off: {
+      label: "Client Signed Off",
+      icon: CheckCircle,
+      className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    },
     approved: {
       label: "Approved",
       icon: CheckCircle,

@@ -39,7 +39,7 @@ Core entities include:
 - **Sites**: Physical locations linked to companies via `entity_id`/`companyId` foreign key
 - **Document Templates**: Master templates (the "Document Bible") with Module → Folder → Template hierarchy. Compliance properties (isRequired, renewalPeriodMonths) are directly on templates
 - **Folder Templates**: Template folders that define the organizational structure for each module
-- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue), linked to sites
+- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue) and approval workflow tracking (pending, client_signed_off, approved, rejected, changes_requested), linked to sites
 - **Document Versions**: Version history for document changes
 - **Consultant Assignments**: Links consultants to sites with primary flag
 - **Site Module Access**: Three-state access control (active/visible/hidden) per module per site
@@ -70,6 +70,22 @@ Clients can be restricted to specific sites within their company:
   - `DELETE /api/sites/:siteId/client-assignments/:clientId` - Remove assignment
   - `GET /api/users/:clientId/site-assignments` - Get sites assigned to a client
 - UI: Site Detail page → Users tab shows "Site Access" vs "All Sites" badges and menu options to manage
+
+### Document Approval Workflow
+Three-stage approval workflow for consultant-uploaded documents:
+1. **Consultant uploads** → Status: "pending" (awaiting client sign-off)
+2. **Client signs off** → Status: "client_signed_off" (awaiting consultant final approval)
+3. **Consultant final approves** → Status: "approved" (triggers renewal date calculation)
+
+Two-stage workflow for client-uploaded documents:
+1. **Client uploads** → Status: "pending"
+2. **Consultant/admin approves** → Status: "approved" (triggers renewal date)
+
+Key principles:
+- Only consultant/admin final approval sets the renewal date
+- Renewal date = approval date + template renewal period - 30 days buffer
+- Dashboard shows split approval metrics: "awaiting your review" vs "your docs pending approval"
+- Audit trail logs both "document_signed_off" and "document_approved" actions
 
 ### Company-Site-User Hierarchy
 The platform uses a hierarchical model: Companies → Sites → Users
