@@ -264,16 +264,12 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
     return groups;
   }, [filteredCourses, trainingFolders]);
 
-  // Get featured courses (required ones first, then by title)
+  // Get featured courses (manually marked as featured by admin)
   const featuredCourses = useMemo(() => {
     if (!trainingCourses) return [];
-    return [...trainingCourses]
-      .sort((a, b) => {
-        if (a.isRequired && !b.isRequired) return -1;
-        if (!a.isRequired && b.isRequired) return 1;
-        return a.title.localeCompare(b.title);
-      })
-      .slice(0, 3);
+    return trainingCourses
+      .filter(course => course.isFeatured)
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [trainingCourses]);
 
   // Count training by status

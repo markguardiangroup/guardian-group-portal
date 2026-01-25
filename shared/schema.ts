@@ -938,6 +938,7 @@ export const trainingCourses = pgTable("training_courses", {
   faqs: text("faqs"), // JSON string of TrainingFAQ[] (5 Q&A pairs)
   pricingTable: text("pricing_table"), // JSON string of PricingTable (heading row + 5 data rows)
   isRequired: boolean("is_required").notNull().default(false),
+  isFeatured: boolean("is_featured").notNull().default(false), // Show in featured section
   renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),

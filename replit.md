@@ -100,7 +100,7 @@ Key API Routes for Site Management:
 ### Training Library
 The Training Library has its own dedicated folder structure separate from document template folders:
 - **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
-- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person)
+- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person, featured flag for homepage highlighting)
 - **Training Requests**: Client requests for more info or booking training
 
 Module Training Page Features:

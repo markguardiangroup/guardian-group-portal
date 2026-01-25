@@ -160,6 +160,7 @@ export default function TrainingLibrary() {
     ] as TrainingFAQ[],
     pricingTable: emptyPricingTable,
     isRequired: false,
+    isFeatured: false,
     renewalPeriodMonths: null as number | null,
   });
 
@@ -323,6 +324,7 @@ export default function TrainingLibrary() {
       ],
       pricingTable: emptyPricingTable,
       isRequired: false,
+      isFeatured: false,
       renewalPeriodMonths: null,
     });
   };
@@ -380,6 +382,7 @@ export default function TrainingLibrary() {
         dataRows: paddedPricingDataRows,
       },
       isRequired: course.isRequired,
+      isFeatured: course.isFeatured,
       renewalPeriodMonths: course.renewalPeriodMonths,
     });
   };
@@ -780,7 +783,7 @@ export default function TrainingLibrary() {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-6 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Switch
                     id="course-required"
@@ -789,6 +792,15 @@ export default function TrainingLibrary() {
                     data-testid="switch-course-required"
                   />
                   <Label htmlFor="course-required">Required Training</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="course-featured"
+                    checked={courseForm.isFeatured}
+                    onCheckedChange={(checked) => setCourseForm({ ...courseForm, isFeatured: checked })}
+                    data-testid="switch-course-featured"
+                  />
+                  <Label htmlFor="course-featured">Featured</Label>
                 </div>
                 {courseForm.isRequired && (
                   <div className="flex items-center gap-2">
