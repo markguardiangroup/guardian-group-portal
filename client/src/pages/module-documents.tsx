@@ -1139,7 +1139,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Review Date</p>
-                  <p>{document.reviewDate ? format(new Date(document.reviewDate), "MMM d, yyyy") : "Not set"}</p>
+                  <p>{document.renewalDate ? format(new Date(document.renewalDate), "MMM d, yyyy") : "Not set"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Uploaded By</p>
