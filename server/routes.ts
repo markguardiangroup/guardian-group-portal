@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import type { ModuleType } from "@shared/schema";
-import { SECURITY_CONFIG } from "@shared/schema";
+import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
@@ -1114,9 +1114,38 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
       
-      // Additional check: Only admins and consultants can approve documents
+      // Two-way approval workflow:
+      // - If document was uploaded by consultant/admin → clients with approval permission can approve
+      // - If document was uploaded by client → only consultants/admins can approve
+      const uploader = await storage.getUser(existingDoc.uploadedBy);
+      
+      // If uploader not found, block approval for safety (can't determine workflow)
+      if (!uploader) {
+        return res.status(403).json({ error: "Cannot determine document uploader. Approval blocked for safety." });
+      }
+      
+      const uploaderRole = uploader.role;
+      
       if (user.role === "client") {
-        return res.status(403).json({ error: "Clients cannot approve documents" });
+        // Clients can only approve documents uploaded by consultants/admins
+        if (uploaderRole === "client") {
+          return res.status(403).json({ error: "Client-uploaded documents must be approved by a consultant or admin" });
+        }
+        
+        // Check if client has approval permission (owner or approver role)
+        // Explicitly check for valid permission role - undefined/null means no approval permission
+        if (!user.clientPermissionRole) {
+          return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
+        }
+        const capabilities = getClientCapabilities(user.clientPermissionRole);
+        if (!capabilities.canApproveDocuments) {
+          return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
+        }
+      } else {
+        // Admins and consultants can only approve client-uploaded documents
+        if (uploaderRole !== "client") {
+          return res.status(403).json({ error: "Consultant/admin-uploaded documents must be approved by the client" });
+        }
       }
 
       let approvalStatus: "approved" | "rejected" | "changes_requested";
