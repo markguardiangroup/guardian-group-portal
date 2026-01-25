@@ -675,7 +675,7 @@ function FeaturedCourseCard({
 }) {
   return (
     <Card 
-      className="group hover-elevate transition-all cursor-pointer overflow-hidden border-2 hover:border-primary/30"
+      className="group hover-elevate transition-all cursor-pointer overflow-hidden border-2 hover:border-primary/30 hover:shadow-lg"
       onClick={onViewDetails}
       data-testid={`card-featured-${course.id}`}
     >
@@ -701,6 +701,7 @@ function FeaturedCourseCard({
                 {course.title}
               </h3>
             </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
           </div>
           
           {course.summary && (
@@ -724,7 +725,13 @@ function FeaturedCourseCard({
             )}
           </div>
           
-          <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+          {/* Click anywhere hint */}
+          <div className="text-xs text-muted-foreground/60 flex items-center gap-1 pt-1 group-hover:text-primary/60 transition-colors">
+            <BookOpen className="h-3 w-3" />
+            <span>Click to view full details</span>
+          </div>
+          
+          <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
@@ -733,7 +740,7 @@ function FeaturedCourseCard({
               data-testid={`button-featured-info-${course.id}`}
             >
               <Mail className="h-4 w-4 mr-1" />
-              More Info
+              Enquire
             </Button>
             <Button
               size="sm"
@@ -771,77 +778,84 @@ function TrainingCard({
 }) {
   return (
     <Card 
-      className="hover-elevate transition-all cursor-pointer group"
+      className="hover-elevate transition-all cursor-pointer group border-2 hover:border-primary/30 hover:shadow-md bg-gradient-to-r from-background to-muted/30"
       onClick={onViewDetails}
       data-testid={`card-training-${course.id}`}
     >
       <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-lg ${moduleBgColor} shrink-0`}>
-            <GraduationCap className={`h-4 w-4 ${moduleColor}`} />
+        <div className="flex items-start gap-4">
+          {/* Left accent bar */}
+          <div className={`w-1 self-stretch rounded-full ${buttonColor.split(' ')[0]} opacity-60 group-hover:opacity-100 transition-opacity`} />
+          
+          <div className={`p-2.5 rounded-xl ${moduleBgColor} shrink-0 shadow-sm`}>
+            <GraduationCap className={`h-5 w-5 ${moduleColor}`} />
           </div>
+          
           <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h4 className="font-medium truncate group-hover:text-primary transition-colors">{course.title}</h4>
-                </div>
+                <h4 className="font-semibold text-base group-hover:text-primary transition-colors mb-1.5">
+                  {course.title}
+                </h4>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {course.productCode && (
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {course.productCode}
-                    </Badge>
-                  )}
                   {course.isRequired ? (
                     <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                      <Target className="h-3 w-3 mr-1" />
                       Required
                     </Badge>
                   ) : (
                     <Badge variant="secondary" className="text-xs">Recommended</Badge>
                   )}
+                  {course.productCode && (
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {course.productCode}
+                    </Badge>
+                  )}
                 </div>
               </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-0.5" />
             </div>
             
             {course.summary && (
-              <p className="text-sm text-muted-foreground line-clamp-1">
+              <p className="text-sm text-muted-foreground line-clamp-2">
                 {course.summary}
               </p>
             )}
             
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 {course.provider && (
-                  <div className="flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    <span className="truncate max-w-[100px]">{course.provider}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>{course.provider}</span>
                   </div>
                 )}
                 {course.duration && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
                     <span>{course.duration}</span>
                   </div>
                 )}
               </div>
               
-              <div className="flex gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
                   onClick={onRequestInfo}
                   data-testid={`button-request-info-${course.id}`}
                 >
-                  <Mail className="h-3.5 w-3.5" />
+                  <Mail className="h-3.5 w-3.5 mr-1" />
+                  Enquire
                 </Button>
                 <Button
                   size="sm"
-                  className={`h-7 text-xs ${buttonColor}`}
+                  className={`h-8 text-xs ${buttonColor}`}
                   onClick={onBookTraining}
                   data-testid={`button-book-training-${course.id}`}
                 >
-                  <Calendar className="h-3 w-3 mr-1" />
+                  <Calendar className="h-3.5 w-3.5 mr-1" />
                   Book
                 </Button>
               </div>
