@@ -766,13 +766,13 @@ function FeaturedCourseCard({
 }) {
   return (
     <Card 
-      className="group hover-elevate transition-all cursor-pointer overflow-hidden border-2 hover:border-primary/30 hover:shadow-lg"
+      className="group hover-elevate transition-all cursor-pointer overflow-hidden border-2 hover:border-primary/30 hover:shadow-lg flex flex-col h-full"
       onClick={onViewDetails}
       data-testid={`card-featured-${course.id}`}
     >
       <div className={`h-2 ${moduleButtonColors[module].split(' ')[0]}`} />
-      <CardContent className="p-5">
-        <div className="space-y-4">
+      <CardContent className="p-5 flex flex-col flex-1">
+        <div className="flex flex-col flex-1 space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
@@ -816,13 +816,16 @@ function FeaturedCourseCard({
             )}
           </div>
           
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+          
           {/* Click anywhere hint */}
           <div className="text-xs text-muted-foreground/60 flex items-center gap-1 pt-1 group-hover:text-primary/60 transition-colors">
             <BookOpen className="h-3 w-3" />
             <span>Click to view full details</span>
           </div>
           
-          <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-2 pt-2 border-t mt-auto" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
