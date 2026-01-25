@@ -25,7 +25,12 @@ export type SiteStatus = "active" | "inactive" | "pending";
 export type DocumentStatus = "compliant" | "review_required" | "overdue";
 
 // Approval status
-export type ApprovalStatus = "pending" | "approved" | "rejected" | "changes_requested";
+// - pending: Initial state, awaiting first review
+// - client_signed_off: Client has reviewed and signed off, awaiting consultant final approval
+// - approved: Consultant has given final approval (triggers renewal date)
+// - rejected: Document was rejected
+// - changes_requested: Changes requested by reviewer
+export type ApprovalStatus = "pending" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
 
 // Company status
 export type CompanyStatus = "active" | "inactive" | "pending";
