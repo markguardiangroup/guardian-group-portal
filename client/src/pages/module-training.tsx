@@ -871,12 +871,15 @@ function CourseDetailView({
   let parsedPricingTable: PricingTable | null = null;
   try {
     if (course.pricingTable) {
-      parsedPricingTable = JSON.parse(course.pricingTable);
+      const parsed = JSON.parse(course.pricingTable);
+      if (parsed && parsed.headingRow && Array.isArray(parsed.dataRows) && parsed.dataRows.length > 0) {
+        parsedPricingTable = parsed;
+      }
     }
-  } catch (e) {
-    console.error("Failed to parse pricing table:", e);
+  } catch {
+    parsedPricingTable = null;
   }
-  const courseOverviewList: string[] = course.courseOverview || [];
+  const overview = course.courseOverview || [];
 
   return (
     <>
@@ -936,14 +939,14 @@ function CourseDetailView({
         )}
 
         {/* Course Overview */}
-        {courseOverviewList.length > 0 && (
+        {overview.length > 0 && (
           <div>
             <h4 className="font-semibold flex items-center gap-2 mb-3">
               <List className={`h-4 w-4 ${moduleColors[module]}`} />
               What You'll Learn
             </h4>
             <ul className="space-y-2">
-              {courseOverviewList.map((item, index) => (
+              {overview.map((item, index) => (
                 <li key={index} className="flex items-start gap-3 text-sm">
                   <CheckCircle className={`h-4 w-4 mt-0.5 ${moduleColors[module]} shrink-0`} />
                   <span>{item}</span>
@@ -954,7 +957,7 @@ function CourseDetailView({
         )}
 
         {/* Pricing Table */}
-        {parsedPricingTable && parsedPricingTable.dataRows && parsedPricingTable.dataRows.length > 0 && (
+        {parsedPricingTable && parsedPricingTable.dataRows.length > 0 && (
           <div>
             <h4 className="font-semibold flex items-center gap-2 mb-3">
               <Award className={`h-4 w-4 ${moduleColors[module]}`} />
@@ -964,8 +967,8 @@ function CourseDetailView({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">{parsedPricingTable.headingRow?.column1}</TableHead>
-                    <TableHead className="font-semibold">{parsedPricingTable.headingRow?.column2}</TableHead>
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column1 || "Item"}</TableHead>
+                    <TableHead className="font-semibold">{parsedPricingTable.headingRow.column2 || "Price"}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
