@@ -1259,7 +1259,10 @@ export async function registerRoutes(
           if (currentApprovalStatus === "client_signed_off") {
             isConsultantFinalApproval = true;
           } else if (currentApprovalStatus === "pending") {
-            return res.status(400).json({ error: "This document is awaiting client sign-off first" });
+            return res.status(400).json({ 
+              error: "Cannot approve yet - client sign-off required",
+              message: "This document was uploaded by a consultant and requires client sign-off before final approval. The client must review and sign off on the document first, then you can give final approval."
+            });
           } else {
             return res.status(400).json({ error: "This document is not awaiting approval" });
           }

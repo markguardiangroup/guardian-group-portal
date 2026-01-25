@@ -970,9 +970,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       });
     },
     onError: (error: Error) => {
+      // Try to parse the error message to get the detailed message from the API
+      let errorTitle = "Error";
+      let errorDescription = "Failed to update document approval status";
+      
+      try {
+        // Error message format is "400: {json}" - extract the JSON part
+        const jsonMatch = error.message.match(/^\d+:\s*(.+)$/);
+        if (jsonMatch) {
+          const errorData = JSON.parse(jsonMatch[1]);
+          errorTitle = errorData.error || errorTitle;
+          errorDescription = errorData.message || errorData.error || errorDescription;
+        } else {
+          errorDescription = error.message || errorDescription;
+        }
+      } catch {
+        errorDescription = error.message || errorDescription;
+      }
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to update document approval status",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     },

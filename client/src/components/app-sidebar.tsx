@@ -162,6 +162,7 @@ interface AuthUser {
   fullName: string;
   role: UserRole;
   companyId: string | null;
+  clientPermissionRole?: string | null;
 }
 
 interface AppSidebarProps {
