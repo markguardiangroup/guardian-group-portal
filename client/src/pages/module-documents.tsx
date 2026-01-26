@@ -218,12 +218,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch sites for consultant/admin users
+  // Fetch sites for all users
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
-    enabled: !isClientUser,
   });
+  
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -343,7 +346,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Determine which site to show access for
   // "all" means show data across all sites
-  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   // Client users see their company's sites (filtered in filteredDocuments below)
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
     
@@ -456,19 +458,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           
           <div className="flex items-center gap-4 flex-wrap">
             {/* Site Context - Company and Site selectors */}
-            {canSelectSites && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-44"
-                  testId="select-company-documents"
-                />
-                <span className="text-muted-foreground">/</span>
+                {isPrivilegedUser && (
+                  <>
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-44"
+                      testId="select-company-documents"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                  </>
+                )}
                 <SiteCombobox
-                  sites={filteredSites}
+                  sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-44"
