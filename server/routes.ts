@@ -587,12 +587,27 @@ export async function registerRoutes(
         if (!user.companyId) {
           return res.json([]);
         }
-        // Ignore any requested companyId/siteId - use the user's company only
+        
+        // Get all company sites for authorization check
         const companySites = await storage.getSitesByCompanyId(user.companyId);
         if (companySites.length === 0) {
           res.json([]);
           return;
         }
+        
+        // If client requests a specific site, validate they can access it
+        if (siteId) {
+          const canAccess = companySites.some(s => s.id === siteId);
+          if (!canAccess) {
+            return res.status(403).json({ error: "Not authorized to access this site" });
+          }
+          // Return summary for just this site
+          const summaries = await storage.getModuleSummariesForSites([siteId]);
+          res.json(summaries);
+          return;
+        }
+        
+        // No specific site requested - return data for all company sites
         const siteIds = companySites.map(s => s.id);
         const summaries = await storage.getModuleSummariesForSites(siteIds);
         res.json(summaries);
