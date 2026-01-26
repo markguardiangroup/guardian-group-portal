@@ -120,9 +120,17 @@ interface SiteBasic {
   name: string;
 }
 
+interface SiteModuleAccess {
+  health_safety: "active" | "visible" | "hidden";
+  human_resources: "active" | "visible" | "hidden";
+  employment_law: "active" | "visible" | "hidden";
+  support: "active" | "visible" | "hidden";
+}
+
 interface SiteWithCompany extends SiteBasic {
   companyId?: string;
   companyName?: string | null;
+  moduleAccess?: SiteModuleAccess;
 }
 
 type ViewMode = "folder" | "table";
@@ -225,15 +233,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/sites"],
   });
   
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
-  
-  // Filter sites by selected company
-  const filteredSites = useMemo(() => {
+  // Filter sites by module access - only show sites where this module is active
+  const sitesWithModuleAccess = useMemo(() => {
     if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter(s => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
+    // For clients, filter to only sites where this module is active
+    if (isClientUser) {
+      return sites.filter(s => {
+        const moduleStatus = s.moduleAccess?.[module as keyof SiteModuleAccess];
+        return moduleStatus === "active";
+      });
+    }
+    // For admin/consultants, show all sites
+    return sites;
+  }, [sites, module, isClientUser]);
+  
+  // Clients can filter by site if they have multiple sites with access to this module
+  const clientHasMultipleSites = isClientUser && sitesWithModuleAccess && sitesWithModuleAccess.length > 1;
+  
+  // Filter sites by selected company (for privileged users)
+  const filteredSites = useMemo(() => {
+    if (!sitesWithModuleAccess) return [];
+    if (!selectedCompany || selectedCompany === "all") return sitesWithModuleAccess;
+    return sitesWithModuleAccess.filter(s => s.companyName === selectedCompany);
+  }, [sitesWithModuleAccess, selectedCompany]);
   
   // Handle company selection - only clear site if not in new company
   const handleCompanyChange = (company: string | null) => {
@@ -476,7 +498,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </>
                 )}
                 <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sites}
+                  sites={isPrivilegedUser ? filteredSites : sitesWithModuleAccess}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-44"
