@@ -1576,7 +1576,8 @@ export class MemStorage implements IStorage {
         reviewedAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
       },
     ];
-    sampleAccessRequests.forEach(req => this.moduleAccessRequests.set(req.id, req));
+    // Cleared for testing - no sample module access requests
+    // sampleAccessRequests.forEach(req => this.moduleAccessRequests.set(req.id, req));
 
     // Sample consultant assignments
     const consultantAssignments: ConsultantAssignment[] = [
