@@ -570,7 +570,7 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").$type<AuditAction>().notNull(),
   userId: varchar("user_id").notNull(),
   userName: text("user_name").notNull(),
-  siteId: varchar("site_id"),
+  entityId: varchar("entity_id"),
   documentId: varchar("document_id"),
   caseId: varchar("case_id"),
   supportRequestId: varchar("support_request_id"),
@@ -578,6 +578,8 @@ export const auditLogs = pgTable("audit_logs", {
   details: text("details"),
   metadata: text("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
 });
 
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ 

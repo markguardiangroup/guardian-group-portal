@@ -136,7 +136,21 @@ Key API Routes:
 - `POST /api/training-requests` - Submit training request (any authenticated user)
 
 ### Storage Pattern
-The application uses an in-memory storage implementation (`MemStorage` class) that implements the `IStorage` interface. This allows for easy swapping to a database-backed implementation when PostgreSQL is provisioned.
+The application uses a hybrid storage model with the `MemStorage` class:
+
+**Database-backed (PostgreSQL)**:
+- **Documents**: All document records persist to the `documents` table
+- **Document Versions**: Version history persists to the `document_versions` table  
+- **Document Folders**: Folder structure persists to the `document_folders` table
+- **Audit Logs**: Activity tracking persists to the `audit_logs` table (uses `entityId` column, not `siteId`)
+- **Sessions**: User sessions persist via connect-pg-simple
+- **Template data**: Document templates, folder templates, training data
+
+**In-memory storage** (seed data loaded at startup):
+- Users, Companies, Sites - these entities are still loaded into memory Maps on startup
+- Support requests, Cases, Milestones - in-memory
+
+Note: DocumentWithDetails lookups for site/user names still reference in-memory maps for those entities.
 
 ### Build Process
 - Development: Vite dev server with HMR, Express API server with tsx

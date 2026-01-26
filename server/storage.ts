@@ -45,11 +45,19 @@ import {
   folderDocumentTypeRules as folderDocumentTypeRulesTable,
   documentTemplates as documentTemplatesTable,
   documentTemplateVersions as documentTemplateVersionsTable,
+  documents as documentsTable,
+  documentVersions as documentVersionsTable,
+  documentFolders as documentFoldersTable,
+  auditLogs as auditLogsTable,
+  siteModuleAccess as siteModuleAccessTable,
+  users as usersTable,
+  sites as sitesTable,
+  companies as companiesTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, desc, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -1882,7 +1890,9 @@ export class MemStorage implements IStorage {
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
-    const docs = Array.from(this.documents.values()).filter(d => d.siteId === siteId && !d.isArchived);
+    const allDocs = await db.select().from(documentsTable)
+      .where(and(eq(documentsTable.siteId, siteId), eq(documentsTable.isArchived, false)));
+    const docs = allDocs;
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
@@ -1903,15 +1913,18 @@ export class MemStorage implements IStorage {
 
   // Documents
   async getDocuments(module?: ModuleType): Promise<Document[]> {
-    let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+    let query = db.select().from(documentsTable).where(eq(documentsTable.isArchived, false));
+    const docs = await query;
+    let filtered = docs;
     if (module) {
-      docs = docs.filter(d => d.module === module);
+      filtered = docs.filter(d => d.module === module);
     }
-    return docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   async getDocument(id: string): Promise<DocumentWithDetails | undefined> {
-    const doc = this.documents.get(id);
+    const docs = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
+    const doc = docs[0];
     if (!doc) return undefined;
     
     const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
@@ -1933,7 +1946,7 @@ export class MemStorage implements IStorage {
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
     const id = randomUUID();
     const createdNow = new Date();
-    const doc: Document = { 
+    const docData = { 
       ...insertDocument, 
       id,
       module: insertDocument.module as any,
@@ -1956,67 +1969,69 @@ export class MemStorage implements IStorage {
       createdAt: createdNow,
       updatedAt: createdNow,
     };
-    this.documents.set(id, doc);
-    return doc;
+    const result = await db.insert(documentsTable).values(docData).returning();
+    return result[0];
   }
 
   async updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined> {
-    const doc = this.documents.get(id);
-    if (!doc) return undefined;
-    
-    const updated = { ...doc, ...updates, updatedAt: new Date() };
-    this.documents.set(id, updated);
-    return updated;
+    const result = await db.update(documentsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(documentsTable.id, id))
+      .returning();
+    return result[0];
   }
 
   // Document Versions
   async getDocumentVersions(documentId: string): Promise<DocumentVersion[]> {
-    return Array.from(this.documentVersions.values())
-      .filter(v => v.documentId === documentId)
-      .sort((a, b) => b.version - a.version);
+    const versions = await db.select().from(documentVersionsTable)
+      .where(eq(documentVersionsTable.documentId, documentId))
+      .orderBy(desc(documentVersionsTable.version));
+    return versions;
   }
 
   async createDocumentVersion(insertVersion: InsertDocumentVersion): Promise<DocumentVersion> {
     const id = randomUUID();
-    const version: DocumentVersion = { 
+    const versionData = { 
       ...insertVersion, 
       id,
       changeNote: insertVersion.changeNote ?? null,
       createdAt: new Date(),
     };
-    this.documentVersions.set(id, version);
-    return version;
+    const result = await db.insert(documentVersionsTable).values(versionData).returning();
+    return result[0];
   }
 
   // Audit Logs
   async getAuditLogs(documentId?: string, module?: ModuleType): Promise<AuditLog[]> {
-    let logs = Array.from(this.auditLogs.values());
+    let logs = await db.select().from(auditLogsTable).orderBy(desc(auditLogsTable.createdAt));
     if (documentId) {
       logs = logs.filter(log => log.documentId === documentId);
     }
     if (module) {
       logs = logs.filter(log => log.module === module);
     }
-    return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return logs;
   }
 
   async createAuditLog(insertLog: InsertAuditLog): Promise<AuditLog> {
     const id = randomUUID();
-    const log: AuditLog = { 
+    const logData = { 
       ...insertLog, 
       id,
       action: insertLog.action as any,
       module: (insertLog.module ?? null) as any,
-      siteId: insertLog.siteId ?? null,
+      entityId: insertLog.entityId ?? null,
       documentId: insertLog.documentId ?? null,
       caseId: insertLog.caseId ?? null,
       supportRequestId: insertLog.supportRequestId ?? null,
       details: insertLog.details ?? null,
       metadata: insertLog.metadata ?? null,
+      ipAddress: insertLog.ipAddress ?? null,
+      userAgent: insertLog.userAgent ?? null,
       createdAt: new Date(),
     };
-    this.auditLogs.set(id, log);
-    return log;
+    const result = await db.insert(auditLogsTable).values(logData).returning();
+    return result[0];
   }
 
   // Support Requests
@@ -2078,7 +2093,9 @@ export class MemStorage implements IStorage {
 
   // Dashboard
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
-    let docs = Array.from(this.documents.values()).filter(d => !d.isArchived);
+    let allDocs = await db.select().from(documentsTable)
+      .where(eq(documentsTable.isArchived, false));
+    let docs = allDocs;
     if (module) {
       docs = docs.filter(d => d.module === module);
     }
@@ -2088,7 +2105,7 @@ export class MemStorage implements IStorage {
       // Filter by company: get all sites for this company
       const companySites = Array.from(this.sites.values()).filter(s => s.companyId === companyId);
       const companySiteIds = companySites.map(s => s.id);
-      docs = docs.filter(d => companySiteIds.includes(d.siteId));
+      docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
     }
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
@@ -2139,10 +2156,12 @@ export class MemStorage implements IStorage {
     };
     
     // Aggregate compliance summary across multiple sites
+    const allDocs = await db.select().from(documentsTable)
+      .where(eq(documentsTable.isArchived, false));
+    
     return Promise.all(modules.map(async (module) => {
       // Get documents from all specified sites
-      const docs = Array.from(this.documents.values())
-        .filter(d => !d.isArchived && d.module === module && siteIds.includes(d.siteId));
+      const docs = allDocs.filter(d => d.module === module && d.siteId && siteIds.includes(d.siteId));
       
       const total = docs.length;
       const compliant = docs.filter(d => d.status === "compliant").length;
@@ -2184,8 +2203,9 @@ export class MemStorage implements IStorage {
     const accessibleTypeIds = new Set(entityAccess.map(a => a.documentTypeId));
     
     // Filter documents by both module AND entity
-    const docs = Array.from(this.documents.values())
-      .filter(d => d.module === module && d.siteId === siteId && !d.isArchived);
+    const allDocs = await db.select().from(documentsTable)
+      .where(and(eq(documentsTable.siteId, siteId), eq(documentsTable.isArchived, false)));
+    const docs = allDocs.filter(d => d.module === module);
     
     return masterDocTypes.map(dt => ({
       id: dt.id,
@@ -2272,9 +2292,10 @@ export class MemStorage implements IStorage {
   }
 
   async getCaseDocuments(caseId: string): Promise<Document[]> {
-    return Array.from(this.documents.values())
-      .filter(d => d.caseId === caseId && !d.isArchived)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const docs = await db.select().from(documentsTable)
+      .where(and(eq(documentsTable.caseId, caseId), eq(documentsTable.isArchived, false)))
+      .orderBy(desc(documentsTable.createdAt));
+    return docs;
   }
 
   // Case Milestones
@@ -2683,22 +2704,25 @@ export class MemStorage implements IStorage {
 
   // Document Folders
   async getDocumentFolders(siteId: string, module?: ModuleType): Promise<DocumentFolder[]> {
-    let folders = Array.from(this.documentFolders.values())
-      .filter(f => f.siteId === siteId);
+    let folders = await db.select().from(documentFoldersTable)
+      .where(eq(documentFoldersTable.siteId, siteId))
+      .orderBy(asc(documentFoldersTable.sortOrder));
     if (module) {
       folders = folders.filter(f => f.module === module);
     }
-    return folders.sort((a, b) => a.sortOrder - b.sortOrder);
+    return folders;
   }
 
   async getDocumentFolder(id: string): Promise<DocumentFolder | undefined> {
-    return this.documentFolders.get(id);
+    const folders = await db.select().from(documentFoldersTable)
+      .where(eq(documentFoldersTable.id, id));
+    return folders[0];
   }
 
   async createDocumentFolder(folder: InsertDocumentFolder): Promise<DocumentFolder> {
     const id = randomUUID();
     const now = new Date();
-    const newFolder: DocumentFolder = {
+    const folderData = {
       id,
       name: folder.name,
       description: folder.description ?? null,
@@ -2711,59 +2735,46 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    this.documentFolders.set(id, newFolder);
-    return newFolder;
+    const result = await db.insert(documentFoldersTable).values(folderData).returning();
+    return result[0];
   }
 
   async updateDocumentFolder(id: string, updates: Partial<DocumentFolder>): Promise<DocumentFolder | undefined> {
-    const existing = this.documentFolders.get(id);
-    if (!existing) {
-      return undefined;
-    }
-    const updated: DocumentFolder = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.documentFolders.set(id, updated);
-    return updated;
+    const result = await db.update(documentFoldersTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(documentFoldersTable.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteDocumentFolder(id: string): Promise<boolean> {
     // Move all documents in this folder to no folder
-    const docEntries = Array.from(this.documents.entries());
-    for (const [docId, doc] of docEntries) {
-      if (doc.folderId === id) {
-        this.documents.set(docId, { ...doc, folderId: null });
-      }
-    }
+    await db.update(documentsTable)
+      .set({ folderId: null })
+      .where(eq(documentsTable.folderId, id));
+    
     // Delete child folders recursively
-    const folders = Array.from(this.documentFolders.values());
-    for (const folder of folders) {
-      if (folder.parentId === id) {
-        await this.deleteDocumentFolder(folder.id);
-      }
+    const childFolders = await db.select().from(documentFoldersTable)
+      .where(eq(documentFoldersTable.parentId, id));
+    for (const folder of childFolders) {
+      await this.deleteDocumentFolder(folder.id);
     }
-    return this.documentFolders.delete(id);
+    
+    const result = await db.delete(documentFoldersTable).where(eq(documentFoldersTable.id, id));
+    return true;
   }
 
   async getDocumentsByFolder(folderId: string): Promise<Document[]> {
-    return Array.from(this.documents.values())
-      .filter(d => d.folderId === folderId);
+    return await db.select().from(documentsTable)
+      .where(eq(documentsTable.folderId, folderId));
   }
 
   async moveDocumentToFolder(documentId: string, folderId: string | null): Promise<Document | undefined> {
-    const doc = this.documents.get(documentId);
-    if (!doc) {
-      return undefined;
-    }
-    const updated: Document = {
-      ...doc,
-      folderId,
-      updatedAt: new Date(),
-    };
-    this.documents.set(documentId, updated);
-    return updated;
+    const result = await db.update(documentsTable)
+      .set({ folderId, updatedAt: new Date() })
+      .where(eq(documentsTable.id, documentId))
+      .returning();
+    return result[0];
   }
 
   // Folder Templates (Admin-managed master folder structure - Database-backed)
