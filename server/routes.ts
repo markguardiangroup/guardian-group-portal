@@ -4126,6 +4126,9 @@ export async function registerRoutes(
       if (updates.hearingDate) updates.hearingDate = new Date(updates.hearingDate);
       if (updates.responseDeadline) updates.responseDeadline = new Date(updates.responseDeadline);
       if (updates.resolutionDate) updates.resolutionDate = new Date(updates.resolutionDate);
+      if (updates.restrictedToUsers !== undefined) {
+        updates.restrictedToUsers = JSON.stringify(updates.restrictedToUsers);
+      }
 
       const updatedCase = await storage.updateCase(req.params.id, updates);
 
@@ -4139,6 +4142,19 @@ export async function registerRoutes(
           caseId: existingCase.id,
           module: "employment_law",
           details: `Case status changed from ${existingCase.status} to ${parseResult.data.status}`,
+        });
+      }
+
+      // Create audit log for access changes
+      if (parseResult.data.restrictedToUsers !== undefined) {
+        await storage.createAuditLog({
+          action: "case_access_updated",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: existingCase.siteId,
+          caseId: existingCase.id,
+          module: "employment_law",
+          details: `Case access list updated`,
         });
       }
 
