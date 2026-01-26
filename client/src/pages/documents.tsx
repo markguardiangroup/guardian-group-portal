@@ -209,6 +209,7 @@ const moduleIcons: Record<string, typeof HardHat> = {
 
 function DocumentsListView() {
   const { user } = useAuth();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -981,11 +982,15 @@ function DocumentsListView() {
                               </DropdownMenuSubContent>
                             </DropdownMenuSub>
                           )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archive
-                          </DropdownMenuItem>
+                          {isPrivilegedUser && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive">
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

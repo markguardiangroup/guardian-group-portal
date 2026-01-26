@@ -894,11 +894,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
-                            <Archive className="mr-2 h-4 w-4" />
-                            Archive
-                          </DropdownMenuItem>
+                          {isPrivilegedUser && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive">
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -935,6 +939,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
@@ -1431,15 +1436,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <Upload className="mr-2 h-4 w-4" />
                 Upload New Version
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-destructive hover:text-destructive" 
-                data-testid="button-archive-document"
-                onClick={() => setShowArchiveDialog(true)}
-              >
-                <Archive className="mr-2 h-4 w-4" />
-                Archive Document
-              </Button>
+              {isPrivilegedUser && (
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-destructive hover:text-destructive" 
+                  data-testid="button-archive-document"
+                  onClick={() => setShowArchiveDialog(true)}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive Document
+                </Button>
+              )}
             </CardContent>
           </Card>
 
