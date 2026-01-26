@@ -383,13 +383,15 @@ export default function Dashboard() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   
   const isClientUser = user?.role === "client";
-  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch sites for admin/consultant users
+  // Fetch sites for all users (clients see their accessible sites, admin/consultant see all)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectSites,
   });
+  
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
   
   // Filter sites by selected company for the site dropdown
   const filteredSites = useMemo(() => {
@@ -419,11 +421,9 @@ export default function Dashboard() {
   };
   
   // Determine which site to show data for
-  // "all" means show data across all sites
-  // For client users, they see data from their company (backend handles filtering)
-  const siteId = isClientUser 
-    ? null  // Client users see all sites in their company (filtered by backend)
-    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
+  // "all" or null means show data across all accessible sites
+  // Clients can now filter by site if they have multiple sites
+  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary", siteId, companySiteIdsKey, isClientUser],
@@ -500,17 +500,23 @@ export default function Dashboard() {
   
   // Build current context label
   const currentContextLabel = useMemo(() => {
-    if (!canSelectSites) return null;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
-    if (selectedCompany && selectedCompany !== "all") {
-      return selectedCompany;
+    if (isPrivilegedUser) {
+      if (selectedCompany && selectedCompany !== "all") {
+        return selectedCompany;
+      }
+      return "All Clients";
     }
-    return "All Clients";
-  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+    // For clients with multiple sites showing "all"
+    if (clientHasMultipleSites && !selectedSiteId) {
+      return "All Sites";
+    }
+    return null;
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
 
-  if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
+  if (isLoading || isAuthLoading || sitesLoading) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -554,18 +560,20 @@ export default function Dashboard() {
             {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
           </p>
         </div>
-        {/* Company and Site selectors for admin/consultant oversight */}
-        {canSelectSites && sites && sites.length > 0 && (
+        {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
+        {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
           <div className="flex items-center gap-2">
-            <CompanyCombobox
-              sites={sites}
-              value={selectedCompany}
-              onValueChange={handleCompanyChange}
-              className="w-48"
-              testId="select-company-dashboard"
-            />
+            {isPrivilegedUser && (
+              <CompanyCombobox
+                sites={sites}
+                value={selectedCompany}
+                onValueChange={handleCompanyChange}
+                className="w-48"
+                testId="select-company-dashboard"
+              />
+            )}
             <SiteCombobox
-              sites={filteredSites}
+              sites={isPrivilegedUser ? filteredSites : sites}
               value={selectedSiteId}
               onValueChange={setSelectedSiteId}
               className="w-48"

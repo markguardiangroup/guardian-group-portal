@@ -144,13 +144,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
-  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  const isClientUser = user?.role === "client";
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch sites for admin/consultant users
+  // Fetch sites for all users (clients see their accessible sites)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectSites,
   });
+  
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -172,11 +175,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   };
   
   // Determine which site(s) to show data for
-  // If a specific site is selected, use that
-  // If a company is selected (no specific site), we'll pass company name to filter
-  const siteId = user?.role === "client" 
-    ? (user as any)?.siteId 
-    : (selectedSiteId === "all" ? null : (selectedSiteId || null));
+  // Clients can now filter by site if they have multiple sites
+  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
   // Get site IDs for selected company (for API filtering)
   // Use full sites list to get all sites for selected company
@@ -264,15 +264,21 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   
   // Build context description for display
   const currentContextName = useMemo(() => {
-    if (!canSelectSites) return null;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find((s) => s.id === selectedSiteId)?.name || null;
     }
-    if (selectedCompany && selectedCompany !== "all") {
-      return `${selectedCompany} (all sites)`;
+    if (isPrivilegedUser) {
+      if (selectedCompany && selectedCompany !== "all") {
+        return `${selectedCompany} (all sites)`;
+      }
+      return "All Clients";
     }
-    return "All Clients";
-  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+    // For clients with multiple sites showing "all"
+    if (clientHasMultipleSites && !selectedSiteId) {
+      return "All Sites";
+    }
+    return null;
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
   
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
@@ -286,7 +292,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return queryString ? `${basePath}/documents?${queryString}` : `${basePath}/documents`;
   }, [basePath, selectedSiteId, selectedCompany]);
 
-  if (isLoading || isAuthLoading || (canSelectSites && sitesLoading)) {
+  if (isLoading || isAuthLoading || sitesLoading) {
     return (
       <div className="space-y-8 p-8">
         <div>
@@ -342,20 +348,24 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {/* Company and Site selectors for admin/consultant oversight */}
-            {canSelectSites && sites && sites.length > 0 && (
+            {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
+            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-44"
-                  testId="select-company-module-dashboard"
-                />
-                <span className="text-muted-foreground">/</span>
+                {isPrivilegedUser && (
+                  <>
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-44"
+                      testId="select-company-module-dashboard"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                  </>
+                )}
                 <SiteCombobox
-                  sites={filteredSites}
+                  sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-44"
