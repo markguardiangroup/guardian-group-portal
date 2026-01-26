@@ -1,5 +1,13 @@
 import { useAuth } from "./use-auth";
+import { useQuery } from "@tanstack/react-query";
 import type { ModuleType } from "@shared/schema";
+
+interface ModuleAccessData {
+  health_safety: "active" | "visible" | "hidden";
+  human_resources: "active" | "visible" | "hidden";
+  employment_law: "active" | "visible" | "hidden";
+  support: "active" | "visible" | "hidden";
+}
 
 interface UseModuleAccessResult {
   isLoading: boolean;
@@ -10,8 +18,14 @@ interface UseModuleAccessResult {
 }
 
 export function useModuleAccess(): UseModuleAccessResult {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   
+  const { data: moduleAccess, isLoading: accessLoading } = useQuery<ModuleAccessData>({
+    queryKey: ["/api/user/module-access"],
+    enabled: !!user,
+  });
+  
+  const isLoading = authLoading || accessLoading;
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
   const getAccessStatus = (module: ModuleType): "active" | "visible" | "hidden" | undefined => {
@@ -20,23 +34,18 @@ export function useModuleAccess(): UseModuleAccessResult {
       return "active";
     }
     
-    // For clients, we default to active for all modules on the dashboard
-    // The actual site-level access control is handled by the API routes
-    if (user?.role === "client") {
-      return "active";
+    // Return the fetched access status for the module
+    if (moduleAccess) {
+      return moduleAccess[module as keyof ModuleAccessData];
     }
     
+    // Default to hidden while loading or if no data
     return undefined;
   };
 
   const hasActiveAccess = (module: ModuleType): boolean => {
     // Admin/consultants always have active access
     if (isPrivilegedUser) {
-      return true;
-    }
-    // Clients get access based on their company's module access
-    // This is controlled at the API level per site
-    if (user?.role === "client") {
       return true;
     }
     return getAccessStatus(module) === "active";
@@ -47,17 +56,16 @@ export function useModuleAccess(): UseModuleAccessResult {
     if (isPrivilegedUser) {
       return true;
     }
-    if (user?.role === "client") {
-      return true;
-    }
     const status = getAccessStatus(module);
     return status === "active" || status === "visible";
   };
 
-  const isHidden = (_module: ModuleType): boolean => {
-    // For now, no modules are hidden on the dashboard
-    // Site-level access control is handled by API routes
-    return false;
+  const isHidden = (module: ModuleType): boolean => {
+    // Admin/consultants never see hidden modules
+    if (isPrivilegedUser) {
+      return false;
+    }
+    return getAccessStatus(module) === "hidden";
   };
 
   return {

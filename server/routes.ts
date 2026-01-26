@@ -4311,6 +4311,73 @@ export async function registerRoutes(
 
   // Entity Module Access Routes
   
+  // Get aggregated module access for current user (across all their accessible sites)
+  app.get("/api/user/module-access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Admin/consultants have active access to all modules
+      if (user.role === "admin" || user.role === "consultant") {
+        return res.json({
+          health_safety: "active",
+          human_resources: "active",
+          employment_law: "active",
+          support: "active",
+        });
+      }
+      
+      // For clients, aggregate access across all their accessible sites
+      // If ANY site has "active" access, the module is active
+      // If ANY site has "visible" access (but none active), the module is visible
+      // Otherwise hidden
+      const moduleAccess: Record<ModuleType, "active" | "visible" | "hidden"> = {
+        health_safety: "hidden",
+        human_resources: "hidden",
+        employment_law: "hidden",
+        support: "hidden",
+      };
+      
+      // Get sites the client can access
+      let accessibleSites: { id: string }[] = [];
+      
+      // Check if client has specific site assignments
+      const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
+      
+      if (clientSiteAssignments.length > 0) {
+        // Client has specific site assignments
+        accessibleSites = clientSiteAssignments.map(a => ({ id: a.siteId }));
+      } else if (user.companyId) {
+        // Client has access to all sites in their company
+        const allSites = await storage.getSites();
+        accessibleSites = allSites.filter(s => s.companyId === user.companyId);
+      }
+      
+      // Aggregate module access across all accessible sites
+      for (const site of accessibleSites) {
+        const siteAccess = await storage.getSiteModuleAccess(site.id);
+        
+        for (const access of siteAccess) {
+          const currentStatus = moduleAccess[access.module as ModuleType];
+          
+          // Upgrade access level: hidden < visible < active
+          if (access.status === "active") {
+            moduleAccess[access.module as ModuleType] = "active";
+          } else if (access.status === "visible" && currentStatus !== "active") {
+            moduleAccess[access.module as ModuleType] = "visible";
+          }
+        }
+      }
+      
+      res.json(moduleAccess);
+    } catch (error) {
+      console.error("Get user module access error:", error);
+      res.status(500).json({ error: "Failed to fetch module access" });
+    }
+  });
+  
   // Get module access for an entity
   app.get("/api/sites/:siteId/module-access", requireAuth, async (req, res) => {
     try {

@@ -537,11 +537,12 @@ export default function Dashboard() {
   const summaries = moduleSummaries || [];
   // Filter to only compliance modules (exclude support)
   const complianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
-  const visibleLockedModules = complianceModules.filter(m => !hasActiveAccess(m.module) && !isHidden(m.module));
+  // Show all non-active modules as locked so clients can see what's available
+  const lockedModules = complianceModules.filter(m => !hasActiveAccess(m.module));
   
   // Check if user has access to support
   const hasSupportAccess = hasActiveAccess("support");
-  const isSupportLocked = !hasSupportAccess && !isHidden("support");
+  const isSupportLocked = !hasSupportAccess;
 
   return (
     <div className="space-y-8 p-8">
@@ -693,7 +694,7 @@ export default function Dashboard() {
           {complianceSummaries.map((summary) => (
             <ModuleCard key={summary.module} summary={summary} />
           ))}
-          {visibleLockedModules.map((m) => (
+          {lockedModules.map((m) => (
             <LockedModuleCard 
               key={m.module} 
               moduleName={m.name} 
