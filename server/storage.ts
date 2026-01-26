@@ -120,7 +120,7 @@ export interface IStorage {
   revokeDocumentTypeAccess(siteId: string, documentTypeId: string): Promise<boolean>;
   
   // Cases (Employment Law)
-  getCases(siteId?: string, status?: CaseStatus): Promise<Case[]>;
+  getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus }): Promise<Case[]>;
   getCase(id: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined>;
@@ -1968,13 +1968,16 @@ export class MemStorage implements IStorage {
   }
 
   // Cases (Employment Law)
-  async getCases(siteId?: string, status?: CaseStatus): Promise<Case[]> {
+  async getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus }): Promise<Case[]> {
     let cases = Array.from(this.cases.values());
-    if (siteId) {
-      cases = cases.filter(c => c.siteId === siteId);
+    if (filters?.siteId) {
+      cases = cases.filter(c => c.siteId === filters.siteId);
     }
-    if (status) {
-      cases = cases.filter(c => c.status === status);
+    if (filters?.entityId) {
+      cases = cases.filter(c => c.entityId === filters.entityId);
+    }
+    if (filters?.status) {
+      cases = cases.filter(c => c.status === filters.status);
     }
     return cases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }

@@ -31,6 +31,7 @@ const createDocumentSchema = z.object({
 });
 
 const createCaseSchema = z.object({
+  entityId: z.string().min(1),
   siteId: z.string().min(1),
   caseReference: z.string().min(1),
   employeeName: z.string().min(1),
@@ -3965,6 +3966,7 @@ export async function registerRoutes(
       }
 
       const siteId = req.query.siteId as string | undefined;
+      const entityId = req.query.entityId as string | undefined;
       const status = req.query.status as any;
 
       // Clients can only see cases for their company's sites
@@ -3975,14 +3977,26 @@ export async function registerRoutes(
         }
       }
 
-      // For clients, get all sites in their company; for others, filter by siteId if provided
-      let filterSiteIds: string[] | undefined;
+      // Build filters based on user role and query params
+      const filters: { siteId?: string; entityId?: string; status?: any } = {};
+      
       if (user.role === "client" && user.companyId) {
-        const companySites = await storage.getSitesByCompanyId(user.companyId);
-        filterSiteIds = companySites.map(s => s.id);
+        // Clients can only see cases from their own company
+        filters.entityId = user.companyId;
+      } else if (entityId) {
+        // Admins/consultants can filter by company
+        filters.entityId = entityId;
       }
-      const filterEntityId = siteId;
-      const cases = await storage.getCases(filterEntityId, status);
+      
+      if (siteId) {
+        filters.siteId = siteId;
+      }
+      
+      if (status) {
+        filters.status = status;
+      }
+
+      const cases = await storage.getCases(filters);
       
       // Filter out confidential cases for non-privileged users
       const filteredCases = cases.filter(c => {

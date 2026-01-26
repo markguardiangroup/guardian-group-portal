@@ -146,6 +146,13 @@ function CasesList() {
     return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
   }, [sites, selectedCompany]);
   
+  // Get company ID for the selected company (for API filtering)
+  const selectedCompanyId = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    const companySite = sites.find(s => s.companyName === selectedCompany);
+    return companySite?.companyId || null;
+  }, [sites, selectedCompany]);
+  
   // Handle company selection
   const handleCompanyChange = (company: string | null) => {
     setSelectedCompany(company);
@@ -160,18 +167,17 @@ function CasesList() {
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
-  // Create stable string key for company site IDs
-  const companySiteIdsKey = companySiteIds?.join(",") || null;
-
   const { data: cases, isLoading } = useQuery<Case[]>({
-    queryKey: ["/api/cases", siteId, companySiteIdsKey],
+    queryKey: ["/api/cases", siteId, selectedCompanyId],
     queryFn: async () => {
-      let url = "/api/cases";
+      const params = new URLSearchParams();
       if (siteId) {
-        url = `${url}?siteId=${siteId}`;
-      } else if (companySiteIds && companySiteIds.length > 0) {
-        url = `${url}?siteIds=${companySiteIds.join(",")}`;
+        params.set("siteId", siteId);
       }
+      if (selectedCompanyId) {
+        params.set("entityId", selectedCompanyId);
+      }
+      const url = params.toString() ? `/api/cases?${params.toString()}` : "/api/cases";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -1265,6 +1271,13 @@ function EmploymentLawDashboardView() {
     return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
   }, [sites, selectedCompany]);
   
+  // Get company ID for the selected company (for API filtering)
+  const selectedCompanyId = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    const companySite = sites.find(s => s.companyName === selectedCompany);
+    return companySite?.companyId || null;
+  }, [sites, selectedCompany]);
+  
   // Handle company selection
   const handleCompanyChange = (company: string | null) => {
     setSelectedCompany(company);
@@ -1296,19 +1309,14 @@ function EmploymentLawDashboardView() {
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
-  // Create stable string key for company site IDs
-  const companySiteIdsKey = companySiteIds?.join(",") || null;
-  
   // Fetch compliance summary for Employment Law
   const { data: summary, isLoading: summaryLoading } = useQuery<ComplianceSummary>({
-    queryKey: ["/api/modules/employment_law/summary", siteId, companySiteIdsKey],
+    queryKey: ["/api/modules/employment_law/summary", siteId, selectedCompanyId],
     queryFn: async () => {
-      let url = "/api/modules/employment_law/summary";
-      if (siteId) {
-        url = `${url}?siteId=${siteId}`;
-      } else if (companySiteIds && companySiteIds.length > 0) {
-        url = `${url}?siteIds=${companySiteIds.join(",")}`;
-      }
+      const params = new URLSearchParams();
+      if (siteId) params.set("siteId", siteId);
+      if (selectedCompanyId) params.set("entityId", selectedCompanyId);
+      const url = params.toString() ? `/api/modules/employment_law/summary?${params.toString()}` : "/api/modules/employment_law/summary";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -1317,14 +1325,12 @@ function EmploymentLawDashboardView() {
   
   // Fetch cases with site filtering
   const { data: cases, isLoading: casesLoading } = useQuery<Case[]>({
-    queryKey: ["/api/cases", siteId, companySiteIdsKey],
+    queryKey: ["/api/cases", siteId, selectedCompanyId],
     queryFn: async () => {
-      let url = "/api/cases";
-      if (siteId) {
-        url = `${url}?siteId=${siteId}`;
-      } else if (companySiteIds && companySiteIds.length > 0) {
-        url = `${url}?siteIds=${companySiteIds.join(",")}`;
-      }
+      const params = new URLSearchParams();
+      if (siteId) params.set("siteId", siteId);
+      if (selectedCompanyId) params.set("entityId", selectedCompanyId);
+      const url = params.toString() ? `/api/cases?${params.toString()}` : "/api/cases";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -1333,14 +1339,12 @@ function EmploymentLawDashboardView() {
   
   // Fetch recent documents for Employment Law
   const { data: recentDocuments } = useQuery<Document[]>({
-    queryKey: ["/api/documents/module", "employment_law", siteId, companySiteIdsKey],
+    queryKey: ["/api/documents/module", "employment_law", siteId, selectedCompanyId],
     queryFn: async () => {
-      let url = "/api/documents/module/employment_law";
       const params = new URLSearchParams();
       if (siteId) params.set("siteId", siteId);
-      else if (companySiteIds && companySiteIds.length > 0) params.set("siteIds", companySiteIds.join(","));
-      const queryString = params.toString();
-      if (queryString) url += `?${queryString}`;
+      if (selectedCompanyId) params.set("entityId", selectedCompanyId);
+      const url = params.toString() ? `/api/documents/module/employment_law?${params.toString()}` : "/api/documents/module/employment_law";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
