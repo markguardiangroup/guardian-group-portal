@@ -133,7 +133,9 @@ export default function CreateFromTemplate() {
     queryKey: ["/api/folders", selectedSiteId],
     queryFn: async () => {
       if (!selectedSiteId) return [];
-      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       return res.json();
     },
@@ -148,6 +150,7 @@ export default function CreateFromTemplate() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ siteId, module }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to provision folders");
       return res.json();

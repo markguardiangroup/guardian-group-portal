@@ -159,7 +159,9 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const { data: trainingFolders, isLoading: foldersLoading } = useQuery<TrainingFolder[]>({
     queryKey: ["/api/training-folders", { module }],
     queryFn: async () => {
-      const response = await fetch(`/api/training-folders?module=${module}`);
+      const response = await fetch(`/api/training-folders?module=${module}`, {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch training folders");
       return response.json();
     },
@@ -169,7 +171,9 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const { data: trainingCourses, isLoading: coursesLoading } = useQuery<TrainingCourse[]>({
     queryKey: ["/api/training-courses", { module }],
     queryFn: async () => {
-      const response = await fetch(`/api/training-courses?module=${module}`);
+      const response = await fetch(`/api/training-courses?module=${module}`, {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch training courses");
       return response.json();
     },

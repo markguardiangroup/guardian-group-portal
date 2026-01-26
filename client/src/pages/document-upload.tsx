@@ -181,6 +181,7 @@ export default function DocumentUpload() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ siteId, module }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to provision folders");
       return res.json();
@@ -195,7 +196,9 @@ export default function DocumentUpload() {
     queryKey: ["/api/folders", selectedSiteId],
     queryFn: async () => {
       if (!selectedSiteId) return [];
-      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       const folders = await res.json();
       
@@ -204,7 +207,9 @@ export default function DocumentUpload() {
         try {
           await provisionFoldersMutation.mutateAsync({ siteId: selectedSiteId, module: selectedModule });
           // Refetch after provisioning
-          const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+          const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+            credentials: "include",
+          });
           if (newRes.ok) return newRes.json();
         } catch (e) {
           console.error("Failed to provision folders:", e);

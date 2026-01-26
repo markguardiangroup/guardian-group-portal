@@ -237,7 +237,9 @@ function DocumentsListView() {
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
     queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy`);
+      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch hierarchy");
       return res.json();
     },
@@ -248,7 +250,9 @@ function DocumentsListView() {
     queryKey: ["/api/folders", selectedSiteId],
     queryFn: async () => {
       if (selectedSiteId === "all") return [];
-      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`);
+      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       return res.json();
     },

@@ -306,7 +306,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const url = queryString 
         ? `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`
         : `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch hierarchy");
       return res.json();
     },
