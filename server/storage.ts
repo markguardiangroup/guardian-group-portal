@@ -128,8 +128,10 @@ export interface IStorage {
   
   // Case Milestones
   getCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
+  getCaseMilestone(id: string): Promise<CaseMilestone | undefined>;
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
+  deleteCaseMilestone(id: string): Promise<void>;
   
   // Site Module Access (deprecated - use company-level access)
   getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]>;
@@ -2072,6 +2074,14 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...updates };
     this.caseMilestones.set(id, updated);
     return updated;
+  }
+
+  async getCaseMilestone(id: string): Promise<CaseMilestone | undefined> {
+    return this.caseMilestones.get(id);
+  }
+
+  async deleteCaseMilestone(id: string): Promise<void> {
+    this.caseMilestones.delete(id);
   }
 
   // Entity Module Access

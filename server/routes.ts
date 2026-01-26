@@ -4312,6 +4312,47 @@ export async function registerRoutes(
     }
   });
 
+  // Delete milestone
+  app.delete("/api/milestones/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admins and consultants can delete milestones
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot delete milestones" });
+      }
+
+      const milestone = await storage.getCaseMilestone(req.params.id);
+      if (!milestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+
+      const caseData = await storage.getCase(milestone.caseId);
+      await storage.deleteCaseMilestone(req.params.id);
+
+      // Create audit log
+      if (caseData) {
+        await storage.createAuditLog({
+          action: "milestone_deleted",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: caseData.siteId,
+          caseId: milestone.caseId,
+          module: "employment_law",
+          details: `Milestone "${milestone.title}" deleted from case ${caseData.caseReference}`,
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete milestone error:", error);
+      res.status(500).json({ error: "Failed to delete milestone" });
+    }
+  });
+
   // Get case audit logs
   app.get("/api/cases/:id/audit", requireAuth, async (req, res) => {
     try {

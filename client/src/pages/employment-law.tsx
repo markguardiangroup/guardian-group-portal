@@ -27,6 +27,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -64,6 +71,10 @@ import {
   Building2,
   TrendingUp,
   MapPin,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site } from "@shared/schema";
@@ -745,6 +756,42 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
+  const reopenMilestoneMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      return apiRequest("PATCH", `/api/milestones/${milestoneId}`, { isCompleted: false });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Milestone reopened" });
+    },
+  });
+
+  const updateMilestoneMutation = useMutation({
+    mutationFn: async ({ milestoneId, data }: { milestoneId: string; data: any }) => {
+      return apiRequest("PATCH", `/api/milestones/${milestoneId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      setEditingMilestone(null);
+      toast({ title: "Milestone updated" });
+    },
+  });
+
+  const deleteMilestoneMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      return apiRequest("DELETE", `/api/milestones/${milestoneId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Milestone deleted" });
+    },
+  });
+
+  const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
+
   if (isLoading) {
     return (
       <div className="space-y-6 p-6">
@@ -957,16 +1004,53 @@ function CaseDetailView({ id }: { id: string }) {
                         </p>
                       )}
                     </div>
-                    {!milestone.isCompleted && (user?.role === "admin" || user?.role === "consultant") && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => completeMilestoneMutation.mutate(milestone.id)}
-                        disabled={completeMilestoneMutation.isPending}
-                        data-testid={`button-complete-milestone-${milestone.id}`}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
+                    {(user?.role === "admin" || user?.role === "consultant") && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            data-testid={`button-milestone-menu-${milestone.id}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {!milestone.isCompleted ? (
+                            <DropdownMenuItem
+                              onClick={() => completeMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-complete-milestone-${milestone.id}`}
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                              Mark Complete
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-reopen-milestone-${milestone.id}`}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Reopen
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => setEditingMilestone(milestone)}
+                            data-testid={`button-edit-milestone-${milestone.id}`}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                            className="text-red-600"
+                            data-testid={`button-delete-milestone-${milestone.id}`}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 ))}
@@ -1118,6 +1202,23 @@ function CaseDetailView({ id }: { id: string }) {
           />
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingMilestone} onOpenChange={(open) => !open && setEditingMilestone(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Milestone</DialogTitle>
+            <DialogDescription>Update the milestone details</DialogDescription>
+          </DialogHeader>
+          {editingMilestone && (
+            <EditMilestoneForm
+              milestone={editingMilestone}
+              onSubmit={(data) => updateMilestoneMutation.mutate({ milestoneId: editingMilestone.id, data })}
+              onCancel={() => setEditingMilestone(null)}
+              isLoading={updateMilestoneMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1182,6 +1283,78 @@ function CreateMilestoneForm({
           data-testid="button-submit-milestone"
         >
           {isLoading ? "Adding..." : "Add Milestone"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function EditMilestoneForm({
+  milestone,
+  onSubmit,
+  onCancel,
+  isLoading,
+}: {
+  milestone: CaseMilestone;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    title: milestone.title,
+    description: milestone.description || "",
+    dueDate: milestone.dueDate ? format(new Date(milestone.dueDate), "yyyy-MM-dd") : "",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      title: formData.title,
+      description: formData.description || null,
+      dueDate: formData.dueDate || null,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Title</label>
+        <Input
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          placeholder="e.g., Schedule hearing"
+          required
+          data-testid="input-edit-milestone-title"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Description (optional)</label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Additional details..."
+          rows={2}
+          data-testid="input-edit-milestone-description"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Due Date (optional)</label>
+        <Input
+          type="date"
+          value={formData.dueDate}
+          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+          data-testid="input-edit-milestone-due-date"
+        />
+      </div>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="bg-pink-600 hover:bg-pink-700"
+          data-testid="button-save-milestone"
+        >
+          {isLoading ? "Saving..." : "Save Changes"}
         </Button>
       </DialogFooter>
     </form>
