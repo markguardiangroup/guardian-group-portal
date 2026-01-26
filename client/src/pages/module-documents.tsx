@@ -1299,9 +1299,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           })()}
 
           {auditLogs && auditLogs.length > 0 && (() => {
-            const INITIAL_DISPLAY_COUNT = 3;
-            const displayedLogs = showAllAuditLogs ? auditLogs : auditLogs.slice(0, INITIAL_DISPLAY_COUNT);
-            const hasMoreLogs = auditLogs.length > INITIAL_DISPLAY_COUNT;
+            const INITIAL_DISPLAY_COUNT = 5;
+            // Filter out "viewed" entries for initial display to show important actions
+            const importantActions = ['document_uploaded', 'document_approved', 'document_signed_off', 'document_rejected', 'changes_requested', 'document_archived', 'version_uploaded'];
+            const importantLogs = auditLogs.filter(log => importantActions.includes(log.action));
+            const viewedLogs = auditLogs.filter(log => log.action === 'document_viewed');
+            
+            // Show important logs first, then viewed logs
+            const sortedLogs = [...importantLogs, ...viewedLogs];
+            const displayedLogs = showAllAuditLogs ? sortedLogs : sortedLogs.slice(0, INITIAL_DISPLAY_COUNT);
+            const hasMoreLogs = sortedLogs.length > INITIAL_DISPLAY_COUNT;
             
             const getActionStyle = (action: string) => {
               switch (action) {
@@ -1401,7 +1408,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       ) : (
                         <>
                           <ChevronDown className="mr-2 h-4 w-4" />
-                          Show {auditLogs.length - INITIAL_DISPLAY_COUNT} More
+                          Show {sortedLogs.length - INITIAL_DISPLAY_COUNT} More
                         </>
                       )}
                     </Button>
