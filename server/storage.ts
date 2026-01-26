@@ -131,10 +131,15 @@ export interface IStorage {
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
   
-  // Site Module Access
+  // Site Module Access (deprecated - use company-level access)
   getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]>;
   getSiteModuleAccessByModule(siteId: string, module: ModuleType): Promise<SiteModuleAccess | undefined>;
   setSiteModuleAccess(siteId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<SiteModuleAccess>;
+  
+  // Company Module Access (new - company-level module access)
+  getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean } | undefined>;
+  setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean }): Promise<Company | undefined>;
+  hasCompanyModuleAccess(companyId: string, module: ModuleType): Promise<boolean>;
   
   // Module Access Requests
   getModuleAccessRequests(siteId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
@@ -383,6 +388,11 @@ export class MemStorage implements IStorage {
         contactEmail: "safety@acme-mfg.com",
         contactPhone: "+44 161 123 4567",
         status: "active",
+        // Module access at company level
+        healthSafetyAccess: true,
+        humanResourcesAccess: true,
+        employmentLawAccess: true,
+        supportAccess: false,
         createdAt: now,
       },
       {
@@ -393,6 +403,11 @@ export class MemStorage implements IStorage {
         contactEmail: "compliance@techcorp.co.uk",
         contactPhone: "+44 20 7123 4567",
         status: "active",
+        // Module access at company level
+        healthSafetyAccess: true,
+        humanResourcesAccess: false,
+        employmentLawAccess: false,
+        supportAccess: true,
         createdAt: now,
       },
     ];
@@ -2395,6 +2410,54 @@ export class MemStorage implements IStorage {
       };
       this.siteModuleAccess.set(id, access);
       return access;
+    }
+  }
+
+  // Company Module Access
+  async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean } | undefined> {
+    const company = this.companies.get(companyId);
+    if (!company) return undefined;
+    return {
+      healthSafety: company.healthSafetyAccess,
+      humanResources: company.humanResourcesAccess,
+      employmentLaw: company.employmentLawAccess,
+      support: company.supportAccess,
+    };
+  }
+
+  async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean }): Promise<Company | undefined> {
+    const company = this.companies.get(companyId);
+    if (!company) return undefined;
+    
+    const updated: Company = {
+      ...company,
+      healthSafetyAccess: modules.healthSafety ?? company.healthSafetyAccess,
+      humanResourcesAccess: modules.humanResources ?? company.humanResourcesAccess,
+      employmentLawAccess: modules.employmentLaw ?? company.employmentLawAccess,
+      supportAccess: modules.support ?? company.supportAccess,
+    };
+    this.companies.set(companyId, updated);
+    return updated;
+  }
+
+  async hasCompanyModuleAccess(companyId: string, module: ModuleType): Promise<boolean> {
+    const company = this.companies.get(companyId);
+    if (!company) return false;
+    
+    switch (module) {
+      case "health_safety":
+        return company.healthSafetyAccess;
+      case "human_resources":
+        return company.humanResourcesAccess;
+      case "employment_law":
+        return company.employmentLawAccess;
+      case "support":
+        return company.supportAccess;
+      case "reports":
+        // Reports are always accessible if any module is accessible
+        return company.healthSafetyAccess || company.humanResourcesAccess || company.employmentLawAccess || company.supportAccess;
+      default:
+        return false;
     }
   }
 

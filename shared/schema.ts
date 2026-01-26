@@ -44,6 +44,11 @@ export const companies = pgTable("entities", {
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   status: text("status").$type<CompanyStatus>().notNull().default("active"),
+  // Module access - set at company level, applies to all sites and users
+  healthSafetyAccess: boolean("health_safety_access").notNull().default(false),
+  humanResourcesAccess: boolean("human_resources_access").notNull().default(false),
+  employmentLawAccess: boolean("employment_law_access").notNull().default(false),
+  supportAccess: boolean("support_access").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

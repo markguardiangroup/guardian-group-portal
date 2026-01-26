@@ -1,10 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Building2,
   MapPin,
@@ -19,8 +24,16 @@ import {
   Shield,
   Heart,
   Briefcase,
+  HelpCircle,
 } from "lucide-react";
 import type { Company, SiteWithDetails, ComplianceSummary, SiteModuleAccessSummary } from "@shared/schema";
+
+interface CompanyModuleAccess {
+  healthSafety: boolean;
+  humanResources: boolean;
+  employmentLaw: boolean;
+  support: boolean;
+}
 
 type CompanyWithSites = Company & {
   sites: SiteWithDetails[];
@@ -152,6 +165,102 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
             </div>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ModuleAccessCard({ companyId }: { companyId: string }) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const { data: moduleAccess, isLoading } = useQuery<CompanyModuleAccess>({
+    queryKey: ["/api/companies", companyId, "module-access"],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${companyId}/module-access`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch module access");
+      return response.json();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (modules: Partial<CompanyModuleAccess>) => {
+      const response = await apiRequest("POST", `/api/companies/${companyId}/module-access`, modules);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "module-access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
+      toast({
+        title: "Module access updated",
+        description: "The company's module access has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update module access. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggle = (module: keyof CompanyModuleAccess, enabled: boolean) => {
+    updateMutation.mutate({ [module]: enabled });
+  };
+
+  const modules = [
+    { key: "healthSafety" as const, label: "Health & Safety", icon: Shield, color: "text-emerald-600 dark:text-emerald-400" },
+    { key: "humanResources" as const, label: "Human Resources", icon: Heart, color: "text-blue-600 dark:text-blue-400" },
+    { key: "employmentLaw" as const, label: "Employment Law", icon: Briefcase, color: "text-purple-600 dark:text-purple-400" },
+    { key: "support" as const, label: "Support", icon: HelpCircle, color: "text-orange-600 dark:text-orange-400" },
+  ];
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Module Access</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Module Access</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground mb-4">
+          Enable or disable modules for this company. Changes apply to all sites and users.
+        </p>
+        {modules.map(({ key, label, icon: Icon, color }) => (
+          <div key={key} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Icon className={`h-5 w-5 ${color}`} />
+              <Label htmlFor={`module-${key}`} className="font-medium">{label}</Label>
+            </div>
+            <Switch
+              id={`module-${key}`}
+              checked={moduleAccess?.[key] ?? false}
+              onCheckedChange={(checked) => handleToggle(key, checked)}
+              disabled={!isAdmin || updateMutation.isPending}
+              data-testid={`switch-module-${key}`}
+            />
+          </div>
+        ))}
+        {!isAdmin && (
+          <p className="text-xs text-muted-foreground mt-4">
+            Only administrators can modify module access.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -327,6 +436,8 @@ export default function CompanyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <ModuleAccessCard companyId={companyId!} />
 
       <div>
         <div className="flex items-center justify-between mb-4">

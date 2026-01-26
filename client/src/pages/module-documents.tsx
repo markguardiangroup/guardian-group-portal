@@ -233,29 +233,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/sites"],
   });
   
-  // Filter sites by module access - only show sites where this module is active
-  const sitesWithModuleAccess = useMemo(() => {
+  // With company-level module access, all sites in a company have the same access
+  // So no per-site filtering needed - just show all sites for the user's company
+  const clientSites = useMemo(() => {
     if (!sites) return [];
-    // For clients, filter to only sites where this module is active
-    if (isClientUser) {
-      return sites.filter(s => {
-        const moduleStatus = s.moduleAccess?.[module as keyof SiteModuleAccess];
-        return moduleStatus === "active";
-      });
-    }
-    // For admin/consultants, show all sites
     return sites;
-  }, [sites, module, isClientUser]);
+  }, [sites]);
   
-  // Clients can filter by site if they have multiple sites with access to this module
-  const clientHasMultipleSites = isClientUser && sitesWithModuleAccess && sitesWithModuleAccess.length > 1;
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && clientSites && clientSites.length > 1;
   
   // Filter sites by selected company (for privileged users)
   const filteredSites = useMemo(() => {
-    if (!sitesWithModuleAccess) return [];
-    if (!selectedCompany || selectedCompany === "all") return sitesWithModuleAccess;
-    return sitesWithModuleAccess.filter(s => s.companyName === selectedCompany);
-  }, [sitesWithModuleAccess, selectedCompany]);
+    if (!clientSites) return [];
+    if (!selectedCompany || selectedCompany === "all") return clientSites;
+    return clientSites.filter(s => s.companyName === selectedCompany);
+  }, [clientSites, selectedCompany]);
   
   // Handle company selection - only clear site if not in new company
   const handleCompanyChange = (company: string | null) => {
@@ -498,7 +491,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </>
                 )}
                 <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sitesWithModuleAccess}
+                  sites={isPrivilegedUser ? filteredSites : clientSites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-44"

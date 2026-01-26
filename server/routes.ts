@@ -4329,7 +4329,7 @@ export async function registerRoutes(
 
   // Entity Module Access Routes
   
-  // Get aggregated module access for current user (across all their accessible sites)
+  // Get module access for current user (based on their company's module access)
   app.get("/api/user/module-access", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -4347,49 +4347,35 @@ export async function registerRoutes(
         });
       }
       
-      // For clients, aggregate access across all their accessible sites
-      // If ANY site has "active" access, the module is active
-      // If ANY site has "visible" access (but none active), the module is visible
-      // Otherwise hidden
-      const moduleAccess: Record<ModuleType, "active" | "visible" | "hidden"> = {
-        health_safety: "hidden",
-        human_resources: "hidden",
-        employment_law: "hidden",
-        support: "hidden",
-      };
-      
-      // Get sites the client can access
-      let accessibleSites: { id: string }[] = [];
-      
-      // Check if client has specific site assignments
-      const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
-      
-      if (clientSiteAssignments.length > 0) {
-        // Client has specific site assignments
-        accessibleSites = clientSiteAssignments.map(a => ({ id: a.siteId }));
-      } else if (user.companyId) {
-        // Client has access to all sites in their company
-        const allSites = await storage.getSites();
-        accessibleSites = allSites.filter(s => s.companyId === user.companyId);
+      // For clients, use company-level module access
+      // If company has module access, it's "active", otherwise "hidden"
+      if (!user.companyId) {
+        return res.json({
+          health_safety: "hidden",
+          human_resources: "hidden",
+          employment_law: "hidden",
+          support: "hidden",
+        });
       }
       
-      // Aggregate module access across all accessible sites
-      for (const site of accessibleSites) {
-        const siteAccess = await storage.getSiteModuleAccess(site.id);
-        
-        for (const access of siteAccess) {
-          const currentStatus = moduleAccess[access.module as ModuleType];
-          
-          // Upgrade access level: hidden < visible < active
-          if (access.status === "active") {
-            moduleAccess[access.module as ModuleType] = "active";
-          } else if (access.status === "visible" && currentStatus !== "active") {
-            moduleAccess[access.module as ModuleType] = "visible";
-          }
-        }
+      const companyAccess = await storage.getCompanyModuleAccess(user.companyId);
+      
+      if (!companyAccess) {
+        return res.json({
+          health_safety: "hidden",
+          human_resources: "hidden",
+          employment_law: "hidden",
+          support: "hidden",
+        });
       }
       
-      res.json(moduleAccess);
+      // Convert company boolean access to status format for frontend compatibility
+      res.json({
+        health_safety: companyAccess.healthSafety ? "active" : "hidden",
+        human_resources: companyAccess.humanResources ? "active" : "hidden",
+        employment_law: companyAccess.employmentLaw ? "active" : "hidden",
+        support: companyAccess.support ? "active" : "hidden",
+      });
     } catch (error) {
       console.error("Get user module access error:", error);
       res.status(500).json({ error: "Failed to fetch module access" });
@@ -4471,6 +4457,77 @@ export async function registerRoutes(
       res.status(201).json(access);
     } catch (error) {
       console.error("Set entity module access error:", error);
+      res.status(500).json({ error: "Failed to set module access" });
+    }
+  });
+
+  // Company Module Access Routes (NEW - company-level module access)
+  
+  // Get module access for a company
+  app.get("/api/companies/:companyId/module-access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Clients can only view their own company's access
+      if (user.role === "client" && user.companyId !== req.params.companyId) {
+        return res.status(403).json({ error: "Not authorized to view this company's module access" });
+      }
+      
+      const access = await storage.getCompanyModuleAccess(req.params.companyId);
+      if (!access) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json(access);
+    } catch (error) {
+      console.error("Get company module access error:", error);
+      res.status(500).json({ error: "Failed to fetch module access" });
+    }
+  });
+
+  // Set module access for a company (admin only)
+  app.post("/api/companies/:companyId/module-access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can set company module access
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can manage company module access" });
+      }
+      
+      const { healthSafety, humanResources, employmentLaw, support } = req.body;
+      
+      // At least one module should be specified
+      if (healthSafety === undefined && humanResources === undefined && 
+          employmentLaw === undefined && support === undefined) {
+        return res.status(400).json({ error: "At least one module access setting is required" });
+      }
+      
+      const company = await storage.setCompanyModuleAccess(req.params.companyId, {
+        healthSafety,
+        humanResources,
+        employmentLaw,
+        support,
+      });
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json({
+        healthSafety: company.healthSafetyAccess,
+        humanResources: company.humanResourcesAccess,
+        employmentLaw: company.employmentLawAccess,
+        support: company.supportAccess,
+      });
+    } catch (error) {
+      console.error("Set company module access error:", error);
       res.status(500).json({ error: "Failed to set module access" });
     }
   });
