@@ -851,25 +851,28 @@ function CaseDetailView({ id }: { id: string }) {
     setIsUploading(true);
     try {
       // Upload file to object storage
-      const formData = new FormData();
-      formData.append("file", file);
+      const buffer = await file.arrayBuffer();
       
-      const uploadRes = await fetch("/api/upload", {
+      const uploadRes = await fetch("/api/uploads/file", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": file.name,
+        },
+        body: buffer,
       });
 
       if (!uploadRes.ok) {
         throw new Error("Failed to upload file");
       }
 
-      const { url } = await uploadRes.json();
+      const { objectPath } = await uploadRes.json();
 
       // Create document record
       await apiRequest("POST", `/api/cases/${id}/documents`, {
         title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension for title
         fileName: file.name,
-        fileUrl: url,
+        fileUrl: objectPath,
         fileSize: file.size,
         mimeType: file.type,
       });
