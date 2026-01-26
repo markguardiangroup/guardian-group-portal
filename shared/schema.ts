@@ -652,6 +652,16 @@ export const insertSupportMessageSchema = createInsertSchema(supportMessages).om
 export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
 export type SupportMessage = typeof supportMessages.$inferSelect;
 
+// Support request read tracking - tracks when users last viewed a support request
+export const supportRequestReads = pgTable("support_request_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  requestId: varchar("request_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+});
+
+export type SupportRequestRead = typeof supportRequestReads.$inferSelect;
+
 // Site document type access - tracks which document types each site has access to
 export const siteDocumentTypeAccess = pgTable("site_document_type_access", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

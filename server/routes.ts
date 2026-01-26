@@ -3365,14 +3365,24 @@ export async function registerRoutes(
         }
       }
       
-      // Enrich with user names
+      // Enrich with user names, unread count, and latest message
       const enrichedRequests = await Promise.all(requests.map(async (request) => {
         const createdByUser = await storage.getUser(request.createdBy);
         const respondedByUser = request.respondedBy ? await storage.getUser(request.respondedBy) : null;
+        const unreadCount = await storage.getUnreadMessageCount(request.id, user.id);
+        const latestMessage = await storage.getLatestSupportMessage(request.id);
+        const latestMessageSender = latestMessage ? await storage.getUser(latestMessage.senderId) : null;
+        
         return {
           ...request,
           createdByName: createdByUser?.fullName || createdByUser?.username || "Unknown",
           respondedByName: respondedByUser?.fullName || respondedByUser?.username || null,
+          unreadCount,
+          latestMessage: latestMessage ? {
+            message: latestMessage.message.length > 80 ? latestMessage.message.slice(0, 80) + "..." : latestMessage.message,
+            senderName: latestMessageSender?.fullName || latestMessageSender?.username || "Unknown",
+            createdAt: latestMessage.createdAt,
+          } : null,
         };
       }));
 
@@ -3614,6 +3624,9 @@ export async function registerRoutes(
       }
 
       const messages = await storage.getSupportMessages(req.params.id);
+      
+      // Mark this request as read by this user
+      await storage.markSupportRequestRead(req.params.id, user.id);
       
       // Enrich with sender names
       const enrichedMessages = await Promise.all(messages.map(async (msg) => {

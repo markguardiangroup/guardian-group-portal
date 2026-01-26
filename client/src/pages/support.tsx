@@ -69,6 +69,12 @@ interface Company {
 interface SupportRequestWithNames extends SupportRequest {
   createdByName: string;
   respondedByName: string | null;
+  unreadCount: number;
+  latestMessage: {
+    message: string;
+    senderName: string;
+    createdAt: string;
+  } | null;
 }
 
 const supportRequestSchema = z.object({
@@ -112,6 +118,7 @@ function CreateSupportRequestDialog({ sites, onSuccess }: { sites: SiteWithDetai
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
       setOpen(false);
       form.reset();
       toast({
@@ -282,6 +289,7 @@ function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSucc
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
       setOpen(false);
       setResponse("");
       toast({
@@ -398,6 +406,7 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
       setNewMessage("");
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
     },
     onError: () => {
       toast({
@@ -510,7 +519,7 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
         <Card className="hover-elevate cursor-pointer" data-testid={`request-card-${request.id}`}>
           <CardContent className="p-4">
             <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
                 {request.status === "resolved" || request.status === "closed" ? (
                   <CheckCircle className="h-5 w-5 text-emerald-500" />
                 ) : request.priority === "urgent" || request.priority === "high" ? (
@@ -518,11 +527,19 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                 ) : (
                   <MessageSquare className="h-5 w-5 text-muted-foreground" />
                 )}
+                {request.unreadCount > 0 && (
+                  <span 
+                    className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground px-1"
+                    data-testid={`badge-unread-${request.id}`}
+                  >
+                    {request.unreadCount}
+                  </span>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h4 className="font-medium">{request.subject}</h4>
+                    <h4 className={`font-medium ${request.unreadCount > 0 ? "text-primary" : ""}`}>{request.subject}</h4>
                     <p className="mt-0.5 text-sm text-muted-foreground">{request.category}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -530,9 +547,23 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
                     <SupportStatusBadge status={request.status} />
                   </div>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                  {request.description}
-                </p>
+                {request.latestMessage ? (
+                  <div className="mt-2 rounded-md bg-muted/50 px-3 py-2">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                      <MessageSquare className="h-3 w-3" />
+                      <span className="font-medium">{request.latestMessage.senderName}</span>
+                      <span>·</span>
+                      <span>{formatDistanceToNow(new Date(request.latestMessage.createdAt), { addSuffix: true })}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {request.latestMessage.message}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {request.description}
+                  </p>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <User className="h-3 w-3" />

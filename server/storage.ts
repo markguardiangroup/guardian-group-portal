@@ -108,6 +108,11 @@ export interface IStorage {
   // Support Messages
   getSupportMessages(requestId: string): Promise<SupportMessage[]>;
   createSupportMessage(message: InsertSupportMessage): Promise<SupportMessage>;
+  getLatestSupportMessage(requestId: string): Promise<SupportMessage | undefined>;
+  
+  // Support Request Reads (for unread message tracking)
+  markSupportRequestRead(requestId: string, userId: string): Promise<void>;
+  getUnreadMessageCount(requestId: string, userId: string): Promise<number>;
   
   // Dashboard
   getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary>;
@@ -269,6 +274,7 @@ export class MemStorage implements IStorage {
   private documentTemplates: Map<string, DocumentTemplate>;
   private documentTemplateVersions: Map<string, DocumentTemplateVersion>;
   private trainingModulesMap: Map<string, TrainingModule>;
+  private supportRequestReads: Map<string, { requestId: string; userId: string; lastReadAt: Date }>;
 
   constructor() {
     this.users = new Map();
@@ -293,6 +299,7 @@ export class MemStorage implements IStorage {
     this.documentTemplates = new Map();
     this.documentTemplateVersions = new Map();
     this.trainingModulesMap = new Map();
+    this.supportRequestReads = new Map();
     
     this.initializeSampleData();
   }
@@ -1824,6 +1831,36 @@ export class MemStorage implements IStorage {
     };
     this.supportMessages.set(id, message);
     return message;
+  }
+
+  async getLatestSupportMessage(requestId: string): Promise<SupportMessage | undefined> {
+    const messages = Array.from(this.supportMessages.values())
+      .filter(m => m.requestId === requestId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return messages[0];
+  }
+
+  async markSupportRequestRead(requestId: string, userId: string): Promise<void> {
+    const key = `${requestId}:${userId}`;
+    this.supportRequestReads.set(key, {
+      requestId,
+      userId,
+      lastReadAt: new Date(),
+    });
+  }
+
+  async getUnreadMessageCount(requestId: string, userId: string): Promise<number> {
+    const key = `${requestId}:${userId}`;
+    const readRecord = this.supportRequestReads.get(key);
+    const lastReadAt = readRecord?.lastReadAt || new Date(0);
+    
+    const messages = Array.from(this.supportMessages.values())
+      .filter(m => 
+        m.requestId === requestId && 
+        m.senderId !== userId && 
+        new Date(m.createdAt) > lastReadAt
+      );
+    return messages.length;
   }
 
   // Dashboard
