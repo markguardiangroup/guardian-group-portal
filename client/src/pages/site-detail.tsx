@@ -47,7 +47,6 @@ import {
   Mail,
   Users,
   UserCog,
-  Shield,
   FileText,
   CheckCircle,
   AlertTriangle,
@@ -56,11 +55,10 @@ import {
   Trash2,
   Star,
   Crown,
-  MessageSquare,
-  Clock,
   MoreHorizontal,
   Pencil,
   KeyRound,
+  Shield,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -69,16 +67,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow } from "date-fns";
-import type { Site, User, ConsultantAssignment, SiteModuleAccess, ModuleAccessRequest, ClientSiteAssignment } from "@shared/schema";
+import type { Site, User, ConsultantAssignment, ClientSiteAssignment } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 
 type ClientAssignmentWithDetails = ClientSiteAssignment & {
   clientName: string;
   clientEmail: string;
 };
-
-type ModuleStatus = "active" | "visible" | "hidden";
 
 interface ConsultantWithDetails extends ConsultantAssignment {
   consultantName: string;
@@ -99,26 +94,6 @@ interface UserWithoutPassword {
   lastLoginAt: Date | null;
   createdAt: Date;
 }
-
-const moduleLabels: Record<string, string> = {
-  health_safety: "Health & Safety",
-  human_resources: "Human Resources",
-  employment_law: "Employment Law",
-  reports: "Reports",
-  support: "Support",
-};
-
-const statusColors: Record<ModuleStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-  visible: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-  hidden: "bg-muted text-muted-foreground border-muted",
-};
-
-const statusLabels: Record<ModuleStatus, string> = {
-  active: "Active",
-  visible: "Visible",
-  hidden: "Hidden",
-};
 
 function OverviewTab({ entity, sites, onEditSite }: { entity: Site; sites: Site[]; onEditSite: () => void }) {
   return (
@@ -874,117 +849,6 @@ function UsersTab({ siteId }: { siteId: string }) {
   );
 }
 
-function ModuleAccessTab({ siteId }: { siteId: string }) {
-  const { toast } = useToast();
-
-  const { data: moduleAccess = [], isLoading } = useQuery<SiteModuleAccess[]>({
-    queryKey: ["/api/sites", siteId, "module-access"],
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ module, status }: { module: string; status: string }) => {
-      const response = await apiRequest("POST", `/api/sites/${siteId}/module-access`, {
-        module,
-        status,
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "module-access"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Module access updated" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update module access", variant: "destructive" });
-    },
-  });
-
-  const modules = ["health_safety", "human_resources", "employment_law", "support"];
-
-  const getModuleStatus = (module: string): ModuleStatus => {
-    const access = moduleAccess.find((a) => a.module === module);
-    return (access?.status as ModuleStatus) || "hidden";
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-20 w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Module Access</CardTitle>
-        <CardDescription>Control which modules this entity can access</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {modules.map((module) => {
-            const status = getModuleStatus(module);
-            return (
-              <div
-                key={module}
-                className="flex items-center justify-between rounded-md border p-4"
-                data-testid={`module-access-${module}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                    <Shield className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{moduleLabels[module]}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {status === "active"
-                        ? "Full access to all features"
-                        : status === "visible"
-                        ? "Can request access"
-                        : "Not available"}
-                    </p>
-                  </div>
-                </div>
-                <Select
-                  value={status}
-                  onValueChange={(value) => updateMutation.mutate({ module, status: value })}
-                  disabled={updateMutation.isPending}
-                >
-                  <SelectTrigger className="w-[130px]" data-testid={`select-module-${module}`}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">
-                      <span className="flex items-center gap-2">
-                        <CheckCircle className="h-3 w-3 text-emerald-500" />
-                        Active
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="visible">
-                      <span className="flex items-center gap-2">
-                        <AlertTriangle className="h-3 w-3 text-amber-500" />
-                        Visible
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="hidden">
-                      <span className="flex items-center gap-2">
-                        <XCircle className="h-3 w-3 text-muted-foreground" />
-                        Hidden
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ComplianceTab({ siteId }: { siteId: string }) {
   const { data: documents = [] } = useQuery<any[]>({
     queryKey: ["/api/documents", { siteId }],
@@ -1056,155 +920,6 @@ function ComplianceTab({ siteId }: { siteId: string }) {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function AccessRequestsTab({ siteId }: { siteId: string }) {
-  const { toast } = useToast();
-
-  const { data: requests = [], isLoading } = useQuery<ModuleAccessRequest[]>({
-    queryKey: ["/api/module-access-requests", { siteId }],
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
-      const response = await apiRequest("PATCH", `/api/module-access-requests/${id}`, {
-        status,
-        notes,
-      });
-      return response.json();
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "module-access"] });
-      toast({ title: `Request ${variables.status}` });
-    },
-    onError: () => {
-      toast({ title: "Failed to review request", variant: "destructive" });
-    },
-  });
-
-  const pendingRequests = requests.filter((r) => r.status === "pending");
-  const reviewedRequests = requests.filter((r) => r.status !== "pending");
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200">Approved</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-500/10 text-red-600 border-red-200">Rejected</Badge>;
-      default:
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-200">Pending</Badge>;
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pending Requests ({pendingRequests.length})</CardTitle>
-          <CardDescription>Module access requests awaiting review</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pendingRequests.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pending access requests.</p>
-          ) : (
-            <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-md border p-4"
-                  data-testid={`request-${request.id}`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
-                        <MessageSquare className="h-5 w-5 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{moduleLabels[request.module]}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Requested by {request.requestedByName}
-                        </p>
-                        {request.reason && (
-                          <p className="mt-2 text-sm">{request.reason}</p>
-                        )}
-                        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => reviewMutation.mutate({ id: request.id, status: "rejected" })}
-                        disabled={reviewMutation.isPending}
-                        data-testid={`button-reject-${request.id}`}
-                      >
-                        Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => reviewMutation.mutate({ id: request.id, status: "approved" })}
-                        disabled={reviewMutation.isPending}
-                        data-testid={`button-approve-${request.id}`}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {reviewedRequests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Request History ({reviewedRequests.length})</CardTitle>
-            <CardDescription>Previously reviewed requests</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {reviewedRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between rounded-md border p-3"
-                  data-testid={`request-history-${request.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{moduleLabels[request.module]}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {request.requestedByName} • Reviewed by {request.reviewedByName}
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusBadge(request.status)}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -1337,17 +1052,9 @@ export default function SiteDetail() {
             <Users className="mr-2 h-4 w-4" />
             Users
           </TabsTrigger>
-          <TabsTrigger value="module-access" data-testid="tab-module-access">
-            <Shield className="mr-2 h-4 w-4" />
-            Module Access
-          </TabsTrigger>
           <TabsTrigger value="compliance" data-testid="tab-compliance">
             <FileText className="mr-2 h-4 w-4" />
             Compliance
-          </TabsTrigger>
-          <TabsTrigger value="access-requests" data-testid="tab-access-requests">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Requests
           </TabsTrigger>
         </TabsList>
 
@@ -1363,16 +1070,8 @@ export default function SiteDetail() {
           <UsersTab siteId={siteId!} />
         </TabsContent>
 
-        <TabsContent value="module-access">
-          <ModuleAccessTab siteId={siteId!} />
-        </TabsContent>
-
         <TabsContent value="compliance">
           <ComplianceTab siteId={siteId!} />
-        </TabsContent>
-
-        <TabsContent value="access-requests">
-          <AccessRequestsTab siteId={siteId!} />
         </TabsContent>
       </Tabs>
 
