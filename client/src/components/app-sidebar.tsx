@@ -412,7 +412,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </span>
           </div>
           <button
-            onClick={logout}
+            type="button"
+            onClick={() => {
+              console.log("Logout clicked");
+              logout();
+            }}
             disabled={isLoggingOut}
             className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover-elevate"
             data-testid="button-logout"
