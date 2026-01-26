@@ -1189,6 +1189,8 @@ export class MemStorage implements IStorage {
       },
     ];
     caseFolders.forEach(f => this.documentFolders.set(f.id, f));
+    // Also seed case folders into the database for API access
+    this.seedCaseFolders(caseFolders);
 
     // Sample Employment Law Cases - 3 cases for Acme Main Factory with rich activity
     const sampleCases: Case[] = [
@@ -4534,6 +4536,33 @@ export class MemStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error seeding case audit logs:", error);
+    }
+  }
+
+  // Private method to seed case folders into database
+  private async seedCaseFolders(folders: DocumentFolder[]): Promise<void> {
+    try {
+      for (const folder of folders) {
+        // Check if folder already exists
+        const existing = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, folder.id));
+        if (existing.length === 0) {
+          await db.insert(documentFoldersTable).values({
+            id: folder.id,
+            name: folder.name,
+            description: folder.description ?? null,
+            module: folder.module as any,
+            siteId: folder.siteId,
+            parentId: folder.parentId ?? null,
+            templateId: folder.templateId ?? null,
+            sortOrder: folder.sortOrder ?? 0,
+            createdBy: folder.createdBy,
+            createdAt: folder.createdAt,
+            updatedAt: folder.updatedAt,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error seeding case folders:", error);
     }
   }
 }
