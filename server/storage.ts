@@ -1992,14 +1992,24 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     
-    // Auto-create a folder for the case documents
+    // Find or create a parent "Case Documents" folder for employment law cases
+    let parentFolderId: string | null = null;
+    const siteFolders = await this.getDocumentFolders(insertCase.siteId, "employment_law");
+    const caseDocsFolder = siteFolders.find(f => 
+      f.name.toLowerCase().includes("case") && f.parentId === null
+    );
+    if (caseDocsFolder) {
+      parentFolderId = caseDocsFolder.id;
+    }
+    
+    // Auto-create a folder for the case documents (as subfolder of Case Documents if exists)
     const folderName = `${insertCase.caseReference} - ${insertCase.employeeName}`;
     const folder = await this.createDocumentFolder({
       name: folderName,
       description: `Documents for case ${insertCase.caseReference}`,
       module: "employment_law",
       siteId: insertCase.siteId,
-      parentId: null,
+      parentId: parentFolderId,
       templateId: null,
       sortOrder: 0,
       createdBy: insertCase.createdBy,
