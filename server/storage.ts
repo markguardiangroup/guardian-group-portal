@@ -2013,7 +2013,7 @@ export class MemStorage implements IStorage {
       status: (insertCase.status ?? "open") as any,
       description: insertCase.description ?? null,
       employeeId: insertCase.employeeId ?? null,
-      isConfidential: insertCase.isConfidential ?? true,
+      isConfidential: insertCase.isConfidential ?? false, // Non-confidential by default - clients can see their company's cases
       restrictedToUsers: insertCase.restrictedToUsers ?? null,
       hearingDate: insertCase.hearingDate ?? null,
       responseDeadline: insertCase.responseDeadline ?? null,
