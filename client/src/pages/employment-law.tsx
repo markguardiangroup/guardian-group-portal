@@ -123,12 +123,15 @@ function CasesList() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  const isClientUser = user?.role === "client";
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectSites,
   });
+  
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -177,15 +180,20 @@ function CasesList() {
   
   // Build current context label
   const currentContextLabel = useMemo(() => {
-    if (!canSelectSites) return null;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
-    if (selectedCompany && selectedCompany !== "all") {
-      return selectedCompany;
+    if (isPrivilegedUser) {
+      if (selectedCompany && selectedCompany !== "all") {
+        return selectedCompany;
+      }
+      return "All Clients";
     }
-    return "All Clients";
-  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+    if (clientHasMultipleSites && !selectedSiteId) {
+      return "All Sites";
+    }
+    return null;
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -217,7 +225,7 @@ function CasesList() {
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length || 0;
 
-  if (isLoading || (canSelectSites && sitesLoading)) {
+  if (isLoading || sitesLoading) {
     return (
       <div className="theme-el">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
@@ -253,17 +261,19 @@ function CasesList() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {canSelectSites && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
               <>
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-48"
-                  testId="select-company-cases"
-                />
+                {isPrivilegedUser && (
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-48"
+                    testId="select-company-cases"
+                  />
+                )}
                 <SiteCombobox
-                  sites={filteredSites}
+                  sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-48"
@@ -1168,12 +1178,16 @@ function EmploymentLawDashboardView() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   
-  const canSelectSites = user?.role === "admin" || user?.role === "consultant";
+  const isClientUser = user?.role === "client";
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for all users (needed for site name lookup in recent docs/cases)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
   });
+  
+  // Clients can filter by site if they have multiple sites
+  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -1201,15 +1215,20 @@ function EmploymentLawDashboardView() {
   
   // Build current context label
   const currentContextLabel = useMemo(() => {
-    if (!canSelectSites) return null;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
-    if (selectedCompany && selectedCompany !== "all") {
-      return `${selectedCompany} (all sites)`;
+    if (isPrivilegedUser) {
+      if (selectedCompany && selectedCompany !== "all") {
+        return `${selectedCompany} (all sites)`;
+      }
+      return "All Clients";
     }
-    return "All Clients";
-  }, [canSelectSites, selectedSiteId, selectedCompany, sites]);
+    if (clientHasMultipleSites && !selectedSiteId) {
+      return "All Sites";
+    }
+    return null;
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
   
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
@@ -1265,7 +1284,7 @@ function EmploymentLawDashboardView() {
     },
   });
   
-  const isLoading = summaryLoading || casesLoading || (canSelectSites && sitesLoading);
+  const isLoading = summaryLoading || casesLoading || sitesLoading;
   
   const openCases = cases?.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length || 0;
   const urgentCases = cases?.filter(c => {
@@ -1357,19 +1376,23 @@ function EmploymentLawDashboardView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {canSelectSites && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-44"
-                  testId="select-company-el"
-                />
-                <span className="text-muted-foreground">/</span>
+                {isPrivilegedUser && (
+                  <>
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-44"
+                      testId="select-company-el"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                  </>
+                )}
                 <SiteCombobox
-                  sites={filteredSites}
+                  sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
                   onValueChange={setSelectedSiteId}
                   className="w-44"
