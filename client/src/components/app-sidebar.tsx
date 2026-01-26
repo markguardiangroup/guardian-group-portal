@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Landmark,
@@ -174,6 +175,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { hasActiveAccess, hasVisibleAccess, isHidden } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
+  // Fetch support request counts for notification badge
+  const { data: supportCounts } = useQuery<{ openCount: number }>({
+    queryKey: ["/api/support-requests/counts"],
+    staleTime: 30000, // Refresh every 30 seconds
+    refetchInterval: 60000, // Auto-refresh every minute
+  });
+  const openSupportCount = supportCounts?.openCount || 0;
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -278,6 +287,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         >
                           <item.icon className="h-4 w-4 text-module-accent" />
                           <span className="flex-1">{item.title}</span>
+                          {item.module === "support" && openSupportCount > 0 && (
+                            <Badge 
+                              variant="destructive" 
+                              className="h-5 min-w-5 px-1.5 text-xs font-medium"
+                              data-testid="badge-support-notifications"
+                            >
+                              {openSupportCount}
+                            </Badge>
+                          )}
                           <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
