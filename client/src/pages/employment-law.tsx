@@ -63,6 +63,7 @@ import {
   FolderOpen,
   Building2,
   TrendingUp,
+  MapPin,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site } from "@shared/schema";
@@ -697,6 +698,17 @@ function CaseDetailView({ id }: { id: string }) {
     queryKey: ["/api/cases", id, "audit"],
   });
 
+  // Fetch company and site details for display
+  const { data: company } = useQuery<{ id: string; name: string }>({
+    queryKey: ["/api/entities", caseData?.entityId],
+    enabled: !!caseData?.entityId,
+  });
+
+  const { data: site } = useQuery<{ id: string; name: string }>({
+    queryKey: ["/api/sites", caseData?.siteId],
+    enabled: !!caseData?.siteId,
+  });
+
   const updateCaseMutation = useMutation({
     mutationFn: async (updates: Partial<Case>) => {
       return apiRequest("PATCH", `/api/cases/${id}`, updates);
@@ -822,9 +834,25 @@ function CaseDetailView({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="mt-1">{caseData.description || "No description provided"}</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Company</p>
+                    <p className="mt-1 flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      {company?.name || "Loading..."}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Site</p>
+                    <p className="mt-1 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {site?.name || "Loading..."}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Description</p>
+                    <p className="mt-1">{caseData.description || "No description provided"}</p>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   {caseData.hearingDate && (
