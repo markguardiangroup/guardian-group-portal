@@ -4344,6 +4344,7 @@ export async function registerRoutes(
           human_resources: "active",
           employment_law: "active",
           support: "active",
+          reports: "active",
         });
       }
       
@@ -4355,6 +4356,7 @@ export async function registerRoutes(
           human_resources: "hidden",
           employment_law: "hidden",
           support: "hidden",
+          reports: "hidden",
         });
       }
       
@@ -4366,6 +4368,7 @@ export async function registerRoutes(
           human_resources: "hidden",
           employment_law: "hidden",
           support: "hidden",
+          reports: "hidden",
         });
       }
       
@@ -4375,6 +4378,7 @@ export async function registerRoutes(
         human_resources: companyAccess.humanResources ? "active" : "hidden",
         employment_law: companyAccess.employmentLaw ? "active" : "hidden",
         support: companyAccess.support ? "active" : "hidden",
+        reports: companyAccess.reports ? "active" : "hidden",
       });
     } catch (error) {
       console.error("Get user module access error:", error);
@@ -4501,11 +4505,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can manage company module access" });
       }
       
-      const { healthSafety, humanResources, employmentLaw, support } = req.body;
+      const { healthSafety, humanResources, employmentLaw, support, reports } = req.body;
       
       // At least one module should be specified
       if (healthSafety === undefined && humanResources === undefined && 
-          employmentLaw === undefined && support === undefined) {
+          employmentLaw === undefined && support === undefined && reports === undefined) {
         return res.status(400).json({ error: "At least one module access setting is required" });
       }
       
@@ -4514,6 +4518,7 @@ export async function registerRoutes(
         humanResources,
         employmentLaw,
         support,
+        reports,
       });
       
       if (!company) {
@@ -4525,6 +4530,7 @@ export async function registerRoutes(
         humanResources: company.humanResourcesAccess,
         employmentLaw: company.employmentLawAccess,
         support: company.supportAccess,
+        reports: company.reportsAccess,
       });
     } catch (error) {
       console.error("Set company module access error:", error);

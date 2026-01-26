@@ -25,6 +25,7 @@ import {
   Heart,
   Briefcase,
   HelpCircle,
+  FileText,
 } from "lucide-react";
 import type { Company, SiteWithDetails, ComplianceSummary, SiteModuleAccessSummary } from "@shared/schema";
 
@@ -33,6 +34,7 @@ interface CompanyModuleAccess {
   humanResources: boolean;
   employmentLaw: boolean;
   support: boolean;
+  reports: boolean;
 }
 
 type CompanyWithSites = Company & {
@@ -215,6 +217,7 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     { key: "humanResources" as const, label: "Human Resources", icon: Heart, color: "text-blue-600 dark:text-blue-400" },
     { key: "employmentLaw" as const, label: "Employment Law", icon: Briefcase, color: "text-purple-600 dark:text-purple-400" },
     { key: "support" as const, label: "Support", icon: HelpCircle, color: "text-orange-600 dark:text-orange-400" },
+    { key: "reports" as const, label: "Reports", icon: FileText, color: "text-slate-600 dark:text-slate-400" },
   ];
 
   if (isLoading) {

@@ -137,8 +137,8 @@ export interface IStorage {
   setSiteModuleAccess(siteId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<SiteModuleAccess>;
   
   // Company Module Access (new - company-level module access)
-  getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean } | undefined>;
-  setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean }): Promise<Company | undefined>;
+  getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean; reports: boolean } | undefined>;
+  setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined>;
   hasCompanyModuleAccess(companyId: string, module: ModuleType): Promise<boolean>;
   
   // Module Access Requests
@@ -2414,7 +2414,7 @@ export class MemStorage implements IStorage {
   }
 
   // Company Module Access
-  async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean } | undefined> {
+  async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean; reports: boolean } | undefined> {
     const company = this.companies.get(companyId);
     if (!company) return undefined;
     return {
@@ -2422,10 +2422,11 @@ export class MemStorage implements IStorage {
       humanResources: company.humanResourcesAccess,
       employmentLaw: company.employmentLawAccess,
       support: company.supportAccess,
+      reports: company.reportsAccess,
     };
   }
 
-  async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean }): Promise<Company | undefined> {
+  async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined> {
     const company = this.companies.get(companyId);
     if (!company) return undefined;
     
@@ -2435,6 +2436,7 @@ export class MemStorage implements IStorage {
       humanResourcesAccess: modules.humanResources ?? company.humanResourcesAccess,
       employmentLawAccess: modules.employmentLaw ?? company.employmentLawAccess,
       supportAccess: modules.support ?? company.supportAccess,
+      reportsAccess: modules.reports ?? company.reportsAccess,
     };
     this.companies.set(companyId, updated);
     return updated;
@@ -2454,8 +2456,7 @@ export class MemStorage implements IStorage {
       case "support":
         return company.supportAccess;
       case "reports":
-        // Reports are always accessible if any module is accessible
-        return company.healthSafetyAccess || company.humanResourcesAccess || company.employmentLawAccess || company.supportAccess;
+        return company.reportsAccess;
       default:
         return false;
     }
