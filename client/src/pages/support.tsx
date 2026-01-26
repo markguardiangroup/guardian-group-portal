@@ -274,97 +274,57 @@ function CreateSupportRequestDialog({ sites, onSuccess }: { sites: SiteWithDetai
   );
 }
 
-function RespondDialog({ request, onSuccess }: { request: SupportRequest; onSuccess: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<string>(request.status);
-  const [response, setResponse] = useState("");
+function InlineStatusSelect({ request }: { request: SupportRequest }) {
   const { toast } = useToast();
+  const [currentStatus, setCurrentStatus] = useState<"open" | "in_progress" | "resolved" | "closed">(request.status);
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (newStatus: string) => {
       return apiRequest("PATCH", `/api/support-requests/${request.id}`, {
-        status,
-        response,
+        status: newStatus,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
-      setOpen(false);
-      setResponse("");
       toast({
-        title: "Request Updated",
-        description: "The support request has been updated.",
+        title: "Status Updated",
+        description: "The ticket status has been changed.",
       });
-      onSuccess();
     },
     onError: () => {
+      setCurrentStatus(request.status);
       toast({
         title: "Error",
-        description: "Failed to update request. Please try again.",
+        description: "Failed to update status. Please try again.",
         variant: "destructive",
       });
     },
   });
 
+  const handleStatusChange = (newStatus: "open" | "in_progress" | "resolved" | "closed") => {
+    setCurrentStatus(newStatus);
+    mutation.mutate(newStatus);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" data-testid={`button-respond-${request.id}`}>
-          Respond
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Respond to Request</DialogTitle>
-          <DialogDescription>
-            Update the status and add a response to this request.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium mb-1">Subject</p>
-            <p className="text-sm text-muted-foreground">{request.subject}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium mb-1">Description</p>
-            <p className="text-sm text-muted-foreground">{request.description}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Status</label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="mt-1" data-testid="select-status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Response / Notes</label>
-            <Textarea
-              className="mt-1 min-h-24"
-              placeholder="Add your response or internal notes..."
-              value={response}
-              onChange={(e) => setResponse(e.target.value)}
-              data-testid="textarea-response"
-            />
-          </div>
-        </div>
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-submit-response">
-            {mutation.isPending ? "Updating..." : "Update Request"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-muted-foreground">Status:</span>
+      <Select value={currentStatus} onValueChange={handleStatusChange} disabled={mutation.isPending}>
+        <SelectTrigger className="w-[140px] h-8" data-testid={`select-status-${request.id}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="open">Open</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="resolved">Resolved</SelectItem>
+          <SelectItem value="closed">Closed</SelectItem>
+        </SelectContent>
+      </Select>
+      {mutation.isPending && (
+        <span className="text-xs text-muted-foreground">Saving...</span>
+      )}
+    </div>
   );
 }
 
@@ -603,7 +563,11 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
             </div>
             <div className="flex items-center gap-2">
               <PriorityBadge priority={request.priority} />
-              <SupportStatusBadge status={request.status} />
+              {canRespond ? (
+                <InlineStatusSelect request={request} />
+              ) : (
+                <SupportStatusBadge status={request.status} />
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -656,12 +620,6 @@ function RequestDetailDialog({ request, site, canRespond }: { request: SupportRe
           </div>
 
           <ConversationThread requestId={request.id} isOpen={open} />
-
-          {canRespond && (
-            <div className="pt-4 border-t">
-              <RespondDialog request={request} onSuccess={() => {}} />
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
