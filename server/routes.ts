@@ -230,6 +230,7 @@ export async function registerRoutes(
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        clientPermissionRole: user.clientPermissionRole,
       };
 
       res.json({
@@ -239,6 +240,7 @@ export async function registerRoutes(
         fullName: user.fullName,
         role: user.role,
         companyId: user.companyId,
+        clientPermissionRole: user.clientPermissionRole,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -287,6 +289,7 @@ export async function registerRoutes(
       fullName: user.fullName,
       role: user.role,
       companyId: user.companyId,
+      clientPermissionRole: user.clientPermissionRole,
     });
   });
 
