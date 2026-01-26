@@ -678,6 +678,8 @@ export default function Support() {
       if (!response.ok) throw new Error("Failed to fetch requests");
       return response.json();
     },
+    staleTime: 0, // Always refetch fresh data for support requests
+    refetchOnMount: "always",
   });
 
   const filteredRequests = requests?.filter((req) => {
