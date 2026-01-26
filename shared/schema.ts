@@ -290,6 +290,7 @@ export const cases = pgTable("cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   entityId: varchar("entity_id").notNull(), // Company the case belongs to
   siteId: varchar("site_id").notNull(), // Site within the company
+  folderId: varchar("folder_id"), // Auto-created folder for case documents
   caseReference: text("case_reference").notNull(),
   employeeName: text("employee_name").notNull(),
   employeeId: text("employee_id"),

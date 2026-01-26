@@ -2924,9 +2924,24 @@ export class MemStorage implements IStorage {
   async createCase(insertCase: InsertCase): Promise<Case> {
     const id = randomUUID();
     const now = new Date();
+    
+    // Auto-create a folder for the case documents
+    const folderName = `${insertCase.caseReference} - ${insertCase.employeeName}`;
+    const folder = await this.createDocumentFolder({
+      name: folderName,
+      description: `Documents for case ${insertCase.caseReference}`,
+      module: "employment_law",
+      siteId: insertCase.siteId,
+      parentId: null,
+      templateId: null,
+      sortOrder: 0,
+      createdBy: insertCase.createdBy,
+    });
+    
     const newCase: Case = {
       ...insertCase,
       id,
+      folderId: folder.id, // Link to auto-created folder
       caseType: insertCase.caseType as any,
       status: (insertCase.status ?? "open") as any,
       description: insertCase.description ?? null,
