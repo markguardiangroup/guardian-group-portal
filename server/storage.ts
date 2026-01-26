@@ -1075,40 +1075,7 @@ export class MemStorage implements IStorage {
     // Seed document versions disabled for clean testing
     // docVersions.forEach(ver => this.documentVersions.set(ver.id, ver));
 
-    // Create sample support requests
-    const requests: SupportRequest[] = [
-      {
-        id: "req-1",
-        subject: "Question about fire extinguisher placement",
-        description: "We're renovating the main floor and need guidance on where to relocate the fire extinguishers. Current positions will be blocked by new equipment.",
-        priority: "medium",
-        status: "open",
-        category: "Compliance Question",
-        module: "health_safety",
-        siteId: "site-1",
-        createdBy: "user-1",
-        assignedTo: null,
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        resolvedAt: null,
-      },
-      {
-        id: "req-2",
-        subject: "Need updated contract template",
-        description: "We need an updated employment contract template that includes the new remote working clause as per our HR policy.",
-        priority: "low",
-        status: "resolved",
-        category: "Document Request",
-        module: "human_resources",
-        siteId: "site-3",
-        createdBy: "user-1",
-        assignedTo: "user-1",
-        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        resolvedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-    ];
-    requests.forEach(req => this.supportRequests.set(req.id, req));
+    // Support requests - no sample data (created by users as needed)
     
     // Create sample entity document type access - now linked to document type IDs from master list
     // Entity 1 (Acme Manufacturing) - has access to most document types but not all
