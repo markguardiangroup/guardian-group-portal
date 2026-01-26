@@ -3383,6 +3383,39 @@ export async function registerRoutes(
     }
   });
 
+  // Get support request counts for notifications (must be before :id route)
+  app.get("/api/support-requests/counts", async (req, res) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const allRequests = await storage.getSupportRequests();
+      
+      let relevantRequests: typeof allRequests = [];
+      
+      if (user.role === "admin") {
+        relevantRequests = allRequests;
+      } else if (user.role === "consultant") {
+        const assignments = await storage.getConsultantAssignments(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        relevantRequests = allRequests.filter(r => assignedSiteIds.has(r.siteId));
+      } else {
+        relevantRequests = allRequests.filter(r => r.createdBy === user.id);
+      }
+
+      const openCount = relevantRequests.filter(r => 
+        r.status === "open" || r.status === "in_progress"
+      ).length;
+
+      res.json({ openCount });
+    } catch (error) {
+      console.error("Get support counts error:", error);
+      res.status(500).json({ error: "Failed to get support counts" });
+    }
+  });
+
   app.post("/api/support-requests", async (req, res) => {
     try {
       const user = req.session?.user;
@@ -3553,43 +3586,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Clear support requests error:", error);
       res.status(500).json({ error: "Failed to clear support requests" });
-    }
-  });
-
-  // Get support request counts for notifications
-  app.get("/api/support-requests/counts", async (req, res) => {
-    try {
-      const user = req.session?.user;
-      if (!user) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const allRequests = await storage.getSupportRequests();
-      
-      let relevantRequests: typeof allRequests = [];
-      
-      if (user.role === "admin") {
-        // Admin sees all requests
-        relevantRequests = allRequests;
-      } else if (user.role === "consultant") {
-        // Consultant sees requests for their assigned sites
-        const assignments = await storage.getConsultantAssignments(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        relevantRequests = allRequests.filter(r => assignedSiteIds.has(r.siteId));
-      } else {
-        // Client sees their own requests
-        relevantRequests = allRequests.filter(r => r.createdBy === user.id);
-      }
-
-      // Count open tickets (open or in_progress) - these need attention
-      const openCount = relevantRequests.filter(r => 
-        r.status === "open" || r.status === "in_progress"
-      ).length;
-
-      res.json({ openCount });
-    } catch (error) {
-      console.error("Get support counts error:", error);
-      res.status(500).json({ error: "Failed to get support counts" });
     }
   });
 
