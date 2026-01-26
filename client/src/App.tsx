@@ -24,7 +24,6 @@ import HSIncidents from "@/pages/hs-incidents";
 import Reports from "@/pages/reports";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
-import ModuleAccessRequests from "@/pages/module-access-requests";
 import UserManagement from "@/pages/user-management";
 import TemplateLibrary from "@/pages/template-library";
 import TrainingLibrary from "@/pages/training-library";
@@ -97,7 +96,6 @@ function Router() {
       <Route path="/reports" component={Reports} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
-      <Route path="/access-requests" component={ModuleAccessRequests} />
       <Route path="/users" component={UserManagement} />
       <Route path="/template-library" component={TemplateLibrary} />
       <Route path="/training-library" component={TrainingLibrary} />

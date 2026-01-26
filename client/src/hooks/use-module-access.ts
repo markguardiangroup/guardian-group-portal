@@ -1,38 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./use-auth";
-import type { SiteModuleAccess, ModuleType, ModuleAccessRequest } from "@shared/schema";
+import type { ModuleType } from "@shared/schema";
 
 interface UseModuleAccessResult {
-  moduleAccess: SiteModuleAccess[];
-  accessRequests: ModuleAccessRequest[];
   isLoading: boolean;
   hasActiveAccess: (module: ModuleType) => boolean;
   hasVisibleAccess: (module: ModuleType) => boolean;
   isHidden: (module: ModuleType) => boolean;
   getAccessStatus: (module: ModuleType) => "active" | "visible" | "hidden" | undefined;
-  hasPendingRequest: (module: ModuleType) => boolean;
-  canRequestAccess: (module: ModuleType) => boolean;
 }
 
 export function useModuleAccess(): UseModuleAccessResult {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   
-  const siteId = user?.siteId;
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  
-  // Only fetch module access for clients with a valid site
-  // Admin/consultants have access to all modules by default
-  const shouldFetchModuleAccess = !!siteId && !isPrivilegedUser;
-  const { data: moduleAccess = [], isLoading: accessLoading } = useQuery<SiteModuleAccess[]>({
-    queryKey: [`/api/sites/${siteId}/module-access`],
-    enabled: shouldFetchModuleAccess,
-  });
-  
-  // Fetch access requests for all users
-  const { data: accessRequests = [], isLoading: requestsLoading } = useQuery<ModuleAccessRequest[]>({
-    queryKey: ["/api/module-access-requests"],
-    enabled: !!user,
-  });
 
   const getAccessStatus = (module: ModuleType): "active" | "visible" | "hidden" | undefined => {
     // Admin/consultants always have active access to all modules
@@ -40,18 +20,23 @@ export function useModuleAccess(): UseModuleAccessResult {
       return "active";
     }
     
-    // Clients without a site have no access
-    if (!siteId) {
-      return undefined;
+    // For clients, we default to active for all modules on the dashboard
+    // The actual site-level access control is handled by the API routes
+    if (user?.role === "client") {
+      return "active";
     }
     
-    const access = moduleAccess.find(a => a.module === module);
-    return access?.status as "active" | "visible" | "hidden" | undefined;
+    return undefined;
   };
 
   const hasActiveAccess = (module: ModuleType): boolean => {
     // Admin/consultants always have active access
     if (isPrivilegedUser) {
+      return true;
+    }
+    // Clients get access based on their company's module access
+    // This is controlled at the API level per site
+    if (user?.role === "client") {
       return true;
     }
     return getAccessStatus(module) === "active";
@@ -62,49 +47,24 @@ export function useModuleAccess(): UseModuleAccessResult {
     if (isPrivilegedUser) {
       return true;
     }
+    if (user?.role === "client") {
+      return true;
+    }
     const status = getAccessStatus(module);
     return status === "active" || status === "visible";
   };
 
-  const isHidden = (module: ModuleType): boolean => {
-    // Admin/consultants can see all modules
-    if (isPrivilegedUser) {
-      return false;
-    }
-    return getAccessStatus(module) === "hidden";
+  const isHidden = (_module: ModuleType): boolean => {
+    // For now, no modules are hidden on the dashboard
+    // Site-level access control is handled by API routes
+    return false;
   };
-
-  const hasPendingRequest = (module: ModuleType): boolean => {
-    if (!siteId) return false;
-    return accessRequests.some(
-      r => r.module === module && 
-           r.siteId === siteId && 
-           r.status === "pending"
-    );
-  };
-
-  const canRequestAccess = (module: ModuleType): boolean => {
-    // Admin/consultants don't need to request access
-    if (isPrivilegedUser) {
-      return false;
-    }
-    const status = getAccessStatus(module);
-    return status === "visible" && !hasPendingRequest(module);
-  };
-
-  // For privileged users, loading is only dependent on access requests
-  // For clients, loading depends on both module access and access requests
-  const isLoading = isPrivilegedUser ? requestsLoading : (accessLoading || requestsLoading);
 
   return {
-    moduleAccess,
-    accessRequests,
     isLoading,
     hasActiveAccess,
     hasVisibleAccess,
     isHidden,
     getAccessStatus,
-    hasPendingRequest,
-    canRequestAccess,
   };
 }

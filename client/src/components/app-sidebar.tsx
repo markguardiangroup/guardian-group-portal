@@ -11,8 +11,6 @@ import {
   Scale,
   ChevronDown,
   Lock,
-  Clock,
-  KeyRound,
   Headphones,
   BookOpen,
   GraduationCap,
@@ -148,11 +146,6 @@ const adminNavItems = [
     url: "/training-library",
     icon: GraduationCap,
   },
-  {
-    title: "Module Requests",
-    url: "/access-requests",
-    icon: KeyRound,
-  },
 ];
 
 interface AuthUser {
@@ -178,7 +171,7 @@ const roleLabels: Record<UserRole, string> = {
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
   const { logout, isLoggingOut } = useAuth();
-  const { hasActiveAccess, hasVisibleAccess, isHidden, hasPendingRequest, canRequestAccess, accessRequests } = useModuleAccess();
+  const { hasActiveAccess, hasVisibleAccess, isHidden } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
   const getInitials = (name: string) => {
@@ -246,9 +239,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
               {visibleModules.map((item) => {
                 const isModuleActive = location.startsWith(item.url);
                 const hasAccess = hasActiveAccess(item.module);
-                const isPending = hasPendingRequest(item.module);
-                const showLock = !hasAccess && !isPending;
-                const showPending = !hasAccess && isPending;
                 
                 if (!hasAccess) {
                   return (
@@ -259,18 +249,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       >
                         <item.icon className="h-4 w-4 text-module-accent" />
                         <span className="flex-1">{item.title}</span>
-                        {showLock && (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Request
-                          </Badge>
-                        )}
-                        {showPending && (
-                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Pending
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Locked
+                        </Badge>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -341,7 +323,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {adminNavItems.map((item) => {
                   const isActive = location === item.url || 
                     (item.url !== "/" && location.startsWith(item.url));
-                  const pendingCount = accessRequests.filter(r => r.status === "pending").length;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
@@ -355,11 +336,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                           <item.icon className="h-4 w-4" />
                           <span className="flex-1">{item.title}</span>
-                          {pendingCount > 0 && (
-                            <Badge variant="secondary" className="h-5 min-w-5 justify-center text-xs">
-                              {pendingCount}
-                            </Badge>
-                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
