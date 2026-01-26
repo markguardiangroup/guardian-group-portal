@@ -103,6 +103,7 @@ export interface IStorage {
   getSupportRequest(id: string): Promise<SupportRequest | undefined>;
   createSupportRequest(request: InsertSupportRequest): Promise<SupportRequest>;
   updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined>;
+  clearSupportRequests(): Promise<void>;
   
   // Support Messages
   getSupportMessages(requestId: string): Promise<SupportMessage[]>;
@@ -1801,6 +1802,11 @@ export class MemStorage implements IStorage {
     const updated = { ...request, ...updates, updatedAt: new Date() };
     this.supportRequests.set(id, updated);
     return updated;
+  }
+
+  async clearSupportRequests(): Promise<void> {
+    this.supportRequests.clear();
+    this.supportMessages.clear();
   }
 
   async getSupportMessages(requestId: string): Promise<SupportMessage[]> {
