@@ -42,8 +42,7 @@ Core entities include:
 - **Documents**: Compliance documents with status tracking (compliant, review_required, overdue) and approval workflow tracking (pending, client_signed_off, approved, rejected, changes_requested), linked to sites
 - **Document Versions**: Version history for document changes
 - **Consultant Assignments**: Links consultants to sites with primary flag
-- **Site Module Access**: Three-state access control (active/visible/hidden) per module per site
-- **Module Access Requests**: Workflow for clients to request module access
+- **Site Module Access**: Two-state access control (active/hidden) per module per site - managed by admin/consultant only, no client request workflow
 - **Audit Logs**: Activity tracking with timestamps and user attribution
 - **Support Requests**: Client support ticket system
 - **Training Folders**: Organizational structure for training content per module (separate from document folders)
