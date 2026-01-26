@@ -65,7 +65,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary } from "@shared/schema";
+import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -483,7 +483,8 @@ function CreateCaseDialog({
   isLoading: boolean;
 }) {
   const [formData, setFormData] = useState({
-    siteId: "entity-1",
+    entityId: "",
+    siteId: "",
     caseReference: "",
     employeeName: "",
     employeeId: "",
@@ -493,14 +494,35 @@ function CreateCaseDialog({
     responseDeadline: "",
   });
 
+  // Fetch companies for selection
+  const { data: companies } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+    select: (data: any) => data.companies || data,
+  });
+
+  // Fetch sites filtered by selected company
+  const { data: sites } = useQuery<Site[]>({
+    queryKey: ["/api/sites"],
+    enabled: !!formData.entityId,
+    select: (data) => data.filter((site: Site) => site.companyId === formData.entityId),
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.entityId || !formData.siteId) {
+      return;
+    }
     onSubmit(formData);
+  };
+
+  // Reset site when company changes
+  const handleCompanyChange = (companyId: string) => {
+    setFormData({ ...formData, entityId: companyId, siteId: "" });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-pink-600" />
@@ -511,6 +533,47 @@ function CreateCaseDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Company and Site Selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Company <span className="text-destructive">*</span></label>
+              <Select
+                value={formData.entityId}
+                onValueChange={handleCompanyChange}
+              >
+                <SelectTrigger data-testid="select-company">
+                  <SelectValue placeholder="Select company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies?.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Site <span className="text-destructive">*</span></label>
+              <Select
+                value={formData.siteId}
+                onValueChange={(v) => setFormData({ ...formData, siteId: v })}
+                disabled={!formData.entityId}
+              >
+                <SelectTrigger data-testid="select-site">
+                  <SelectValue placeholder={formData.entityId ? "Select site" : "Select company first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites?.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Case Reference</label>

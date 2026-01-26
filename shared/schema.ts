@@ -288,7 +288,8 @@ export type CaseType =
 // Employment Law Cases (Individual files linked to specific people)
 export const cases = pgTable("cases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  siteId: varchar("site_id").notNull(),
+  entityId: varchar("entity_id").notNull(), // Company the case belongs to
+  siteId: varchar("site_id").notNull(), // Site within the company
   caseReference: text("case_reference").notNull(),
   employeeName: text("employee_name").notNull(),
   employeeId: text("employee_id"),

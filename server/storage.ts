@@ -1151,6 +1151,7 @@ export class MemStorage implements IStorage {
       // Case 1: Active Disciplinary - Under Investigation with extensive activity
       {
         id: "case-1",
+        entityId: "company-1",
         siteId: "site-1",
         caseReference: "EL-2024-001",
         employeeName: "John Smith",
@@ -1171,6 +1172,7 @@ export class MemStorage implements IStorage {
       // Case 2: Grievance - Open with initial acknowledgment completed
       {
         id: "case-2",
+        entityId: "company-1",
         siteId: "site-1",
         caseReference: "EL-2024-002",
         employeeName: "Sarah Mitchell",
@@ -1191,6 +1193,7 @@ export class MemStorage implements IStorage {
       // Case 3: Tribunal Claim - Hearing Scheduled with full documentation trail
       {
         id: "case-3",
+        entityId: "company-1",
         siteId: "site-1",
         caseReference: "EL-2024-003",
         employeeName: "Emma Wilson",
