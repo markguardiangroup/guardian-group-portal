@@ -724,11 +724,17 @@ function CaseDetailView({ id }: { id: string }) {
     enabled: !!caseData?.siteId,
   });
 
-  // Fetch company users for access management
-  const { data: companyUsers } = useQuery<UserType[]>({
-    queryKey: ["/api/users", { companyId: caseData?.entityId }],
-    enabled: !!caseData?.entityId && (user?.role === "admin" || user?.role === "consultant"),
+  // Fetch all users for access management (admin/consultant only)
+  const { data: allUsers } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+    enabled: user?.role === "admin" || user?.role === "consultant",
   });
+
+  // Filter to company users
+  const companyUsers = useMemo(() => {
+    if (!allUsers || !caseData?.entityId) return [];
+    return allUsers.filter(u => u.companyId === caseData.entityId);
+  }, [allUsers, caseData?.entityId]);
 
   // Parse restrictedToUsers (stored as JSON string)
   const restrictedUserIds = useMemo(() => {
