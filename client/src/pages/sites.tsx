@@ -38,50 +38,10 @@ import {
   AlertTriangle,
   XCircle,
   Settings,
-  Shield,
-  Heart,
-  Briefcase,
-  Headphones,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SiteWithDetails, ComplianceSummary, SiteModuleAccessSummary, Company } from "@shared/schema";
-
-function ModuleStatusBadges({ moduleAccess }: { moduleAccess?: SiteModuleAccessSummary }) {
-  if (!moduleAccess) return null;
-
-  const modules = [
-    { key: "health_safety" as const, label: "H&S", icon: Shield },
-    { key: "human_resources" as const, label: "HR", icon: Heart },
-    { key: "employment_law" as const, label: "EL", icon: Briefcase },
-    { key: "support" as const, label: "SUP", icon: Headphones },
-  ];
-
-  const statusColors = {
-    active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    visible: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    hidden: "bg-muted text-muted-foreground border-muted",
-  };
-
-  return (
-    <div className="flex items-center gap-1">
-      {modules.map(({ key, label, icon: Icon }) => {
-        const status = moduleAccess[key];
-        return (
-          <Badge
-            key={key}
-            variant="outline"
-            className={`${statusColors[status]} px-1.5 py-0 text-xs`}
-            title={`${label}: ${status}`}
-          >
-            <Icon className="mr-0.5 h-3 w-3" />
-            {label}
-          </Badge>
-        );
-      })}
-    </div>
-  );
-}
+import type { SiteWithDetails, ComplianceSummary, Company } from "@shared/schema";
 
 function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
@@ -233,7 +193,6 @@ export default function Sites() {
                 <TableHead>Company</TableHead>
                 <TableHead className="hidden md:table-cell">Address</TableHead>
                 <TableHead className="hidden lg:table-cell">Site Manager</TableHead>
-                <TableHead>Modules</TableHead>
                 <TableHead>Compliance</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
@@ -267,9 +226,6 @@ export default function Sites() {
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <span className="text-sm">{site.siteManager || "—"}</span>
-                  </TableCell>
-                  <TableCell>
-                    <ModuleStatusBadges moduleAccess={site.moduleAccess} />
                   </TableCell>
                   <TableCell>
                     <ComplianceBadge summary={site.complianceSummary} />
