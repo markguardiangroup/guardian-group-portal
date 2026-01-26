@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -696,6 +696,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showAccessDialog, setShowAccessDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: caseData, isLoading } = useQuery<Case>({
     queryKey: ["/api/cases", id],
@@ -830,6 +832,60 @@ function CaseDetailView({ id }: { id: string }) {
       toast({ title: "Milestone deleted" });
     },
   });
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      return apiRequest("DELETE", `/api/cases/${id}/documents/${docId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Document deleted" });
+    },
+  });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // Upload file to object storage
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const { url } = await uploadRes.json();
+
+      // Create document record
+      await apiRequest("POST", `/api/cases/${id}/documents`, {
+        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension for title
+        fileName: file.name,
+        fileUrl: url,
+        fileSize: file.size,
+        mimeType: file.type,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Document uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload document", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
 
@@ -1111,10 +1167,25 @@ function CaseDetailView({ id }: { id: string }) {
                 <CardDescription>Documents linked to this case</CardDescription>
               </div>
               {(user?.role === "admin" || user?.role === "consultant") && (
-                <Button size="sm" variant="outline" data-testid="button-upload-document">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </Button>
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    data-testid="input-file-upload"
+                  />
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-upload-document"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isUploading ? "Uploading..." : "Upload"}
+                  </Button>
+                </>
               )}
             </CardHeader>
             <CardContent className="pt-4">
@@ -1127,9 +1198,22 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="font-medium">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">{doc.fileName}</p>
                       </div>
-                      <Button size="icon" variant="ghost" data-testid={`button-download-${doc.id}`}>
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                        <Button size="icon" variant="ghost" data-testid={`button-download-${doc.id}`}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </a>
+                      {(user?.role === "admin" || user?.role === "consultant") && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="text-muted-foreground hover:text-red-600"
+                          onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                          data-testid={`button-delete-doc-${doc.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

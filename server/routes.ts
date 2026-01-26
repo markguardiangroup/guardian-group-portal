@@ -4212,6 +4212,111 @@ export async function registerRoutes(
     }
   });
 
+  // Upload case document (admin/consultant only)
+  app.post("/api/cases/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admin/consultant can upload case documents
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can upload case documents" });
+      }
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const { title, fileName, fileUrl, fileSize, mimeType } = req.body;
+
+      if (!title || !fileName || !fileUrl) {
+        return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
+      }
+
+      // Create the document linked to the case
+      const document = await storage.createDocument({
+        title,
+        description: `Case document for ${caseData.caseReference}`,
+        module: "employment_law",
+        type: "case_document",
+        entityId: caseData.entityId,
+        siteId: caseData.siteId,
+        caseId: caseData.id,
+        folderId: caseData.folderId,
+        fileName,
+        fileUrl,
+        fileSize: fileSize || 0,
+        mimeType: mimeType || "application/octet-stream",
+        uploadedBy: user.id,
+        status: "compliant",
+        approvalStatus: "approved",
+        source: "upload",
+      });
+
+      // Log the upload
+      await storage.createAuditLog({
+        action: "document_uploaded",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: caseData.siteId,
+        caseId: caseData.id,
+        module: "employment_law",
+        details: `Document "${title}" uploaded to case ${caseData.caseReference}`,
+      });
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Upload case document error:", error);
+      res.status(500).json({ error: "Failed to upload case document" });
+    }
+  });
+
+  // Delete case document (admin/consultant only)
+  app.delete("/api/cases/:caseId/documents/:docId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admin/consultant can delete case documents
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can delete case documents" });
+      }
+
+      const caseData = await storage.getCase(req.params.caseId);
+      if (!caseData) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const document = await storage.getDocument(req.params.docId);
+      if (!document || document.caseId !== caseData.id) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      await storage.deleteDocument(req.params.docId);
+
+      // Log the deletion
+      await storage.createAuditLog({
+        action: "document_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: caseData.siteId,
+        caseId: caseData.id,
+        module: "employment_law",
+        details: `Document "${document.title}" deleted from case ${caseData.caseReference}`,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete case document error:", error);
+      res.status(500).json({ error: "Failed to delete case document" });
+    }
+  });
+
   // Get case milestones
   app.get("/api/cases/:id/milestones", requireAuth, async (req, res) => {
     try {
