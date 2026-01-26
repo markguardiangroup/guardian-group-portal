@@ -1601,7 +1601,11 @@ export class MemStorage implements IStorage {
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
     const allDocs = await db.select().from(documentsTable)
-      .where(and(eq(documentsTable.siteId, siteId), eq(documentsTable.isArchived, false)));
+      .where(and(
+        eq(documentsTable.siteId, siteId), 
+        eq(documentsTable.isArchived, false),
+        isNull(documentsTable.caseId) // Exclude case documents from metrics
+      ));
     const docs = allDocs;
     const total = docs.length;
     const compliant = docs.filter(d => d.status === "compliant").length;
@@ -1819,7 +1823,10 @@ export class MemStorage implements IStorage {
   // Dashboard
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
     let allDocs = await db.select().from(documentsTable)
-      .where(eq(documentsTable.isArchived, false));
+      .where(and(
+        eq(documentsTable.isArchived, false),
+        isNull(documentsTable.caseId) // Exclude case documents from metrics
+      ));
     let docs = allDocs;
     if (module) {
       docs = docs.filter(d => d.module === module);
@@ -1882,7 +1889,10 @@ export class MemStorage implements IStorage {
     
     // Aggregate compliance summary across multiple sites
     const allDocs = await db.select().from(documentsTable)
-      .where(eq(documentsTable.isArchived, false));
+      .where(and(
+        eq(documentsTable.isArchived, false),
+        isNull(documentsTable.caseId) // Exclude case documents from metrics
+      ));
     
     return Promise.all(modules.map(async (module) => {
       // Get documents from all specified sites
