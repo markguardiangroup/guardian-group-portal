@@ -1,11 +1,17 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   FileText, 
   Clock, 
@@ -27,7 +33,7 @@ import { format } from "date-fns";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, Site } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -393,17 +399,76 @@ function LockedModuleCard({ moduleName, module, onRequest, isPending }: {
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { toast } = useToast();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  
+  // Module access request dialog state
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [requestModule, setRequestModule] = useState<ModuleType | null>(null);
+  const [requestSiteId, setRequestSiteId] = useState<string>("");
+  const [requestReason, setRequestReason] = useState("");
   
   const isClientUser = user?.role === "client";
   const canSelectSites = user?.role === "admin" || user?.role === "consultant";
   
-  // Fetch sites for admin/consultant users
+  // Fetch sites for admin/consultant users OR for client users to request access
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
-    enabled: canSelectSites,
+    enabled: canSelectSites || isClientUser,
   });
+  
+  // Filter sites for client users (they can only see their company's sites)
+  const clientSites = useMemo(() => {
+    if (!isClientUser || !sites) return [];
+    return sites;
+  }, [isClientUser, sites]);
+  
+  // Module access request mutation
+  const requestAccessMutation = useMutation({
+    mutationFn: async (data: { siteId: string; module: ModuleType; reason: string }) => {
+      return apiRequest("POST", "/api/module-access-requests", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
+      setRequestDialogOpen(false);
+      setRequestModule(null);
+      setRequestSiteId("");
+      setRequestReason("");
+      toast({
+        title: "Request Submitted",
+        description: "Your access request has been submitted for review.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit access request",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleOpenRequestDialog = (module: ModuleType) => {
+    setRequestModule(module);
+    setRequestDialogOpen(true);
+  };
+  
+  const handleSubmitRequest = () => {
+    if (!requestModule || !requestSiteId || !requestReason.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a site and provide a reason for your request.",
+        variant: "destructive",
+      });
+      return;
+    }
+    requestAccessMutation.mutate({
+      siteId: requestSiteId,
+      module: requestModule,
+      reason: requestReason.trim(),
+    });
+  };
   
   // Filter sites by selected company for the site dropdown
   const filteredSites = useMemo(() => {
@@ -713,6 +778,7 @@ export default function Dashboard() {
               moduleName={m.name} 
               module={m.module}
               isPending={hasPendingRequest(m.module)}
+              onRequest={isClientUser ? () => handleOpenRequestDialog(m.module) : undefined}
             />
           ))}
         </div>
@@ -730,6 +796,7 @@ export default function Dashboard() {
                 moduleName="Support" 
                 module="support"
                 isPending={hasPendingRequest("support")}
+                onRequest={isClientUser ? () => handleOpenRequestDialog("support") : undefined}
               />
             )}
           </div>
@@ -802,6 +869,58 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Module Access Request Dialog */}
+      <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Module Access</DialogTitle>
+            <DialogDescription>
+              Submit a request to access the {requestModule?.replace(/_/g, " ")} module for one of your sites.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="request-site">Site</Label>
+              <Select value={requestSiteId} onValueChange={setRequestSiteId}>
+                <SelectTrigger id="request-site" data-testid="select-request-site">
+                  <SelectValue placeholder="Select a site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientSites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="request-reason">Reason for Request</Label>
+              <Textarea
+                id="request-reason"
+                placeholder="Please explain why you need access to this module..."
+                value={requestReason}
+                onChange={(e) => setRequestReason(e.target.value)}
+                rows={4}
+                data-testid="textarea-request-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitRequest} 
+              disabled={requestAccessMutation.isPending}
+              data-testid="button-submit-request"
+            >
+              {requestAccessMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
