@@ -485,9 +485,10 @@ export const documents = pgTable("documents", {
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
   type: text("type").$type<DocumentType>().notNull(),
+  entityId: varchar("entity_id").notNull(), // Company ID - required
   documentTypeId: varchar("document_type_id"), // Reference to admin-managed document types
   folderId: varchar("folder_id"), // Reference to folder for organization
-  siteId: varchar("site_id").notNull(),
+  siteId: varchar("site_id"), // Can be null for company-level documents
   caseId: varchar("case_id"),
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"), // URL/path to the uploaded file in object storage

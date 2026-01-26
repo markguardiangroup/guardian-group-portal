@@ -1946,9 +1946,24 @@ export class MemStorage implements IStorage {
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
     const id = randomUUID();
     const createdNow = new Date();
+    
+    // Look up the site to get the company (entity) ID
+    let entityId = insertDocument.entityId;
+    if (!entityId && insertDocument.siteId) {
+      const site = this.sites.get(insertDocument.siteId);
+      if (site) {
+        entityId = site.companyId;
+      }
+    }
+    
+    if (!entityId) {
+      throw new Error("entityId is required - either provide entityId or a valid siteId");
+    }
+    
     const docData = { 
       ...insertDocument, 
       id,
+      entityId, // Company ID - required
       module: insertDocument.module as any,
       type: insertDocument.type as any,
       description: insertDocument.description ?? null,
