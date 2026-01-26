@@ -1,14 +1,28 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck } from "lucide-react";
 import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 interface RAGBadgeProps {
   status: DocumentStatus;
+  approvalStatus?: ApprovalStatus;
   className?: string;
 }
 
-export function RAGBadge({ status, className }: RAGBadgeProps) {
+export function RAGBadge({ status, approvalStatus, className }: RAGBadgeProps) {
+  // Enhanced logic: if client_signed_off, show more specific messaging
+  if (approvalStatus === "client_signed_off") {
+    return (
+      <Badge 
+        variant="outline" 
+        className={cn("gap-1.5 font-medium", "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", className)}
+      >
+        <ShieldCheck className="h-3 w-3" />
+        Awaiting Final Approval
+      </Badge>
+    );
+  }
+
   const config = {
     compliant: {
       label: "Compliant",
@@ -48,13 +62,13 @@ interface ApprovalBadgeProps {
 export function ApprovalBadge({ status, className }: ApprovalBadgeProps) {
   const config = {
     pending: {
-      label: "Pending",
+      label: "Awaiting Sign-Off",
       icon: Clock,
       className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20",
     },
     client_signed_off: {
-      label: "Client Signed Off",
-      icon: CheckCircle,
+      label: "Awaiting Consultant Approval",
+      icon: UserCheck,
       className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
     },
     approved: {

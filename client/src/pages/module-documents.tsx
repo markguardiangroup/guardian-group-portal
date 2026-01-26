@@ -659,7 +659,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <RAGBadge status={doc.status as any} />
+                                    <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                 </Link>
@@ -729,7 +729,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <RAGBadge status={doc.status as any} />
+                      <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -868,7 +868,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <RAGBadge status={doc.status} />
+                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell>
                       <ApprovalBadge status={doc.approvalStatus} />
@@ -1133,7 +1133,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <RAGBadge status={document.status} />
+          <RAGBadge status={document.status} approvalStatus={document.approvalStatus} />
           <ApprovalBadge status={document.approvalStatus} />
         </div>
       </div>

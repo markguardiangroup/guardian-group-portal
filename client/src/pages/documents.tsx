@@ -710,7 +710,7 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <RAGBadge status={doc.status as any} />
+                                  <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                   <ApprovalBadge status={doc.approvalStatus as any} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -763,7 +763,7 @@ function DocumentsListView() {
                                               <FileText className="h-4 w-4 text-muted-foreground" />
                                               <span className="text-sm">{doc.title}</span>
                                             </div>
-                                            <RAGBadge status={doc.status as any} />
+                                            <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                           </Link>
                                         ))}
                                       </div>
@@ -822,7 +822,7 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <RAGBadge status={doc.status as any} />
+                        <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                         </span>
@@ -928,7 +928,7 @@ function DocumentsListView() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <RAGBadge status={doc.status} />
+                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell>
                       <ApprovalBadge status={doc.approvalStatus} />
@@ -1112,7 +1112,7 @@ function DocumentDetailView({ id }: { id: string }) {
             <h1 className="text-3xl font-semibold">{document.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
-              <RAGBadge status={document.status} />
+              <RAGBadge status={document.status} approvalStatus={document.approvalStatus} />
               <ApprovalBadge status={document.approvalStatus} />
               <span className="text-sm text-muted-foreground">Version {document.version}</span>
             </div>

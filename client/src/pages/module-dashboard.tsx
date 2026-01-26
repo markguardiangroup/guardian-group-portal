@@ -549,7 +549,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <RAGBadge status={doc.status} />
+                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ApprovalBadge status={doc.approvalStatus} />
                     </div>
                   </div>
