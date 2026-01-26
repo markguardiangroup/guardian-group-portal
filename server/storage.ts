@@ -1992,48 +1992,14 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     
-    // Find or create a parent "Case Documents" folder for employment law cases
-    let parentFolderId: string | null = null;
-    const siteFolders = await this.getDocumentFolders(insertCase.siteId, "employment_law");
-    
-    // First, look for an existing site folder with "case" in the name
-    let caseDocsFolder = siteFolders.find(f => 
-      f.name.toLowerCase().includes("case") && f.parentId === null
-    );
-    
-    // If not found, look for a folder template and create a site folder from it
-    if (!caseDocsFolder) {
-      const folderTemplates = await this.getFolderTemplates("employment_law");
-      const caseDocsTemplate = folderTemplates.find(ft => 
-        ft.name.toLowerCase().includes("case") && ft.parentId === null
-      );
-      if (caseDocsTemplate) {
-        // Create a site folder based on this template
-        caseDocsFolder = await this.createDocumentFolder({
-          name: caseDocsTemplate.name,
-          description: caseDocsTemplate.description || "",
-          module: "employment_law",
-          siteId: insertCase.siteId,
-          parentId: null,
-          templateId: caseDocsTemplate.id,
-          sortOrder: caseDocsTemplate.sortOrder,
-          createdBy: insertCase.createdBy,
-        });
-      }
-    }
-    
-    if (caseDocsFolder) {
-      parentFolderId = caseDocsFolder.id;
-    }
-    
-    // Auto-create a folder for the case documents (as subfolder of Case Documents if exists)
+    // Auto-create a standalone folder for the case documents (case-specific, not shown in main folder hierarchy)
     const folderName = `${insertCase.caseReference} - ${insertCase.employeeName}`;
     const folder = await this.createDocumentFolder({
       name: folderName,
       description: `Documents for case ${insertCase.caseReference}`,
       module: "employment_law",
       siteId: insertCase.siteId,
-      parentId: parentFolderId,
+      parentId: null, // Case folders are standalone, accessed only through case detail view
       templateId: null,
       sortOrder: 0,
       createdBy: insertCase.createdBy,
