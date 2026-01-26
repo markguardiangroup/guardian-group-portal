@@ -4699,9 +4699,9 @@ export async function registerRoutes(
             folderStatus = "attention_needed";
           }
           
-          // Get child folders (sub-folders) if any
+          // Get child folders (sub-folders) if any - both from templates and dynamically created folders
           const childFolderTemplates = folderTemplates.filter(ft => ft.parentId === folderTemplate.id);
-          const childFolders = childFolderTemplates.map(childTemplate => {
+          const childFoldersFromTemplates = childFolderTemplates.map(childTemplate => {
             const matchingChildFolders = siteFolders.filter(sf => sf.templateId === childTemplate.id);
             const childSiteFolder = matchingChildFolders[0]; // For display purposes
             const childFolderIds = matchingChildFolders.map(sf => sf.id);
@@ -4720,6 +4720,7 @@ export async function registerRoutes(
               name: childTemplate.name,
               description: childTemplate.description,
               isRequired: childTemplate.isRequired,
+              isDynamic: false,
               siteFolder: childSiteFolder ? {
                 id: childSiteFolder.id,
                 name: childSiteFolder.name,
@@ -4750,6 +4751,51 @@ export async function registerRoutes(
               },
             };
           });
+
+          // Also get dynamically created child folders (like case folders)
+          // These are folders with parentId pointing to one of the site folders for this template
+          const dynamicChildFolders = siteFolders
+            .filter(sf => sf.parentId && matchingFolderIds.includes(sf.parentId))
+            .map(dynamicFolder => {
+              const dynamicFolderDocs = siteDocuments.filter(d => d.folderId === dynamicFolder.id);
+              return {
+                id: dynamicFolder.id,
+                name: dynamicFolder.name,
+                description: dynamicFolder.description || "",
+                isRequired: false,
+                isDynamic: true, // Flag to indicate this is a dynamically created folder (like case folder)
+                siteFolder: {
+                  id: dynamicFolder.id,
+                  name: dynamicFolder.name,
+                },
+                documents: dynamicFolderDocs.map(d => {
+                  const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+                  return {
+                    id: d.id,
+                    title: d.title,
+                    fileName: d.fileName,
+                    status: d.status,
+                    approvalStatus: d.approvalStatus,
+                    source: d.source,
+                    templateId: d.templateId,
+                    expiryDate: d.expiryDate,
+                    updatedAt: d.updatedAt,
+                    isRequired: docTemplate?.isRequired || false,
+                    renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+                  };
+                }),
+                stats: {
+                  totalDocuments: dynamicFolderDocs.length,
+                  compliant: dynamicFolderDocs.filter(d => d.status === "compliant").length,
+                  reviewRequired: dynamicFolderDocs.filter(d => d.status === "review_required").length,
+                  overdue: dynamicFolderDocs.filter(d => d.status === "overdue").length,
+                  requiredTemplates: 0,
+                  fulfilledRequired: 0,
+                },
+              };
+            });
+
+          const childFolders = [...childFoldersFromTemplates, ...dynamicChildFolders];
           
           return {
             id: folderTemplate.id,
