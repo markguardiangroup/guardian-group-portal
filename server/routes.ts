@@ -1352,8 +1352,8 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         action: auditAction,
-        userId: "user-1",
-        userName: "John Doe",
+        userId: user.id,
+        userName: user.fullName,
         siteId: document.siteId,
         documentId: document.id,
         supportRequestId: null,
