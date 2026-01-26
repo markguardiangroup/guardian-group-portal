@@ -388,11 +388,12 @@ export class MemStorage implements IStorage {
         contactEmail: "safety@acme-mfg.com",
         contactPhone: "+44 161 123 4567",
         status: "active",
-        // Module access at company level
+        // Module access at company level - full access to all modules
         healthSafetyAccess: true,
         humanResourcesAccess: true,
         employmentLawAccess: true,
-        supportAccess: false,
+        supportAccess: true,
+        reportsAccess: true,
         createdAt: now,
       },
       {
@@ -408,6 +409,7 @@ export class MemStorage implements IStorage {
         humanResourcesAccess: false,
         employmentLawAccess: false,
         supportAccess: true,
+        reportsAccess: false,
         createdAt: now,
       },
     ];
