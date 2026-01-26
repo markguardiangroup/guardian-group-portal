@@ -183,7 +183,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
       .slice(0, 2);
   };
 
-  const visibleModules = moduleNavItems.filter(item => !isHidden(item.module));
+  // Show all modules to clients so they can see what's locked
+  // Previously filtered out hidden modules, now show all with locked indicator
+  const visibleModules = moduleNavItems;
 
   return (
     <Sidebar>
