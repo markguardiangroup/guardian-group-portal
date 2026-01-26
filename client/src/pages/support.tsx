@@ -386,6 +386,8 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
     },
     enabled: isOpen,
     refetchInterval: isOpen ? 10000 : false,
+    staleTime: 0, // Always fetch fresh messages
+    refetchOnMount: "always",
   });
 
   const sendMutation = useMutation({
