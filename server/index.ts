@@ -1,11 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -63,8 +64,8 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration with security hardening
-const MemoryStoreSession = MemoryStore(session);
+// Session configuration with security hardening - using PostgreSQL for persistence
+const PgSession = connectPgSimple(session);
 const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
@@ -73,14 +74,16 @@ app.use(
     name: "guardian.sid", // Custom session name (not default 'connect.sid')
     resave: false, // Don't save session if unmodified
     saveUninitialized: false, // Don't create session until something stored
-    store: new MemoryStoreSession({
-      checkPeriod: 86400000, // prune expired entries every 24h
+    store: new PgSession({
+      pool: pool,
+      tableName: "session", // Use 'session' table in database
+      createTableIfMissing: true, // Auto-create session table if it doesn't exist
     }),
     cookie: {
       secure: isProduction, // HTTPS only in production
       httpOnly: true, // Prevent XSS attacks
       sameSite: "strict", // Stricter CSRF protection
-      maxAge: 60 * 60 * 1000, // 1 hour session timeout (reduced from 24h)
+      maxAge: 24 * 60 * 60 * 1000, // 24 hour session timeout (increased from 1h)
     },
   })
 );
