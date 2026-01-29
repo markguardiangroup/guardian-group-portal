@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -40,11 +40,10 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { addMonths, format } from "date-fns";
-import type { Site } from "@shared/schema";
+import type { Site, TrainingCourse } from "@shared/schema";
 
 const trainingCertificateSchema = z.object({
-  trainingCourseTitle: z.string().min(3, "Course title must be at least 3 characters"),
-  trainingCourseCode: z.string().min(1, "Course code is required"),
+  trainingCourseId: z.string().min(1, "Please select a course"),
   trainingDate: z.string().min(1, "Certificate date is required"),
   renewalRequired: z.boolean().default(false),
   renewalPeriodMonths: z.number().min(1).max(120).optional(),
@@ -80,11 +79,14 @@ export default function TrainingCertificateUpload() {
     queryKey: ["/api/sites"],
   });
 
+  const { data: trainingCourses } = useQuery<TrainingCourse[]>({
+    queryKey: ["/api/training-courses"],
+  });
+
   const form = useForm<TrainingCertificateForm>({
     resolver: zodResolver(trainingCertificateSchema),
     defaultValues: {
-      trainingCourseTitle: "",
-      trainingCourseCode: "",
+      trainingCourseId: "",
       trainingDate: "",
       renewalRequired: false,
       renewalPeriodMonths: undefined,
@@ -92,6 +94,17 @@ export default function TrainingCertificateUpload() {
       siteId: "",
     },
   });
+
+  const watchCourseId = form.watch("trainingCourseId");
+  const selectedCourse = trainingCourses?.find(c => c.id === watchCourseId);
+
+  // Auto-populate renewal settings when a course is selected
+  useEffect(() => {
+    if (selectedCourse?.renewalPeriodMonths) {
+      form.setValue("renewalRequired", true);
+      form.setValue("renewalPeriodMonths", selectedCourse.renewalPeriodMonths);
+    }
+  }, [selectedCourse, form]);
 
   const watchRenewalRequired = form.watch("renewalRequired");
   const watchTrainingDate = form.watch("trainingDate");
@@ -102,7 +115,7 @@ export default function TrainingCertificateUpload() {
     : null;
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: TrainingCertificateForm & { file: File }) => {
+    mutationFn: async (data: TrainingCertificateForm & { file: File; course: TrainingCourse }) => {
       const uploadResponse = await fetch("/api/uploads/file", {
         method: "POST",
         headers: {
@@ -126,8 +139,8 @@ export default function TrainingCertificateUpload() {
         : undefined;
       
       const documentData = {
-        title: `${data.trainingCourseTitle} - Certificate`,
-        description: data.description || `Training certificate for ${data.trainingCourseTitle}`,
+        title: `${data.course.title} - Certificate`,
+        description: data.description || `Training certificate for ${data.course.title}`,
         module: "training",
         type: "training_certificate",
         siteId: data.siteId,
@@ -136,8 +149,8 @@ export default function TrainingCertificateUpload() {
         fileSize: data.file.size,
         mimeType: data.file.type || "application/octet-stream",
         source: "upload",
-        trainingCourseTitle: data.trainingCourseTitle,
-        trainingCourseCode: data.trainingCourseCode,
+        trainingCourseTitle: data.course.title,
+        trainingCourseCode: data.course.productCode || "",
         trainingDate: data.trainingDate,
         renewalDate: renewalDate,
       };
@@ -171,7 +184,16 @@ export default function TrainingCertificateUpload() {
       return;
     }
     
-    uploadMutation.mutate({ ...data, file: selectedFile });
+    if (!selectedCourse) {
+      toast({
+        title: "No Course Selected",
+        description: "Please select a training course",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    uploadMutation.mutate({ ...data, file: selectedFile, course: selectedCourse });
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,45 +267,57 @@ export default function TrainingCertificateUpload() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="trainingCourseTitle"
+                name="trainingCourseId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Course Title</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Fire Safety Awareness"
-                        data-testid="input-course-title"
-                        {...field}
-                      />
-                    </FormControl>
+                    <FormLabel>Training Course</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-course">
+                          <SelectValue placeholder="Select a training course" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {trainingCourses?.map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.title}
+                            {course.productCode && (
+                              <span className="text-muted-foreground ml-2">
+                                ({course.productCode})
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormDescription>
-                      The name of the training course
+                      Select a course from your training library
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="trainingCourseCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Course Code</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., FS-101"
-                        data-testid="input-course-code"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      The unique code for this training course
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {selectedCourse && (
+                <div className="p-3 bg-muted rounded-lg border space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Selected Course:</span>
+                    <span className="text-sm">{selectedCourse.title}</span>
+                  </div>
+                  {selectedCourse.productCode && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Course Code:</span>
+                      <span className="text-sm text-muted-foreground">{selectedCourse.productCode}</span>
+                    </div>
+                  )}
+                  {selectedCourse.renewalPeriodMonths && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Default Renewal:</span>
+                      <span className="text-sm text-muted-foreground">{selectedCourse.renewalPeriodMonths} months</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <FormField
                 control={form.control}
@@ -506,7 +540,7 @@ export default function TrainingCertificateUpload() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/training/documents")}
+                  onClick={() => navigate("/training/certificates")}
                   data-testid="button-cancel"
                 >
                   Cancel
