@@ -130,14 +130,6 @@ export default function TrainingCertificates() {
           </div>
         </div>
 
-        {isAdminOrConsultant && (
-          <Link href="/training/dashboard">
-            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-manage-training">
-              <GraduationCap className="h-4 w-4 mr-2" />
-              Manage Training
-            </Button>
-          </Link>
-        )}
       </div>
 
       <Card>
@@ -202,19 +194,11 @@ export default function TrainingCertificates() {
             <div className="text-center py-12">
               <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No certificates found</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground">
                 {searchQuery || selectedCompany !== "all" || selectedSite !== "all"
                   ? "Try adjusting your filters"
-                  : "Certificates are uploaded when training is completed. Book training first, then complete it with a certificate."}
+                  : "Certificates will appear here when training is completed."}
               </p>
-              {!searchQuery && selectedCompany === "all" && selectedSite === "all" && isAdminOrConsultant && (
-                <Link href="/training/dashboard">
-                  <Button className="bg-purple-600 hover:bg-purple-700">
-                    <GraduationCap className="h-4 w-4 mr-2" />
-                    Go to Training Dashboard
-                  </Button>
-                </Link>
-              )}
             </div>
           ) : (
             <Table>
