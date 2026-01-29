@@ -365,19 +365,35 @@ export default function Training() {
         <div className="px-6 pt-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModuleFilter)}>
             <TabsList className="grid w-full max-w-lg grid-cols-4">
-              <TabsTrigger value="all" data-testid="tab-all" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="all" 
+                data-testid="tab-all" 
+                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
                 <LayoutGrid className="h-4 w-4" />
                 <span className="hidden sm:inline">All</span>
               </TabsTrigger>
-              <TabsTrigger value="health_safety" data-testid="tab-health-safety" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="health_safety" 
+                data-testid="tab-health-safety" 
+                className="flex items-center gap-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
+              >
                 <HardHat className="h-4 w-4" />
                 <span className="hidden sm:inline">H&S</span>
               </TabsTrigger>
-              <TabsTrigger value="human_resources" data-testid="tab-human-resources" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="human_resources" 
+                data-testid="tab-human-resources" 
+                className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
+              >
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">HR</span>
               </TabsTrigger>
-              <TabsTrigger value="employment_law" data-testid="tab-employment-law" className="flex items-center gap-2">
+              <TabsTrigger 
+                value="employment_law" 
+                data-testid="tab-employment-law" 
+                className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
+              >
                 <Scale className="h-4 w-4" />
                 <span className="hidden sm:inline">EL</span>
               </TabsTrigger>
