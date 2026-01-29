@@ -5883,11 +5883,42 @@ export async function registerRoutes(
         }
       }
       
-      const { status, clientPermissionRole } = req.body;
+      const { 
+        status, 
+        clientPermissionRole, 
+        email, 
+        fullName, 
+        title, 
+        firstName, 
+        lastName, 
+        jobTitle, 
+        department, 
+        phone, 
+        mobile, 
+        preferredContactMethod, 
+        notes,
+        role,
+        companyId,
+        consultantTier
+      } = req.body;
       
       const updated = await storage.updateUser(req.params.id, {
-        status,
-        clientPermissionRole,
+        ...(status !== undefined && { status }),
+        ...(clientPermissionRole !== undefined && { clientPermissionRole }),
+        ...(email !== undefined && { email }),
+        ...(fullName !== undefined && { fullName }),
+        ...(title !== undefined && { title }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(jobTitle !== undefined && { jobTitle }),
+        ...(department !== undefined && { department }),
+        ...(phone !== undefined && { phone }),
+        ...(mobile !== undefined && { mobile }),
+        ...(preferredContactMethod !== undefined && { preferredContactMethod }),
+        ...(notes !== undefined && { notes }),
+        ...(role !== undefined && { role }),
+        ...(companyId !== undefined && { companyId }),
+        ...(consultantTier !== undefined && { consultantTier }),
       });
       
       if (!updated) {

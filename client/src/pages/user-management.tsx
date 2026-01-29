@@ -119,8 +119,25 @@ export default function UserManagement() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    email: string;
+    title: string;
+    firstName: string;
+    lastName: string;
+    jobTitle: string;
+    department: string;
+    phone: string;
+    mobile: string;
+    preferredContactMethod: "email" | "phone" | "mobile";
+    notes: string;
+    role: "admin" | "consultant" | "client";
+    companyId: string;
+    consultantTier: string;
+    clientPermissionRole: string;
+  } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     username: "",
@@ -209,10 +226,12 @@ export default function UserManagement() {
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.username.toLowerCase().includes(search.toLowerCase());
+      u.username.toLowerCase().includes(search.toLowerCase()) ||
+      (u.jobTitle && u.jobTitle.toLowerCase().includes(search.toLowerCase()));
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchesCompany = companyFilter === "all" || u.companyId === companyFilter;
+    return matchesSearch && matchesRole && matchesStatus && matchesCompany;
   });
 
   const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -221,12 +240,56 @@ export default function UserManagement() {
     page * ITEMS_PER_PAGE
   );
 
-  const handleEditUser = (updatedUser: UserWithAssignments) => {
-    toast({
-      title: "User Updated",
-      description: `${updatedUser.fullName}'s profile has been updated.`,
+  const openEditDialog = (u: UserWithAssignments) => {
+    setEditingUser(u);
+    setEditFormData({
+      email: u.email,
+      title: u.title || "",
+      firstName: u.firstName || "",
+      lastName: u.lastName || "",
+      jobTitle: u.jobTitle || "",
+      department: u.department || "",
+      phone: u.phone || "",
+      mobile: u.mobile || "",
+      preferredContactMethod: u.preferredContactMethod || "email",
+      notes: u.notes || "",
+      role: u.role,
+      companyId: u.companyId || "",
+      consultantTier: u.consultantTier || "standard",
+      clientPermissionRole: u.clientPermissionRole || "viewer",
     });
-    setEditingUser(null);
+  };
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: typeof editFormData }) => {
+      const fullName = data ? 
+        `${data.firstName} ${data.lastName}`.trim() || editingUser?.fullName : 
+        editingUser?.fullName;
+      const response = await apiRequest("PATCH", `/api/users/${id}`, {
+        ...data,
+        fullName,
+        consultantTier: data?.consultantTier || null,
+        companyId: data?.companyId || null,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User Updated",
+        description: "User profile has been updated successfully.",
+      });
+      setEditingUser(null);
+      setEditFormData(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update user", variant: "destructive" });
+    },
+  });
+
+  const handleSaveEdit = () => {
+    if (!editingUser || !editFormData) return;
+    updateUserMutation.mutate({ id: editingUser.id, data: editFormData });
   };
 
   const createUserMutation = useMutation({
@@ -487,6 +550,18 @@ export default function UserManagement() {
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
+            <SelectValue placeholder="All companies" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Companies</SelectItem>
+            {companies.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -506,7 +581,7 @@ export default function UserManagement() {
             {paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  {search || roleFilter !== "all" || statusFilter !== "all" 
+                  {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"
                     ? "No users match your filters." 
                     : "No users found."}
                 </TableCell>
@@ -583,7 +658,7 @@ export default function UserManagement() {
                       <DropdownMenuContent align="end">
                         {isAdmin && (
                           <>
-                            <DropdownMenuItem onClick={() => setEditingUser(u)}>
+                            <DropdownMenuItem onClick={() => openEditDialog(u)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit User
                             </DropdownMenuItem>
@@ -644,60 +719,241 @@ export default function UserManagement() {
         </div>
       )}
 
-      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent>
+      <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) { setEditingUser(null); setEditFormData(null); } }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
               Update user details and permissions
             </DialogDescription>
           </DialogHeader>
-          {editingUser && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input defaultValue={editingUser.fullName} data-testid="input-edit-fullname" />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input defaultValue={editingUser.email} data-testid="input-edit-email" />
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select defaultValue={editingUser.role}>
-                  <SelectTrigger data-testid="select-edit-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="consultant">Consultant</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {editingUser.role === "consultant" && (
-                <div className="space-y-2">
-                  <Label>Consultant Tier</Label>
-                  <Select defaultValue={editingUser.consultantTier || "standard"}>
-                    <SelectTrigger data-testid="select-edit-tier">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Standard</SelectItem>
-                      <SelectItem value="senior">Senior</SelectItem>
-                      <SelectItem value="lead">Lead</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {editingUser && editFormData && (
+            <div className="grid gap-4 py-4">
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-medium mb-3">Account Details</h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-username">Username</Label>
+                      <Input
+                        id="edit-username"
+                        value={editingUser.username}
+                        disabled
+                        className="bg-muted"
+                        data-testid="input-edit-username"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-email">Email</Label>
+                      <Input
+                        id="edit-email"
+                        type="email"
+                        value={editFormData.email}
+                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                        data-testid="input-edit-email"
+                      />
+                    </div>
+                  </div>
+                  {editingUser.referenceNumber && (
+                    <div className="flex items-center gap-2">
+                      <Label>Reference:</Label>
+                      <Badge variant="outline" className="font-mono">{editingUser.referenceNumber}</Badge>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-medium mb-3">Personal Details</h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-title">Title</Label>
+                      <Select value={editFormData.title} onValueChange={(v) => setEditFormData({ ...editFormData, title: v })}>
+                        <SelectTrigger id="edit-title" data-testid="select-edit-title">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mr">Mr</SelectItem>
+                          <SelectItem value="Mrs">Mrs</SelectItem>
+                          <SelectItem value="Ms">Ms</SelectItem>
+                          <SelectItem value="Miss">Miss</SelectItem>
+                          <SelectItem value="Dr">Dr</SelectItem>
+                          <SelectItem value="Prof">Prof</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3 grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-firstname">First Name</Label>
+                        <Input
+                          id="edit-firstname"
+                          value={editFormData.firstName}
+                          onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                          data-testid="input-edit-firstname"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-lastname">Surname</Label>
+                        <Input
+                          id="edit-lastname"
+                          value={editFormData.lastName}
+                          onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                          data-testid="input-edit-lastname"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-jobtitle">Job Title</Label>
+                      <Input
+                        id="edit-jobtitle"
+                        value={editFormData.jobTitle}
+                        onChange={(e) => setEditFormData({ ...editFormData, jobTitle: e.target.value })}
+                        data-testid="input-edit-jobtitle"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-department">Department</Label>
+                      <Input
+                        id="edit-department"
+                        value={editFormData.department}
+                        onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                        data-testid="input-edit-department"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-medium mb-3">Contact Details</h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-phone">Phone</Label>
+                      <Input
+                        id="edit-phone"
+                        value={editFormData.phone}
+                        onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                        data-testid="input-edit-phone"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-mobile">Mobile</Label>
+                      <Input
+                        id="edit-mobile"
+                        value={editFormData.mobile}
+                        onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                        data-testid="input-edit-mobile"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-preferred">Preferred Contact Method</Label>
+                    <Select value={editFormData.preferredContactMethod} onValueChange={(v: "email" | "phone" | "mobile") => setEditFormData({ ...editFormData, preferredContactMethod: v })}>
+                      <SelectTrigger id="edit-preferred" data-testid="select-edit-preferred">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-medium mb-3">Role & Access</h4>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-role">Role</Label>
+                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })}>
+                        <SelectTrigger id="edit-role" data-testid="select-edit-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Administrator</SelectItem>
+                          <SelectItem value="consultant">Consultant</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {editFormData.role === "client" && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-company">Company</Label>
+                        <Select value={editFormData.companyId} onValueChange={(v) => setEditFormData({ ...editFormData, companyId: v })}>
+                          <SelectTrigger id="edit-company" data-testid="select-edit-company">
+                            <SelectValue placeholder="Select company" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {companies.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {editFormData.role === "consultant" && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-tier">Consultant Tier</Label>
+                        <Select value={editFormData.consultantTier} onValueChange={(v) => setEditFormData({ ...editFormData, consultantTier: v })}>
+                          <SelectTrigger id="edit-tier" data-testid="select-edit-tier">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="senior">Senior</SelectItem>
+                            <SelectItem value="principal">Principal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                  {editFormData.role === "client" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-permission">Permission Level</Label>
+                      <Select value={editFormData.clientPermissionRole} onValueChange={(v) => setEditFormData({ ...editFormData, clientPermissionRole: v })}>
+                        <SelectTrigger id="edit-permission" data-testid="select-edit-permission">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                          <SelectItem value="contributor">Contributor</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
+                <div className="grid gap-2">
+                  <Textarea
+                    value={editFormData.notes}
+                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                    placeholder="Any additional notes about this user..."
+                    className="min-h-[80px]"
+                    data-testid="textarea-edit-notes"
+                  />
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)} data-testid="button-cancel-edit">
+            <Button variant="outline" onClick={() => { setEditingUser(null); setEditFormData(null); }} data-testid="button-cancel-edit">
               Cancel
             </Button>
-            <Button onClick={() => editingUser && handleEditUser(editingUser)} data-testid="button-save-edit">
-              Save Changes
+            <Button onClick={handleSaveEdit} disabled={updateUserMutation.isPending} data-testid="button-save-edit">
+              {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
