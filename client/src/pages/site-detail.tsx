@@ -971,8 +971,15 @@ export default function SiteDetail() {
   const [newSiteData, setNewSiteData] = useState({
     name: "",
     addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
     contactPhone: "",
-    siteManager: "",
+    contactEmail: "",
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
@@ -1045,8 +1052,15 @@ export default function SiteDetail() {
       setNewSiteData({
         name: "",
         addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
         contactPhone: "",
-        siteManager: "",
+        contactEmail: "",
       });
     },
     onError: () => {
@@ -1317,15 +1331,15 @@ export default function SiteDetail() {
       </Dialog>
 
       <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Site</DialogTitle>
             <DialogDescription>
               Create a new site for {parentCompany?.name || "this company"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
               <Label htmlFor="new-site-name">Site Name *</Label>
               <Input
                 id="new-site-name"
@@ -1335,36 +1349,126 @@ export default function SiteDetail() {
                 data-testid="input-new-site-name"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-site-manager">Site Manager</Label>
-              <Input
-                id="new-site-manager"
-                placeholder="Enter site manager name"
-                value={newSiteData.siteManager}
-                onChange={(e) => setNewSiteData({ ...newSiteData, siteManager: e.target.value })}
-                data-testid="input-new-site-manager"
-              />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="new-site-address-line1">Address Line 1</Label>
+                  <Input
+                    id="new-site-address-line1"
+                    value={newSiteData.addressLine1}
+                    onChange={(e) => setNewSiteData({ ...newSiteData, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-new-site-address-line1"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-site-address-line2">Address Line 2</Label>
+                  <Input
+                    id="new-site-address-line2"
+                    value={newSiteData.addressLine2}
+                    onChange={(e) => setNewSiteData({ ...newSiteData, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-new-site-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-city">City</Label>
+                    <Input
+                      id="new-site-city"
+                      value={newSiteData.city}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-new-site-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-county">County</Label>
+                    <Input
+                      id="new-site-county"
+                      value={newSiteData.county}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-new-site-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-postal-code">Postal Code</Label>
+                    <Input
+                      id="new-site-postal-code"
+                      value={newSiteData.postalCode}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-new-site-postal-code"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-country">Country</Label>
+                    <Input
+                      id="new-site-country"
+                      value={newSiteData.country}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-new-site-country"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-site-address">Address</Label>
-              <Input
-                id="new-site-address"
-                placeholder="Enter full address"
-                value={newSiteData.addressLine1}
-                onChange={(e) => setNewSiteData({ ...newSiteData, addressLine1: e.target.value })}
-                data-testid="input-new-site-address"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-site-phone">Contact Phone</Label>
-              <Input
-                id="new-site-phone"
-                type="tel"
-                placeholder="+44 xxx xxx xxxx"
-                value={newSiteData.contactPhone}
-                onChange={(e) => setNewSiteData({ ...newSiteData, contactPhone: e.target.value })}
-                data-testid="input-new-site-phone"
-              />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-contact-name">Contact Name</Label>
+                    <Input
+                      id="new-site-contact-name"
+                      value={newSiteData.contactName}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-new-site-contact-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-contact-position">Position</Label>
+                    <Input
+                      id="new-site-contact-position"
+                      value={newSiteData.contactPosition}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, contactPosition: e.target.value })}
+                      placeholder="Job title"
+                      data-testid="input-new-site-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-phone">Phone</Label>
+                    <Input
+                      id="new-site-phone"
+                      value={newSiteData.contactPhone}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, contactPhone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-new-site-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-site-email">Email</Label>
+                    <Input
+                      id="new-site-email"
+                      type="email"
+                      value={newSiteData.contactEmail}
+                      onChange={(e) => setNewSiteData({ ...newSiteData, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-new-site-email"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
