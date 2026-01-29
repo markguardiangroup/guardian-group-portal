@@ -1940,13 +1940,13 @@ function EmploymentLawDashboardView() {
               </div>
             )}
             <div className="flex items-center gap-2 rounded-lg border bg-background/80 p-1">
-              <Button variant="default" className="bg-pink-600 hover:bg-pink-700 text-white" asChild>
+              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
                   <FileText className="mr-2 h-4 w-4" />
                   Documents
                 </Link>
               </Button>
-              <Button variant="outline" className="border-pink-300 dark:border-pink-800 hover:bg-pink-50 dark:hover:bg-pink-950" asChild>
+              <Button variant="outline" asChild>
                 <Link href={viewCasesUrl} data-testid="link-view-cases-el">
                   <Briefcase className="mr-2 h-4 w-4" />
                   Cases

@@ -373,7 +373,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 />
               </div>
             )}
-            <Button variant="outline" asChild>
+            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />
                 View Documents
