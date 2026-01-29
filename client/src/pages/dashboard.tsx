@@ -25,12 +25,13 @@ import {
   GraduationCap,
   BookOpen,
   Award,
+  Briefcase,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking, Case } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -149,6 +150,99 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
 
         <Button className={`w-full ${buttonClass}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
+            View Module
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
+  const { data: cases = [] } = useQuery<Case[]>({
+    queryKey: ["/api/cases"],
+  });
+
+  const openCases = cases.filter(c => c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const resolvedCases = cases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const totalCases = cases.length;
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
+    if (score >= 70) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
+  };
+
+  return (
+    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/40">
+            <Scale className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Employment Law</CardTitle>
+            <CardDescription>{summary.totalDocuments} docs · {totalCases} cases</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className={`text-3xl font-bold ${getScoreColor(summary.complianceScore)}`}>
+            {summary.complianceScore}%
+          </span>
+          <p className="text-xs text-muted-foreground">Compliance</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Two metric tiles: Documents and Cases */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Documents Tile */}
+          <div className="rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              <span className="text-sm font-medium">Documents</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {summary.compliantDocuments}
+                </div>
+                <p className="text-xs text-muted-foreground">Compliant</p>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {summary.reviewRequired}
+                </div>
+                <p className="text-xs text-muted-foreground">Review</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cases Tile */}
+          <div className="rounded-lg border bg-card p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              <span className="text-sm font-medium">Cases</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div>
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {openCases}
+                </div>
+                <p className="text-xs text-muted-foreground">Open</p>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {resolvedCases}
+                </div>
+                <p className="text-xs text-muted-foreground">Resolved</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Button className="w-full border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
+          <Link href="/employment-law" data-testid="link-module-employment_law">
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -763,7 +857,9 @@ export default function Dashboard() {
         <h2 className="mb-4 text-xl font-semibold">Compliance Modules</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {complianceSummaries.map((summary) => (
-            <ModuleCard key={summary.module} summary={summary} />
+            summary.module === "employment_law" 
+              ? <EmploymentLawCard key={summary.module} summary={summary} />
+              : <ModuleCard key={summary.module} summary={summary} />
           ))}
           {lockedModules.map((m) => (
             <LockedModuleCard 
