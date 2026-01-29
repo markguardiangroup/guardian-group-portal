@@ -116,12 +116,25 @@ Key API Routes for Site Management:
 The Training Library has its own dedicated folder structure separate from document template folders:
 - **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
 - **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person, featured flag for homepage highlighting)
-- **Training Requests**: Client requests for more info or booking training
+- **Training Requests**: Client requests for more info or booking training with full lifecycle tracking
 
 Module Training Page Features:
 - **Filters**: Required status (all/required/recommended), Training Method (all/online/in_person), Provider (dynamic list)
 - **Search**: Search by title, summary, or provider
 - **Badges**: Training method displayed as badges on course cards (Monitor icon for Online, Users icon for In Person)
+
+Training Request Workflow:
+1. **Requested** → Client submits request for training info/booking
+2. **Contacted** → Consultant marks they've contacted the client
+3. **Booked** → Consultant books the training (optionally with scheduled date)
+4. **Completed** → Consultant marks training finished (auto-calculates renewal date from course.renewalPeriodMonths)
+5. **Cancelled** → Request cancelled at any stage
+
+Training Dashboard (`/training/dashboard`):
+- **Metrics Cards**: Pending, Booked, Completed, Renewals Due (clickable to filter requests)
+- **Filters**: Company and Site dropdowns (for admin/consultant)
+- **Tabs**: Overview (metrics), All Requests (table view), Renewals (due/overdue training)
+- **Actions**: Mark Contacted, Book Training, Mark Completed, Cancel (with optional notes)
 
 Key API Routes:
 - `GET /api/training-folders` - Get all training folders (filter by ?module=)
@@ -134,6 +147,7 @@ Key API Routes:
 - `DELETE /api/training-courses/:id` - Delete training course (admin only)
 - `GET /api/training-requests` - Get training requests for user's sites
 - `POST /api/training-requests` - Submit training request (any authenticated user)
+- `PATCH /api/training-requests/:id` - Update training request status (consultant/admin, handles booking/completion workflow)
 
 ### Storage Pattern
 The application uses a hybrid storage model with the `MemStorage` class:
