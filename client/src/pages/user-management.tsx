@@ -63,6 +63,7 @@ import type { UserRole, ClientPermissionRole, ConsultantTier } from "@shared/sch
 
 interface SiteAssignment {
   siteId: string;
+  siteName: string;
   companyName: string;
   isPrimary: boolean;
 }
@@ -95,6 +96,7 @@ interface UserWithAssignments {
 interface SiteBasic {
   id: string;
   name: string;
+  companyId: string;
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -289,10 +291,9 @@ export default function UserManagement() {
     });
   };
 
-  const renderSiteAssignments = (u: UserWithAssignments & { companyName?: string | null }) => {
+  const renderSiteAssignments = (u: UserWithAssignments) => {
+    // For consultants with site assignments
     if (u.role === "consultant" && u.siteAssignments && u.siteAssignments.length > 0) {
-      const primaryAssignment = u.siteAssignments.find((a) => a.isPrimary);
-      const otherAssignments = u.siteAssignments.filter((a) => !a.isPrimary);
       const displayCount = 2;
       const visibleAssignments = u.siteAssignments.slice(0, displayCount);
       const remainingCount = u.siteAssignments.length - displayCount;
@@ -307,7 +308,7 @@ export default function UserManagement() {
               data-testid={`badge-site-${a.siteId}`}
             >
               {a.isPrimary && <Shield className="h-3 w-3 mr-1" />}
-              {a.companyName}
+              {a.siteName}
             </Badge>
           ))}
           {remainingCount > 0 && (
@@ -322,7 +323,7 @@ export default function UserManagement() {
                   {u.siteAssignments.slice(displayCount).map((a) => (
                     <div key={a.siteId} className="text-xs">
                       {a.isPrimary && "(Primary) "}
-                      {a.companyName}
+                      {a.siteName}
                     </div>
                   ))}
                 </div>
@@ -337,26 +338,56 @@ export default function UserManagement() {
       return <span className="text-sm text-muted-foreground">No assignments</span>;
     }
 
-    if (u.role === "client" && u.companyName) {
-      return (
-        <div className="flex items-center gap-1.5 text-sm">
-          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          {u.companyName}
-        </div>
-      );
-    }
-
+    // For clients - show assigned sites from the sites list based on companyId
     if (u.role === "client" && u.companyId) {
-      const company = companies.find((c) => c.id === u.companyId);
-      return (
-        <div className="flex items-center gap-1.5 text-sm">
-          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          {company?.name || "Unknown Company"}
-        </div>
-      );
+      const companySites = sites.filter((s) => s.companyId === u.companyId);
+      if (companySites.length > 0) {
+        const displayCount = 2;
+        const visibleSites = companySites.slice(0, displayCount);
+        const remainingCount = companySites.length - displayCount;
+        
+        return (
+          <div className="flex flex-wrap items-center gap-1">
+            {visibleSites.map((s) => (
+              <Badge
+                key={s.id}
+                variant="outline"
+                className="text-xs"
+                data-testid={`badge-site-${s.id}`}
+              >
+                {s.name}
+              </Badge>
+            ))}
+            {remainingCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="text-xs cursor-default">
+                    +{remainingCount} more
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="space-y-1">
+                    {companySites.slice(displayCount).map((s) => (
+                      <div key={s.id} className="text-xs">
+                        {s.name}
+                      </div>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
+      return <span className="text-sm text-muted-foreground">No sites</span>;
     }
 
-    return <span className="text-sm text-muted-foreground">Guardian Group</span>;
+    // For admins - show "All Sites"
+    if (u.role === "admin") {
+      return <span className="text-sm text-muted-foreground">All Sites</span>;
+    }
+
+    return <span className="text-sm text-muted-foreground">-</span>;
   };
 
   if (isLoadingUsers) {
