@@ -98,7 +98,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30";
 
   return (
-    <Card className={`hover-elevate flex flex-col ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
+    <Card className={`hover-elevate flex flex-col h-full ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBgClass}`}>
@@ -175,7 +175,7 @@ function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
   };
 
   return (
-    <Card className="hover-elevate flex flex-col theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
+    <Card className="hover-elevate flex flex-col h-full theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/40">
@@ -510,7 +510,7 @@ function LockedModuleCard({ moduleName, module }: {
     : "text-blue-600/50 dark:text-blue-400/50";
 
   return (
-    <Card className={`opacity-75 ${moduleStyles}`} data-testid={`card-module-locked-${module}`}>
+    <Card className={`opacity-75 h-full ${moduleStyles}`} data-testid={`card-module-locked-${module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBgClass}`}>
