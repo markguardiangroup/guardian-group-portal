@@ -84,8 +84,15 @@ export default function Sites() {
     name: "",
     companyId: "",
     addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
     contactPhone: "",
-    siteManager: "",
+    contactEmail: "",
   });
   const { toast } = useToast();
 
@@ -111,8 +118,15 @@ export default function Sites() {
         name: "",
         companyId: "",
         addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
         contactPhone: "",
-        siteManager: "",
+        contactEmail: "",
       });
     },
     onError: () => {
@@ -284,8 +298,8 @@ export default function Sites() {
               Create a new site for a company
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid gap-2">
               <Label htmlFor="company">Company *</Label>
               <Select
                 value={newSite.companyId}
@@ -303,7 +317,7 @@ export default function Sites() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="site-name">Site Name *</Label>
               <Input
                 id="site-name"
@@ -313,36 +327,126 @@ export default function Sites() {
                 data-testid="input-site-name"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="site-manager">Site Manager</Label>
-              <Input
-                id="site-manager"
-                placeholder="Enter site manager name"
-                value={newSite.siteManager}
-                onChange={(e) => setNewSite({ ...newSite, siteManager: e.target.value })}
-                data-testid="input-site-manager"
-              />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="address-line1">Address Line 1</Label>
+                  <Input
+                    id="address-line1"
+                    value={newSite.addressLine1}
+                    onChange={(e) => setNewSite({ ...newSite, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-address-line1"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address-line2">Address Line 2</Label>
+                  <Input
+                    id="address-line2"
+                    value={newSite.addressLine2}
+                    onChange={(e) => setNewSite({ ...newSite, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={newSite.city}
+                      onChange={(e) => setNewSite({ ...newSite, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="county">County</Label>
+                    <Input
+                      id="county"
+                      value={newSite.county}
+                      onChange={(e) => setNewSite({ ...newSite, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="postal-code">Postal Code</Label>
+                    <Input
+                      id="postal-code"
+                      value={newSite.postalCode}
+                      onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-postal-code"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={newSite.country}
+                      onChange={(e) => setNewSite({ ...newSite, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-country"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                placeholder="Enter full address"
-                value={newSite.addressLine1}
-                onChange={(e) => setNewSite({ ...newSite, addressLine1: e.target.value })}
-                data-testid="input-address"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact-phone">Contact Phone</Label>
-              <Input
-                id="contact-phone"
-                type="tel"
-                placeholder="+44 xxx xxx xxxx"
-                value={newSite.contactPhone}
-                onChange={(e) => setNewSite({ ...newSite, contactPhone: e.target.value })}
-                data-testid="input-contact-phone"
-              />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-name">Contact Name</Label>
+                    <Input
+                      id="contact-name"
+                      value={newSite.contactName}
+                      onChange={(e) => setNewSite({ ...newSite, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-contact-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-position">Position</Label>
+                    <Input
+                      id="contact-position"
+                      value={newSite.contactPosition}
+                      onChange={(e) => setNewSite({ ...newSite, contactPosition: e.target.value })}
+                      placeholder="Job title"
+                      data-testid="input-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-phone">Phone</Label>
+                    <Input
+                      id="contact-phone"
+                      value={newSite.contactPhone}
+                      onChange={(e) => setNewSite({ ...newSite, contactPhone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-contact-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-email">Email</Label>
+                    <Input
+                      id="contact-email"
+                      type="email"
+                      value={newSite.contactEmail}
+                      onChange={(e) => setNewSite({ ...newSite, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-contact-email"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
