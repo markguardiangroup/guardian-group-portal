@@ -52,7 +52,6 @@ import {
   Shield,
   Building2,
   Mail,
-  Clock,
   UserCheck,
   UserX,
   ChevronLeft,
@@ -111,21 +110,6 @@ const roleLabels: Record<UserRole, string> = {
   consultant: "Consultant",
   client: "Client",
 };
-
-function formatLastLogin(lastLogin: string | null): string {
-  if (!lastLogin) return "Never";
-  const date = new Date(lastLogin);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffHours < 1) return "Just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -392,8 +376,8 @@ export default function UserManagement() {
                 <TableHead>Company</TableHead>
                 <TableHead>Job Title</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Sites Assigned</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -404,8 +388,8 @@ export default function UserManagement() {
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))}
@@ -482,8 +466,8 @@ export default function UserManagement() {
               <TableHead>Company</TableHead>
               <TableHead>Job Title</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Sites Assigned</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -547,6 +531,9 @@ export default function UserManagement() {
                     )}
                   </TableCell>
                   <TableCell>
+                    {renderSiteAssignments(u)}
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={u.status === "active" ? "default" : "secondary"}>
                       {u.status === "active" ? (
                         <><UserCheck className="h-3 w-3 mr-1" />Active</>
@@ -554,12 +541,6 @@ export default function UserManagement() {
                         <><UserX className="h-3 w-3 mr-1" />Inactive</>
                       )}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Clock className="h-3.5 w-3.5" />
-                      {formatLastLogin(u.lastLogin)}
-                    </div>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
