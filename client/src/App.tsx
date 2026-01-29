@@ -28,6 +28,7 @@ import UserManagement from "@/pages/user-management";
 import TemplateLibrary from "@/pages/template-library";
 import TrainingLibrary from "@/pages/training-library";
 import Training from "@/pages/training";
+import TrainingDashboard from "@/pages/training-dashboard";
 import CreateFromTemplate from "@/pages/create-from-template";
 import NotFound from "@/pages/not-found";
 
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/template-library" component={TemplateLibrary} />
       <Route path="/training-library" component={TrainingLibrary} />
       <Route path="/training" component={Training} />
+      <Route path="/training/dashboard" component={TrainingDashboard} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route component={NotFound} />
     </Switch>

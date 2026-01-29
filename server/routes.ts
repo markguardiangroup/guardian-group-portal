@@ -2953,8 +2953,9 @@ export async function registerRoutes(
       }
       
       const schema = z.object({
-        status: z.enum(["pending", "contacted", "completed", "cancelled"]).optional(),
+        status: z.enum(["pending", "contacted", "booked", "completed", "cancelled"]).optional(),
         responseNotes: z.string().optional(),
+        scheduledDate: z.string().optional(), // ISO date string for scheduled training
       });
       
       const parsed = schema.safeParse(req.body);
@@ -2963,9 +2964,37 @@ export async function registerRoutes(
       }
       
       const updateData: any = { ...parsed.data };
+      
+      // Track who responded and when
       if (parsed.data.status && parsed.data.status !== "pending") {
         updateData.respondedBy = user.id;
         updateData.respondedAt = new Date();
+      }
+      
+      // Handle booking - track who booked and when
+      if (parsed.data.status === "booked") {
+        updateData.bookedBy = user.id;
+        updateData.bookedAt = new Date();
+        if (parsed.data.scheduledDate) {
+          updateData.scheduledDate = new Date(parsed.data.scheduledDate);
+        }
+      }
+      
+      // Handle completion - track who completed and calculate renewal date
+      if (parsed.data.status === "completed") {
+        updateData.completedBy = user.id;
+        updateData.completedAt = new Date();
+        
+        // Get the training course to calculate renewal date
+        const request = await storage.getTrainingRequest(req.params.id);
+        if (request) {
+          const course = await storage.getTrainingCourse(request.trainingCourseId);
+          if (course && course.renewalPeriodMonths) {
+            const renewalDate = new Date();
+            renewalDate.setMonth(renewalDate.getMonth() + course.renewalPeriodMonths);
+            updateData.renewalDate = renewalDate;
+          }
+        }
       }
       
       const updated = await storage.updateTrainingRequest(req.params.id, updateData);

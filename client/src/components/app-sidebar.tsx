@@ -95,6 +95,7 @@ const moduleNavItems: {
     themeClass: "theme-training",
     module: "training" as ModuleType,
     subItems: [
+      { title: "Dashboard", url: "/training/dashboard" },
       { title: "Browse Courses", url: "/training" },
     ],
   },
