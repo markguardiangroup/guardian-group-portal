@@ -263,50 +263,50 @@ function SupportCard() {
 
   return (
     <Card className="hover-elevate theme-support border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20" data-testid="card-module-support">
-      <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 py-6">
+      <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 py-8 px-8">
         {/* Left: Icon and title */}
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/40">
-            <Headphones className="h-7 w-7 text-slate-600 dark:text-slate-400" />
+        <div className="flex items-center gap-5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800/40">
+            <Headphones className="h-8 w-8 text-slate-600 dark:text-slate-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold">Support</h3>
-            <p className="text-muted-foreground">
+            <h3 className="text-2xl font-semibold">Support</h3>
+            <p className="text-muted-foreground text-base">
               Need help with compliance? Our consultants are here to assist.
             </p>
           </div>
         </div>
 
         {/* Center: Metrics */}
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-10">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-              <MessageCircle className="h-5 w-5" />
-              <span className="text-2xl font-bold">{openRequests}</span>
+            <div className="flex items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400">
+              <MessageCircle className="h-6 w-6" />
+              <span className="text-3xl font-bold">{openRequests}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Open</p>
+            <p className="text-sm text-muted-foreground mt-1">Open</p>
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCheck className="h-5 w-5" />
-              <span className="text-2xl font-bold">{resolvedRequests}</span>
+            <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <CheckCheck className="h-6 w-6" />
+              <span className="text-3xl font-bold">{resolvedRequests}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Resolved</p>
+            <p className="text-sm text-muted-foreground mt-1">Resolved</p>
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-400">
-              <FileText className="h-5 w-5" />
-              <span className="text-2xl font-bold">{totalRequests}</span>
+            <div className="flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-400">
+              <FileText className="h-6 w-6" />
+              <span className="text-3xl font-bold">{totalRequests}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Total</p>
+            <p className="text-sm text-muted-foreground mt-1">Total</p>
           </div>
         </div>
 
         {/* Right: Button */}
-        <Button className="border-slate-500 text-slate-600 dark:text-slate-400 md:w-auto" variant="outline" asChild>
+        <Button size="lg" className="border-slate-500 text-slate-600 dark:text-slate-400 md:w-auto" variant="outline" asChild>
           <Link href="/support" data-testid="link-module-support">
             View Support
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </Button>
       </CardContent>
