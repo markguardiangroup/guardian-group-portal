@@ -246,8 +246,8 @@ export default function TrainingDashboard() {
   }
 
   return (
-    <div className="container py-8 space-y-6 max-w-6xl">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="container py-6 max-w-6xl">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-purple-600" />
@@ -268,7 +268,7 @@ export default function TrainingDashboard() {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card 
           className={`cursor-pointer transition-all ${activeTab === "booked" ? "border-purple-500 border-2 bg-purple-50/50 dark:bg-purple-950/20" : "hover-elevate"}`}
           onClick={() => setActiveTab("booked")}
@@ -312,7 +312,7 @@ export default function TrainingDashboard() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
