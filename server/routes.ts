@@ -3186,6 +3186,7 @@ export async function registerRoutes(
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
       const search = (req.query.search as string || "").toLowerCase();
+      const status = req.query.status as string | undefined;
       
       const allCompanies = await storage.getCompaniesWithSiteCount();
       
@@ -3204,6 +3205,11 @@ export async function registerRoutes(
         filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
       } else if (user.role !== "admin") {
         filteredCompanies = [];
+      }
+      
+      // Apply status filter
+      if (status && status !== "all") {
+        filteredCompanies = filteredCompanies.filter(c => c.status === status);
       }
       
       // Apply search filter

@@ -78,6 +78,8 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
 export default function Sites() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [complianceFilter, setComplianceFilter] = useState<string>("all");
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   const [newSite, setNewSite] = useState({
@@ -150,13 +152,29 @@ export default function Sites() {
     createSiteMutation.mutate(newSite);
   };
 
-  const filteredSites = sites?.filter((site) =>
-    site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.addressLine1?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.contactName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredSites = sites?.filter((site) => {
+    const matchesSearch = 
+      site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.addressLine1?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.contactName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.referenceNumber?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCompany = companyFilter === "all" || site.companyId === companyFilter;
+    
+    let matchesCompliance = true;
+    if (complianceFilter !== "all" && site.complianceSummary) {
+      const score = site.complianceSummary.complianceScore;
+      if (complianceFilter === "high") matchesCompliance = score >= 90;
+      else if (complianceFilter === "medium") matchesCompliance = score >= 70 && score < 90;
+      else if (complianceFilter === "low") matchesCompliance = score < 70;
+    } else if (complianceFilter !== "all" && !site.complianceSummary) {
+      matchesCompliance = complianceFilter === "none";
+    }
+    
+    return matchesSearch && matchesCompany && matchesCompliance;
+  });
 
   if (isLoading) {
     return (
@@ -186,8 +204,8 @@ export default function Sites() {
         </Button>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-4">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search sites, companies, addresses..."
@@ -197,6 +215,31 @@ export default function Sites() {
             data-testid="input-search-sites"
           />
         </div>
+        <Select value={companyFilter} onValueChange={setCompanyFilter}>
+          <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
+            <SelectValue placeholder="All Companies" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Companies</SelectItem>
+            {companies?.map((company) => (
+              <SelectItem key={company.id} value={company.id}>
+                {company.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={complianceFilter} onValueChange={setComplianceFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-compliance-filter">
+            <SelectValue placeholder="All Compliance" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Compliance</SelectItem>
+            <SelectItem value="high">High (90%+)</SelectItem>
+            <SelectItem value="medium">At Risk (70-89%)</SelectItem>
+            <SelectItem value="low">Low (&lt;70%)</SelectItem>
+            <SelectItem value="none">No Data</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filteredSites && filteredSites.length > 0 ? (

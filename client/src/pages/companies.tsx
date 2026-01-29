@@ -16,6 +16,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Building2,
   Search,
   Plus,
@@ -134,6 +141,7 @@ function CompanyCard({
 export default function Companies() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -166,12 +174,13 @@ export default function Companies() {
   }, [searchQuery]);
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { page, limit, search: debouncedSearch }],
+    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter }],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
         ...(debouncedSearch && { search: debouncedSearch }),
+        ...(statusFilter !== "all" && { status: statusFilter }),
       });
       const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch companies");
@@ -300,8 +309,8 @@ export default function Companies() {
         )}
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-4">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search companies..."
@@ -311,6 +320,16 @@ export default function Companies() {
             data-testid="input-search-companies"
           />
         </div>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {companies.length > 0 ? (
