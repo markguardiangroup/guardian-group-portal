@@ -717,27 +717,37 @@ export default function Dashboard() {
             {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
           </p>
         </div>
-        {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
-        {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
-          <div className="flex items-center gap-2">
-            {isPrivilegedUser && (
-              <CompanyCombobox
-                sites={sites}
-                value={selectedCompany}
-                onValueChange={handleCompanyChange}
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/support" 
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover-elevate rounded-md px-2 py-1"
+            data-testid="link-need-help"
+          >
+            <Headphones className="h-4 w-4" />
+            <span>Need help?</span>
+          </Link>
+          {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
+          {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
+            <>
+              {isPrivilegedUser && (
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-dashboard"
+                />
+              )}
+              <SiteCombobox
+                sites={isPrivilegedUser ? filteredSites : sites}
+                value={selectedSiteId}
+                onValueChange={setSelectedSiteId}
                 className="w-48"
-                testId="select-company-dashboard"
+                testId="select-site-dashboard"
               />
-            )}
-            <SiteCombobox
-              sites={isPrivilegedUser ? filteredSites : sites}
-              value={selectedSiteId}
-              onValueChange={setSelectedSiteId}
-              className="w-48"
-              testId="select-site-dashboard"
-            />
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       <OverallComplianceCard summaries={complianceSummaries} />
