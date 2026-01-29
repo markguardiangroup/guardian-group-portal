@@ -52,6 +52,10 @@ function EmploymentLawDocuments() {
   return <ModuleDocuments module="employment_law" />;
 }
 
+function TrainingDocuments() {
+  return <ModuleDocuments module="training" />;
+}
+
 
 function Router() {
   return (
@@ -91,6 +95,9 @@ function Router() {
       <Route path="/training-library" component={TrainingLibrary} />
       <Route path="/training" component={Training} />
       <Route path="/training/dashboard" component={TrainingDashboard} />
+      <Route path="/training/documents" component={TrainingDocuments} />
+      <Route path="/training/documents/upload" component={DocumentUpload} />
+      <Route path="/training/documents/:id" component={TrainingDocuments} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route component={NotFound} />
     </Switch>

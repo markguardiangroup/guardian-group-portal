@@ -124,6 +124,7 @@ interface SiteModuleAccess {
   health_safety: "active" | "visible" | "hidden";
   human_resources: "active" | "visible" | "hidden";
   employment_law: "active" | "visible" | "hidden";
+  training: "active" | "visible" | "hidden";
   support: "active" | "visible" | "hidden";
 }
 
@@ -140,6 +141,7 @@ const moduleColors: Record<string, string> = {
   health_safety: "text-emerald-600 dark:text-emerald-400",
   human_resources: "text-blue-600 dark:text-blue-400",
   employment_law: "text-pink-600 dark:text-pink-400",
+  training: "text-purple-600 dark:text-purple-400",
   support: "text-purple-600 dark:text-purple-400",
 };
 
@@ -147,6 +149,7 @@ const moduleBgColors: Record<string, string> = {
   health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
   human_resources: "bg-blue-100 dark:bg-blue-900/30",
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
+  training: "bg-purple-100 dark:bg-purple-900/30",
   support: "bg-purple-100 dark:bg-purple-900/30",
 };
 
@@ -154,6 +157,7 @@ const moduleBorderColors: Record<string, string> = {
   health_safety: "border-emerald-200 dark:border-emerald-800",
   human_resources: "border-blue-200 dark:border-blue-800",
   employment_law: "border-pink-200 dark:border-pink-800",
+  training: "border-purple-200 dark:border-purple-800",
   support: "border-purple-200 dark:border-purple-800",
 };
 
@@ -220,9 +224,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   const { user } = useAuth();
   const config = moduleConfig[module];
-  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
-  const ModuleIcon = module === "health_safety" ? HardHat : Users;
-  const themeClass = module === "health_safety" ? "theme-hs" : module === "human_resources" ? "theme-hr" : "theme-el";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
+  const ModuleIcon = module === "health_safety" ? HardHat : module === "training" ? FileText : Users;
+  const themeClass = module === "health_safety" ? "theme-hs" : module === "human_resources" ? "theme-hr" : module === "employment_law" ? "theme-el" : "theme-training";
   
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
@@ -968,7 +972,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [archiveReason, setArchiveReason] = useState("");
 
   const config = moduleConfig[module];
-  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
 
   const { data: document, isLoading } = useQuery<DocumentWithDetails>({
     queryKey: ["/api/documents", id],
@@ -1572,7 +1576,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             ) : (
               <SimpleFileUpload
                 onUploadComplete={(result) => setNewVersionFile(result)}
-                uploadPath="uploads"
               />
             )}
             <div className="space-y-2">
@@ -1653,7 +1656,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 }
 
 export default function ModuleDocuments({ module }: ModuleDocumentsProps) {
-  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : "/employment-law";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
   const [matchDetail, params] = useRoute(`${basePath}/documents/:id`);
 
   if (matchDetail && params?.id) {

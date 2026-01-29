@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Modules
-export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "support" | "reports";
+export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "training" | "support" | "reports";
 
 // User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
@@ -268,8 +268,14 @@ export type ELDocumentType =
   | "case_notes"
   | "legal_correspondence";
 
+// Training document types
+export type TrainingDocumentType = 
+  | "training_certificate"
+  | "completion_record"
+  | "attendance_register";
+
 // Combined document type
-export type DocumentType = HSDocumentType | HRDocumentType | ELDocumentType;
+export type DocumentType = HSDocumentType | HRDocumentType | ELDocumentType | TrainingDocumentType;
 
 // Case status for Employment Law module
 export type CaseStatus = "open" | "under_investigation" | "hearing_scheduled" | "resolved" | "closed";
@@ -764,6 +770,15 @@ export const moduleConfig: Record<ModuleType, {
     name: "Employment Law",
     shortName: "EL",
     documentTypes: [],
+  },
+  training: {
+    name: "Training",
+    shortName: "TRN",
+    documentTypes: [
+      { value: "training_certificate", label: "Training Certificate" },
+      { value: "completion_record", label: "Completion Record" },
+      { value: "attendance_register", label: "Attendance Register" },
+    ],
   },
   support: {
     name: "Support",

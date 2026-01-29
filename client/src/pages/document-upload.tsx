@@ -43,7 +43,7 @@ import type { Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   documentTypeId: z.string().min(1, "Please select a document type"),
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),
@@ -76,6 +76,7 @@ const moduleLabels: Record<ModuleType, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
+  training: "Training",
   support: "Support",
   reports: "Reports",
 };
@@ -84,6 +85,7 @@ const modulePaths: Record<ModuleType, string> = {
   health_safety: "/health-safety/documents",
   human_resources: "/human-resources/documents",
   employment_law: "/employment-law",
+  training: "/training/documents",
   support: "/support",
   reports: "/reports",
 };

@@ -13,7 +13,7 @@ const BCRYPT_SALT_ROUNDS = 12;
 const createDocumentSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   type: z.string().min(1),
   documentTypeId: z.string().nullable().optional(),
   siteId: z.string().min(1),
@@ -90,7 +90,7 @@ const loginSchema = z.object({
 const createDocumentTypeSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
-  module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
+  module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   description: z.string().optional(),
   isRequired: z.boolean().optional(),
   renewalPeriodMonths: z.number().positive().optional().nullable(),
@@ -356,7 +356,7 @@ export async function registerRoutes(
       }
       
       const module = req.params.module as ModuleType;
-      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "training") {
         return res.status(400).json({ error: "Invalid module" });
       }
       
@@ -726,7 +726,7 @@ export async function registerRoutes(
       }
       
       const module = req.params.module as ModuleType;
-      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "training") {
         return res.status(400).json({ error: "Invalid module" });
       }
       const allDocuments = await storage.getDocuments(module);
@@ -3959,7 +3959,7 @@ export async function registerRoutes(
   app.get("/api/document-types/:module/:siteId", requireAuth, async (req, res) => {
     try {
       const { module, siteId } = req.params;
-      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "support") {
+      if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "training" && module !== "support") {
         return res.status(400).json({ error: "Invalid module" });
       }
       
@@ -4710,7 +4710,7 @@ export async function registerRoutes(
       }
       
       // Validate module and status against allowed values
-      const validModules = ["health_safety", "human_resources", "employment_law", "support", "reports"];
+      const validModules = ["health_safety", "human_resources", "employment_law", "training", "support", "reports"];
       const validStatuses = ["active", "visible", "hidden"];
       
       if (!validModules.includes(module)) {
@@ -4832,7 +4832,7 @@ export async function registerRoutes(
       }
       
       // Validate module type (using ModuleType values from schema)
-      const validModules = ["health_safety", "human_resources", "employment_law", "support"];
+      const validModules = ["health_safety", "human_resources", "employment_law", "training", "support"];
       if (!validModules.includes(module)) {
         return res.status(400).json({ error: "Invalid module type" });
       }
