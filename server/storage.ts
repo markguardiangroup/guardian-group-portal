@@ -53,11 +53,17 @@ import {
   users as usersTable,
   sites as sitesTable,
   companies as companiesTable,
+  supportRequests as supportRequestsTable,
+  supportMessages as supportMessagesTable,
+  supportRequestReads as supportRequestReadsTable,
+  cases as casesTable,
+  caseMilestones as caseMilestonesTable,
+  consultantAssignments as consultantAssignmentsTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc, desc, isNull } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, gt } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -1738,96 +1744,113 @@ export class MemStorage implements IStorage {
     return result[0];
   }
 
-  // Support Requests
+  // Support Requests - Database backed
   async getSupportRequests(module?: ModuleType): Promise<SupportRequest[]> {
-    let requests = Array.from(this.supportRequests.values());
+    let query = db.select().from(supportRequestsTable);
     if (module) {
-      requests = requests.filter(r => r.module === module);
+      const requests = await query;
+      return requests
+        .filter(r => r.module === module)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
+    const requests = await query;
     return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getSupportRequest(id: string): Promise<SupportRequest | undefined> {
-    return this.supportRequests.get(id);
+    const [request] = await db.select().from(supportRequestsTable).where(eq(supportRequestsTable.id, id));
+    return request;
   }
 
   async createSupportRequest(insertRequest: InsertSupportRequest): Promise<SupportRequest> {
-    const id = randomUUID();
-    const now = new Date();
-    const request: SupportRequest = { 
-      ...insertRequest, 
-      id,
-      status: (insertRequest.status ?? "open") as any,
-      priority: (insertRequest.priority ?? "medium") as any,
-      module: (insertRequest.module ?? null) as any,
+    const [request] = await db.insert(supportRequestsTable).values({
+      ...insertRequest,
+      status: insertRequest.status ?? "open",
+      priority: insertRequest.priority ?? "medium",
+      module: insertRequest.module ?? null,
       assignedTo: insertRequest.assignedTo ?? null,
-      createdAt: now,
-      updatedAt: now,
-      resolvedAt: null,
-    };
-    this.supportRequests.set(id, request);
+    }).returning();
     return request;
   }
 
   async updateSupportRequest(id: string, updates: Partial<SupportRequest>): Promise<SupportRequest | undefined> {
-    const request = this.supportRequests.get(id);
-    if (!request) return undefined;
-    
-    const updated = { ...request, ...updates, updatedAt: new Date() };
-    this.supportRequests.set(id, updated);
+    const [updated] = await db.update(supportRequestsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportRequestsTable.id, id))
+      .returning();
     return updated;
   }
 
   async clearSupportRequests(): Promise<void> {
-    this.supportRequests.clear();
-    this.supportMessages.clear();
+    await db.delete(supportMessagesTable);
+    await db.delete(supportRequestReadsTable);
+    await db.delete(supportRequestsTable);
   }
 
   async getSupportMessages(requestId: string): Promise<SupportMessage[]> {
-    return Array.from(this.supportMessages.values())
-      .filter(m => m.requestId === requestId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const messages = await db.select().from(supportMessagesTable)
+      .where(eq(supportMessagesTable.requestId, requestId))
+      .orderBy(asc(supportMessagesTable.createdAt));
+    return messages;
   }
 
   async createSupportMessage(insertMessage: InsertSupportMessage): Promise<SupportMessage> {
-    const id = randomUUID();
-    const message: SupportMessage = {
-      ...insertMessage,
-      id,
-      createdAt: new Date(),
-    };
-    this.supportMessages.set(id, message);
+    const [message] = await db.insert(supportMessagesTable).values(insertMessage).returning();
     return message;
   }
 
   async getLatestSupportMessage(requestId: string): Promise<SupportMessage | undefined> {
-    const messages = Array.from(this.supportMessages.values())
-      .filter(m => m.requestId === requestId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const messages = await db.select().from(supportMessagesTable)
+      .where(eq(supportMessagesTable.requestId, requestId))
+      .orderBy(desc(supportMessagesTable.createdAt))
+      .limit(1);
     return messages[0];
   }
 
   async markSupportRequestRead(requestId: string, userId: string): Promise<void> {
-    const key = `${requestId}:${userId}`;
-    this.supportRequestReads.set(key, {
-      requestId,
-      userId,
-      lastReadAt: new Date(),
-    });
+    // Check if record exists
+    const existing = await db.select().from(supportRequestReadsTable)
+      .where(and(
+        eq(supportRequestReadsTable.requestId, requestId),
+        eq(supportRequestReadsTable.userId, userId)
+      ));
+    
+    if (existing.length > 0) {
+      // Update existing record
+      await db.update(supportRequestReadsTable)
+        .set({ lastReadAt: new Date() })
+        .where(and(
+          eq(supportRequestReadsTable.requestId, requestId),
+          eq(supportRequestReadsTable.userId, userId)
+        ));
+    } else {
+      // Insert new record
+      await db.insert(supportRequestReadsTable).values({
+        requestId,
+        userId,
+        lastReadAt: new Date(),
+      });
+    }
   }
 
   async getUnreadMessageCount(requestId: string, userId: string): Promise<number> {
-    const key = `${requestId}:${userId}`;
-    const readRecord = this.supportRequestReads.get(key);
+    // Get last read timestamp
+    const [readRecord] = await db.select().from(supportRequestReadsTable)
+      .where(and(
+        eq(supportRequestReadsTable.requestId, requestId),
+        eq(supportRequestReadsTable.userId, userId)
+      ));
     const lastReadAt = readRecord?.lastReadAt || new Date(0);
     
-    const messages = Array.from(this.supportMessages.values())
-      .filter(m => 
-        m.requestId === requestId && 
-        m.senderId !== userId && 
-        new Date(m.createdAt) > lastReadAt
-      );
-    return messages.length;
+    // Count messages from others after last read
+    const messages = await db.select().from(supportMessagesTable)
+      .where(and(
+        eq(supportMessagesTable.requestId, requestId),
+        gt(supportMessagesTable.createdAt, lastReadAt)
+      ));
+    
+    // Filter out messages from the current user
+    return messages.filter(m => m.senderId !== userId).length;
   }
 
   // Dashboard
@@ -1989,29 +2012,27 @@ export class MemStorage implements IStorage {
     return false;
   }
 
-  // Cases (Employment Law)
+  // Cases (Employment Law) - Database backed
   async getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus }): Promise<Case[]> {
-    let cases = Array.from(this.cases.values());
+    let allCases = await db.select().from(casesTable);
     if (filters?.siteId) {
-      cases = cases.filter(c => c.siteId === filters.siteId);
+      allCases = allCases.filter(c => c.siteId === filters.siteId);
     }
     if (filters?.entityId) {
-      cases = cases.filter(c => c.entityId === filters.entityId);
+      allCases = allCases.filter(c => c.entityId === filters.entityId);
     }
     if (filters?.status) {
-      cases = cases.filter(c => c.status === filters.status);
+      allCases = allCases.filter(c => c.status === filters.status);
     }
-    return cases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return allCases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getCase(id: string): Promise<Case | undefined> {
-    return this.cases.get(id);
+    const [result] = await db.select().from(casesTable).where(eq(casesTable.id, id));
+    return result;
   }
 
   async createCase(insertCase: InsertCase): Promise<Case> {
-    const id = randomUUID();
-    const now = new Date();
-    
     // Auto-create a standalone folder for the case documents (case-specific, not shown in main folder hierarchy)
     const folderName = `${insertCase.caseReference} - ${insertCase.employeeName}`;
     const folder = await this.createDocumentFolder({
@@ -2025,32 +2046,27 @@ export class MemStorage implements IStorage {
       createdBy: insertCase.createdBy,
     });
     
-    const newCase: Case = {
+    const [newCase] = await db.insert(casesTable).values({
       ...insertCase,
-      id,
       folderId: folder.id, // Link to auto-created folder
-      caseType: insertCase.caseType as any,
-      status: (insertCase.status ?? "open") as any,
+      status: insertCase.status ?? "open",
       description: insertCase.description ?? null,
       employeeId: insertCase.employeeId ?? null,
-      isConfidential: insertCase.isConfidential ?? true, // Confidential by default - consultants grant access via restrictedToUsers
+      isConfidential: insertCase.isConfidential ?? true, // Confidential by default
       restrictedToUsers: insertCase.restrictedToUsers ?? null,
       hearingDate: insertCase.hearingDate ?? null,
       responseDeadline: insertCase.responseDeadline ?? null,
       resolutionDate: insertCase.resolutionDate ?? null,
       assignedConsultant: insertCase.assignedConsultant ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.cases.set(id, newCase);
+    }).returning();
     return newCase;
   }
 
   async updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined> {
-    const existing = this.cases.get(id);
-    if (!existing) return undefined;
-    const updated = { ...existing, ...updates, updatedAt: new Date() };
-    this.cases.set(id, updated);
+    const [updated] = await db.update(casesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(casesTable.id, id))
+      .returning();
     return updated;
   }
 
@@ -2061,58 +2077,60 @@ export class MemStorage implements IStorage {
     return docs;
   }
 
-  // Case Milestones
+  // Case Milestones - Database backed
   async getCaseMilestones(caseId: string): Promise<CaseMilestone[]> {
-    return Array.from(this.caseMilestones.values())
-      .filter(m => m.caseId === caseId)
-      .sort((a, b) => {
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      });
+    const milestones = await db.select().from(caseMilestonesTable)
+      .where(eq(caseMilestonesTable.caseId, caseId));
+    return milestones.sort((a, b) => {
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
   }
 
   async createCaseMilestone(insertMilestone: InsertCaseMilestone): Promise<CaseMilestone> {
-    const id = randomUUID();
-    const milestone: CaseMilestone = {
+    const [milestone] = await db.insert(caseMilestonesTable).values({
       ...insertMilestone,
-      id,
       description: insertMilestone.description ?? null,
       dueDate: insertMilestone.dueDate ?? null,
       completedDate: insertMilestone.completedDate ?? null,
       isCompleted: insertMilestone.isCompleted ?? false,
-      createdAt: new Date(),
-    };
-    this.caseMilestones.set(id, milestone);
+    }).returning();
     return milestone;
   }
 
   async updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined> {
-    const existing = this.caseMilestones.get(id);
-    if (!existing) return undefined;
-    const updated = { ...existing, ...updates };
-    this.caseMilestones.set(id, updated);
+    const [updated] = await db.update(caseMilestonesTable)
+      .set(updates)
+      .where(eq(caseMilestonesTable.id, id))
+      .returning();
     return updated;
   }
 
   async getCaseMilestone(id: string): Promise<CaseMilestone | undefined> {
-    return this.caseMilestones.get(id);
+    const [result] = await db.select().from(caseMilestonesTable).where(eq(caseMilestonesTable.id, id));
+    return result;
   }
 
   async deleteCaseMilestone(id: string): Promise<void> {
-    this.caseMilestones.delete(id);
+    await db.delete(caseMilestonesTable).where(eq(caseMilestonesTable.id, id));
   }
 
-  // Entity Module Access
+  // Entity Module Access - Database backed
   async getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]> {
-    return Array.from(this.siteModuleAccess.values())
-      .filter(a => a.siteId === siteId);
+    const results = await db.select().from(siteModuleAccessTable)
+      .where(eq(siteModuleAccessTable.siteId, siteId));
+    return results;
   }
 
   async getSiteModuleAccessByModule(siteId: string, module: ModuleType): Promise<SiteModuleAccess | undefined> {
-    return Array.from(this.siteModuleAccess.values())
-      .find(a => a.siteId === siteId && a.module === module);
+    const [result] = await db.select().from(siteModuleAccessTable)
+      .where(and(
+        eq(siteModuleAccessTable.siteId, siteId),
+        eq(siteModuleAccessTable.module, module)
+      ));
+    return result;
   }
 
   async setSiteModuleAccess(
@@ -2126,30 +2144,26 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     if (existing) {
-      const updated: SiteModuleAccess = {
-        ...existing,
-        status,
-        grantedBy: status === "active" ? (grantedBy ?? existing.grantedBy) : existing.grantedBy,
-        grantedAt: status === "active" ? now : existing.grantedAt,
-        notes: notes ?? existing.notes,
-        updatedAt: now,
-      };
-      this.siteModuleAccess.set(existing.id, updated);
+      const [updated] = await db.update(siteModuleAccessTable)
+        .set({
+          status,
+          grantedBy: status === "active" ? (grantedBy ?? existing.grantedBy) : existing.grantedBy,
+          grantedAt: status === "active" ? now : existing.grantedAt,
+          notes: notes ?? existing.notes,
+          updatedAt: now,
+        })
+        .where(eq(siteModuleAccessTable.id, existing.id))
+        .returning();
       return updated;
     } else {
-      const id = randomUUID();
-      const access: SiteModuleAccess = {
-        id,
+      const [access] = await db.insert(siteModuleAccessTable).values({
         siteId,
         module,
         status,
         grantedBy: status === "active" ? (grantedBy ?? null) : null,
         grantedAt: status === "active" ? now : null,
         notes: notes ?? null,
-        createdAt: now,
-        updatedAt: now,
-      };
-      this.siteModuleAccess.set(id, access);
+      }).returning();
       return access;
     }
   }
@@ -2261,60 +2275,58 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Consultant Assignments
+  // Consultant Assignments - Database backed
   async getConsultantAssignments(siteId: string): Promise<ConsultantAssignment[]> {
-    return Array.from(this.consultantAssignments.values())
-      .filter(a => a.siteId === siteId);
+    const results = await db.select().from(consultantAssignmentsTable)
+      .where(eq(consultantAssignmentsTable.siteId, siteId));
+    return results;
   }
 
   async getConsultantSites(consultantId: string): Promise<ConsultantAssignment[]> {
-    return Array.from(this.consultantAssignments.values())
-      .filter(a => a.consultantId === consultantId);
+    const results = await db.select().from(consultantAssignmentsTable)
+      .where(eq(consultantAssignmentsTable.consultantId, consultantId));
+    return results;
   }
 
   async assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment> {
     // Check if already assigned
-    const existing = Array.from(this.consultantAssignments.values())
-      .find(a => a.consultantId === assignment.consultantId && a.siteId === assignment.siteId);
+    const [existing] = await db.select().from(consultantAssignmentsTable)
+      .where(and(
+        eq(consultantAssignmentsTable.consultantId, assignment.consultantId),
+        eq(consultantAssignmentsTable.siteId, assignment.siteId)
+      ));
     if (existing) {
       return existing;
     }
 
-    const id = randomUUID();
-    const newAssignment: ConsultantAssignment = {
-      id,
+    const [newAssignment] = await db.insert(consultantAssignmentsTable).values({
       consultantId: assignment.consultantId,
       siteId: assignment.siteId,
       isPrimary: assignment.isPrimary ?? false,
-      assignedAt: new Date(),
-    };
-    this.consultantAssignments.set(id, newAssignment);
+      canManageModules: assignment.canManageModules ?? false,
+    }).returning();
     return newAssignment;
   }
 
   async updateConsultantAssignment(consultantId: string, siteId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined> {
-    const entry = Array.from(this.consultantAssignments.entries())
-      .find(([_, a]) => a.consultantId === consultantId && a.siteId === siteId);
-    if (!entry) {
-      return undefined;
-    }
-    const [id, assignment] = entry;
-    const updated: ConsultantAssignment = {
-      ...assignment,
-      ...updates,
-    };
-    this.consultantAssignments.set(id, updated);
+    const [updated] = await db.update(consultantAssignmentsTable)
+      .set(updates)
+      .where(and(
+        eq(consultantAssignmentsTable.consultantId, consultantId),
+        eq(consultantAssignmentsTable.siteId, siteId)
+      ))
+      .returning();
     return updated;
   }
 
   async removeConsultantAssignment(consultantId: string, siteId: string): Promise<boolean> {
-    const assignment = Array.from(this.consultantAssignments.entries())
-      .find(([_, a]) => a.consultantId === consultantId && a.siteId === siteId);
-    if (assignment) {
-      this.consultantAssignments.delete(assignment[0]);
-      return true;
-    }
-    return false;
+    const result = await db.delete(consultantAssignmentsTable)
+      .where(and(
+        eq(consultantAssignmentsTable.consultantId, consultantId),
+        eq(consultantAssignmentsTable.siteId, siteId)
+      ))
+      .returning();
+    return result.length > 0;
   }
 
   // Client Site Assignments

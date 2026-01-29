@@ -145,10 +145,16 @@ The application uses a hybrid storage model with the `MemStorage` class:
 - **Audit Logs**: Activity tracking persists to the `audit_logs` table (uses `entityId` column, not `siteId`)
 - **Sessions**: User sessions persist via connect-pg-simple
 - **Template data**: Document templates, folder templates, training data
+- **Support Requests**: Client support tickets persist to `support_requests` table
+- **Support Messages**: Conversation threads persist to `support_messages` table
+- **Support Request Reads**: Unread tracking persists to `support_request_reads` table
+- **Cases**: Employment Law cases persist to `cases` table
+- **Case Milestones**: Case milestones persist to `case_milestones` table
+- **Site Module Access**: Module access settings persist to `site_module_access` table
+- **Consultant Assignments**: Links consultants to sites in `consultant_assignments` table
 
 **In-memory storage** (seed data loaded at startup):
 - Users, Companies, Sites - these entities are still loaded into memory Maps on startup
-- Support requests, Cases, Milestones - in-memory
 
 Note: DocumentWithDetails lookups for site/user names still reference in-memory maps for those entities.
 
