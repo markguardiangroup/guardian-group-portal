@@ -67,7 +67,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Site, User, ConsultantAssignment, ClientSiteAssignment } from "@shared/schema";
+import type { Site, User, ConsultantAssignment, ClientSiteAssignment, Company } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 
 type ClientAssignmentWithDetails = ClientSiteAssignment & {
@@ -95,7 +95,7 @@ interface UserWithoutPassword {
   createdAt: Date;
 }
 
-function OverviewTab({ entity, sites, onEditSite, companyId }: { entity: Site; sites: Site[]; onEditSite: () => void; companyId?: string }) {
+function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { entity: Site; sites: Site[]; onEditSite: () => void; companyId?: string; companyName?: string }) {
   return (
     <div className="space-y-6">
       {/* Parent Company Card */}
@@ -103,7 +103,7 @@ function OverviewTab({ entity, sites, onEditSite, companyId }: { entity: Site; s
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-base">Parent Company</CardTitle>
+              <CardTitle className="text-base">{companyName || "Parent Company"}</CardTitle>
               <CardDescription>This site belongs to a company group</CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
@@ -952,6 +952,11 @@ export default function SiteDetail() {
     enabled: !!siteId,
   });
 
+  const { data: parentCompany } = useQuery<Company>({
+    queryKey: ["/api/companies", entity?.companyId],
+    enabled: !!entity?.companyId,
+  });
+
   const updateSiteMutation = useMutation({
     mutationFn: async (data: typeof editSiteData) => {
       const response = await apiRequest("PATCH", `/api/sites/${siteId}`, data);
@@ -1057,7 +1062,7 @@ export default function SiteDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} companyId={entity.companyId} />
+          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} companyId={entity.companyId} companyName={parentCompany?.name} />
         </TabsContent>
 
         <TabsContent value="consultants">
