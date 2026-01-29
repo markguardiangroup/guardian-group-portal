@@ -81,6 +81,60 @@ export default function TrainingCertificateUpload() {
 
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
+  // Only admin/consultant can upload certificates
+  if (!isAdminOrConsultant) {
+    return (
+      <div className="container max-w-2xl py-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+            <p className="text-muted-foreground mb-6">
+              Only consultants and administrators can upload training certificates.
+            </p>
+            <Link href="/training/my-training">
+              <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-go-to-my-training">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                View My Training
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Require a booking to upload certificates
+  if (!bookingId) {
+    return (
+      <div className="container max-w-2xl py-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">Certificate Upload Requires a Booking</h2>
+            <p className="text-muted-foreground mb-6">
+              Training certificates can only be uploaded when completing a booked training course.
+              This ensures proper tracking and audit trail for all training activities.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Link href="/training/dashboard">
+                <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-go-to-dashboard">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Go to Training Dashboard
+                </Button>
+              </Link>
+              <Link href="/training/certificates">
+                <Button variant="outline" data-testid="button-view-certificates">
+                  View Certificates
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });

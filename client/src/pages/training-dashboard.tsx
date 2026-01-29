@@ -246,7 +246,7 @@ export default function TrainingDashboard() {
   }
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="container py-8 space-y-6 max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function TrainingDashboard() {
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card 
-          className={`cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500" : "hover-elevate"}`}
+          className={`cursor-pointer transition-all ${activeTab === "booked" ? "border-purple-500 border-2 bg-purple-50/50 dark:bg-purple-950/20" : "hover-elevate"}`}
           onClick={() => setActiveTab("booked")}
           data-testid="card-booked"
         >
@@ -279,13 +279,13 @@ export default function TrainingDashboard() {
             <BookOpen className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.booked}</div>
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">{metrics.booked}</div>
             <p className="text-xs text-muted-foreground">Active training bookings</p>
           </CardContent>
         </Card>
 
         <Card 
-          className={`cursor-pointer transition-all ${activeTab === "completed" ? "ring-2 ring-emerald-500" : "hover-elevate"}`}
+          className={`cursor-pointer transition-all ${activeTab === "completed" ? "border-emerald-500 border-2 bg-emerald-50/50 dark:bg-emerald-950/20" : "hover-elevate"}`}
           onClick={() => setActiveTab("completed")}
           data-testid="card-completed"
         >
@@ -294,7 +294,7 @@ export default function TrainingDashboard() {
             <CheckCircle className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.completed}</div>
+            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{metrics.completed}</div>
             <p className="text-xs text-muted-foreground">Completed training courses</p>
           </CardContent>
         </Card>
@@ -305,7 +305,7 @@ export default function TrainingDashboard() {
             <GraduationCap className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.total}</div>
+            <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">{metrics.total}</div>
             <p className="text-xs text-muted-foreground">All training bookings</p>
           </CardContent>
         </Card>

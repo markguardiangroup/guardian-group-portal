@@ -130,12 +130,14 @@ export default function TrainingCertificates() {
           </div>
         </div>
 
-        <Link href="/training/certificates/upload">
-          <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-upload-certificate">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Certificate
-          </Button>
-        </Link>
+        {isAdminOrConsultant && (
+          <Link href="/training/dashboard">
+            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-manage-training">
+              <GraduationCap className="h-4 w-4 mr-2" />
+              Manage Training
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Card>
@@ -203,13 +205,13 @@ export default function TrainingCertificates() {
               <p className="text-muted-foreground mb-4">
                 {searchQuery || selectedCompany !== "all" || selectedSite !== "all"
                   ? "Try adjusting your filters"
-                  : "Upload your first training certificate to get started"}
+                  : "Certificates are uploaded when training is completed. Book training first, then complete it with a certificate."}
               </p>
-              {!searchQuery && selectedCompany === "all" && selectedSite === "all" && (
-                <Link href="/training/certificates/upload">
+              {!searchQuery && selectedCompany === "all" && selectedSite === "all" && isAdminOrConsultant && (
+                <Link href="/training/dashboard">
                   <Button className="bg-purple-600 hover:bg-purple-700">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Certificate
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    Go to Training Dashboard
                   </Button>
                 </Link>
               )}
