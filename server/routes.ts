@@ -28,6 +28,10 @@ const createDocumentSchema = z.object({
   source: z.enum(["template", "upload", "external"]).optional(),
   templateId: z.string().optional(),
   templateVersion: z.number().optional(),
+  // Training certificate specific fields
+  trainingCourseTitle: z.string().optional(),
+  trainingCourseCode: z.string().optional(),
+  trainingDate: z.string().optional(),
 });
 
 const createCaseSchema = z.object({
@@ -1172,6 +1176,10 @@ export async function registerRoutes(
         source: body.source || "external",
         templateId: body.templateId || null,
         templateVersion: body.templateVersion ?? null,
+        // Training certificate fields
+        trainingCourseTitle: body.trainingCourseTitle || null,
+        trainingCourseCode: body.trainingCourseCode || null,
+        trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
       });
 
       await storage.createAuditLog({

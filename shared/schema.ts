@@ -522,6 +522,10 @@ export const documents = pgTable("documents", {
   source: text("source").$type<DocumentSource>().notNull().default("external"), // "template" or "external"
   templateId: varchar("template_id"), // Reference to document template used
   templateVersion: integer("template_version"), // Version of template when document was created
+  // Training certificate specific fields
+  trainingCourseTitle: text("training_course_title"), // Course title for training certificates
+  trainingCourseCode: text("training_course_code"), // Course code for training certificates
+  trainingDate: timestamp("training_date"), // Date of training/certification
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
