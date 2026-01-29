@@ -81,6 +81,16 @@ interface UserWithAssignments {
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
+  // Profile fields
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  preferredContactMethod?: "email" | "phone" | "mobile" | null;
+  notes?: string | null;
 }
 
 interface SiteBasic {
@@ -379,8 +389,9 @@ export default function UserManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Job Title</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Assigned Sites</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -390,8 +401,9 @@ export default function UserManagement() {
               {[1, 2, 3, 4, 5].map((i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-10 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
@@ -467,8 +479,9 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
+              <TableHead>Company</TableHead>
+              <TableHead>Job Title</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Assigned Entities</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -477,7 +490,7 @@ export default function UserManagement() {
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" 
                     ? "No users match your filters." 
                     : "No users found."}
@@ -505,6 +518,20 @@ export default function UserManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
+                    {u.companyId ? (
+                      <span className="text-sm">
+                        {companies.find(c => c.id === u.companyId)?.name || "-"}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {u.jobTitle || <span className="text-muted-foreground">-</span>}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="outline" className={roleColors[u.role]}>
                       {roleLabels[u.role]}
                     </Badge>
@@ -518,9 +545,6 @@ export default function UserManagement() {
                         ({u.clientPermissionRole})
                       </span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    {renderSiteAssignments(u as UserWithAssignments & { companyName?: string | null })}
                   </TableCell>
                   <TableCell>
                     <Badge variant={u.status === "active" ? "default" : "secondary"}>
