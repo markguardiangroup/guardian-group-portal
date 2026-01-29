@@ -47,7 +47,7 @@ Core entities include:
 - **Support Requests**: Client support ticket system
 - **Training Folders**: Organizational structure for training content per module (separate from document folders)
 - **Training Courses**: Training content with enhanced fields (summary, course overview list, FAQs, training method: online/in_person)
-- **Training Requests**: Client requests for training info or booking
+- **Training Bookings**: Consultant-created bookings linking courses to sites with access credentials and completion tracking
 
 ### Authorization Model
 Role-based access control with tenant isolation:
@@ -116,25 +116,31 @@ Key API Routes for Site Management:
 The Training Library has its own dedicated folder structure separate from document template folders:
 - **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
 - **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person, featured flag for homepage highlighting)
-- **Training Requests**: Client requests for more info or booking training with full lifecycle tracking
+- **Training Bookings**: Consultant-created bookings for sites with access credentials and completion tracking
 
 Module Training Page Features:
 - **Filters**: Required status (all/required/recommended), Training Method (all/online/in_person), Provider (dynamic list)
 - **Search**: Search by title, summary, or provider
 - **Badges**: Training method displayed as badges on course cards (Monitor icon for Online, Users icon for In Person)
 
-Training Request Workflow:
-1. **Requested** → Client submits request for training info/booking
-2. **Contacted** → Consultant marks they've contacted the client
-3. **Booked** → Consultant books the training (optionally with scheduled date)
-4. **Completed** → Consultant marks training finished (auto-calculates renewal date from course.renewalPeriodMonths)
-5. **Cancelled** → Request cancelled at any stage
+Training Booking Workflow (Simplified - No Request Stage):
+1. **Consultant books training** → Creates booking with course, site, scheduled date, access credentials (URL/username/password), provider details
+2. **Client views booking** → Sees booked courses on My Training page with access credentials and copy-to-clipboard functionality
+3. **Consultant completes** → Uploads certificate to mark training complete (certificate linked to booking)
 
-Training Dashboard (`/training/dashboard`):
-- **Metrics Cards**: Pending, Booked, Completed, Renewals Due (clickable to filter requests)
-- **Filters**: Company and Site dropdowns (for admin/consultant)
-- **Tabs**: Overview (metrics), All Requests (table view), Renewals (due/overdue training)
-- **Actions**: Mark Contacted, Book Training, Mark Completed, Cancel (with optional notes)
+Training Dashboard (`/training/dashboard`) - Admin/Consultant Only:
+- **Book Training Button**: Opens dialog to create new booking
+- **Tabs**: Booked (active training) and Completed (finished training with certificates)
+- **Booking Actions**: View Details, Complete & Upload Certificate, Delete (admin only)
+
+My Training (`/training/my-training`) - Client Only:
+- **Tabs**: Booked Training and Completed Training
+- **Access Credentials**: Copy-to-clipboard for URL, username, password
+- **Certificate Status**: Shows if certificate uploaded for completed training
+
+Sidebar Navigation (Role-Based):
+- Training → Dashboard: Admin/Consultant only (adminOnly flag)
+- Training → My Training: Client only (clientOnly flag)
 
 Key API Routes:
 - `GET /api/training-folders` - Get all training folders (filter by ?module=)
@@ -145,9 +151,10 @@ Key API Routes:
 - `POST /api/training-courses` - Create training course (admin only)
 - `PATCH /api/training-courses/:id` - Update training course (admin only)
 - `DELETE /api/training-courses/:id` - Delete training course (admin only)
-- `GET /api/training-requests` - Get training requests for user's sites
-- `POST /api/training-requests` - Submit training request (any authenticated user)
-- `PATCH /api/training-requests/:id` - Update training request status (consultant/admin, handles booking/completion workflow)
+- `GET /api/training-bookings` - Get training bookings for user's sites
+- `POST /api/training-bookings` - Create training booking (consultant/admin only)
+- `PATCH /api/training-bookings/:id` - Update training booking (consultant/admin, handles completion with certificateId)
+- `DELETE /api/training-bookings/:id` - Delete training booking (admin only)
 
 ### Storage Pattern
 The application uses a hybrid storage model with the `MemStorage` class:
