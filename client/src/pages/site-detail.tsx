@@ -95,7 +95,7 @@ interface UserWithoutPassword {
   createdAt: Date;
 }
 
-function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { entity: Site; sites: Site[]; onEditSite: () => void; companyId?: string; companyName?: string }) {
+function OverviewTab({ entity, sites, onEditSite, onAddSite, companyId, companyName }: { entity: Site; sites: Site[]; onEditSite: () => void; onAddSite: () => void; companyId?: string; companyName?: string }) {
   return (
     <div className="space-y-6">
       {/* Parent Company Card */}
@@ -169,7 +169,7 @@ function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { en
             <CardTitle className="text-base">Sites ({sites.length})</CardTitle>
             <CardDescription>Physical locations for this entity</CardDescription>
           </div>
-          <Button size="sm" data-testid="button-add-site">
+          <Button size="sm" onClick={onAddSite} data-testid="button-add-site">
             <Plus className="mr-2 h-4 w-4" />
             Add Site
           </Button>
@@ -954,6 +954,7 @@ export default function SiteDetail() {
   const { toast } = useToast();
   const siteId = params.siteId;
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
+  const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   const [editSiteData, setEditSiteData] = useState({
     name: "",
     addressLine1: "",
@@ -966,6 +967,12 @@ export default function SiteDetail() {
     contactPosition: "",
     contactPhone: "",
     contactEmail: "",
+  });
+  const [newSiteData, setNewSiteData] = useState({
+    name: "",
+    addressLine1: "",
+    contactPhone: "",
+    siteManager: "",
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
@@ -1024,6 +1031,43 @@ export default function SiteDetail() {
       return;
     }
     updateSiteMutation.mutate(editSiteData);
+  };
+
+  const createSiteMutation = useMutation({
+    mutationFn: async (data: typeof newSiteData & { companyId: string }) => {
+      const response = await apiRequest("POST", "/api/sites", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      toast({ title: "Site created successfully" });
+      setIsAddSiteOpen(false);
+      setNewSiteData({
+        name: "",
+        addressLine1: "",
+        contactPhone: "",
+        siteManager: "",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to create site", variant: "destructive" });
+    },
+  });
+
+  const handleAddSite = () => {
+    setIsAddSiteOpen(true);
+  };
+
+  const handleCreateSite = () => {
+    if (!newSiteData.name.trim()) {
+      toast({ title: "Site name is required", variant: "destructive" });
+      return;
+    }
+    if (!entity?.companyId) {
+      toast({ title: "Company ID is required", variant: "destructive" });
+      return;
+    }
+    createSiteMutation.mutate({ ...newSiteData, companyId: entity.companyId });
   };
 
   if (entityLoading) {
@@ -1104,7 +1148,7 @@ export default function SiteDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} companyId={entity.companyId} companyName={parentCompany?.name} />
+          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} onAddSite={handleAddSite} companyId={entity.companyId} companyName={parentCompany?.name} />
         </TabsContent>
 
         <TabsContent value="consultants">
@@ -1267,6 +1311,72 @@ export default function SiteDetail() {
             </Button>
             <Button onClick={handleSaveSite} disabled={updateSiteMutation.isPending} data-testid="button-save-site">
               {updateSiteMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Site</DialogTitle>
+            <DialogDescription>
+              Create a new site for {parentCompany?.name || "this company"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-site-name">Site Name *</Label>
+              <Input
+                id="new-site-name"
+                placeholder="e.g., Main Factory, Head Office"
+                value={newSiteData.name}
+                onChange={(e) => setNewSiteData({ ...newSiteData, name: e.target.value })}
+                data-testid="input-new-site-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-site-manager">Site Manager</Label>
+              <Input
+                id="new-site-manager"
+                placeholder="Enter site manager name"
+                value={newSiteData.siteManager}
+                onChange={(e) => setNewSiteData({ ...newSiteData, siteManager: e.target.value })}
+                data-testid="input-new-site-manager"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-site-address">Address</Label>
+              <Input
+                id="new-site-address"
+                placeholder="Enter full address"
+                value={newSiteData.addressLine1}
+                onChange={(e) => setNewSiteData({ ...newSiteData, addressLine1: e.target.value })}
+                data-testid="input-new-site-address"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-site-phone">Contact Phone</Label>
+              <Input
+                id="new-site-phone"
+                type="tel"
+                placeholder="+44 xxx xxx xxxx"
+                value={newSiteData.contactPhone}
+                onChange={(e) => setNewSiteData({ ...newSiteData, contactPhone: e.target.value })}
+                data-testid="input-new-site-phone"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddSiteOpen(false)} data-testid="button-cancel-add-site">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateSite}
+              disabled={createSiteMutation.isPending}
+              data-testid="button-create-new-site"
+            >
+              {createSiteMutation.isPending ? "Creating..." : "Create Site"}
             </Button>
           </DialogFooter>
         </DialogContent>
