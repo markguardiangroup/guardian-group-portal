@@ -66,12 +66,18 @@ interface SiteWithCompany extends Site {
 }
 
 export default function TrainingCertificateUpload() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
+
+  // Parse URL parameters for booking-linked upload
+  const urlParams = new URLSearchParams(window.location.search);
+  const bookingId = urlParams.get("bookingId");
+  const preselectedCourseId = urlParams.get("courseId");
+  const preselectedSiteId = urlParams.get("siteId");
 
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -86,17 +92,27 @@ export default function TrainingCertificateUpload() {
   const form = useForm<TrainingCertificateForm>({
     resolver: zodResolver(trainingCertificateSchema),
     defaultValues: {
-      trainingCourseId: "",
+      trainingCourseId: preselectedCourseId || "",
       trainingDate: "",
       renewalRequired: false,
       renewalPeriodMonths: undefined,
       description: "",
-      siteId: "",
+      siteId: preselectedSiteId || "",
     },
   });
 
   const watchCourseId = form.watch("trainingCourseId");
   const selectedCourse = trainingCourses?.find(c => c.id === watchCourseId);
+
+  // Set preselected values from URL params when data loads
+  useEffect(() => {
+    if (preselectedCourseId && trainingCourses?.length) {
+      form.setValue("trainingCourseId", preselectedCourseId);
+    }
+    if (preselectedSiteId && sites?.length) {
+      form.setValue("siteId", preselectedSiteId);
+    }
+  }, [preselectedCourseId, preselectedSiteId, trainingCourses, sites, form]);
 
   // Auto-populate renewal settings when a course is selected
   useEffect(() => {
@@ -155,15 +171,30 @@ export default function TrainingCertificateUpload() {
         renewalDate: renewalDate,
       };
       
-      return apiRequest("POST", "/api/documents", documentData);
+      const documentResponse = await apiRequest("POST", "/api/documents", documentData);
+      const documentResult = await documentResponse.json();
+      
+      // If this is linked to a booking, update the booking with the certificate ID
+      if (bookingId) {
+        await apiRequest("PATCH", `/api/training-bookings/${bookingId}`, {
+          status: "completed",
+          certificateId: documentResult.id,
+          completedDate: data.trainingDate,
+        });
+      }
+      
+      return documentResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
       toast({
         title: "Certificate Uploaded",
-        description: "Training certificate has been uploaded successfully.",
+        description: bookingId 
+          ? "Training certificate uploaded and booking marked as completed."
+          : "Training certificate has been uploaded successfully.",
       });
-      navigate("/training/certificates");
+      navigate(bookingId ? "/training/dashboard" : "/training/certificates");
     },
     onError: (error: Error) => {
       toast({
@@ -240,10 +271,10 @@ export default function TrainingCertificateUpload() {
   return (
     <div className="container max-w-2xl py-8">
       <div className="mb-6">
-        <Link href="/training/certificates">
+        <Link href={bookingId ? "/training/dashboard" : "/training/certificates"}>
           <Button variant="ghost" size="sm" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Certificates
+            {bookingId ? "Back to Training Dashboard" : "Back to Certificates"}
           </Button>
         </Link>
       </div>
@@ -255,9 +286,13 @@ export default function TrainingCertificateUpload() {
               <GraduationCap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <CardTitle>Upload Training Certificate</CardTitle>
+              <CardTitle>
+                {bookingId ? "Complete Training & Upload Certificate" : "Upload Training Certificate"}
+              </CardTitle>
               <CardDescription>
-                Upload a training certificate with course details
+                {bookingId 
+                  ? "Upload the certificate to mark the training as completed"
+                  : "Upload a training certificate with course details"}
               </CardDescription>
             </div>
           </div>
@@ -271,7 +306,11 @@ export default function TrainingCertificateUpload() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Training Course</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={!!bookingId}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-course">
                           <SelectValue placeholder="Select a training course" />
@@ -291,7 +330,9 @@ export default function TrainingCertificateUpload() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Select a course from your training library
+                      {bookingId 
+                        ? "Course is linked to the training booking"
+                        : "Select a course from your training library"}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -400,7 +441,7 @@ export default function TrainingCertificateUpload() {
                 </div>
               )}
 
-              {isAdminOrConsultant && (
+              {isAdminOrConsultant && !bookingId && (
                 <div className="space-y-4">
                   <FormItem>
                     <FormLabel>Filter by Company</FormLabel>
@@ -430,7 +471,11 @@ export default function TrainingCertificateUpload() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Site</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={!!bookingId}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-site">
                           <SelectValue placeholder="Select a site" />
@@ -450,7 +495,9 @@ export default function TrainingCertificateUpload() {
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Select the site this certificate belongs to
+                      {bookingId 
+                        ? "Site is linked to the training booking"
+                        : "Select the site this certificate belongs to"}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

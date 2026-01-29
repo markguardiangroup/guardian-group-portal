@@ -31,6 +31,7 @@ import Training from "@/pages/training";
 import TrainingDashboard from "@/pages/training-dashboard";
 import TrainingCertificateUpload from "@/pages/training-certificate-upload";
 import TrainingCertificates from "@/pages/training-certificates";
+import MyTraining from "@/pages/my-training";
 import CreateFromTemplate from "@/pages/create-from-template";
 import NotFound from "@/pages/not-found";
 
@@ -93,6 +94,7 @@ function Router() {
       <Route path="/training-library" component={TrainingLibrary} />
       <Route path="/training" component={Training} />
       <Route path="/training/dashboard" component={TrainingDashboard} />
+      <Route path="/training/my-training" component={MyTraining} />
       <Route path="/training/certificates" component={TrainingCertificates} />
       <Route path="/training/certificates/upload" component={TrainingCertificateUpload} />
       <Route path="/training/certificates/:id" component={TrainingCertificates} />

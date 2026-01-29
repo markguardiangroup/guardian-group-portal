@@ -35,10 +35,12 @@ import {
   type TrainingFolder, type InsertTrainingFolder,
   type TrainingCourse, type InsertTrainingCourse,
   type TrainingRequest, type InsertTrainingRequest,
+  type TrainingBooking, type InsertTrainingBooking,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
   trainingRequests as trainingRequestsTable,
+  trainingBookings as trainingBookingsTable,
   moduleConfig,
   documentTypes,
   folderTemplates as folderTemplatesTable,
@@ -255,6 +257,13 @@ export interface IStorage {
   getTrainingRequest(id: string): Promise<TrainingRequest | undefined>;
   createTrainingRequest(request: InsertTrainingRequest): Promise<TrainingRequest>;
   updateTrainingRequest(id: string, updates: Partial<TrainingRequest>): Promise<TrainingRequest | undefined>;
+  
+  // Training Bookings
+  getTrainingBookings(filters?: { siteId?: string; status?: string; courseId?: string }): Promise<TrainingBooking[]>;
+  getTrainingBooking(id: string): Promise<TrainingBooking | undefined>;
+  createTrainingBooking(booking: InsertTrainingBooking): Promise<TrainingBooking>;
+  updateTrainingBooking(id: string, updates: Partial<TrainingBooking>): Promise<TrainingBooking | undefined>;
+  deleteTrainingBooking(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -3520,6 +3529,87 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Database error in updateTrainingRequest:", error);
       return undefined;
+    }
+  }
+
+  // Training Bookings
+  async getTrainingBookings(filters?: { siteId?: string; status?: string; courseId?: string }): Promise<TrainingBooking[]> {
+    try {
+      let query = db.select().from(trainingBookingsTable);
+      
+      if (filters) {
+        const conditions = [];
+        if (filters.siteId) {
+          conditions.push(eq(trainingBookingsTable.siteId, filters.siteId));
+        }
+        if (filters.status) {
+          conditions.push(eq(trainingBookingsTable.status, filters.status as any));
+        }
+        if (filters.courseId) {
+          conditions.push(eq(trainingBookingsTable.trainingCourseId, filters.courseId));
+        }
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions)) as any;
+        }
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error("Database error in getTrainingBookings:", error);
+      return [];
+    }
+  }
+
+  async getTrainingBooking(id: string): Promise<TrainingBooking | undefined> {
+    try {
+      const results = await db.select().from(trainingBookingsTable)
+        .where(eq(trainingBookingsTable.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Database error in getTrainingBooking:", error);
+      return undefined;
+    }
+  }
+
+  async createTrainingBooking(booking: InsertTrainingBooking): Promise<TrainingBooking> {
+    const now = new Date();
+    try {
+      const results = await db.insert(trainingBookingsTable)
+        .values({
+          ...booking,
+          bookedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in createTrainingBooking:", error);
+      throw error;
+    }
+  }
+
+  async updateTrainingBooking(id: string, updates: Partial<TrainingBooking>): Promise<TrainingBooking | undefined> {
+    try {
+      const results = await db.update(trainingBookingsTable)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(trainingBookingsTable.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Database error in updateTrainingBooking:", error);
+      return undefined;
+    }
+  }
+
+  async deleteTrainingBooking(id: string): Promise<boolean> {
+    try {
+      await db.delete(trainingBookingsTable)
+        .where(eq(trainingBookingsTable.id, id));
+      return true;
+    } catch (error) {
+      console.error("Database error in deleteTrainingBooking:", error);
+      return false;
     }
   }
 

@@ -1,0 +1,390 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import {
+  GraduationCap,
+  Calendar,
+  CheckCircle,
+  Clock,
+  BookOpen,
+  Link as LinkIcon,
+  KeyRound,
+  Building2,
+  MapPin,
+  Eye,
+  Award,
+  ExternalLink,
+  Copy,
+} from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+
+import type { TrainingCourse, SiteWithDetails, TrainingBooking } from "@shared/schema";
+
+type TrainingBookingWithDetails = TrainingBooking & {
+  course?: TrainingCourse;
+  site?: SiteWithDetails;
+};
+
+export default function MyTraining() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
+  const [viewDialog, setViewDialog] = useState<TrainingBookingWithDetails | null>(null);
+
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+
+  const { data: sites = [] } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites"],
+  });
+
+  const { data: trainingBookings = [], isLoading } = useQuery<TrainingBooking[]>({
+    queryKey: ["/api/training-bookings"],
+  });
+
+  const { data: trainingCourses = [] } = useQuery<TrainingCourse[]>({
+    queryKey: ["/api/training-courses"],
+  });
+
+  const bookingsWithDetails: TrainingBookingWithDetails[] = useMemo(() => {
+    return trainingBookings.map(booking => ({
+      ...booking,
+      course: trainingCourses.find(c => c.id === booking.trainingCourseId),
+      site: sites.find(s => s.id === booking.siteId),
+    }));
+  }, [trainingBookings, trainingCourses, sites]);
+
+  const filteredBookings = useMemo(() => {
+    return bookingsWithDetails.filter(booking => {
+      if (activeTab === "booked" && booking.status !== "booked") return false;
+      if (activeTab === "completed" && booking.status !== "completed") return false;
+      return true;
+    });
+  }, [bookingsWithDetails, activeTab]);
+
+  const metrics = useMemo(() => {
+    const booked = bookingsWithDetails.filter(b => b.status === "booked").length;
+    const completed = bookingsWithDetails.filter(b => b.status === "completed").length;
+    return { booked, completed };
+  }, [bookingsWithDetails]);
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: `${label} copied to clipboard`,
+    });
+  };
+
+  if (isPrivilegedUser) {
+    return (
+      <div className="container py-8">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">Training Dashboard</h2>
+            <p className="text-muted-foreground mb-4">
+              As a consultant/admin, please use the Training Dashboard to manage bookings.
+            </p>
+            <Link href="/training/dashboard">
+              <Button data-testid="link-dashboard">
+                Go to Training Dashboard
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-6 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-purple-600" />
+            My Training
+          </h1>
+          <p className="text-muted-foreground">
+            View your booked training courses and access information
+          </p>
+        </div>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card 
+          className={`cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500" : "hover-elevate"}`}
+          onClick={() => setActiveTab("booked")}
+          data-testid="card-booked"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+            <CardTitle className="text-sm font-medium">Active Bookings</CardTitle>
+            <BookOpen className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.booked}</div>
+            <p className="text-xs text-muted-foreground">Training courses booked for you</p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={`cursor-pointer transition-all ${activeTab === "completed" ? "ring-2 ring-emerald-500" : "hover-elevate"}`}
+          onClick={() => setActiveTab("completed")}
+          data-testid="card-completed"
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics.completed}</div>
+            <p className="text-xs text-muted-foreground">Training courses completed</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs & Table */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
+        <TabsList>
+          <TabsTrigger value="booked" data-testid="tab-booked">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Booked ({metrics.booked})
+          </TabsTrigger>
+          <TabsTrigger value="completed" data-testid="tab-completed">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Completed ({metrics.completed})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="booked" className="mt-4">
+          {isLoading ? (
+            <Card>
+              <CardContent className="py-8 space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            </Card>
+          ) : filteredBookings.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Active Training</h3>
+                <p className="text-muted-foreground">
+                  You don't have any training courses booked at the moment.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {filteredBookings.map((booking) => (
+                <Card key={booking.id} className="hover-elevate" data-testid={`card-booking-${booking.id}`}>
+                  <CardHeader>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <GraduationCap className="h-5 w-5 text-purple-600" />
+                          {booking.course?.title || "Unknown Course"}
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          {booking.course?.productCode && (
+                            <span className="mr-3">Code: {booking.course.productCode}</span>
+                          )}
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {booking.site?.name || "Unknown Site"}
+                          </span>
+                        </CardDescription>
+                      </div>
+                      <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Booked
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {booking.scheduledDate && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Scheduled:</span>
+                        <span>{format(new Date(booking.scheduledDate), "EEEE, dd MMMM yyyy")}</span>
+                      </div>
+                    )}
+
+                    {booking.accessUrl && (
+                      <div className="bg-muted p-4 rounded-lg space-y-3">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <KeyRound className="h-4 w-4" />
+                          Course Access
+                        </h4>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                            <a 
+                              href={booking.accessUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              Access Course
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                          
+                          {booking.accessUsername && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground w-20">Username:</span>
+                              <code className="bg-background px-2 py-1 rounded text-sm">{booking.accessUsername}</code>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                                onClick={() => copyToClipboard(booking.accessUsername!, "Username")}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {booking.accessPassword && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground w-20">Password:</span>
+                              <code className="bg-background px-2 py-1 rounded text-sm">{booking.accessPassword}</code>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                                onClick={() => copyToClipboard(booking.accessPassword!, "Password")}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(booking.providerName || booking.providerContact) && (
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <Building2 className="h-4 w-4" />
+                        <span>
+                          {booking.providerName}
+                          {booking.providerContact && ` - ${booking.providerContact}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {booking.notes && (
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-medium">Notes:</span> {booking.notes}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="completed" className="mt-4">
+          {isLoading ? (
+            <Card>
+              <CardContent className="py-8 space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            </Card>
+          ) : filteredBookings.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Completed Training</h3>
+                <p className="text-muted-foreground">
+                  You haven't completed any training courses yet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Course</TableHead>
+                      <TableHead>Site</TableHead>
+                      <TableHead>Completed</TableHead>
+                      <TableHead>Certificate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredBookings.map((booking) => (
+                      <TableRow key={booking.id} data-testid={`row-completed-${booking.id}`}>
+                        <TableCell>
+                          <div className="font-medium">{booking.course?.title || "Unknown Course"}</div>
+                          {booking.course?.productCode && (
+                            <div className="text-sm text-muted-foreground">{booking.course.productCode}</div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            {booking.site?.name || "Unknown Site"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {booking.completedAt ? (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-emerald-600" />
+                              {format(new Date(booking.completedAt), "dd MMM yyyy")}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {booking.certificateId ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              <Award className="h-3 w-3 mr-1" />
+                              Available
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

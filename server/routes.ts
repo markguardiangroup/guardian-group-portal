@@ -3015,6 +3015,165 @@ export async function registerRoutes(
     }
   });
 
+  // Training Bookings (simplified training management)
+  app.get("/api/training-bookings", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const filters: any = {};
+      if (req.query.siteId) filters.siteId = req.query.siteId as string;
+      if (req.query.status) filters.status = req.query.status as string;
+      if (req.query.courseId) filters.courseId = req.query.courseId as string;
+      
+      const bookings = await storage.getTrainingBookings(Object.keys(filters).length > 0 ? filters : undefined);
+      
+      // Filter by user access
+      let filteredBookings = bookings;
+      if (user.role === "consultant") {
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        filteredBookings = bookings.filter(b => assignedSiteIds.has(b.siteId));
+      } else if (user.role === "client" && user.companyId) {
+        const sites = await storage.getSitesByCompany(user.companyId);
+        const clientSiteIds = new Set(sites.map(s => s.id));
+        filteredBookings = bookings.filter(b => clientSiteIds.has(b.siteId));
+      }
+      
+      res.json(filteredBookings);
+    } catch (error) {
+      console.error("Get training bookings error:", error);
+      res.status(500).json({ error: "Failed to fetch training bookings" });
+    }
+  });
+
+  app.get("/api/training-bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const booking = await storage.getTrainingBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ error: "Training booking not found" });
+      }
+      res.json(booking);
+    } catch (error) {
+      console.error("Get training booking error:", error);
+      res.status(500).json({ error: "Failed to fetch training booking" });
+    }
+  });
+
+  app.post("/api/training-bookings", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admins/consultants can create bookings
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot create training bookings" });
+      }
+      
+      const schema = z.object({
+        trainingCourseId: z.string(),
+        siteId: z.string(),
+        scheduledDate: z.string().optional(),
+        accessUrl: z.string().optional(),
+        accessUsername: z.string().optional(),
+        accessPassword: z.string().optional(),
+        providerName: z.string().optional(),
+        providerContact: z.string().optional(),
+        notes: z.string().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const booking = await storage.createTrainingBooking({
+        ...parsed.data,
+        scheduledDate: parsed.data.scheduledDate ? new Date(parsed.data.scheduledDate) : undefined,
+        bookedBy: user.id,
+        status: "booked",
+      });
+      
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error("Create training booking error:", error);
+      res.status(500).json({ error: "Failed to create training booking" });
+    }
+  });
+
+  app.patch("/api/training-bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admins/consultants can update bookings
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update training bookings" });
+      }
+      
+      const schema = z.object({
+        scheduledDate: z.string().optional(),
+        accessUrl: z.string().optional(),
+        accessUsername: z.string().optional(),
+        accessPassword: z.string().optional(),
+        providerName: z.string().optional(),
+        providerContact: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["booked", "completed"]).optional(),
+        certificateId: z.string().optional(),
+      });
+      
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+      
+      const updateData: any = { ...parsed.data };
+      
+      if (parsed.data.scheduledDate) {
+        updateData.scheduledDate = new Date(parsed.data.scheduledDate);
+      }
+      
+      // Handle completion
+      if (parsed.data.status === "completed") {
+        updateData.completedBy = user.id;
+        updateData.completedAt = new Date();
+      }
+      
+      const updated = await storage.updateTrainingBooking(req.params.id, updateData);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update training booking error:", error);
+      res.status(500).json({ error: "Failed to update training booking" });
+    }
+  });
+
+  app.delete("/api/training-bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admins can delete bookings
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete training bookings" });
+      }
+      
+      await storage.deleteTrainingBooking(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete training booking error:", error);
+      res.status(500).json({ error: "Failed to delete training booking" });
+    }
+  });
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {

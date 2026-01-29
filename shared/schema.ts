@@ -1067,6 +1067,53 @@ export const insertTrainingModuleSchema = createInsertSchema(trainingModules).om
 export type InsertTrainingModule = z.infer<typeof insertTrainingModuleSchema>;
 export type TrainingModule = typeof trainingModules.$inferSelect;
 
+// Training Bookings - Simplified training management (consultant books, client views)
+export type TrainingBookingStatus = "booked" | "completed";
+
+export const trainingBookings = pgTable("training_bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  trainingCourseId: varchar("training_course_id").notNull(),
+  siteId: varchar("site_id").notNull(),
+  
+  // Booking details
+  scheduledDate: timestamp("scheduled_date"),
+  bookedBy: varchar("booked_by").notNull(), // Consultant who created the booking
+  bookedAt: timestamp("booked_at").notNull().defaultNow(),
+  
+  // Access information for clients
+  accessUrl: text("access_url"), // Login URL or course link
+  accessUsername: text("access_username"),
+  accessPassword: text("access_password"),
+  
+  // Provider contact
+  providerName: text("provider_name"),
+  providerContact: text("provider_contact"), // Phone or email
+  
+  // Status tracking
+  status: text("status").$type<TrainingBookingStatus>().notNull().default("booked"),
+  notes: text("notes"),
+  
+  // Completion tracking
+  completedAt: timestamp("completed_at"),
+  completedBy: varchar("completed_by"),
+  certificateId: varchar("certificate_id"), // Linked document ID when certificate uploaded
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrainingBookingSchema = createInsertSchema(trainingBookings).omit({ 
+  id: true, 
+  bookedAt: true,
+  createdAt: true, 
+  updatedAt: true,
+  completedAt: true,
+  completedBy: true,
+});
+export type InsertTrainingBooking = z.infer<typeof insertTrainingBookingSchema>;
+export type TrainingBooking = typeof trainingBookings.$inferSelect;
+
 // Account lockout configuration
 export const SECURITY_CONFIG = {
   maxLoginAttempts: 5,

@@ -51,7 +51,7 @@ const moduleNavItems: {
   url: string;
   themeClass: string;
   module: ModuleType;
-  subItems: { title: string; url: string }[];
+  subItems: { title: string; url: string; adminOnly?: boolean; clientOnly?: boolean }[];
 }[] = [
   {
     title: "Health & Safety",
@@ -95,9 +95,10 @@ const moduleNavItems: {
     themeClass: "theme-training",
     module: "training" as ModuleType,
     subItems: [
-      { title: "Dashboard", url: "/training/dashboard" },
+      { title: "Dashboard", url: "/training/dashboard", adminOnly: true },
+      { title: "My Training", url: "/training/my-training", clientOnly: true },
       { title: "Browse Courses", url: "/training" },
-      { title: "Certificates", url: "/training/certificates" },
+      { title: "Certificates", url: "/training/certificates", adminOnly: true },
     ],
   },
   {
@@ -311,7 +312,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.subItems.map((subItem) => {
+                          {item.subItems
+                            .filter((subItem) => {
+                              // Filter based on role permissions
+                              if (subItem.adminOnly && user?.role === "client") return false;
+                              if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
+                              return true;
+                            })
+                            .map((subItem) => {
                             const isSubActive = location === subItem.url;
                             return (
                               <SidebarMenuSubItem key={subItem.title}>
@@ -325,7 +333,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                                 >
                                   <Link 
                                     href={subItem.url}
-                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase()}`}
+                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                                   >
                                     <span>{subItem.title}</span>
                                   </Link>
