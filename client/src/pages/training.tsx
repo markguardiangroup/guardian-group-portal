@@ -368,9 +368,9 @@ export default function Training() {
               <TabsTrigger 
                 value="all" 
                 data-testid="tab-all" 
-                className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
               >
-                <LayoutGrid className="h-4 w-4" />
+                <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 data-[state=active]:text-white" />
                 <span className="hidden sm:inline">All Training</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -378,7 +378,7 @@ export default function Training() {
                 data-testid="tab-health-safety" 
                 className="flex items-center gap-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
               >
-                <HardHat className="h-4 w-4" />
+                <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <span className="hidden sm:inline">Health & Safety</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -386,7 +386,7 @@ export default function Training() {
                 data-testid="tab-human-resources" 
                 className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
               >
-                <Users className="h-4 w-4" />
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <span className="hidden sm:inline">Human Resources</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -394,7 +394,7 @@ export default function Training() {
                 data-testid="tab-employment-law" 
                 className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
               >
-                <Scale className="h-4 w-4" />
+                <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                 <span className="hidden sm:inline">Employment Law</span>
               </TabsTrigger>
             </TabsList>
