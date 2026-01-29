@@ -263,42 +263,47 @@ function SupportCard() {
 
   return (
     <Card className="hover-elevate theme-support border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20" data-testid="card-module-support">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/40">
-            <Headphones className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+      <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 py-6">
+        {/* Left: Icon and title */}
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800/40">
+            <Headphones className="h-7 w-7 text-slate-600 dark:text-slate-400" />
           </div>
           <div>
-            <CardTitle className="text-lg">Support</CardTitle>
-            <CardDescription>{totalRequests} requests</CardDescription>
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-3xl font-bold text-slate-600 dark:text-slate-400">
-            {openRequests}
-          </span>
-          <p className="text-xs text-muted-foreground">Open</p>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{openRequests}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Open</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCheck className="h-4 w-4" />
-              <span className="text-lg font-semibold">{resolvedRequests}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Resolved</p>
+            <h3 className="text-xl font-semibold">Support</h3>
+            <p className="text-muted-foreground">
+              Need help with compliance? Our consultants are here to assist.
+            </p>
           </div>
         </div>
 
-        <Button className="w-full border-slate-500 text-slate-600 dark:text-slate-400" variant="outline" asChild>
+        {/* Center: Metrics */}
+        <div className="flex items-center gap-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-2xl font-bold">{openRequests}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Open</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCheck className="h-5 w-5" />
+              <span className="text-2xl font-bold">{resolvedRequests}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Resolved</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 text-slate-600 dark:text-slate-400">
+              <FileText className="h-5 w-5" />
+              <span className="text-2xl font-bold">{totalRequests}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Total</p>
+          </div>
+        </div>
+
+        {/* Right: Button */}
+        <Button className="border-slate-500 text-slate-600 dark:text-slate-400 md:w-auto" variant="outline" asChild>
           <Link href="/support" data-testid="link-module-support">
             View Support
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -889,89 +894,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Support section - separate from compliance modules */}
+      {/* Support section - separate from compliance modules, full width */}
       {(hasSupportAccess || isSupportLocked) && (
         <div>
           <h2 className="mb-4 text-xl font-semibold">Support</h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            {hasSupportAccess ? (
-              <SupportCard />
-            ) : (
-              <LockedModuleCard 
-                moduleName="Support" 
-                module="support"
-              />
-            )}
-          </div>
+          {hasSupportAccess ? (
+            <SupportCard />
+          ) : (
+            <LockedModuleCard 
+              moduleName="Support" 
+              module="support"
+            />
+          )}
         </div>
       )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-              <CardDescription>Common tasks across modules</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2">
-            {hasActiveAccess("health_safety") && (
-              <Button variant="outline" className="justify-start" asChild>
-                <Link href="/health-safety/documents" data-testid="link-hs-documents">
-                  <HardHat className="mr-2 h-4 w-4" />
-                  H&S Documents
-                </Link>
-              </Button>
-            )}
-            {hasActiveAccess("human_resources") && (
-              <Button variant="outline" className="justify-start" asChild>
-                <Link href="/human-resources/documents" data-testid="link-hr-documents">
-                  <Users className="mr-2 h-4 w-4" />
-                  HR Documents
-                </Link>
-              </Button>
-            )}
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/sites" data-testid="link-sites">
-                <FileText className="mr-2 h-4 w-4" />
-                Manage Sites
-              </Link>
-            </Button>
-            <Button variant="outline" className="justify-start" asChild>
-              <Link href="/reports" data-testid="link-reports">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                View Reports
-              </Link>
-            </Button>
-            {hasActiveAccess("employment_law") && (
-              <Button variant="outline" className="justify-start" asChild>
-                <Link href="/employment-law" data-testid="link-el-cases">
-                  <Scale className="mr-2 h-4 w-4" />
-                  EL Cases
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Support</CardTitle>
-            <CardDescription>Need help with compliance?</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Our consultants are here to help you maintain compliance across all areas of Health & Safety and Human Resources.
-            </p>
-            <Button asChild>
-              <Link href="/support" data-testid="link-support">
-                Contact Support
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
