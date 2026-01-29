@@ -40,9 +40,18 @@ export const companies = pgTable("entities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   companyNumber: text("company_number"),
-  address: text("address"),
-  contactEmail: text("contact_email"),
+  // Structured address fields
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  city: text("city"),
+  county: text("county"),
+  postalCode: text("postal_code"),
+  country: text("country"),
+  // Primary contact details
+  contactName: text("contact_name"),
+  contactPosition: text("contact_position"),
   contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
   status: text("status").$type<CompanyStatus>().notNull().default("active"),
   // Module access - set at company level, applies to all sites and users
   healthSafetyAccess: boolean("health_safety_access").notNull().default(false),
@@ -99,9 +108,18 @@ export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("entity_id").notNull(),
   name: text("name").notNull(),
-  address: text("address"),
-  siteManager: text("site_manager"),
+  // Structured address fields
+  addressLine1: text("address_line1"),
+  addressLine2: text("address_line2"),
+  city: text("city"),
+  county: text("county"),
+  postalCode: text("postal_code"),
+  country: text("country"),
+  // Primary site contact details
+  contactName: text("contact_name"),
+  contactPosition: text("contact_position"),
   contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
 });
 
 export const insertSiteSchema = createInsertSchema(sites).omit({ id: true });
