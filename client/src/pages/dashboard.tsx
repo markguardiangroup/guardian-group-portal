@@ -720,7 +720,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-4">
           <Link 
             href="/support" 
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover-elevate rounded-md px-2 py-1"
+            className="flex items-center gap-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover-elevate rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700"
             data-testid="link-need-help"
           >
             <Headphones className="h-4 w-4" />
