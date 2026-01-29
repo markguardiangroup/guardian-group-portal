@@ -22,12 +22,15 @@ import {
   MessageCircle,
   CheckCheck,
   Calendar,
+  GraduationCap,
+  BookOpen,
+  Award,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
-import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -201,9 +204,69 @@ function SupportCard() {
           </div>
         </div>
 
-        <Button className="w-full border-slate-500 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-950/30" variant="outline" asChild>
+        <Button className="w-full border-slate-500 text-slate-600 dark:text-slate-400" variant="outline" asChild>
           <Link href="/support" data-testid="link-module-support">
             View Support
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TrainingCard() {
+  const { user } = useAuth();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  
+  const { data: trainingBookings = [] } = useQuery<TrainingBooking[]>({
+    queryKey: ["/api/training-bookings"],
+  });
+
+  const bookedCount = trainingBookings.filter(b => b.status === "booked").length;
+  const completedCount = trainingBookings.filter(b => b.status === "completed").length;
+  const totalBookings = trainingBookings.length;
+
+  return (
+    <Card className="hover-elevate theme-training border-t-4 border-t-purple-500 bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20" data-testid="card-module-training">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-800/40">
+            <GraduationCap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Training</CardTitle>
+            <CardDescription>{totalBookings} bookings</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+            {bookedCount}
+          </span>
+          <p className="text-xs text-muted-foreground">Booked</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-purple-600 dark:text-purple-400">
+              <BookOpen className="h-4 w-4" />
+              <span className="text-lg font-semibold">{bookedCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Booked</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <Award className="h-4 w-4" />
+              <span className="text-lg font-semibold">{completedCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Completed</p>
+          </div>
+        </div>
+
+        <Button className="w-full border-purple-500 text-purple-600 dark:text-purple-400" variant="outline" asChild>
+          <Link href={isPrivilegedUser ? "/training/dashboard" : "/training/my-training"} data-testid="link-module-training">
+            {isPrivilegedUser ? "Manage Training" : "My Training"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -709,6 +772,14 @@ export default function Dashboard() {
               module={m.module}
             />
           ))}
+        </div>
+      </div>
+
+      {/* Training section */}
+      <div>
+        <h2 className="mb-4 text-xl font-semibold">Training</h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          <TrainingCard />
         </div>
       </div>
 

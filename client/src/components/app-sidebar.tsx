@@ -237,8 +237,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   asChild
                   isActive={location === "/"}
                   className={cn(
-                    "transition-colors",
-                    location === "/" && "bg-sidebar-accent font-medium"
+                    "transition-colors font-semibold",
+                    location === "/" 
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                      : "bg-sidebar-accent/50"
                   )}
                 >
                   <Link href="/" data-testid="nav-dashboard">
