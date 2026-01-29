@@ -63,7 +63,6 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
       { title: "Incidents", url: "/health-safety/incidents" },
-      { title: "Training", url: "/health-safety/training" },
     ],
   },
   {
@@ -75,7 +74,6 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
-      { title: "Training", url: "/human-resources/training" },
     ],
   },
   {
@@ -88,7 +86,16 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/employment-law" },
       { title: "Documents", url: "/employment-law/documents" },
       { title: "Cases", url: "/employment-law/cases" },
-      { title: "Training", url: "/employment-law/training" },
+    ],
+  },
+  {
+    title: "Training",
+    icon: GraduationCap,
+    url: "/training",
+    themeClass: "theme-training",
+    module: "training" as ModuleType,
+    subItems: [
+      { title: "Browse Courses", url: "/training" },
     ],
   },
   {
@@ -249,7 +256,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <SidebarMenu>
               {visibleModules.map((item) => {
                 const isModuleActive = location.startsWith(item.url);
-                const hasAccess = hasActiveAccess(item.module);
+                const isTrainingModule = item.module === ("training" as ModuleType);
+                const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
                 
                 if (!hasAccess) {
                   return (
