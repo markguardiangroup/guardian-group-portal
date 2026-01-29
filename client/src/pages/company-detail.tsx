@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +44,7 @@ import {
   Briefcase,
   HelpCircle,
   FileText,
+  Pencil,
 } from "lucide-react";
 import type { Company, SiteWithDetails, ComplianceSummary } from "@shared/schema";
 
@@ -236,6 +255,19 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
 export default function CompanyDetail() {
   const { companyId } = useParams<{ companyId: string }>();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    companyNumber: "",
+    address: "",
+    contactEmail: "",
+    contactPhone: "",
+    status: "active" as "active" | "inactive" | "pending",
+  });
 
   const { data: company, isLoading, error } = useQuery<CompanyWithSites>({
     queryKey: ["/api/companies", companyId],
@@ -249,6 +281,56 @@ export default function CompanyDetail() {
 
   const handleManageSite = (siteId: string) => {
     navigate(`/sites/${siteId}`);
+  };
+
+  const updateCompanyMutation = useMutation({
+    mutationFn: async (data: typeof editForm) => {
+      const response = await apiRequest("PATCH", `/api/companies/${companyId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      setEditDialogOpen(false);
+      toast({
+        title: "Company updated",
+        description: "The company details have been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update company. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const openEditDialog = () => {
+    if (company) {
+      setEditForm({
+        name: company.name || "",
+        companyNumber: company.companyNumber || "",
+        address: company.address || "",
+        contactEmail: company.contactEmail || "",
+        contactPhone: company.contactPhone || "",
+        status: company.status || "active",
+      });
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.name.trim()) {
+      toast({
+        title: "Validation error",
+        description: "Company name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    updateCompanyMutation.mutate(editForm);
   };
 
   if (isLoading) {
@@ -325,9 +407,17 @@ export default function CompanyDetail() {
             </div>
           </div>
         </div>
-        <Badge variant={company.status === "active" ? "default" : "secondary"}>
-          {company.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={company.status === "active" ? "default" : "secondary"}>
+            {company.status}
+          </Badge>
+          {isAdmin && (
+            <Button onClick={openEditDialog} data-testid="button-edit-company">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Company
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -431,6 +521,106 @@ export default function CompanyDetail() {
           </Card>
         )}
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Company</DialogTitle>
+            <DialogDescription>
+              Update the company details below.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Company Name *</Label>
+              <Input
+                id="edit-name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                placeholder="Enter company name"
+                data-testid="input-edit-company-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-company-number">Company Number</Label>
+              <Input
+                id="edit-company-number"
+                value={editForm.companyNumber}
+                onChange={(e) => setEditForm({ ...editForm, companyNumber: e.target.value })}
+                placeholder="e.g., 12345678"
+                data-testid="input-edit-company-number"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Textarea
+                id="edit-address"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                placeholder="Enter company address"
+                rows={2}
+                data-testid="input-edit-company-address"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Contact Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editForm.contactEmail}
+                  onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
+                  placeholder="email@company.com"
+                  data-testid="input-edit-company-email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Contact Phone</Label>
+                <Input
+                  id="edit-phone"
+                  value={editForm.contactPhone}
+                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                  placeholder="+44 1234 567890"
+                  data-testid="input-edit-company-phone"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editForm.status}
+                onValueChange={(value: "active" | "inactive" | "pending") => setEditForm({ ...editForm, status: value })}
+              >
+                <SelectTrigger id="edit-status" data-testid="select-edit-company-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                data-testid="button-cancel-edit-company"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateCompanyMutation.isPending}
+                data-testid="button-save-company"
+              >
+                {updateCompanyMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
