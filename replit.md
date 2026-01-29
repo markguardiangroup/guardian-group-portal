@@ -19,6 +19,16 @@ The backend is an Express.js application written in TypeScript, exposing a RESTf
 ### Data Model
 Core entities include Users (with role-based access), Companies (grouping sites), Sites (physical locations), Document Templates (with compliance properties), Documents (with status and approval workflows), Document Versions, Consultant Assignments, Site Module Access, Audit Logs, Support Requests, Training Folders, Training Courses, Training Bookings, and Roadmap Items. The system implements a hierarchical Company → Site → User structure.
 
+### Reference Numbers
+All core entities have unique reference numbers with prefixes for easy identification:
+- **Companies**: CMP-XXXXX (e.g., CMP-00001)
+- **Sites**: STE-XXXXX (e.g., STE-00001)
+- **Users**: Role-based prefixes:
+  - Admins: ADM-XXXXX
+  - Consultants: CON-XXXXX
+  - Clients: CLI-XXXXX
+Reference numbers are auto-generated on entity creation and displayed as badges throughout the UI.
+
 ### Authorization
 A role-based access control model with tenant isolation is enforced:
 - **Admin**: Full access across all companies and data.

@@ -139,8 +139,9 @@ export default function Sites() {
   const filteredSites = sites?.filter((site) =>
     site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     site.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    site.siteManager?.toLowerCase().includes(searchQuery.toLowerCase())
+    site.addressLine1?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    site.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    site.contactName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -209,6 +210,11 @@ export default function Sites() {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="font-medium">{site.name}</span>
+                      {site.referenceNumber && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {site.referenceNumber}
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -221,11 +227,11 @@ export default function Sites() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className="text-sm text-muted-foreground">
-                      {site.address || "—"}
+                      {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ") || "—"}
                     </span>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <span className="text-sm">{site.siteManager || "—"}</span>
+                    <span className="text-sm">{site.contactName || "—"}</span>
                   </TableCell>
                   <TableCell>
                     <ComplianceBadge summary={site.complianceSummary} />

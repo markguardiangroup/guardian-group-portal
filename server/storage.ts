@@ -353,8 +353,10 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     // Create sample users
+    this.userCounter = 5; // Start counter after sample data
     const admin: User = {
       id: "user-admin",
+      referenceNumber: "ADM-00001",
       username: "admin",
       password: "admin123",
       email: "admin@guardiangroup.com",
@@ -371,6 +373,7 @@ export class MemStorage implements IStorage {
 
     const consultant1: User = {
       id: "user-1",
+      referenceNumber: "CON-00002",
       username: "john.doe",
       password: "consultant123",
       email: "john.doe@guardiangroup.com",
@@ -387,6 +390,7 @@ export class MemStorage implements IStorage {
 
     const consultant2: User = {
       id: "user-consultant-2",
+      referenceNumber: "CON-00003",
       username: "jane.smith",
       password: "consultant123",
       email: "jane.smith@guardiangroup.com",
@@ -403,6 +407,7 @@ export class MemStorage implements IStorage {
 
     const client1: User = {
       id: "user-client-1",
+      referenceNumber: "CLI-00004",
       username: "sarah.acme",
       password: "client123",
       email: "sarah@acme-mfg.com",
@@ -419,6 +424,7 @@ export class MemStorage implements IStorage {
 
     const client2: User = {
       id: "user-client-2",
+      referenceNumber: "CLI-00005",
       username: "emma.tech",
       password: "client123",
       email: "emma@techcorp.co.uk",
@@ -434,16 +440,25 @@ export class MemStorage implements IStorage {
     this.users.set(client2.id, client2);
 
     // Create sample companies
+    this.companyCounter = 2; // Start counter after sample data
     const sampleCompanies: Company[] = [
       {
         id: "company-1",
+        referenceNumber: "CMP-00001",
         name: "Acme Manufacturing Ltd",
         companyNumber: "12345678",
-        address: "123 Industrial Way, Manchester M1 2AB",
+        website: "https://acme-mfg.com",
+        addressLine1: "123 Industrial Way",
+        addressLine2: null,
+        city: "Manchester",
+        county: "Greater Manchester",
+        postalCode: "M1 2AB",
+        country: "United Kingdom",
+        contactName: "Sarah Johnson",
+        contactPosition: "Health & Safety Manager",
         contactEmail: "safety@acme-mfg.com",
         contactPhone: "+44 161 123 4567",
         status: "active",
-        // Module access at company level - full access to all modules
         healthSafetyAccess: true,
         humanResourcesAccess: true,
         employmentLawAccess: true,
@@ -453,13 +468,21 @@ export class MemStorage implements IStorage {
       },
       {
         id: "company-2",
+        referenceNumber: "CMP-00002",
         name: "TechCorp Solutions",
         companyNumber: "87654321",
-        address: "456 Tech Park, London EC2A 4NE",
+        website: "https://techcorp.co.uk",
+        addressLine1: "456 Tech Park",
+        addressLine2: null,
+        city: "London",
+        county: null,
+        postalCode: "EC2A 4NE",
+        country: "United Kingdom",
+        contactName: "Emma Davis",
+        contactPosition: "Compliance Director",
         contactEmail: "compliance@techcorp.co.uk",
         contactPhone: "+44 20 7123 4567",
         status: "active",
-        // Module access at company level
         healthSafetyAccess: true,
         humanResourcesAccess: false,
         employmentLawAccess: false,
@@ -471,30 +494,55 @@ export class MemStorage implements IStorage {
     sampleCompanies.forEach(company => this.companies.set(company.id, company));
 
     // Create sample sites (linked to companies via companyId)
+    this.siteCounter = 3; // Start counter after sample data
     const sampleSites: Site[] = [
       {
         id: "site-1",
+        referenceNumber: "STE-00001",
         companyId: "company-1",
         name: "Main Factory",
-        address: "123 Industrial Way, Manchester M1 2AB",
-        siteManager: "Sarah Johnson",
+        addressLine1: "123 Industrial Way",
+        addressLine2: null,
+        city: "Manchester",
+        county: "Greater Manchester",
+        postalCode: "M1 2AB",
+        country: "United Kingdom",
+        contactName: "Sarah Johnson",
+        contactPosition: "Site Manager",
         contactPhone: "+44 161 123 4567",
+        contactEmail: "sarah@acme-mfg.com",
       },
       {
         id: "site-2",
+        referenceNumber: "STE-00002",
         companyId: "company-1",
         name: "Warehouse North",
-        address: "789 Logistics Road, Manchester M3 4CD",
-        siteManager: "Mike Williams",
+        addressLine1: "789 Logistics Road",
+        addressLine2: null,
+        city: "Manchester",
+        county: "Greater Manchester",
+        postalCode: "M3 4CD",
+        country: "United Kingdom",
+        contactName: "Mike Williams",
+        contactPosition: "Warehouse Manager",
         contactPhone: "+44 161 123 4569",
+        contactEmail: "mike@acme-mfg.com",
       },
       {
         id: "site-3",
+        referenceNumber: "STE-00003",
         companyId: "company-2",
         name: "London Office",
-        address: "456 Tech Park, London EC2A 4NE",
-        siteManager: "Emma Davis",
+        addressLine1: "456 Tech Park",
+        addressLine2: null,
+        city: "London",
+        county: null,
+        postalCode: "EC2A 4NE",
+        country: "United Kingdom",
+        contactName: "Emma Davis",
+        contactPosition: "Office Manager",
         contactPhone: "+44 20 7123 4567",
+        contactEmail: "emma@techcorp.co.uk",
       },
     ];
     sampleSites.forEach(site => this.sites.set(site.id, site));

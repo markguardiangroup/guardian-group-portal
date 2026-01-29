@@ -189,7 +189,14 @@ function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { en
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{site.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium">{site.name}</p>
+                      {site.referenceNumber && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {site.referenceNumber}
+                        </Badge>
+                      )}
+                    </div>
                     {(site.addressLine1 || site.city) && (
                       <p className="text-sm text-muted-foreground">
                         {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
@@ -1059,7 +1066,14 @@ export default function SiteDetail() {
             <Building2 className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold">{entity.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-semibold">{entity.name}</h1>
+              {entity.referenceNumber && (
+                <Badge variant="outline" className="font-mono text-xs" data-testid="badge-site-reference">
+                  {entity.referenceNumber}
+                </Badge>
+              )}
+            </div>
             {(entity.addressLine1 || entity.city) && (
               <p className="text-sm text-muted-foreground">
                 {[entity.addressLine1, entity.city, entity.postalCode].filter(Boolean).join(", ")}

@@ -58,7 +58,14 @@ function CompanyCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h4 className="font-medium">{company.name}</h4>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-medium">{company.name}</h4>
+                  {company.referenceNumber && (
+                    <Badge variant="outline" className="font-mono text-xs" data-testid={`badge-company-ref-${company.id}`}>
+                      {company.referenceNumber}
+                    </Badge>
+                  )}
+                </div>
                 {company.companyNumber && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     Company No: {company.companyNumber}
@@ -98,10 +105,10 @@ function CompanyCard({
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {company.address && (
+              {(company.addressLine1 || company.city) && (
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" />
-                  {company.address}
+                  {[company.addressLine1, company.city, company.postalCode].filter(Boolean).join(", ")}
                 </span>
               )}
               {company.contactPhone && (
@@ -134,7 +141,7 @@ export default function Companies() {
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
-    address: "",
+    addressLine1: "",
     contactEmail: "",
     contactPhone: "",
   });
@@ -211,7 +218,7 @@ export default function Companies() {
     setFormData({
       name: company.name,
       companyNumber: company.companyNumber || "",
-      address: company.address || "",
+      addressLine1: company.addressLine1 || "",
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
     });
@@ -393,8 +400,8 @@ export default function Companies() {
               <Input
                 id="address"
                 placeholder="Enter company address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={formData.addressLine1}
+                onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
                 data-testid="input-company-address"
               />
             </div>

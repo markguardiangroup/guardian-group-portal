@@ -420,7 +420,14 @@ export default function CompanyDetail() {
               <Building2 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold">{company.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-semibold">{company.name}</h1>
+                {company.referenceNumber && (
+                  <Badge variant="outline" className="font-mono text-xs" data-testid="badge-company-reference">
+                    {company.referenceNumber}
+                  </Badge>
+                )}
+              </div>
               {company.companyNumber && (
                 <p className="text-sm text-muted-foreground">Company No: {company.companyNumber}</p>
               )}
