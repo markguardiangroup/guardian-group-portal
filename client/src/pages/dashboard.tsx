@@ -98,7 +98,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
     : "border-blue-500 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30";
 
   return (
-    <Card className={`hover-elevate ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
+    <Card className={`hover-elevate flex flex-col ${themeClass} ${moduleStyles}`} data-testid={`card-module-${summary.module}`}>
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${iconBgClass}`}>
@@ -116,7 +116,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           <p className="text-xs text-muted-foreground">Compliance</p>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col flex-1 space-y-4">
         <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
           <div 
             className={`h-full transition-all ${getScoreBg(summary.complianceScore)}`}
@@ -148,7 +148,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        <Button className={`w-full ${buttonClass}`} variant="outline" asChild>
+        <Button className={`w-full mt-auto ${buttonClass}`} variant="outline" asChild>
           <Link href={basePath} data-testid={`link-module-${summary.module}`}>
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -175,7 +175,7 @@ function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
   };
 
   return (
-    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
+    <Card className="hover-elevate flex flex-col theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-employment_law">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/40">
@@ -193,7 +193,7 @@ function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
           <p className="text-xs text-muted-foreground">Compliance</p>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col flex-1 space-y-4">
         {/* Two metric tiles: Documents and Cases */}
         <div className="grid grid-cols-2 gap-3">
           {/* Documents Tile */}
@@ -241,7 +241,7 @@ function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        <Button className="w-full border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
+        <Button className="w-full mt-auto border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
           <Link href="/employment-law" data-testid="link-module-employment_law">
             View Module
             <ArrowRight className="ml-2 h-4 w-4" />
