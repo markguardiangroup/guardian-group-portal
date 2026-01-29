@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft,
   Upload,
@@ -35,16 +36,28 @@ import {
   CheckCircle,
   GraduationCap,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
 import { Link } from "wouter";
+import { addMonths, format } from "date-fns";
 import type { Site } from "@shared/schema";
 
 const trainingCertificateSchema = z.object({
   trainingCourseTitle: z.string().min(3, "Course title must be at least 3 characters"),
   trainingCourseCode: z.string().min(1, "Course code is required"),
-  trainingDate: z.string().min(1, "Training date is required"),
+  trainingDate: z.string().min(1, "Certificate date is required"),
+  renewalRequired: z.boolean().default(false),
+  renewalPeriodMonths: z.number().min(1).max(120).optional(),
   description: z.string().optional(),
   siteId: z.string().min(1, "Please select a site"),
+}).refine((data) => {
+  if (data.renewalRequired && !data.renewalPeriodMonths) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Renewal period is required when renewal is enabled",
+  path: ["renewalPeriodMonths"],
 });
 
 type TrainingCertificateForm = z.infer<typeof trainingCertificateSchema>;
@@ -73,10 +86,20 @@ export default function TrainingCertificateUpload() {
       trainingCourseTitle: "",
       trainingCourseCode: "",
       trainingDate: "",
+      renewalRequired: false,
+      renewalPeriodMonths: undefined,
       description: "",
       siteId: "",
     },
   });
+
+  const watchRenewalRequired = form.watch("renewalRequired");
+  const watchTrainingDate = form.watch("trainingDate");
+  const watchRenewalPeriod = form.watch("renewalPeriodMonths");
+
+  const calculatedRenewalDate = watchTrainingDate && watchRenewalPeriod
+    ? format(addMonths(new Date(watchTrainingDate), watchRenewalPeriod), "dd MMM yyyy")
+    : null;
 
   const uploadMutation = useMutation({
     mutationFn: async (data: TrainingCertificateForm & { file: File }) => {
@@ -98,6 +121,10 @@ export default function TrainingCertificateUpload() {
       const uploadResult = await uploadResponse.json();
       const fileUrl = uploadResult.objectPath;
       
+      const renewalDate = data.renewalRequired && data.renewalPeriodMonths && data.trainingDate
+        ? format(addMonths(new Date(data.trainingDate), data.renewalPeriodMonths), "yyyy-MM-dd")
+        : undefined;
+      
       const documentData = {
         title: `${data.trainingCourseTitle} - Certificate`,
         description: data.description || `Training certificate for ${data.trainingCourseTitle}`,
@@ -112,6 +139,7 @@ export default function TrainingCertificateUpload() {
         trainingCourseTitle: data.trainingCourseTitle,
         trainingCourseCode: data.trainingCourseCode,
         trainingDate: data.trainingDate,
+        renewalDate: renewalDate,
       };
       
       return apiRequest("POST", "/api/documents", documentData);
@@ -277,6 +305,66 @@ export default function TrainingCertificateUpload() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="renewalRequired"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Renewal Required</FormLabel>
+                      <FormDescription>
+                        Enable if this certificate needs periodic renewal
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-renewal-required"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {watchRenewalRequired && (
+                <FormField
+                  control={form.control}
+                  name="renewalPeriodMonths"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Renewal Period (Months)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={120}
+                          placeholder="e.g., 12"
+                          data-testid="input-renewal-period"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        How many months until renewal is due
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {calculatedRenewalDate && watchRenewalRequired && (
+                <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <RefreshCw className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <span className="text-sm">
+                    <span className="text-muted-foreground">Renewal Date: </span>
+                    <span className="font-medium">{calculatedRenewalDate}</span>
+                  </span>
+                </div>
+              )}
 
               {isAdminOrConsultant && (
                 <div className="space-y-4">

@@ -25,6 +25,7 @@ const createDocumentSchema = z.object({
   mimeType: z.string().min(1),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
+  renewalDate: z.string().optional(),
   source: z.enum(["template", "upload", "external"]).optional(),
   templateId: z.string().optional(),
   templateVersion: z.number().optional(),
@@ -1180,6 +1181,7 @@ export async function registerRoutes(
         trainingCourseTitle: body.trainingCourseTitle || null,
         trainingCourseCode: body.trainingCourseCode || null,
         trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
+        renewalDate: body.renewalDate ? new Date(body.renewalDate) : null,
       });
 
       await storage.createAuditLog({
