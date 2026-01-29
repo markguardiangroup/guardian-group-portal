@@ -319,116 +319,130 @@ export default function Training() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Compact header: Tabs + Search in one row */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="px-4 py-3">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-            {/* Module tabs */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModuleFilter)} className="flex-shrink-0">
-              <TabsList className="h-9">
-                <TabsTrigger 
-                  value="all" 
-                  data-testid="tab-all" 
-                  className="group flex items-center gap-2 px-3 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
-                >
-                  <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 group-data-[state=active]:text-white" />
-                  <span className="hidden sm:inline">All Training</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="health_safety" 
-                  data-testid="tab-health-safety" 
-                  className="group flex items-center gap-2 px-3 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
-                >
-                  <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-data-[state=active]:text-white" />
-                  <span className="hidden sm:inline">Health & Safety</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="human_resources" 
-                  data-testid="tab-human-resources" 
-                  className="group flex items-center gap-2 px-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
-                >
-                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 group-data-[state=active]:text-white" />
-                  <span className="hidden sm:inline">Human Resources</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="employment_law" 
-                  data-testid="tab-employment-law" 
-                  className="group flex items-center gap-2 px-3 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
-                >
-                  <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400 group-data-[state=active]:text-white" />
-                  <span className="hidden sm:inline">Employment Law</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Search and filters */}
-            <div className="flex flex-1 items-center gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[200px] max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search courses..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9"
-                  data-testid="input-search-training"
-                />
-              </div>
-              
-              <Select value={filterRequired} onValueChange={(v) => setFilterRequired(v as typeof filterRequired)}>
-                <SelectTrigger className="w-[130px] h-9" data-testid="select-filter-required">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Courses</SelectItem>
-                  <SelectItem value="required">Required</SelectItem>
-                  <SelectItem value="recommended">Recommended</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={filterMethod} onValueChange={(v) => setFilterMethod(v as typeof filterMethod)}>
-                <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-method">
-                  <SelectValue placeholder="Method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any Method</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="in_person">In Person</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {uniqueProviders.length > 0 && (
-                <Select value={filterProvider} onValueChange={setFilterProvider}>
-                  <SelectTrigger className="w-[140px] h-9" data-testid="select-filter-provider">
-                    <SelectValue placeholder="Provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Provider</SelectItem>
-                    {uniqueProviders.map((provider) => (
-                      <SelectItem key={provider} value={provider}>{provider}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              
-              {(searchQuery || filterRequired !== "all" || filterMethod !== "all" || filterProvider !== "all") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setFilterRequired("all");
-                    setFilterMethod("all");
-                    setFilterProvider("all");
-                  }}
-                  data-testid="button-clear-filters"
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Clear
-                </Button>
-              )}
+      {/* Page header */}
+      <div className={`flex-shrink-0 border-b ${moduleBgColors[currentColor]}`}>
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${moduleAccentBars[currentColor]}`}>
+              <GraduationCap className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">Training</h1>
+              <p className="text-sm text-muted-foreground">Browse and book training courses</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Module tabs */}
+      <div className="flex-shrink-0 border-b bg-background">
+        <div className="px-6 py-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModuleFilter)}>
+            <TabsList className="h-9">
+              <TabsTrigger 
+                value="all" 
+                data-testid="tab-all" 
+                className="group flex items-center gap-2 px-4 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
+              >
+                <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 group-data-[state=active]:text-white" />
+                <span className="hidden sm:inline">All Training</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="health_safety" 
+                data-testid="tab-health-safety" 
+                className="group flex items-center gap-2 px-4 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
+              >
+                <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-data-[state=active]:text-white" />
+                <span className="hidden sm:inline">Health & Safety</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="human_resources" 
+                data-testid="tab-human-resources" 
+                className="group flex items-center gap-2 px-4 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
+              >
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 group-data-[state=active]:text-white" />
+                <span className="hidden sm:inline">Human Resources</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="employment_law" 
+                data-testid="tab-employment-law" 
+                className="group flex items-center gap-2 px-4 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
+              >
+                <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400 group-data-[state=active]:text-white" />
+                <span className="hidden sm:inline">Employment Law</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Search and filters */}
+      <div className="flex-shrink-0 px-6 py-3 border-b bg-muted/30">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 bg-background"
+              data-testid="input-search-training"
+            />
+          </div>
+          
+          <Select value={filterRequired} onValueChange={(v) => setFilterRequired(v as typeof filterRequired)}>
+            <SelectTrigger className="w-[130px] h-9" data-testid="select-filter-required">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Courses</SelectItem>
+              <SelectItem value="required">Required</SelectItem>
+              <SelectItem value="recommended">Recommended</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={filterMethod} onValueChange={(v) => setFilterMethod(v as typeof filterMethod)}>
+            <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-method">
+              <SelectValue placeholder="Method" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any Method</SelectItem>
+              <SelectItem value="online">Online</SelectItem>
+              <SelectItem value="in_person">In Person</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {uniqueProviders.length > 0 && (
+            <Select value={filterProvider} onValueChange={setFilterProvider}>
+              <SelectTrigger className="w-[140px] h-9" data-testid="select-filter-provider">
+                <SelectValue placeholder="Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any Provider</SelectItem>
+                {uniqueProviders.map((provider) => (
+                  <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {(searchQuery || filterRequired !== "all" || filterMethod !== "all" || filterProvider !== "all") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9"
+              onClick={() => {
+                setSearchQuery("");
+                setFilterRequired("all");
+                setFilterMethod("all");
+                setFilterProvider("all");
+              }}
+              data-testid="button-clear-filters"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
       </div>
 
