@@ -1125,3 +1125,27 @@ export const SECURITY_CONFIG = {
   requireNumber: true,
   requireSpecialChar: false,
 } as const;
+
+// Development Roadmap - Admin feature tracking
+export type RoadmapStatus = "idea" | "planned" | "in_progress" | "completed";
+export type RoadmapPriority = "low" | "medium" | "high";
+
+export const roadmapItems = pgTable("roadmap_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("feature"), // feature, improvement, bug, enhancement
+  status: text("status").$type<RoadmapStatus>().notNull().default("idea"),
+  priority: text("priority").$type<RoadmapPriority>().notNull().default("medium"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertRoadmapItemSchema = createInsertSchema(roadmapItems).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
+export type RoadmapItem = typeof roadmapItems.$inferSelect;

@@ -33,6 +33,7 @@ import TrainingCertificateUpload from "@/pages/training-certificate-upload";
 import TrainingCertificates from "@/pages/training-certificates";
 import MyTraining from "@/pages/my-training";
 import CreateFromTemplate from "@/pages/create-from-template";
+import DevelopmentRoadmap from "@/pages/development-roadmap";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -99,6 +100,7 @@ function Router() {
       <Route path="/training/certificates/upload" component={TrainingCertificateUpload} />
       <Route path="/training/certificates/:id" component={TrainingCertificates} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
+      <Route path="/roadmap" component={DevelopmentRoadmap} />
       <Route component={NotFound} />
     </Switch>
   );

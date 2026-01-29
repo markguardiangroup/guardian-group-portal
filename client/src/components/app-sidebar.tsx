@@ -15,6 +15,7 @@ import {
   Headphones,
   BookOpen,
   GraduationCap,
+  Lightbulb,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -146,6 +147,11 @@ const adminNavItems = [
     title: "Users",
     url: "/users",
     icon: Users,
+  },
+  {
+    title: "Roadmap",
+    url: "/roadmap",
+    icon: Lightbulb,
   },
   {
     title: "Template Library",

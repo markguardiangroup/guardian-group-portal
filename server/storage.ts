@@ -36,11 +36,13 @@ import {
   type TrainingCourse, type InsertTrainingCourse,
   type TrainingRequest, type InsertTrainingRequest,
   type TrainingBooking, type InsertTrainingBooking,
+  type RoadmapItem, type InsertRoadmapItem,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
   trainingRequests as trainingRequestsTable,
   trainingBookings as trainingBookingsTable,
+  roadmapItems as roadmapItemsTable,
   moduleConfig,
   documentTypes,
   folderTemplates as folderTemplatesTable,
@@ -264,6 +266,13 @@ export interface IStorage {
   createTrainingBooking(booking: InsertTrainingBooking): Promise<TrainingBooking>;
   updateTrainingBooking(id: string, updates: Partial<TrainingBooking>): Promise<TrainingBooking | undefined>;
   deleteTrainingBooking(id: string): Promise<boolean>;
+  
+  // Development Roadmap (Admin feature tracking)
+  getRoadmapItems(): Promise<RoadmapItem[]>;
+  getRoadmapItem(id: string): Promise<RoadmapItem | undefined>;
+  createRoadmapItem(item: InsertRoadmapItem): Promise<RoadmapItem>;
+  updateRoadmapItem(id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | undefined>;
+  deleteRoadmapItem(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -3712,6 +3721,48 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error seeding case folders:", error);
     }
+  }
+
+  // ==================== ROADMAP METHODS ====================
+
+  async getRoadmapItems(): Promise<RoadmapItem[]> {
+    const items = await db.select().from(roadmapItemsTable).orderBy(asc(roadmapItemsTable.sortOrder), desc(roadmapItemsTable.createdAt));
+    return items;
+  }
+
+  async getRoadmapItem(id: string): Promise<RoadmapItem | undefined> {
+    const [item] = await db.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id));
+    return item;
+  }
+
+  async createRoadmapItem(item: InsertRoadmapItem): Promise<RoadmapItem> {
+    const id = randomUUID();
+    const now = new Date();
+    const [created] = await db.insert(roadmapItemsTable).values({
+      id,
+      title: item.title,
+      description: item.description ?? null,
+      category: item.category ?? "feature",
+      status: item.status ?? "idea",
+      priority: item.priority ?? "medium",
+      sortOrder: item.sortOrder ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
+    return created;
+  }
+
+  async updateRoadmapItem(id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | undefined> {
+    const [updated] = await db.update(roadmapItemsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(roadmapItemsTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteRoadmapItem(id: string): Promise<boolean> {
+    const result = await db.delete(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).returning();
+    return result.length > 0;
   }
 }
 

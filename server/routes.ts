@@ -5819,5 +5819,126 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== ROADMAP ROUTES (Admin Only) ====================
+
+  const createRoadmapItemSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional().nullable(),
+    category: z.enum(["feature", "improvement", "bug", "enhancement"]).optional().default("feature"),
+    status: z.enum(["idea", "planned", "in_progress", "completed"]).optional().default("idea"),
+    priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
+    sortOrder: z.number().optional().default(0),
+  });
+
+  const updateRoadmapItemSchema = z.object({
+    title: z.string().min(1).optional(),
+    description: z.string().optional().nullable(),
+    category: z.enum(["feature", "improvement", "bug", "enhancement"]).optional(),
+    status: z.enum(["idea", "planned", "in_progress", "completed"]).optional(),
+    priority: z.enum(["low", "medium", "high"]).optional(),
+    sortOrder: z.number().optional(),
+  });
+
+  // Get all roadmap items
+  app.get("/api/roadmap", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const items = await storage.getRoadmapItems();
+      res.json(items);
+    } catch (error) {
+      console.error("Get roadmap items error:", error);
+      res.status(500).json({ error: "Failed to fetch roadmap items" });
+    }
+  });
+
+  // Create roadmap item
+  app.post("/api/roadmap", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const parsed = createRoadmapItemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+      
+      const item = await storage.createRoadmapItem({
+        title: parsed.data.title,
+        description: parsed.data.description ?? null,
+        category: parsed.data.category,
+        status: parsed.data.status,
+        priority: parsed.data.priority,
+        sortOrder: parsed.data.sortOrder,
+      });
+      
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Create roadmap item error:", error);
+      res.status(500).json({ error: "Failed to create roadmap item" });
+    }
+  });
+
+  // Update roadmap item
+  app.patch("/api/roadmap/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const parsed = updateRoadmapItemSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
+      }
+      
+      // Only allow whitelisted fields to be updated
+      const updateData: Record<string, unknown> = {};
+      if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
+      if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
+      if (parsed.data.category !== undefined) updateData.category = parsed.data.category;
+      if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
+      if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority;
+      if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
+      
+      const updated = await storage.updateRoadmapItem(req.params.id, updateData);
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Roadmap item not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update roadmap item error:", error);
+      res.status(500).json({ error: "Failed to update roadmap item" });
+    }
+  });
+
+  // Delete roadmap item
+  app.delete("/api/roadmap/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const deleted = await storage.deleteRoadmapItem(req.params.id);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Roadmap item not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete roadmap item error:", error);
+      res.status(500).json({ error: "Failed to delete roadmap item" });
+    }
+  });
+
   return httpServer;
 }
