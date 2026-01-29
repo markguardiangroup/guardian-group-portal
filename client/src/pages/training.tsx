@@ -364,7 +364,7 @@ export default function Training() {
       <div className="flex-shrink-0 border-b bg-background">
         <div className="px-6 pt-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModuleFilter)}>
-            <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsList className="grid w-full max-w-3xl grid-cols-4 h-auto">
               <TabsTrigger 
                 value="all" 
                 data-testid="tab-all" 
