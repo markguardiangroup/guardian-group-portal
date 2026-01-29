@@ -724,7 +724,7 @@ export default function Dashboard() {
             data-testid="link-need-help"
           >
             <Headphones className="h-4 w-4" />
-            <span>Need help?</span>
+            <span>Need support?</span>
           </Link>
           {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
           {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
