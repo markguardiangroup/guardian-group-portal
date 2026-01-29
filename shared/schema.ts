@@ -986,7 +986,7 @@ export type TrainingCourse = typeof trainingCourses.$inferSelect;
 
 // Training Requests (for clients to request info or book training)
 export type TrainingRequestType = "info" | "booking";
-export type TrainingRequestStatus = "pending" | "contacted" | "completed" | "cancelled";
+export type TrainingRequestStatus = "pending" | "contacted" | "booked" | "completed" | "cancelled";
 
 export const trainingRequests = pgTable("training_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1000,12 +1000,23 @@ export const trainingRequests = pgTable("training_requests", {
   responseNotes: text("response_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   respondedAt: timestamp("responded_at"),
+  bookedAt: timestamp("booked_at"), // When training was booked by consultant
+  bookedBy: varchar("booked_by"), // Consultant who booked
+  scheduledDate: timestamp("scheduled_date"), // Scheduled training date
+  completedAt: timestamp("completed_at"), // When training was marked complete
+  completedBy: varchar("completed_by"), // Consultant who marked complete
+  renewalDate: timestamp("renewal_date"), // When re-training is due
 });
 
 export const insertTrainingRequestSchema = createInsertSchema(trainingRequests).omit({ 
   id: true, 
   createdAt: true,
-  respondedAt: true
+  respondedAt: true,
+  bookedAt: true,
+  bookedBy: true,
+  completedAt: true,
+  completedBy: true,
+  renewalDate: true
 });
 export type InsertTrainingRequest = z.infer<typeof insertTrainingRequestSchema>;
 export type TrainingRequest = typeof trainingRequests.$inferSelect;
