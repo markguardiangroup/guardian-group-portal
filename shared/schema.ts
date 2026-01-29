@@ -38,6 +38,7 @@ export type CompanyStatus = "active" | "inactive" | "pending";
 // Companies table (parent of sites) - uses "entities" table name for database compatibility
 export const companies = pgTable("entities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referenceNumber: text("reference_number").unique(),
   name: text("name").notNull(),
   companyNumber: text("company_number"),
   website: text("website"),
@@ -63,7 +64,7 @@ export const companies = pgTable("entities", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, referenceNumber: true, createdAt: true });
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
 
@@ -84,6 +85,7 @@ export type PaginatedCompaniesResponse = {
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referenceNumber: text("reference_number").unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull(),
@@ -100,13 +102,14 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastLoginAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Sites (Client locations - belong to a company)
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referenceNumber: text("reference_number").unique(),
   companyId: varchar("entity_id").notNull(),
   name: text("name").notNull(),
   // Structured address fields
@@ -123,7 +126,7 @@ export const sites = pgTable("sites", {
   contactEmail: text("contact_email"),
 });
 
-export const insertSiteSchema = createInsertSchema(sites).omit({ id: true });
+export const insertSiteSchema = createInsertSchema(sites).omit({ id: true, referenceNumber: true });
 export type InsertSite = z.infer<typeof insertSiteSchema>;
 export type Site = typeof sites.$inferSelect;
 
