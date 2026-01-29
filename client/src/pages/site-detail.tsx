@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -95,53 +95,58 @@ interface UserWithoutPassword {
   createdAt: Date;
 }
 
-function OverviewTab({ entity, sites, onEditSite }: { entity: Site; sites: Site[]; onEditSite: () => void }) {
+function OverviewTab({ entity, sites, onEditSite, companyId }: { entity: Site; sites: Site[]; onEditSite: () => void; companyId?: string }) {
   return (
     <div className="space-y-6">
+      {/* Parent Company Card */}
+      {companyId && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base">Parent Company</CardTitle>
+              <CardDescription>This site belongs to a company group</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/companies/${companyId}`} data-testid="link-view-parent-company">
+                <Building2 className="mr-2 h-4 w-4" />
+                View Company
+              </Link>
+            </Button>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Site Details Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-base">Company Information</CardTitle>
+          <CardTitle className="text-base">Site Details</CardTitle>
           <Button variant="outline" size="sm" onClick={onEditSite} data-testid="button-edit-site">
             <Pencil className="mr-2 h-4 w-4" />
-            Edit Details
+            Edit Site
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-sm text-muted-foreground">Company Name</p>
+              <p className="text-sm text-muted-foreground">Site Name</p>
               <p className="font-medium">{entity.name}</p>
             </div>
-            {entity.companyNumber && (
-              <div>
-                <p className="text-sm text-muted-foreground">Company Number</p>
-                <p className="font-medium">{entity.companyNumber}</p>
-              </div>
-            )}
             {entity.address && (
               <div className="sm:col-span-2">
                 <p className="text-sm text-muted-foreground">Address</p>
                 <p className="font-medium">{entity.address}</p>
               </div>
             )}
-            {entity.contactEmail && (
+            {entity.siteManager && (
               <div>
-                <p className="text-sm text-muted-foreground">Contact Email</p>
-                <p className="font-medium">{entity.contactEmail}</p>
+                <p className="text-sm text-muted-foreground">Site Manager</p>
+                <p className="font-medium">{entity.siteManager}</p>
               </div>
             )}
             {entity.contactPhone && (
               <div>
                 <p className="text-sm text-muted-foreground">Contact Phone</p>
                 <p className="font-medium">{entity.contactPhone}</p>
-              </div>
-            )}
-            {entity.website && (
-              <div>
-                <p className="text-sm text-muted-foreground">Website</p>
-                <a href={entity.website} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-                  {entity.website}
-                </a>
               </div>
             )}
           </div>
@@ -932,11 +937,9 @@ export default function SiteDetail() {
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
   const [editSiteData, setEditSiteData] = useState({
     name: "",
-    companyNumber: "",
     address: "",
-    contactEmail: "",
+    siteManager: "",
     contactPhone: "",
-    website: "",
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
@@ -969,11 +972,9 @@ export default function SiteDetail() {
     if (entity) {
       setEditSiteData({
         name: entity.name || "",
-        companyNumber: entity.companyNumber || "",
         address: entity.address || "",
-        contactEmail: entity.contactEmail || "",
+        siteManager: entity.siteManager || "",
         contactPhone: entity.contactPhone || "",
-        website: entity.website || "",
       });
       setIsEditSiteOpen(true);
     }
@@ -1028,12 +1029,9 @@ export default function SiteDetail() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">{entity.name}</h1>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              {entity.companyNumber && <span>#{entity.companyNumber}</span>}
-              <Badge variant={entity.status === "active" ? "secondary" : "outline"}>
-                {entity.status}
-              </Badge>
-            </div>
+            {entity.address && (
+              <p className="text-sm text-muted-foreground">{entity.address}</p>
+            )}
           </div>
         </div>
       </div>
@@ -1059,7 +1057,7 @@ export default function SiteDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} />
+          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} companyId={entity.companyId} />
         </TabsContent>
 
         <TabsContent value="consultants">
@@ -1080,28 +1078,18 @@ export default function SiteDetail() {
           <DialogHeader>
             <DialogTitle>Edit Site Details</DialogTitle>
             <DialogDescription>
-              Update the company information for this site.
+              Update the details for this site location.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="site-name">Company Name *</Label>
+              <Label htmlFor="site-name">Site Name *</Label>
               <Input
                 id="site-name"
                 value={editSiteData.name}
                 onChange={(e) => setEditSiteData({ ...editSiteData, name: e.target.value })}
-                placeholder="Enter company name"
+                placeholder="Enter site name"
                 data-testid="input-site-name"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="site-company-number">Company Number</Label>
-              <Input
-                id="site-company-number"
-                value={editSiteData.companyNumber}
-                onChange={(e) => setEditSiteData({ ...editSiteData, companyNumber: e.target.value })}
-                placeholder="Enter company registration number"
-                data-testid="input-site-company-number"
               />
             </div>
             <div className="grid gap-2">
@@ -1110,20 +1098,19 @@ export default function SiteDetail() {
                 id="site-address"
                 value={editSiteData.address}
                 onChange={(e) => setEditSiteData({ ...editSiteData, address: e.target.value })}
-                placeholder="Enter company address"
+                placeholder="Enter site address"
                 data-testid="input-site-address"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="site-email">Contact Email</Label>
+                <Label htmlFor="site-manager">Site Manager</Label>
                 <Input
-                  id="site-email"
-                  type="email"
-                  value={editSiteData.contactEmail}
-                  onChange={(e) => setEditSiteData({ ...editSiteData, contactEmail: e.target.value })}
-                  placeholder="email@example.com"
-                  data-testid="input-site-email"
+                  id="site-manager"
+                  value={editSiteData.siteManager}
+                  onChange={(e) => setEditSiteData({ ...editSiteData, siteManager: e.target.value })}
+                  placeholder="Manager name"
+                  data-testid="input-site-manager"
                 />
               </div>
               <div className="grid gap-2">
@@ -1136,16 +1123,6 @@ export default function SiteDetail() {
                   data-testid="input-site-phone"
                 />
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="site-website">Website</Label>
-              <Input
-                id="site-website"
-                value={editSiteData.website}
-                onChange={(e) => setEditSiteData({ ...editSiteData, website: e.target.value })}
-                placeholder="https://www.example.com"
-                data-testid="input-site-website"
-              />
             </div>
           </div>
           <DialogFooter>
