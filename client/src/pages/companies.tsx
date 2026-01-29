@@ -142,6 +142,11 @@ export default function Companies() {
     name: "",
     companyNumber: "",
     addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
     contactEmail: "",
     contactPhone: "",
   });
@@ -208,7 +213,12 @@ export default function Companies() {
     setFormData({
       name: "",
       companyNumber: "",
-      address: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      county: "",
+      postalCode: "",
+      country: "",
       contactEmail: "",
       contactPhone: "",
     });
@@ -219,6 +229,11 @@ export default function Companies() {
       name: company.name,
       companyNumber: company.companyNumber || "",
       addressLine1: company.addressLine1 || "",
+      addressLine2: company.addressLine2 || "",
+      city: company.city || "",
+      county: company.county || "",
+      postalCode: company.postalCode || "",
+      country: company.country || "",
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
     });
@@ -367,15 +382,15 @@ export default function Companies() {
           resetForm();
         }
       }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCompany ? "Edit Company" : "Add New Company"}</DialogTitle>
             <DialogDescription>
               {editingCompany ? "Update company details" : "Create a new client company"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
               <Label htmlFor="company-name">Company Name *</Label>
               <Input
                 id="company-name"
@@ -385,7 +400,7 @@ export default function Companies() {
                 data-testid="input-company-name"
               />
             </div>
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="company-number">Company Number</Label>
               <Input
                 id="company-number"
@@ -395,38 +410,102 @@ export default function Companies() {
                 data-testid="input-company-number"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                placeholder="Enter company address"
-                value={formData.addressLine1}
-                onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
-                data-testid="input-company-address"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contact-email">Contact Email</Label>
-                <Input
-                  id="contact-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                  data-testid="input-company-email"
-                />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="address-line1">Address Line 1</Label>
+                  <Input
+                    id="address-line1"
+                    value={formData.addressLine1}
+                    onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-company-address-line1"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="address-line2">Address Line 2</Label>
+                  <Input
+                    id="address-line2"
+                    value={formData.addressLine2}
+                    onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-company-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-company-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="county">County</Label>
+                    <Input
+                      id="county"
+                      value={formData.county}
+                      onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-company-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="postal-code">Postal Code</Label>
+                    <Input
+                      id="postal-code"
+                      value={formData.postalCode}
+                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-company-postal-code"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={formData.country}
+                      onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-company-country"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-phone">Contact Phone</Label>
-                <Input
-                  id="contact-phone"
-                  type="tel"
-                  placeholder="+44 xxx xxx xxxx"
-                  value={formData.contactPhone}
-                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                  data-testid="input-company-phone"
-                />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Contact Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="contact-email">Email</Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={formData.contactEmail}
+                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                    data-testid="input-company-email"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="contact-phone">Phone</Label>
+                  <Input
+                    id="contact-phone"
+                    type="tel"
+                    placeholder="+44 xxx xxx xxxx"
+                    value={formData.contactPhone}
+                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                    data-testid="input-company-phone"
+                  />
+                </div>
               </div>
             </div>
           </div>
