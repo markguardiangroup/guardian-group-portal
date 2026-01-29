@@ -371,7 +371,7 @@ export default function Training() {
                 className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline">All</span>
+                <span className="hidden sm:inline">All Training</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="health_safety" 
@@ -379,7 +379,7 @@ export default function Training() {
                 className="flex items-center gap-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
               >
                 <HardHat className="h-4 w-4" />
-                <span className="hidden sm:inline">H&S</span>
+                <span className="hidden sm:inline">Health & Safety</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="human_resources" 
@@ -387,7 +387,7 @@ export default function Training() {
                 className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
               >
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">HR</span>
+                <span className="hidden sm:inline">Human Resources</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="employment_law" 
@@ -395,7 +395,7 @@ export default function Training() {
                 className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
               >
                 <Scale className="h-4 w-4" />
-                <span className="hidden sm:inline">EL</span>
+                <span className="hidden sm:inline">Employment Law</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
