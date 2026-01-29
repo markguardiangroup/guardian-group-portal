@@ -275,9 +275,8 @@ export default function TrainingCertificates() {
                             data-testid={`button-download-${cert.id}`}
                           >
                             <a
-                              href={cert.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              href={`${cert.fileUrl}?download=${encodeURIComponent(cert.fileName)}`}
+                              download={cert.fileName}
                             >
                               <Download className="h-4 w-4" />
                             </a>
