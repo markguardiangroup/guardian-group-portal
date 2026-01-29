@@ -67,7 +67,23 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc, desc, isNull, gt } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, gt, count, sql } from "drizzle-orm";
+
+// Reference number generation helpers
+type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
+
+function formatReferenceNumber(prefix: ReferencePrefix, num: number): string {
+  return `${prefix}-${String(num).padStart(5, '0')}`;
+}
+
+function getUserReferencePrefix(role: string): ReferencePrefix {
+  switch (role) {
+    case 'admin': return 'ADM';
+    case 'consultant': return 'CON';
+    case 'client': return 'CLI';
+    default: return 'USR';
+  }
+}
 
 export interface IStorage {
   // Users
@@ -299,6 +315,11 @@ export class MemStorage implements IStorage {
   private documentTemplateVersions: Map<string, DocumentTemplateVersion>;
   private trainingModulesMap: Map<string, TrainingModule>;
   private supportRequestReads: Map<string, { requestId: string; userId: string; lastReadAt: Date }>;
+  
+  // Reference number counters
+  private companyCounter: number = 0;
+  private siteCounter: number = 0;
+  private userCounter: number = 0;
 
   constructor() {
     this.users = new Map();
@@ -1365,10 +1386,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
+    this.userCounter++;
+    const role = insertUser.role ?? "client";
+    const referenceNumber = formatReferenceNumber(getUserReferencePrefix(role), this.userCounter);
     const user: User = { 
       ...insertUser, 
       id,
-      role: (insertUser.role ?? "client") as any,
+      referenceNumber,
+      role: role as any,
       companyId: insertUser.companyId ?? null,
       status: (insertUser.status ?? "active") as any,
       consultantTier: (insertUser.consultantTier ?? null) as any,
@@ -1520,12 +1545,22 @@ export class MemStorage implements IStorage {
 
   async createSite(insertSite: InsertSite): Promise<Site> {
     const id = randomUUID();
+    this.siteCounter++;
+    const referenceNumber = formatReferenceNumber('STE', this.siteCounter);
     const site: Site = { 
       ...insertSite, 
       id,
-      address: insertSite.address ?? null,
-      siteManager: insertSite.siteManager ?? null,
+      referenceNumber,
+      addressLine1: insertSite.addressLine1 ?? null,
+      addressLine2: insertSite.addressLine2 ?? null,
+      city: insertSite.city ?? null,
+      county: insertSite.county ?? null,
+      postalCode: insertSite.postalCode ?? null,
+      country: insertSite.country ?? null,
+      contactName: insertSite.contactName ?? null,
+      contactPosition: insertSite.contactPosition ?? null,
       contactPhone: insertSite.contactPhone ?? null,
+      contactEmail: insertSite.contactEmail ?? null,
     };
     this.sites.set(id, site);
     return site;
@@ -1571,14 +1606,31 @@ export class MemStorage implements IStorage {
 
   async createCompany(insertCompany: InsertCompany): Promise<Company> {
     const id = randomUUID();
+    this.companyCounter++;
+    const referenceNumber = formatReferenceNumber('CMP', this.companyCounter);
     const company: Company = {
       ...insertCompany,
       id,
+      referenceNumber,
       companyNumber: insertCompany.companyNumber ?? null,
-      address: insertCompany.address ?? null,
+      website: insertCompany.website ?? null,
+      addressLine1: insertCompany.addressLine1 ?? null,
+      addressLine2: insertCompany.addressLine2 ?? null,
+      city: insertCompany.city ?? null,
+      county: insertCompany.county ?? null,
+      postalCode: insertCompany.postalCode ?? null,
+      country: insertCompany.country ?? null,
+      contactName: insertCompany.contactName ?? null,
+      contactPosition: insertCompany.contactPosition ?? null,
       contactEmail: insertCompany.contactEmail ?? null,
       contactPhone: insertCompany.contactPhone ?? null,
       status: (insertCompany.status ?? "active") as any,
+      healthSafetyAccess: insertCompany.healthSafetyAccess ?? false,
+      employmentLawAccess: insertCompany.employmentLawAccess ?? false,
+      hrAccess: insertCompany.hrAccess ?? false,
+      supportAccess: insertCompany.supportAccess ?? false,
+      trainingAccess: insertCompany.trainingAccess ?? false,
+      reportsAccess: insertCompany.reportsAccess ?? false,
       createdAt: new Date(),
     };
     this.companies.set(id, company);
