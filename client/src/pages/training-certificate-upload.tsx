@@ -80,13 +80,14 @@ export default function TrainingCertificateUpload() {
 
   const uploadMutation = useMutation({
     mutationFn: async (data: TrainingCertificateForm & { file: File }) => {
-      const formData = new FormData();
-      formData.append("file", data.file);
-      
-      const uploadResponse = await fetch("/api/upload", {
+      const uploadResponse = await fetch("/api/uploads/file", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": data.file.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(data.file.name),
+        },
         credentials: "include",
+        body: data.file,
       });
       
       if (!uploadResponse.ok) {
@@ -95,6 +96,7 @@ export default function TrainingCertificateUpload() {
       }
       
       const uploadResult = await uploadResponse.json();
+      const fileUrl = uploadResult.objectPath;
       
       const documentData = {
         title: `${data.trainingCourseTitle} - Certificate`,
@@ -103,9 +105,9 @@ export default function TrainingCertificateUpload() {
         type: "training_certificate",
         siteId: data.siteId,
         fileName: data.file.name,
-        fileUrl: uploadResult.url,
+        fileUrl: fileUrl,
         fileSize: data.file.size,
-        mimeType: data.file.type,
+        mimeType: data.file.type || "application/octet-stream",
         source: "upload",
         trainingCourseTitle: data.trainingCourseTitle,
         trainingCourseCode: data.trainingCourseCode,
