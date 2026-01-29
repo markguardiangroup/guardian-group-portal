@@ -35,6 +35,7 @@ import {
   Mail,
   ArrowLeft,
   Users,
+  User,
   Settings,
   CheckCircle,
   AlertTriangle,
@@ -111,8 +112,10 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h4 className="font-medium">{site.name}</h4>
-                {site.address && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{site.address}</p>
+                {(site.addressLine1 || site.city) && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
+                  </p>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -129,10 +132,10 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
               </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {site.siteManager && (
+              {site.contactName && (
                 <span className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />
-                  {site.siteManager}
+                  <User className="h-3.5 w-3.5" />
+                  {site.contactName}{site.contactPosition && ` (${site.contactPosition})`}
                 </span>
               )}
               {site.contactPhone && (
@@ -263,9 +266,16 @@ export default function CompanyDetail() {
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
-    address: "",
-    contactEmail: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
     contactPhone: "",
+    contactEmail: "",
     status: "active" as "active" | "inactive" | "pending",
   });
 
@@ -311,9 +321,16 @@ export default function CompanyDetail() {
       setEditForm({
         name: company.name || "",
         companyNumber: company.companyNumber || "",
-        address: company.address || "",
-        contactEmail: company.contactEmail || "",
+        addressLine1: company.addressLine1 || "",
+        addressLine2: company.addressLine2 || "",
+        city: company.city || "",
+        county: company.county || "",
+        postalCode: company.postalCode || "",
+        country: company.country || "",
+        contactName: company.contactName || "",
+        contactPosition: company.contactPosition || "",
         contactPhone: company.contactPhone || "",
+        contactEmail: company.contactEmail || "",
         status: company.status || "active",
       });
       setEditDialogOpen(true);
@@ -425,26 +442,50 @@ export default function CompanyDetail() {
           <CardHeader>
             <CardTitle className="text-base">Company Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {company.address && (
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{company.address}</span>
+          <CardContent className="space-y-4">
+            {(company.addressLine1 || company.city || company.postalCode) && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Address</p>
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div>
+                    {company.addressLine1 && <p>{company.addressLine1}</p>}
+                    {company.addressLine2 && <p>{company.addressLine2}</p>}
+                    {(company.city || company.county) && (
+                      <p>{[company.city, company.county].filter(Boolean).join(", ")}</p>
+                    )}
+                    {company.postalCode && <p>{company.postalCode}</p>}
+                    {company.country && <p>{company.country}</p>}
+                  </div>
+                </div>
               </div>
             )}
-            {company.contactPhone && (
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{company.contactPhone}</span>
+            {(company.contactName || company.contactPhone || company.contactEmail) && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
+                <div className="space-y-1.5 text-sm">
+                  {company.contactName && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
+                    </div>
+                  )}
+                  {company.contactPhone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{company.contactPhone}</span>
+                    </div>
+                  )}
+                  {company.contactEmail && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{company.contactEmail}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            {company.contactEmail && (
-              <div className="flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{company.contactEmail}</span>
-              </div>
-            )}
-            {!company.address && !company.contactPhone && !company.contactEmail && (
+            {!company.addressLine1 && !company.city && !company.contactName && !company.contactPhone && !company.contactEmail && (
               <p className="text-sm text-muted-foreground">No contact details available</p>
             )}
           </CardContent>
@@ -523,7 +564,7 @@ export default function CompanyDetail() {
       </div>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Company</DialogTitle>
             <DialogDescription>
@@ -531,58 +572,147 @@ export default function CompanyDetail() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Company Name *</Label>
-              <Input
-                id="edit-name"
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                placeholder="Enter company name"
-                data-testid="input-edit-company-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-company-number">Company Number</Label>
-              <Input
-                id="edit-company-number"
-                value={editForm.companyNumber}
-                onChange={(e) => setEditForm({ ...editForm, companyNumber: e.target.value })}
-                placeholder="e.g., 12345678"
-                data-testid="input-edit-company-number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-address">Address</Label>
-              <Textarea
-                id="edit-address"
-                value={editForm.address}
-                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                placeholder="Enter company address"
-                rows={2}
-                data-testid="input-edit-company-address"
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-email">Contact Email</Label>
+                <Label htmlFor="edit-name">Company Name *</Label>
                 <Input
-                  id="edit-email"
-                  type="email"
-                  value={editForm.contactEmail}
-                  onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
-                  placeholder="email@company.com"
-                  data-testid="input-edit-company-email"
+                  id="edit-name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="Enter company name"
+                  data-testid="input-edit-company-name"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-phone">Contact Phone</Label>
+                <Label htmlFor="edit-company-number">Company Number</Label>
                 <Input
-                  id="edit-phone"
-                  value={editForm.contactPhone}
-                  onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
-                  placeholder="+44 1234 567890"
-                  data-testid="input-edit-company-phone"
+                  id="edit-company-number"
+                  value={editForm.companyNumber}
+                  onChange={(e) => setEditForm({ ...editForm, companyNumber: e.target.value })}
+                  placeholder="e.g., 12345678"
+                  data-testid="input-edit-company-number"
                 />
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address-line1">Address Line 1</Label>
+                  <Input
+                    id="edit-address-line1"
+                    value={editForm.addressLine1}
+                    onChange={(e) => setEditForm({ ...editForm, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-edit-company-address-line1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address-line2">Address Line 2</Label>
+                  <Input
+                    id="edit-address-line2"
+                    value={editForm.addressLine2}
+                    onChange={(e) => setEditForm({ ...editForm, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-edit-company-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-city">City</Label>
+                    <Input
+                      id="edit-city"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-edit-company-city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-county">County</Label>
+                    <Input
+                      id="edit-county"
+                      value={editForm.county}
+                      onChange={(e) => setEditForm({ ...editForm, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-edit-company-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-postal-code">Postal Code</Label>
+                    <Input
+                      id="edit-postal-code"
+                      value={editForm.postalCode}
+                      onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-edit-company-postal-code"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-country">Country</Label>
+                    <Input
+                      id="edit-country"
+                      value={editForm.country}
+                      onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-edit-company-country"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contact-name">Contact Name</Label>
+                    <Input
+                      id="edit-contact-name"
+                      value={editForm.contactName}
+                      onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-edit-company-contact-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contact-position">Job Position</Label>
+                    <Input
+                      id="edit-contact-position"
+                      value={editForm.contactPosition}
+                      onChange={(e) => setEditForm({ ...editForm, contactPosition: e.target.value })}
+                      placeholder="e.g., Operations Manager"
+                      data-testid="input-edit-company-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-phone">Phone</Label>
+                    <Input
+                      id="edit-phone"
+                      value={editForm.contactPhone}
+                      onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
+                      placeholder="+44 1234 567890"
+                      data-testid="input-edit-company-phone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-email">Email</Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={editForm.contactEmail}
+                      onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-edit-company-email"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="space-y-2">

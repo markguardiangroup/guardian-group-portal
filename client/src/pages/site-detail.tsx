@@ -126,30 +126,40 @@ function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { en
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Site Name</p>
-              <p className="font-medium">{entity.name}</p>
-            </div>
-            {entity.address && (
-              <div className="sm:col-span-2">
-                <p className="text-sm text-muted-foreground">Address</p>
-                <p className="font-medium">{entity.address}</p>
-              </div>
-            )}
-            {entity.siteManager && (
-              <div>
-                <p className="text-sm text-muted-foreground">Site Manager</p>
-                <p className="font-medium">{entity.siteManager}</p>
-              </div>
-            )}
-            {entity.contactPhone && (
-              <div>
-                <p className="text-sm text-muted-foreground">Contact Phone</p>
-                <p className="font-medium">{entity.contactPhone}</p>
-              </div>
-            )}
+          <div>
+            <p className="text-sm text-muted-foreground">Site Name</p>
+            <p className="font-medium">{entity.name}</p>
           </div>
+          
+          {(entity.addressLine1 || entity.city || entity.postalCode) && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Address</p>
+              <div className="text-sm">
+                {entity.addressLine1 && <p>{entity.addressLine1}</p>}
+                {entity.addressLine2 && <p>{entity.addressLine2}</p>}
+                {(entity.city || entity.county) && (
+                  <p>{[entity.city, entity.county].filter(Boolean).join(", ")}</p>
+                )}
+                {entity.postalCode && <p>{entity.postalCode}</p>}
+                {entity.country && <p>{entity.country}</p>}
+              </div>
+            </div>
+          )}
+          
+          {(entity.contactName || entity.contactPhone || entity.contactEmail) && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
+              <div className="space-y-1 text-sm">
+                {entity.contactName && (
+                  <p className="font-medium">
+                    {entity.contactName}{entity.contactPosition && ` - ${entity.contactPosition}`}
+                  </p>
+                )}
+                {entity.contactPhone && <p>{entity.contactPhone}</p>}
+                {entity.contactEmail && <p>{entity.contactEmail}</p>}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -180,14 +190,16 @@ function OverviewTab({ entity, sites, onEditSite, companyId, companyName }: { en
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{site.name}</p>
-                    {site.address && (
-                      <p className="text-sm text-muted-foreground">{site.address}</p>
+                    {(site.addressLine1 || site.city) && (
+                      <p className="text-sm text-muted-foreground">
+                        {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
+                      </p>
                     )}
                     <div className="mt-1 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      {site.siteManager && (
+                      {site.contactName && (
                         <span className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
-                          {site.siteManager}
+                          {site.contactName}
                         </span>
                       )}
                       {site.contactPhone && (
@@ -937,9 +949,16 @@ export default function SiteDetail() {
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
   const [editSiteData, setEditSiteData] = useState({
     name: "",
-    address: "",
-    siteManager: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
     contactPhone: "",
+    contactEmail: "",
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
@@ -977,9 +996,16 @@ export default function SiteDetail() {
     if (entity) {
       setEditSiteData({
         name: entity.name || "",
-        address: entity.address || "",
-        siteManager: entity.siteManager || "",
+        addressLine1: entity.addressLine1 || "",
+        addressLine2: entity.addressLine2 || "",
+        city: entity.city || "",
+        county: entity.county || "",
+        postalCode: entity.postalCode || "",
+        country: entity.country || "",
+        contactName: entity.contactName || "",
+        contactPosition: entity.contactPosition || "",
         contactPhone: entity.contactPhone || "",
+        contactEmail: entity.contactEmail || "",
       });
       setIsEditSiteOpen(true);
     }
@@ -1034,8 +1060,10 @@ export default function SiteDetail() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">{entity.name}</h1>
-            {entity.address && (
-              <p className="text-sm text-muted-foreground">{entity.address}</p>
+            {(entity.addressLine1 || entity.city) && (
+              <p className="text-sm text-muted-foreground">
+                {[entity.addressLine1, entity.city, entity.postalCode].filter(Boolean).join(", ")}
+              </p>
             )}
           </div>
         </div>
@@ -1079,7 +1107,7 @@ export default function SiteDetail() {
       </Tabs>
 
       <Dialog open={isEditSiteOpen} onOpenChange={setIsEditSiteOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Site Details</DialogTitle>
             <DialogDescription>
@@ -1097,36 +1125,125 @@ export default function SiteDetail() {
                 data-testid="input-site-name"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="site-address">Address</Label>
-              <Input
-                id="site-address"
-                value={editSiteData.address}
-                onChange={(e) => setEditSiteData({ ...editSiteData, address: e.target.value })}
-                placeholder="Enter site address"
-                data-testid="input-site-address"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="site-manager">Site Manager</Label>
-                <Input
-                  id="site-manager"
-                  value={editSiteData.siteManager}
-                  onChange={(e) => setEditSiteData({ ...editSiteData, siteManager: e.target.value })}
-                  placeholder="Manager name"
-                  data-testid="input-site-manager"
-                />
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="site-address-line1">Address Line 1</Label>
+                  <Input
+                    id="site-address-line1"
+                    value={editSiteData.addressLine1}
+                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-site-address-line1"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="site-address-line2">Address Line 2</Label>
+                  <Input
+                    id="site-address-line2"
+                    value={editSiteData.addressLine2}
+                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-site-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-city">City</Label>
+                    <Input
+                      id="site-city"
+                      value={editSiteData.city}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-site-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-county">County</Label>
+                    <Input
+                      id="site-county"
+                      value={editSiteData.county}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-site-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-postal-code">Postal Code</Label>
+                    <Input
+                      id="site-postal-code"
+                      value={editSiteData.postalCode}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-site-postal-code"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-country">Country</Label>
+                    <Input
+                      id="site-country"
+                      value={editSiteData.country}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-site-country"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="site-phone">Contact Phone</Label>
-                <Input
-                  id="site-phone"
-                  value={editSiteData.contactPhone}
-                  onChange={(e) => setEditSiteData({ ...editSiteData, contactPhone: e.target.value })}
-                  placeholder="+44 123 456 7890"
-                  data-testid="input-site-phone"
-                />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Primary Site Contact</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-name">Contact Name</Label>
+                    <Input
+                      id="site-contact-name"
+                      value={editSiteData.contactName}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-site-contact-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-position">Job Position</Label>
+                    <Input
+                      id="site-contact-position"
+                      value={editSiteData.contactPosition}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, contactPosition: e.target.value })}
+                      placeholder="e.g., Site Manager"
+                      data-testid="input-site-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-phone">Phone</Label>
+                    <Input
+                      id="site-phone"
+                      value={editSiteData.contactPhone}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, contactPhone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-site-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-email">Email</Label>
+                    <Input
+                      id="site-email"
+                      type="email"
+                      value={editSiteData.contactEmail}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-site-email"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
