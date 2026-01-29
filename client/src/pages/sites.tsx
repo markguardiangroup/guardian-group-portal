@@ -83,7 +83,7 @@ export default function Sites() {
   const [newSite, setNewSite] = useState({
     name: "",
     companyId: "",
-    address: "",
+    addressLine1: "",
     contactPhone: "",
     siteManager: "",
   });
@@ -110,7 +110,7 @@ export default function Sites() {
       setNewSite({
         name: "",
         companyId: "",
-        address: "",
+        addressLine1: "",
         contactPhone: "",
         siteManager: "",
       });
@@ -328,8 +328,8 @@ export default function Sites() {
               <Input
                 id="address"
                 placeholder="Enter full address"
-                value={newSite.address}
-                onChange={(e) => setNewSite({ ...newSite, address: e.target.value })}
+                value={newSite.addressLine1}
+                onChange={(e) => setNewSite({ ...newSite, addressLine1: e.target.value })}
                 data-testid="input-address"
               />
             </div>
