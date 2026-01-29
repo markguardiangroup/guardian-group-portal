@@ -40,6 +40,7 @@ export const companies = pgTable("entities", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   companyNumber: text("company_number"),
+  website: text("website"),
   // Structured address fields
   addressLine1: text("address_line1"),
   addressLine2: text("address_line2"),

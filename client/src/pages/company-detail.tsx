@@ -46,6 +46,7 @@ import {
   HelpCircle,
   FileText,
   Pencil,
+  Globe,
 } from "lucide-react";
 import type { Company, SiteWithDetails, ComplianceSummary } from "@shared/schema";
 
@@ -266,6 +267,7 @@ export default function CompanyDetail() {
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
+    website: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -321,6 +323,7 @@ export default function CompanyDetail() {
       setEditForm({
         name: company.name || "",
         companyNumber: company.companyNumber || "",
+        website: company.website || "",
         addressLine1: company.addressLine1 || "",
         addressLine2: company.addressLine2 || "",
         city: company.city || "",
@@ -443,6 +446,19 @@ export default function CompanyDetail() {
             <CardTitle className="text-base">Company Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {company.website && (
+              <div className="flex items-center gap-2 text-sm">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <a 
+                  href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {company.website}
+                </a>
+              </div>
+            )}
             {(company.addressLine1 || company.city || company.postalCode) && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Address</p>
@@ -593,6 +609,17 @@ export default function CompanyDetail() {
                   data-testid="input-edit-company-number"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-website">Website</Label>
+              <Input
+                id="edit-website"
+                type="url"
+                value={editForm.website}
+                onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                placeholder="https://www.example.com"
+                data-testid="input-edit-company-website"
+              />
             </div>
 
             <div className="border-t pt-4">
