@@ -90,6 +90,16 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   email: text("email").notNull(),
   fullName: text("full_name").notNull(),
+  // Extended user profile fields
+  title: text("title"), // Mr, Mrs, Ms, Dr, etc.
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  jobTitle: text("job_title"),
+  department: text("department"),
+  phone: text("phone"),
+  mobile: text("mobile"),
+  preferredContactMethod: text("preferred_contact_method").$type<"email" | "phone" | "mobile">(),
+  notes: text("notes"),
   role: text("role").$type<UserRole>().notNull().default("client"),
   // Company-level access (user can access all sites in this company)
   companyId: varchar("entity_id"),

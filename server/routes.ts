@@ -5290,6 +5290,72 @@ export async function registerRoutes(
     }
   });
 
+  // Create user (admin only)
+  app.post("/api/users", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can create users" });
+      }
+      
+      const { 
+        username, email, fullName, password, role, companyId, 
+        consultantTier, clientPermissionRole,
+        title, firstName, lastName, jobTitle, department, phone, mobile,
+        preferredContactMethod, notes
+      } = req.body;
+      
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required" });
+      }
+      
+      // Check if username or email already exists
+      const existingUsers = await storage.getAllUsers();
+      if (existingUsers.some(u => u.username === username)) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      if (existingUsers.some(u => u.email === email)) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+      
+      // Auto-generate fullName if not provided
+      const computedFullName = fullName || 
+        `${firstName || ""} ${lastName || ""}`.trim() || 
+        username;
+      
+      const newUser = await storage.createUser({
+        username,
+        email,
+        fullName: computedFullName,
+        password,
+        role: role || "client",
+        companyId: companyId || null,
+        status: "active",
+        consultantTier: consultantTier || null,
+        clientPermissionRole: clientPermissionRole || "viewer",
+        title: title || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        jobTitle: jobTitle || null,
+        department: department || null,
+        phone: phone || null,
+        mobile: mobile || null,
+        preferredContactMethod: preferredContactMethod || "email",
+        notes: notes || null,
+      });
+      
+      const { password: _, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
   // Entity Users Routes
   
   // Create user for an entity
@@ -5305,10 +5371,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create users" });
       }
       
-      const { username, email, fullName, password, clientPermissionRole } = req.body;
+      const { 
+        username, email, fullName, password, clientPermissionRole,
+        title, firstName, lastName, jobTitle, department, phone, mobile,
+        preferredContactMethod, notes
+      } = req.body;
       
-      if (!username || !email || !fullName || !password) {
-        return res.status(400).json({ error: "Username, email, full name, and password are required" });
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required" });
       }
       
       // Check if username or email already exists
@@ -5326,15 +5396,29 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Site not found" });
       }
       
+      // Auto-generate fullName if not provided
+      const computedFullName = fullName || 
+        `${firstName || ""} ${lastName || ""}`.trim() || 
+        username;
+      
       const newUser = await storage.createUser({
         username,
         email,
-        fullName,
+        fullName: computedFullName,
         password,
         role: "client",
         companyId: targetSite.companyId, // Users get company-level access
         status: "active",
         clientPermissionRole: clientPermissionRole || "viewer",
+        title: title || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        jobTitle: jobTitle || null,
+        department: department || null,
+        phone: phone || null,
+        mobile: mobile || null,
+        preferredContactMethod: preferredContactMethod || "email",
+        notes: notes || null,
       });
       
       const { password: _, ...safeUser } = newUser;

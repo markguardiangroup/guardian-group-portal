@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,6 +126,25 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: "",
+    password: "",
+    email: "",
+    fullName: "",
+    title: "",
+    firstName: "",
+    lastName: "",
+    jobTitle: "",
+    department: "",
+    phone: "",
+    mobile: "",
+    preferredContactMethod: "email" as "email" | "phone" | "mobile",
+    notes: "",
+    role: "client" as "admin" | "consultant" | "client",
+    companyId: "",
+    consultantTier: "" as "" | "standard" | "senior" | "principal",
+    clientPermissionRole: "viewer" as "viewer" | "contributor" | "manager",
+  });
 
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
@@ -212,12 +233,58 @@ export default function UserManagement() {
     setEditingUser(null);
   };
 
+  const createUserMutation = useMutation({
+    mutationFn: async (data: typeof newUser) => {
+      const payload = {
+        ...data,
+        consultantTier: data.consultantTier || null,
+        companyId: data.companyId || null,
+      };
+      const response = await apiRequest("POST", "/api/users", payload);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User Created",
+        description: "New user has been created successfully.",
+      });
+      setIsAddUserOpen(false);
+      setNewUser({
+        username: "",
+        password: "",
+        email: "",
+        fullName: "",
+        title: "",
+        firstName: "",
+        lastName: "",
+        jobTitle: "",
+        department: "",
+        phone: "",
+        mobile: "",
+        preferredContactMethod: "email",
+        notes: "",
+        role: "client",
+        companyId: "",
+        consultantTier: "",
+        clientPermissionRole: "viewer",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to create user", variant: "destructive" });
+    },
+  });
+
   const handleAddUser = () => {
-    toast({
-      title: "User Created",
-      description: "New user has been created and invitation sent.",
-    });
-    setIsAddUserOpen(false);
+    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+      toast({ title: "Username, email and password are required", variant: "destructive" });
+      return;
+    }
+    // Auto-generate fullName from firstName and lastName if not provided
+    const fullName = newUser.fullName.trim() || 
+      `${newUser.firstName} ${newUser.lastName}`.trim() || 
+      newUser.username;
+    createUserMutation.mutate({ ...newUser, fullName });
   };
 
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
@@ -601,46 +668,268 @@ export default function UserManagement() {
       </Dialog>
 
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
-              Create a new user account
+              Create a new user account with full profile details
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input placeholder="Enter full name" data-testid="input-new-fullname" />
+          <div className="grid gap-4 py-4">
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Account Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-username">Username *</Label>
+                    <Input
+                      id="new-username"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      placeholder="Enter username"
+                      data-testid="input-new-username"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-password">Password *</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      placeholder="Enter password"
+                      data-testid="input-new-password"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-email">Email *</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="email@company.com"
+                    data-testid="input-new-email"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" placeholder="Enter email address" data-testid="input-new-email" />
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Personal Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-title">Title</Label>
+                    <Select
+                      value={newUser.title}
+                      onValueChange={(value) => setNewUser({ ...newUser, title: value })}
+                    >
+                      <SelectTrigger id="new-title" data-testid="select-new-title">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Miss">Miss</SelectItem>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                        <SelectItem value="Prof">Prof</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3 grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-firstname">First Name</Label>
+                      <Input
+                        id="new-firstname"
+                        value={newUser.firstName}
+                        onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                        placeholder="First name"
+                        data-testid="input-new-firstname"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-lastname">Surname</Label>
+                      <Input
+                        id="new-lastname"
+                        value={newUser.lastName}
+                        onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                        placeholder="Surname"
+                        data-testid="input-new-lastname"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-jobtitle">Job Title</Label>
+                    <Input
+                      id="new-jobtitle"
+                      value={newUser.jobTitle}
+                      onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
+                      placeholder="e.g., Safety Manager"
+                      data-testid="input-new-jobtitle"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-department">Department</Label>
+                    <Input
+                      id="new-department"
+                      value={newUser.department}
+                      onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                      placeholder="e.g., Operations"
+                      data-testid="input-new-department"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input placeholder="Enter username" data-testid="input-new-username" />
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Contact Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-phone">Phone</Label>
+                    <Input
+                      id="new-phone"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-new-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-mobile">Mobile</Label>
+                    <Input
+                      id="new-mobile"
+                      value={newUser.mobile}
+                      onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
+                      placeholder="+44 7xx xxx xxxx"
+                      data-testid="input-new-mobile"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-preferred-contact">Preferred Contact Method</Label>
+                  <Select
+                    value={newUser.preferredContactMethod}
+                    onValueChange={(value: "email" | "phone" | "mobile") => setNewUser({ ...newUser, preferredContactMethod: value })}
+                  >
+                    <SelectTrigger id="new-preferred-contact" data-testid="select-new-preferred-contact">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select defaultValue="client">
-                <SelectTrigger data-testid="select-new-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="consultant">Consultant</SelectItem>
-                  <SelectItem value="client">Client</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Role & Access</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-role">Role *</Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(value: "admin" | "consultant" | "client") => setNewUser({ ...newUser, role: value })}
+                    >
+                      <SelectTrigger id="new-role" data-testid="select-new-role">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Administrator</SelectItem>
+                        <SelectItem value="consultant">Consultant</SelectItem>
+                        <SelectItem value="client">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newUser.role === "client" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-company">Company</Label>
+                      <Select
+                        value={newUser.companyId}
+                        onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
+                      >
+                        <SelectTrigger id="new-company" data-testid="select-new-company">
+                          <SelectValue placeholder="Select company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {newUser.role === "consultant" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-tier">Consultant Tier</Label>
+                      <Select
+                        value={newUser.consultantTier}
+                        onValueChange={(value: "" | "standard" | "senior" | "principal") => setNewUser({ ...newUser, consultantTier: value })}
+                      >
+                        <SelectTrigger id="new-tier" data-testid="select-new-tier">
+                          <SelectValue placeholder="Select tier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="senior">Senior</SelectItem>
+                          <SelectItem value="principal">Principal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                {newUser.role === "client" && (
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-permission">Permission Level</Label>
+                    <Select
+                      value={newUser.clientPermissionRole}
+                      onValueChange={(value: "viewer" | "contributor" | "manager") => setNewUser({ ...newUser, clientPermissionRole: value })}
+                    >
+                      <SelectTrigger id="new-permission" data-testid="select-new-permission">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                        <SelectItem value="contributor">Contributor</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
+              <div className="grid gap-2">
+                <Textarea
+                  value={newUser.notes}
+                  onChange={(e) => setNewUser({ ...newUser, notes: e.target.value })}
+                  placeholder="Any additional notes about this user..."
+                  className="min-h-[80px]"
+                  data-testid="textarea-new-notes"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddUserOpen(false)} data-testid="button-cancel-add">
               Cancel
             </Button>
-            <Button onClick={handleAddUser} data-testid="button-create-user">
-              Create User
+            <Button onClick={handleAddUser} disabled={createUserMutation.isPending} data-testid="button-create-user">
+              {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>

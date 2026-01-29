@@ -37,6 +37,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -502,6 +503,15 @@ function UsersTab({ siteId }: { siteId: string }) {
     email: "",
     fullName: "",
     password: "",
+    title: "",
+    firstName: "",
+    lastName: "",
+    jobTitle: "",
+    department: "",
+    phone: "",
+    mobile: "",
+    preferredContactMethod: "email" as "email" | "phone" | "mobile",
+    notes: "",
     clientPermissionRole: "viewer",
   });
 
@@ -588,6 +598,15 @@ function UsersTab({ siteId }: { siteId: string }) {
         email: "",
         fullName: "",
         password: "",
+        title: "",
+        firstName: "",
+        lastName: "",
+        jobTitle: "",
+        department: "",
+        phone: "",
+        mobile: "",
+        preferredContactMethod: "email",
+        notes: "",
         clientPermissionRole: "viewer",
       });
     },
@@ -597,11 +616,15 @@ function UsersTab({ siteId }: { siteId: string }) {
   });
 
   const handleAddUser = () => {
-    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.fullName.trim() || !newUser.password.trim()) {
-      toast({ title: "All fields are required", variant: "destructive" });
+    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+      toast({ title: "Username, email and password are required", variant: "destructive" });
       return;
     }
-    createMutation.mutate(newUser);
+    // Auto-generate fullName from firstName and lastName if not provided
+    const fullName = newUser.fullName.trim() || 
+      `${newUser.firstName} ${newUser.lastName}`.trim() || 
+      newUser.username;
+    createMutation.mutate({ ...newUser, fullName });
   };
 
   const roleLabels: Record<string, string> = {
@@ -787,7 +810,7 @@ function UsersTab({ siteId }: { siteId: string }) {
       </Dialog>
 
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
@@ -795,51 +818,163 @@ function UsersTab({ siteId }: { siteId: string }) {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="new-user-fullname">Full Name *</Label>
-              <Input
-                id="new-user-fullname"
-                value={newUser.fullName}
-                onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
-                placeholder="Enter full name"
-                data-testid="input-new-user-fullname"
-              />
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Account Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-username">Username *</Label>
+                    <Input
+                      id="new-user-username"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      placeholder="Enter username"
+                      data-testid="input-new-user-username"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-password">Password *</Label>
+                    <Input
+                      id="new-user-password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      placeholder="Enter password"
+                      data-testid="input-new-user-password"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-user-email">Email *</Label>
+                  <Input
+                    id="new-user-email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="email@example.com"
+                    data-testid="input-new-user-email"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="new-user-username">Username *</Label>
-                <Input
-                  id="new-user-username"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  placeholder="Enter username"
-                  data-testid="input-new-user-username"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="new-user-email">Email *</Label>
-                <Input
-                  id="new-user-email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  placeholder="email@example.com"
-                  data-testid="input-new-user-email"
-                />
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Personal Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-title">Title</Label>
+                    <Select
+                      value={newUser.title}
+                      onValueChange={(value) => setNewUser({ ...newUser, title: value })}
+                    >
+                      <SelectTrigger id="new-user-title" data-testid="select-new-user-title">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Miss">Miss</SelectItem>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                        <SelectItem value="Prof">Prof</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-3 grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-user-firstname">First Name</Label>
+                      <Input
+                        id="new-user-firstname"
+                        value={newUser.firstName}
+                        onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                        placeholder="First name"
+                        data-testid="input-new-user-firstname"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-user-lastname">Surname</Label>
+                      <Input
+                        id="new-user-lastname"
+                        value={newUser.lastName}
+                        onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                        placeholder="Surname"
+                        data-testid="input-new-user-lastname"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-jobtitle">Job Title</Label>
+                    <Input
+                      id="new-user-jobtitle"
+                      value={newUser.jobTitle}
+                      onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
+                      placeholder="e.g., Safety Manager"
+                      data-testid="input-new-user-jobtitle"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-department">Department</Label>
+                    <Input
+                      id="new-user-department"
+                      value={newUser.department}
+                      onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                      placeholder="e.g., Operations"
+                      data-testid="input-new-user-department"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="new-user-password">Password *</Label>
-                <Input
-                  id="new-user-password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  placeholder="Enter password"
-                  data-testid="input-new-user-password"
-                />
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Contact Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-phone">Phone</Label>
+                    <Input
+                      id="new-user-phone"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-new-user-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-user-mobile">Mobile</Label>
+                    <Input
+                      id="new-user-mobile"
+                      value={newUser.mobile}
+                      onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
+                      placeholder="+44 7xx xxx xxxx"
+                      data-testid="input-new-user-mobile"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-user-preferred">Preferred Contact Method</Label>
+                  <Select
+                    value={newUser.preferredContactMethod}
+                    onValueChange={(value: "email" | "phone" | "mobile") => setNewUser({ ...newUser, preferredContactMethod: value })}
+                  >
+                    <SelectTrigger id="new-user-preferred" data-testid="select-new-user-preferred">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </div>
+
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Access</h4>
               <div className="grid gap-2">
                 <Label htmlFor="new-user-role">Permission Role</Label>
                 <Select
@@ -856,6 +991,19 @@ function UsersTab({ siteId }: { siteId: string }) {
                     <SelectItem value="viewer">Viewer</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
+              <div className="grid gap-2">
+                <Textarea
+                  value={newUser.notes}
+                  onChange={(e) => setNewUser({ ...newUser, notes: e.target.value })}
+                  placeholder="Any additional notes about this user..."
+                  className="min-h-[80px]"
+                  data-testid="textarea-new-user-notes"
+                />
               </div>
             </div>
           </div>
