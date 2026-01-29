@@ -5824,7 +5824,7 @@ export async function registerRoutes(
   const createRoadmapItemSchema = z.object({
     title: z.string().min(1, "Title is required"),
     description: z.string().optional().nullable(),
-    category: z.enum(["feature", "improvement", "bug", "enhancement"]).optional().default("feature"),
+    category: z.enum(["feature", "improvement", "bug", "enhancement", "ai"]).optional().default("feature"),
     status: z.enum(["idea", "planned", "in_progress", "completed"]).optional().default("idea"),
     priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
     sortOrder: z.number().optional().default(0),
@@ -5833,7 +5833,7 @@ export async function registerRoutes(
   const updateRoadmapItemSchema = z.object({
     title: z.string().min(1).optional(),
     description: z.string().optional().nullable(),
-    category: z.enum(["feature", "improvement", "bug", "enhancement"]).optional(),
+    category: z.enum(["feature", "improvement", "bug", "enhancement", "ai"]).optional(),
     status: z.enum(["idea", "planned", "in_progress", "completed"]).optional(),
     priority: z.enum(["low", "medium", "high"]).optional(),
     sortOrder: z.number().optional(),

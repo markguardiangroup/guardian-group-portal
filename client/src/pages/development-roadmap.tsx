@@ -48,6 +48,7 @@ import {
   ArrowUp,
   ArrowRight,
   ArrowDown,
+  Bot,
 } from "lucide-react";
 
 const statusConfig: Record<RoadmapStatus, { label: string; color: string; icon: typeof Lightbulb }> = {
@@ -63,11 +64,12 @@ const priorityConfig: Record<RoadmapPriority, { label: string; color: string; ic
   low: { label: "Low", color: "text-slate-500 dark:text-slate-400", icon: ArrowDown },
 };
 
-const categoryConfig: Record<string, { label: string; icon: typeof Rocket }> = {
+const categoryConfig: Record<string, { label: string; icon: typeof Rocket; badgeColor?: string }> = {
   feature: { label: "Feature", icon: Rocket },
   improvement: { label: "Improvement", icon: Sparkles },
   bug: { label: "Bug Fix", icon: Bug },
   enhancement: { label: "Enhancement", icon: Target },
+  ai: { label: "AI", icon: Bot, badgeColor: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" },
 };
 
 export default function DevelopmentRoadmap() {
@@ -333,6 +335,10 @@ function RoadmapCard({
         
         <div className="flex items-center gap-2 flex-wrap">
           <Badge className={status.color}>{status.label}</Badge>
+          <Badge className={category.badgeColor || "bg-muted text-muted-foreground"}>
+            <CategoryIcon className="h-3 w-3 mr-1" />
+            {category.label}
+          </Badge>
           <div className={`flex items-center gap-1 text-xs ${priority.color}`}>
             <PriorityIcon className="h-3 w-3" />
             {priority.label}
@@ -402,6 +408,7 @@ function RoadmapItemForm({
               <SelectItem value="improvement">Improvement</SelectItem>
               <SelectItem value="bug">Bug Fix</SelectItem>
               <SelectItem value="enhancement">Enhancement</SelectItem>
+              <SelectItem value="ai">AI</SelectItem>
             </SelectContent>
           </Select>
         </div>
