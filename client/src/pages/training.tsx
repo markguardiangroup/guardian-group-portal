@@ -82,21 +82,21 @@ const moduleNames: Record<string, string> = {
 };
 
 const moduleColors: Record<string, string> = {
-  all: "text-foreground",
+  all: "text-purple-600 dark:text-purple-400",
   health_safety: "text-emerald-600 dark:text-emerald-400",
   human_resources: "text-blue-600 dark:text-blue-400",
   employment_law: "text-pink-600 dark:text-pink-400",
 };
 
 const moduleBgColors: Record<string, string> = {
-  all: "bg-primary/10",
+  all: "bg-purple-100 dark:bg-purple-900/30",
   health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
   human_resources: "bg-blue-100 dark:bg-blue-900/30",
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
 };
 
 const moduleBorderColors: Record<string, string> = {
-  all: "border-primary/20",
+  all: "border-purple-200 dark:border-purple-800",
   health_safety: "border-emerald-200 dark:border-emerald-800",
   human_resources: "border-blue-200 dark:border-blue-800",
   employment_law: "border-pink-200 dark:border-pink-800",
@@ -110,21 +110,21 @@ const moduleThemeClasses: Record<string, string> = {
 };
 
 const moduleAccentBars: Record<string, string> = {
-  all: "bg-primary",
+  all: "bg-purple-600 dark:bg-purple-500",
   health_safety: "bg-emerald-600 dark:bg-emerald-500",
   human_resources: "bg-blue-600 dark:bg-blue-500",
   employment_law: "bg-pink-600 dark:bg-pink-500",
 };
 
 const moduleGradients: Record<string, string> = {
-  all: "from-primary/10 via-primary/5 to-transparent",
+  all: "from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/10",
   health_safety: "from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/10",
   human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
   employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
 };
 
 const moduleAccentBg: Record<string, string> = {
-  all: "bg-primary",
+  all: "bg-purple-600 dark:bg-purple-500",
   health_safety: "bg-emerald-500",
   human_resources: "bg-blue-500",
   employment_law: "bg-pink-500",
@@ -368,33 +368,33 @@ export default function Training() {
               <TabsTrigger 
                 value="all" 
                 data-testid="tab-all" 
-                className="flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
+                className="group flex items-center gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
               >
-                <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 data-[state=active]:text-white" />
+                <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 group-data-[state=active]:text-white" />
                 <span className="hidden sm:inline">All Training</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="health_safety" 
                 data-testid="tab-health-safety" 
-                className="flex items-center gap-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
+                className="group flex items-center gap-2 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
               >
-                <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-data-[state=active]:text-white" />
                 <span className="hidden sm:inline">Health & Safety</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="human_resources" 
                 data-testid="tab-human-resources" 
-                className="flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
+                className="group flex items-center gap-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
               >
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 group-data-[state=active]:text-white" />
                 <span className="hidden sm:inline">Human Resources</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="employment_law" 
                 data-testid="tab-employment-law" 
-                className="flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
+                className="group flex items-center gap-2 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
               >
-                <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400 group-data-[state=active]:text-white" />
                 <span className="hidden sm:inline">Employment Law</span>
               </TabsTrigger>
             </TabsList>
