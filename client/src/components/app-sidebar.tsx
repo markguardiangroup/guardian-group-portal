@@ -63,7 +63,6 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
-      { title: "Incidents", url: "/health-safety/incidents" },
     ],
   },
   {
