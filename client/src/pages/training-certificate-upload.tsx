@@ -262,16 +262,16 @@ export default function TrainingCertificateUpload() {
                 name="trainingDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Training Date</FormLabel>
+                    <FormLabel>Certificate Date</FormLabel>
                     <FormControl>
                       <Input
                         type="date"
-                        data-testid="input-training-date"
+                        data-testid="input-certificate-date"
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      The date when the training was completed
+                      The date on the training certificate
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
