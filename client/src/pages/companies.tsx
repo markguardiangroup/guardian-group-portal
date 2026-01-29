@@ -147,6 +147,8 @@ export default function Companies() {
     county: "",
     postalCode: "",
     country: "",
+    contactName: "",
+    contactPosition: "",
     contactEmail: "",
     contactPhone: "",
   });
@@ -219,6 +221,8 @@ export default function Companies() {
       county: "",
       postalCode: "",
       country: "",
+      contactName: "",
+      contactPosition: "",
       contactEmail: "",
       contactPhone: "",
     });
@@ -234,6 +238,8 @@ export default function Companies() {
       county: company.county || "",
       postalCode: company.postalCode || "",
       country: company.country || "",
+      contactName: company.contactName || "",
+      contactPosition: company.contactPosition || "",
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
     });
@@ -482,29 +488,52 @@ export default function Companies() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Contact Information</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="contact-email">Email</Label>
-                  <Input
-                    id="contact-email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={formData.contactEmail}
-                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                    data-testid="input-company-email"
-                  />
+              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-name">Contact Name</Label>
+                    <Input
+                      id="contact-name"
+                      value={formData.contactName}
+                      onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-company-contact-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-position">Position</Label>
+                    <Input
+                      id="contact-position"
+                      value={formData.contactPosition}
+                      onChange={(e) => setFormData({ ...formData, contactPosition: e.target.value })}
+                      placeholder="Job title"
+                      data-testid="input-company-contact-position"
+                    />
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="contact-phone">Phone</Label>
-                  <Input
-                    id="contact-phone"
-                    type="tel"
-                    placeholder="+44 xxx xxx xxxx"
-                    value={formData.contactPhone}
-                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                    data-testid="input-company-phone"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-phone">Phone</Label>
+                    <Input
+                      id="contact-phone"
+                      value={formData.contactPhone}
+                      onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-company-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="contact-email">Email</Label>
+                    <Input
+                      id="contact-email"
+                      type="email"
+                      value={formData.contactEmail}
+                      onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-company-email"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
