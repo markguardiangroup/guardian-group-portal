@@ -2,9 +2,7 @@
 
 ## Overview
 
-Guardian Group H&S Web Portal is a B2B compliance platform for Health & Safety and HR/Employment Law management. This is a consultancy-led portal where Guardian Group creates and controls compliance content for their clients - it is not a self-serve SaaS platform.
-
-The platform centralizes compliance documentation, enables digital review and approval workflows, creates audit trails, and supports multi-site client organizations with role-based access control. Sites are the primary management unit, with companies being a grouping mechanism for related sites.
+The Guardian Group H&S Web Portal is a B2B compliance platform designed for Health & Safety and HR/Employment Law management. It serves as a consultancy-led portal where Guardian Group manages and provides compliance content to its clients, rather than being a self-service SaaS platform. The portal centralizes compliance documentation, facilitates digital review and approval workflows, maintains comprehensive audit trails, and supports multi-site client organizations through robust role-based access control. Its primary management unit is based on sites, with companies serving as a grouping mechanism for related sites. The project aims to provide a centralized, efficient, and auditable solution for compliance management.
 
 ## User Preferences
 
@@ -12,200 +10,61 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight React router)
-- **State Management**: TanStack React Query for server state
-- **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
-- **Forms**: React Hook Form with Zod validation
-- **Build Tool**: Vite
+### Frontend
+The frontend is built with React 18 and TypeScript, utilizing Wouter for routing and TanStack React Query for server state management. UI components are sourced from shadcn/ui, built on Radix UI primitives, with styling managed by Tailwind CSS, incorporating CSS variables for theme support (light/dark mode). Form handling is done with React Hook Form and Zod for validation, all bundled with Vite. The design adheres to enterprise design system principles, emphasizing data density and clarity across key pages such as Dashboard, Documents, Sites, Assessments, Reports, Support, and Settings.
 
-The frontend follows a page-based structure with shared components. Key pages include Dashboard, Documents, Sites, Assessments, Reports, Support, and Settings. The design follows enterprise design system principles (Carbon/Fluent Design) prioritizing data density and clarity.
-
-### Backend Architecture
-- **Framework**: Express.js with TypeScript
-- **API Pattern**: RESTful JSON API under `/api/*` routes
-- **Database ORM**: Drizzle ORM with PostgreSQL
-- **Schema Validation**: Zod with drizzle-zod integration
-- **Session Management**: Express sessions with connect-pg-simple for PostgreSQL session storage
-
-The server uses a single entry point that registers API routes and serves the static frontend build in production, or proxies through Vite in development.
+### Backend
+The backend is an Express.js application written in TypeScript, exposing a RESTful JSON API. It uses Drizzle ORM with PostgreSQL for data persistence and Zod for schema validation, integrated with drizzle-zod. Session management is handled by Express sessions with `connect-pg-simple` for PostgreSQL storage. The server uses a single entry point to manage API routes and serve the static frontend or proxy to Vite in development.
 
 ### Data Model
-Core entities include:
-- **Users**: Role-based (admin, consultant, client) with company association (companyId)
-- **Companies**: Stored as "entities" table for backward compatibility - parent organizations that group sites
-- **Sites**: Physical locations linked to companies via `entity_id`/`companyId` foreign key
-- **Document Templates**: Master templates (the "Document Bible") with Module → Folder → Template hierarchy. Compliance properties (isRequired, renewalPeriodMonths) are directly on templates
-- **Folder Templates**: Template folders that define the organizational structure for each module
-- **Documents**: Compliance documents with status tracking (compliant, review_required, overdue) and approval workflow tracking (pending, client_signed_off, approved, rejected, changes_requested), linked to sites
-- **Document Versions**: Version history for document changes
-- **Consultant Assignments**: Links consultants to sites with primary flag
-- **Site Module Access**: Two-state access control (active/hidden) per module per site - managed by admin/consultant only, no client request workflow. Clients see locked modules on dashboard so they know what's available and can contact consultants for access
-- **Audit Logs**: Activity tracking with timestamps and user attribution
-- **Support Requests**: Client support ticket system
-- **Training Folders**: Organizational structure for training content per module (separate from document folders)
-- **Training Courses**: Training content with enhanced fields (summary, course overview list, FAQs, training method: online/in_person)
-- **Training Bookings**: Consultant-created bookings linking courses to sites with access credentials and completion tracking
+Core entities include Users (with role-based access), Companies (grouping sites), Sites (physical locations), Document Templates (with compliance properties), Documents (with status and approval workflows), Document Versions, Consultant Assignments, Site Module Access, Audit Logs, Support Requests, Training Folders, Training Courses, Training Bookings, and Roadmap Items. The system implements a hierarchical Company → Site → User structure.
 
-### Authorization Model
-Role-based access control with tenant isolation:
-- **Admin**: Unrestricted access to all companies, sites, and data
-- **Consultant**: Access only to sites they are explicitly assigned to via consultant_assignments table
-- **Client**: Access depends on site assignments:
-  - If client has site assignments in `client_site_assignments` table: Access only to assigned sites
-  - If client has NO site assignments: Access all sites within their company (backward compatible)
-
-The `canUserAccessSite` helper function enforces these rules across all API endpoints. Client company filtering is derived server-side from session to prevent tenant isolation bypass.
-
-### Client Site Assignments
-Clients can be restricted to specific sites within their company:
-- **Default**: Clients access all sites in their company
-- **Restricted**: When assigned to specific sites via client_site_assignments, they only access those sites
-- API Routes:
-  - `GET /api/sites/:siteId/client-assignments` - Get clients assigned to this site
-  - `POST /api/sites/:siteId/client-assignments` - Assign client to site
-  - `DELETE /api/sites/:siteId/client-assignments/:clientId` - Remove assignment
-  - `GET /api/users/:clientId/site-assignments` - Get sites assigned to a client
-- UI: Site Detail page → Users tab shows "Site Access" vs "All Sites" badges and menu options to manage
+### Authorization
+A role-based access control model with tenant isolation is enforced:
+- **Admin**: Full access across all companies and data.
+- **Consultant**: Access limited to explicitly assigned sites.
+- **Client**: Access depends on site assignments, either all sites within their company or specific assigned sites.
+The `canUserAccessSite` helper function is critical for enforcing these rules.
 
 ### Document Approval Workflow
-Three-stage approval workflow for consultant-uploaded documents:
-1. **Consultant uploads** → Status: "pending" (awaiting client sign-off)
-2. **Client signs off** → Status: "client_signed_off" (awaiting consultant final approval)
-3. **Consultant final approves** → Status: "approved" (triggers renewal date calculation)
-
-Two-stage workflow for client-uploaded documents:
-1. **Client uploads** → Status: "pending"
-2. **Consultant/admin approves** → Status: "approved" (triggers renewal date)
-
-Key principles:
-- Only consultant/admin final approval sets the renewal date
-- Renewal date = approval date + template renewal period - 30 days buffer
-- Dashboard shows split approval metrics: "awaiting your review" vs "your docs pending approval"
-- Audit trail logs both "document_signed_off" and "document_approved" actions
-
-### Company-Site-User Hierarchy
-The platform uses a hierarchical model: Companies → Sites → Users
-- **Companies (entities table)**: Parent organizations with business details
-- **Sites**: Physical locations belonging to a company via entity_id/companyId
-- **User Access**: Users have companyId granting access to all sites within their company
-- **Consultant Management**: Assign multiple consultants to specific sites with primary designation
-- **Module Access**: Control which modules (H&S, HR, Employment Law, Support) each site can access
-- **Compliance Tracking**: Track document compliance per site with aggregation by company
-
-### Companies and Sites Navigation
-Designed for scalability with thousands of companies and sites:
-- **Companies page** (`/companies`): Paginated list with server-side search, shows site counts per company
-- **Company Detail page** (`/companies/:companyId`): Shows company info, compliance overview, and lists sites
-- **Site Detail page** (`/sites/:siteId`): Full site management with tabs for Documents, Folders, Users, etc.
-- **Sites page** (`/sites`): Global view of all sites grouped by company (secondary navigation)
-
-Key API Routes for Site Management:
-- `GET /api/sites` - Get all sites with details
-- `GET /api/sites/:siteId` - Get single site
-- `GET /api/sites/:siteId/users` - Get site users
-- `GET /api/sites/:siteId/consultants` - Get assigned consultants
-- `POST /api/sites/:siteId/consultants` - Assign consultant
-- `DELETE /api/sites/:siteId/consultants/:consultantId` - Remove assignment
-- `GET /api/sites/:siteId/module-access` - Get module access settings
-- `POST /api/sites/:siteId/module-access` - Set module access
+The platform supports two document approval workflows:
+- **Consultant-uploaded**: A three-stage process (Pending → Client Signed Off → Approved) with final consultant approval setting the renewal date.
+- **Client-uploaded**: A two-stage process (Pending → Approved) with consultant/admin approval setting the renewal date.
+Renewal dates are calculated based on approval date and template renewal period, with a 30-day buffer.
 
 ### Training Library
-The Training Library has its own dedicated folder structure separate from document template folders:
-- **Training Folders**: Organizational containers per module (health_safety, human_resources, employment_law, support)
-- **Training Courses**: Individual courses with enhanced details (summary, course overview list with up to 5 items, 5 FAQs, training method: online/in_person, featured flag for homepage highlighting)
-- **Training Bookings**: Consultant-created bookings for sites with access credentials and completion tracking
-
-Module Training Page Features:
-- **Filters**: Required status (all/required/recommended), Training Method (all/online/in_person), Provider (dynamic list)
-- **Search**: Search by title, summary, or provider
-- **Badges**: Training method displayed as badges on course cards (Monitor icon for Online, Users icon for In Person)
-
-Training Booking Workflow (Simplified - No Request Stage):
-1. **Consultant books training** → Creates booking with course, site, scheduled date, access credentials (URL/username/password), provider details
-2. **Client views booking** → Sees booked courses on My Training page with access credentials and copy-to-clipboard functionality
-3. **Consultant completes** → Uploads certificate to mark training complete (certificate linked to booking)
-
-Training Dashboard (`/training/dashboard`) - Admin/Consultant Only:
-- **Book Training Button**: Opens dialog to create new booking
-- **Tabs**: Booked (active training) and Completed (finished training with certificates)
-- **Booking Actions**: View Details, Complete & Upload Certificate, Delete (admin only)
-
-My Training (`/training/my-training`) - Client Only:
-- **Tabs**: Booked Training and Completed Training
-- **Access Credentials**: Copy-to-clipboard for URL, username, password
-- **Certificate Status**: Shows if certificate uploaded for completed training
-
-Sidebar Navigation (Role-Based):
-- Training → Dashboard: Admin/Consultant only (adminOnly flag)
-- Training → My Training: Client only (clientOnly flag)
-
-Key API Routes:
-- `GET /api/training-folders` - Get all training folders (filter by ?module=)
-- `POST /api/training-folders` - Create training folder (admin only)
-- `PATCH /api/training-folders/:id` - Update training folder (admin only)
-- `DELETE /api/training-folders/:id` - Delete training folder (admin only)
-- `GET /api/training-courses` - Get all training courses (filter by ?module=)
-- `POST /api/training-courses` - Create training course (admin only)
-- `PATCH /api/training-courses/:id` - Update training course (admin only)
-- `DELETE /api/training-courses/:id` - Delete training course (admin only)
-- `GET /api/training-bookings` - Get training bookings for user's sites
-- `POST /api/training-bookings` - Create training booking (consultant/admin only)
-- `PATCH /api/training-bookings/:id` - Update training booking (consultant/admin, handles completion with certificateId)
-- `DELETE /api/training-bookings/:id` - Delete training booking (admin only)
+The training library features a separate folder structure per module, containing Training Courses with detailed information (summary, overview, FAQs, method: online/in_person). Consultants can create Training Bookings for sites, including access credentials. Clients can view their booked and completed training, with functionality to view access credentials.
 
 ### Storage Pattern
-The application uses a hybrid storage model with the `MemStorage` class:
-
-**Database-backed (PostgreSQL)**:
-- **Documents**: All document records persist to the `documents` table
-- **Document Versions**: Version history persists to the `document_versions` table  
-- **Document Folders**: Folder structure persists to the `document_folders` table
-- **Audit Logs**: Activity tracking persists to the `audit_logs` table (uses `entityId` column, not `siteId`)
-- **Sessions**: User sessions persist via connect-pg-simple
-- **Template data**: Document templates, folder templates, training data
-- **Support Requests**: Client support tickets persist to `support_requests` table
-- **Support Messages**: Conversation threads persist to `support_messages` table
-- **Support Request Reads**: Unread tracking persists to `support_request_reads` table
-- **Cases**: Employment Law cases persist to `cases` table
-- **Case Milestones**: Case milestones persist to `case_milestones` table
-- **Site Module Access**: Module access settings persist to `site_module_access` table
-- **Consultant Assignments**: Links consultants to sites in `consultant_assignments` table
-
-**In-memory storage** (seed data loaded at startup):
-- Users, Companies, Sites - these entities are still loaded into memory Maps on startup
-
-Note: DocumentWithDetails lookups for site/user names still reference in-memory maps for those entities.
+A hybrid storage model is used:
+- **Database-backed (PostgreSQL)**: Stores Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, and Consultant Assignments.
+- **In-memory storage**: Used for Users, Companies, and Sites entities loaded at startup, with lookups referencing these in-memory maps for performance.
 
 ### Build Process
-- Development: Vite dev server with HMR, Express API server with tsx
-- Production: Vite builds static frontend to `dist/public`, esbuild bundles server to `dist/index.cjs`
-- Database migrations: Drizzle Kit with `db:push` command
+Development uses Vite for the frontend with HMR and `tsx` for the Express API. Production builds compile the static frontend with Vite and bundle the server with esbuild. Drizzle Kit manages database migrations.
 
 ## External Dependencies
 
 ### Database
-- **PostgreSQL**: Primary database (configured via `DATABASE_URL` environment variable)
-- **Drizzle ORM**: Database toolkit for TypeScript with type-safe queries
-- **connect-pg-simple**: PostgreSQL session store for Express sessions
+- **PostgreSQL**: Primary relational database.
+- **Drizzle ORM**: Type-safe ORM for PostgreSQL.
+- **connect-pg-simple**: PostgreSQL session store.
 
 ### UI Component Libraries
-- **Radix UI**: Unstyled, accessible component primitives (dialogs, menus, forms, etc.)
-- **shadcn/ui**: Pre-built component library using Radix + Tailwind
-- **Lucide React**: Icon library
+- **Radix UI**: Provides unstyled, accessible UI primitives.
+- **shadcn/ui**: Component library built on Radix UI and Tailwind CSS.
+- **Lucide React**: Icon library.
 
 ### Form and Validation
-- **React Hook Form**: Form state management
-- **Zod**: Schema validation for forms and API requests
-- **@hookform/resolvers**: Zod resolver for React Hook Form
+- **React Hook Form**: Manages form state.
+- **Zod**: Schema validation library.
+- **@hookform/resolvers**: Integrates Zod with React Hook Form.
 
 ### Date Handling
-- **date-fns**: Date formatting and manipulation
+- **date-fns**: Library for date manipulation and formatting.
 
 ### Development Tools
-- **Vite**: Frontend build tool and dev server
-- **tsx**: TypeScript execution for Node.js
-- **esbuild**: Fast JavaScript bundler for production server build
-- **Drizzle Kit**: Database migration and schema management CLI
+- **Vite**: Frontend build tool and dev server.
+- **tsx**: TypeScript execution for Node.js.
+- **esbuild**: Fast JavaScript bundler.
+- **Drizzle Kit**: Database migration and schema management.
