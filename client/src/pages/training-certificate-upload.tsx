@@ -150,7 +150,7 @@ export default function TrainingCertificateUpload() {
         title: "Certificate Uploaded",
         description: "Training certificate has been uploaded successfully.",
       });
-      navigate("/training/documents");
+      navigate("/training/certificates");
     },
     onError: (error: Error) => {
       toast({
@@ -218,10 +218,10 @@ export default function TrainingCertificateUpload() {
   return (
     <div className="container max-w-2xl py-8">
       <div className="mb-6">
-        <Link href="/training/documents">
+        <Link href="/training/certificates">
           <Button variant="ghost" size="sm" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Training Documents
+            Back to Certificates
           </Button>
         </Link>
       </div>

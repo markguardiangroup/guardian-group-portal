@@ -97,7 +97,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/training/dashboard" },
       { title: "Browse Courses", url: "/training" },
-      { title: "Documents", url: "/training/documents" },
+      { title: "Certificates", url: "/training/certificates" },
     ],
   },
   {

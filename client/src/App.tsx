@@ -30,6 +30,7 @@ import TrainingLibrary from "@/pages/training-library";
 import Training from "@/pages/training";
 import TrainingDashboard from "@/pages/training-dashboard";
 import TrainingCertificateUpload from "@/pages/training-certificate-upload";
+import TrainingCertificates from "@/pages/training-certificates";
 import CreateFromTemplate from "@/pages/create-from-template";
 import NotFound from "@/pages/not-found";
 
@@ -51,10 +52,6 @@ function HumanResourcesDocuments() {
 
 function EmploymentLawDocuments() {
   return <ModuleDocuments module="employment_law" />;
-}
-
-function TrainingDocuments() {
-  return <ModuleDocuments module="training" />;
 }
 
 
@@ -96,9 +93,9 @@ function Router() {
       <Route path="/training-library" component={TrainingLibrary} />
       <Route path="/training" component={Training} />
       <Route path="/training/dashboard" component={TrainingDashboard} />
-      <Route path="/training/documents" component={TrainingDocuments} />
-      <Route path="/training/documents/upload" component={TrainingCertificateUpload} />
-      <Route path="/training/documents/:id" component={TrainingDocuments} />
+      <Route path="/training/certificates" component={TrainingCertificates} />
+      <Route path="/training/certificates/upload" component={TrainingCertificateUpload} />
+      <Route path="/training/certificates/:id" component={TrainingCertificates} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route component={NotFound} />
     </Switch>
