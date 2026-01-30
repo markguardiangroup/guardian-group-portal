@@ -220,13 +220,6 @@ export default function UserManagement() {
   const companies = companiesResponse?.companies || [];
 
   const usersWithSiteInfo = allUsers.map((u) => {
-    if (u.role === "consultant") {
-      const consultantData = consultantsWithAssignments.find((c) => c.id === u.id);
-      return {
-        ...u,
-        siteAssignments: consultantData?.siteAssignments || [],
-      };
-    }
     if (u.role === "client" && u.companyId) {
       const company = companies.find((c) => c.id === u.companyId);
       return {
@@ -234,6 +227,7 @@ export default function UserManagement() {
         companyName: company?.name || null,
       };
     }
+    // siteAssignments are now included directly from /api/users for both consultants and clients
     return u;
   });
 
