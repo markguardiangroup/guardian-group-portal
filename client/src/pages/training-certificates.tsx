@@ -38,11 +38,12 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import type { Document, Site } from "@shared/schema";
+import type { Document, Site, TrainingBooking, TrainingCourse } from "@shared/schema";
 
 interface CertificateWithDetails extends Document {
   siteName?: string;
   companyName?: string;
+  courseModule?: string;
 }
 
 interface SiteWithCompany extends Site {
@@ -75,14 +76,25 @@ export default function TrainingCertificates() {
     queryKey: ["/api/documents/module/training"],
   });
 
+  const { data: trainingBookings = [] } = useQuery<TrainingBooking[]>({
+    queryKey: ["/api/training-bookings"],
+  });
+
+  const { data: trainingCourses = [] } = useQuery<TrainingCourse[]>({
+    queryKey: ["/api/training-courses"],
+  });
+
   const certificates: CertificateWithDetails[] = (documents || [])
     .filter((doc) => doc.type === "training_certificate")
     .map((doc) => {
       const site = sites?.find((s) => s.id === doc.siteId);
+      const booking = trainingBookings.find((b) => b.certificateId === doc.id);
+      const course = booking ? trainingCourses.find((c) => c.id === booking.trainingCourseId) : null;
       return {
         ...doc,
         siteName: site?.name,
         companyName: site?.companyName || undefined,
+        courseModule: course?.module,
       };
     });
 
@@ -98,7 +110,7 @@ export default function TrainingCertificates() {
       cert.trainingCourseCode?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesModule =
-      moduleFilter === "all" || cert.trainingCourseModule === moduleFilter;
+      moduleFilter === "all" || cert.courseModule === moduleFilter;
 
     const matchesCompany =
       selectedCompany === "all" || cert.companyName === selectedCompany;
