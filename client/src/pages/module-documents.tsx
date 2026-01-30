@@ -100,7 +100,7 @@ const downloadDocument = async (documentId: string, fileName: string, version?: 
     const downloadUrl = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = downloadUrl;
-    a.download = fileName.replace(/\.[^/.]+$/, '') + '.pdf';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(downloadUrl);
