@@ -108,13 +108,6 @@ function Router() {
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
-  // Check if we're on a public page (set-password for invitations/password reset)
-  const isPublicPage = window.location.pathname.startsWith('/set-password');
-
-  if (isPublicPage) {
-    return <SetPassword />;
-  }
-
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -153,14 +146,38 @@ function AuthenticatedApp() {
   );
 }
 
+function PublicRoutes() {
+  return (
+    <Switch>
+      <Route path="/set-password" component={SetPassword} />
+    </Switch>
+  );
+}
+
+function AppRouter() {
+  // Check if on public route first
+  const publicPaths = ['/set-password'];
+  const isPublicRoute = publicPaths.some(path => 
+    window.location.pathname.startsWith(path)
+  );
+
+  if (isPublicRoute) {
+    return <PublicRoutes />;
+  }
+
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="guardian-theme">
         <TooltipProvider>
-          <AuthProvider>
-            <AuthenticatedApp />
-          </AuthProvider>
+          <AppRouter />
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>

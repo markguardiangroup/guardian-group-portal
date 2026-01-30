@@ -485,15 +485,16 @@ export async function registerRoutes(
       const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const resetUrl = `${baseUrl}/set-password?token=${token}`;
       
-      // For now, we'll return the URL since email isn't set up yet
+      // For now, we'll log the URL since email isn't set up yet
       // When email is configured, this would send an email instead
       console.log(`Password reset link for ${email}: ${resetUrl}`);
       
+      // Only include resetUrl in development mode for testing
+      const isDev = process.env.NODE_ENV !== 'production';
       res.json({ 
         success: true, 
         message: "If an account exists with this email, a password reset link will be sent.",
-        // Include resetUrl for now since email isn't configured - remove in production
-        resetUrl
+        ...(isDev && { resetUrl })
       });
     } catch (error) {
       console.error("Forgot password error:", error);

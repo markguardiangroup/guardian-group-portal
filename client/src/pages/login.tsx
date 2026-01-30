@@ -257,7 +257,7 @@ export default function Login() {
                   <p className="text-sm text-muted-foreground mb-4">
                     If an account exists with this email address, you will receive a password reset link shortly.
                   </p>
-                  {resetUrl && (
+                  {resetUrl && import.meta.env.DEV && (
                     <div className="p-3 bg-muted rounded-md mb-4">
                       <p className="text-xs text-muted-foreground mb-2">
                         (Development mode - Reset link for testing:)
