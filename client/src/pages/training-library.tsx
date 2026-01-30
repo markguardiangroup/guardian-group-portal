@@ -108,6 +108,13 @@ const moduleBorderColors: Record<string, string> = {
   support: "border-purple-200 dark:border-purple-800",
 };
 
+const moduleGradients: Record<string, string> = {
+  health_safety: "from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/10",
+  human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
+  employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
+  support: "from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/10",
+};
+
 type ViewMode = "folders" | "courses";
 
 export default function TrainingLibrary() {
@@ -1236,7 +1243,32 @@ function FolderView({
   moduleColors: Record<string, string>;
   activeModule: ModuleType;
 }) {
+  const [openFolders, setOpenFolders] = useState<string[]>([]);
   const unassignedCourses = getUnassignedCourses();
+
+  // Expand all by default on first render
+  useState(() => {
+    const allFolderIds = folders.map(f => f.id);
+    if (unassignedCourses.length > 0) {
+      allFolderIds.push("unassigned");
+    }
+    setOpenFolders(allFolderIds);
+  });
+
+  const toggleAllFolders = () => {
+    const allFolderIds = folders.map(f => f.id);
+    if (unassignedCourses.length > 0) {
+      allFolderIds.push("unassigned");
+    }
+    
+    if (openFolders.length === allFolderIds.length) {
+      setOpenFolders([]);
+    } else {
+      setOpenFolders(allFolderIds);
+    }
+  };
+
+  const allExpanded = openFolders.length === folders.length + (unassignedCourses.length > 0 ? 1 : 0);
 
   if (folders.length === 0 && unassignedCourses.length === 0) {
     return (
@@ -1256,96 +1288,137 @@ function FolderView({
 
   return (
     <div className="space-y-4">
-      {folders.map((folder) => {
-        const folderCourses = getCoursesByFolder(folder.id);
-        return (
-          <Card key={folder.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FolderOpen className={`h-5 w-5 ${moduleColors[activeModule]}`} />
-                  <div>
-                    <CardTitle className="text-lg">{folder.name}</CardTitle>
-                    {folder.description && (
-                      <CardDescription>{folder.description}</CardDescription>
-                    )}
-                  </div>
-                  <Badge variant="secondary" className="ml-2">
-                    {folderCourses.length} course{folderCourses.length !== 1 ? 's' : ''}
-                  </Badge>
-                </div>
-                {isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" data-testid={`button-folder-menu-${folder.id}`}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEditFolder(folder)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit Folder
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => onDeleteFolder(folder.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Folder
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            </CardHeader>
-            {folderCourses.length > 0 && (
-              <CardContent>
-                <div className="space-y-2">
-                  {folderCourses.map((course) => (
-                    <CourseRow 
-                      key={course.id} 
-                      course={course} 
-                      isAdmin={isAdmin}
-                      onView={() => onViewCourse(course)}
-                      onEdit={() => onEditCourse(course)}
-                      onDelete={() => onDeleteCourse(course.id)}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        );
-      })}
+      {/* Expand/Collapse All Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleAllFolders}
+          className="text-muted-foreground"
+          data-testid="button-toggle-all-folders"
+        >
+          {allExpanded ? "Collapse All" : "Expand All"}
+        </Button>
+      </div>
 
-      {/* Unassigned Courses */}
-      {unassignedCourses.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-lg">Unassigned Courses</CardTitle>
-              <Badge variant="outline">
-                {unassignedCourses.length} course{unassignedCourses.length !== 1 ? 's' : ''}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {unassignedCourses.map((course) => (
-                <CourseRow 
-                  key={course.id} 
-                  course={course} 
-                  isAdmin={isAdmin}
-                  onView={() => onViewCourse(course)}
-                  onEdit={() => onEditCourse(course)}
-                  onDelete={() => onDeleteCourse(course.id)}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Accordion
+        type="multiple"
+        value={openFolders}
+        onValueChange={setOpenFolders}
+        className="space-y-3"
+      >
+        {folders.map((folder) => {
+          const folderCourses = getCoursesByFolder(folder.id);
+          return (
+            <AccordionItem
+              key={folder.id}
+              value={folder.id}
+              className={`border-2 rounded-lg overflow-hidden ${moduleBorderColors[activeModule]}`}
+            >
+              <AccordionTrigger 
+                className={`px-4 py-3 hover:no-underline bg-gradient-to-r ${moduleGradients[activeModule]}`}
+                data-testid={`folder-toggle-${folder.id}`}
+              >
+                <div className="flex items-center justify-between w-full pr-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-lg ${moduleBgColors[activeModule]}`}>
+                      <FolderOpen className={`h-4 w-4 ${moduleColors[activeModule]}`} />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold">{folder.name}</div>
+                      {folder.description && (
+                        <div className="text-sm text-muted-foreground font-normal">{folder.description}</div>
+                      )}
+                    </div>
+                    <Badge variant="secondary" className="ml-2">
+                      {folderCourses.length} course{folderCourses.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                  {isAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-folder-menu-${folder.id}`}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEditFolder(folder); }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Folder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Folder
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 pt-2">
+                {folderCourses.length > 0 ? (
+                  <div className="space-y-2">
+                    {folderCourses.map((course) => (
+                      <CourseRow 
+                        key={course.id} 
+                        course={course} 
+                        isAdmin={isAdmin}
+                        onView={() => onViewCourse(course)}
+                        onEdit={() => onEditCourse(course)}
+                        onDelete={() => onDeleteCourse(course.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No courses in this folder yet
+                  </p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+
+        {/* Unassigned Courses */}
+        {unassignedCourses.length > 0 && (
+          <AccordionItem
+            value="unassigned"
+            className="border-2 rounded-lg overflow-hidden border-muted"
+          >
+            <AccordionTrigger 
+              className="px-4 py-3 hover:no-underline bg-muted/30"
+              data-testid="folder-toggle-unassigned"
+            >
+              <div className="flex items-center gap-3 w-full pr-2">
+                <div className="p-1.5 rounded-lg bg-muted">
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="font-semibold">Unassigned Courses</div>
+                <Badge variant="outline">
+                  {unassignedCourses.length} course{unassignedCourses.length !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4 pt-2">
+              <div className="space-y-2">
+                {unassignedCourses.map((course) => (
+                  <CourseRow 
+                    key={course.id} 
+                    course={course} 
+                    isAdmin={isAdmin}
+                    onView={() => onViewCourse(course)}
+                    onEdit={() => onEditCourse(course)}
+                    onDelete={() => onDeleteCourse(course.id)}
+                  />
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
+      </Accordion>
     </div>
   );
 }
