@@ -1321,20 +1321,32 @@ export default function TemplateLibraryPage() {
   };
   
   // Folder tree renderer
-  const renderFolderTree = (folder: FolderTemplate, depth: number = 0) => {
+  const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType) => {
     const children = getChildFolders(folder.id);
     const templatesInFolder = getTemplatesForFolder(folder.id);
     const hasContent = children.length > 0 || templatesInFolder.length > 0;
+    const folderModule = folder.module || moduleContext || "health_safety";
+    const ModuleIcon = moduleIcons[folderModule];
+    
+    // Root level folders get gradient styling
+    const isRootLevel = depth === 0;
     
     return (
-      <AccordionItem key={folder.id} value={folder.id} className="border-0">
+      <AccordionItem 
+        key={folder.id} 
+        value={folder.id} 
+        className={`border rounded-lg mb-2 overflow-hidden ${isRootLevel ? moduleBorderColors[folderModule] : "border-border"}`}
+      >
         <AccordionTrigger 
-          className="py-2 hover:no-underline"
-          style={{ paddingLeft: `${depth * 16}px` }}
+          className={`py-3 px-4 hover:no-underline ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}
         >
           <div className="flex items-center gap-2 flex-1">
-            <FolderOpen className="h-4 w-4 text-amber-500" />
-            <span className="font-medium">{folder.name}</span>
+            {isRootLevel ? (
+              <ModuleIcon className={`h-4 w-4 ${moduleColors[folderModule]}`} />
+            ) : (
+              <FolderOpen className="h-4 w-4 text-amber-500" />
+            )}
+            <span className={`font-medium ${isRootLevel ? moduleColors[folderModule] : ""}`}>{folder.name}</span>
             {templatesInFolder.length > 0 && (
               <Badge variant="secondary" className="ml-2">
                 {templatesInFolder.length}
@@ -1353,11 +1365,11 @@ export default function TemplateLibraryPage() {
           </div>
         </AccordionTrigger>
         <AccordionContent className="pb-0">
-          <div style={{ paddingLeft: `${(depth + 1) * 16}px` }} className="space-y-2">
+          <div className="px-4 py-2 space-y-2">
             <SortableTemplatesList folderId={folder.id} templates={templatesInFolder} />
             {children.length > 0 && (
               <Accordion type="multiple" className="w-full">
-                {children.map(child => renderFolderTree(child, depth + 1))}
+                {children.map(child => renderFolderTree(child, depth + 1, folderModule))}
               </Accordion>
             )}
             {!hasContent && (
