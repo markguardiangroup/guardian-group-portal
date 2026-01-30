@@ -37,6 +37,8 @@ import {
   type TrainingRequest, type InsertTrainingRequest,
   type TrainingBooking, type InsertTrainingBooking,
   type RoadmapItem, type InsertRoadmapItem,
+  type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
+  userInvitations as userInvitationsTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
@@ -289,6 +291,16 @@ export interface IStorage {
   createRoadmapItem(item: InsertRoadmapItem): Promise<RoadmapItem>;
   updateRoadmapItem(id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | undefined>;
   deleteRoadmapItem(id: string): Promise<boolean>;
+  
+  // User Invitations (for secure password setup)
+  getUserInvitation(id: string): Promise<UserInvitation | undefined>;
+  getUserInvitationByToken(tokenHash: string): Promise<UserInvitation | undefined>;
+  getUserInvitationsByUser(userId: string): Promise<UserInvitation[]>;
+  createUserInvitation(invitation: InsertUserInvitation): Promise<UserInvitation>;
+  markInvitationUsed(id: string): Promise<UserInvitation | undefined>;
+  deleteUserInvitation(id: string): Promise<boolean>;
+  invalidateUserInvitations(userId: string, purpose?: InvitationPurpose): Promise<void>;
+  getUserByEmail(email: string): Promise<User | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -3863,6 +3875,67 @@ export class MemStorage implements IStorage {
   async deleteRoadmapItem(id: string): Promise<boolean> {
     const result = await db.delete(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  // ==================== USER INVITATION METHODS ====================
+
+  async getUserInvitation(id: string): Promise<UserInvitation | undefined> {
+    const [invitation] = await db.select().from(userInvitationsTable).where(eq(userInvitationsTable.id, id));
+    return invitation;
+  }
+
+  async getUserInvitationByToken(tokenHash: string): Promise<UserInvitation | undefined> {
+    const [invitation] = await db.select().from(userInvitationsTable).where(eq(userInvitationsTable.tokenHash, tokenHash));
+    return invitation;
+  }
+
+  async getUserInvitationsByUser(userId: string): Promise<UserInvitation[]> {
+    return await db.select().from(userInvitationsTable)
+      .where(eq(userInvitationsTable.userId, userId))
+      .orderBy(desc(userInvitationsTable.createdAt));
+  }
+
+  async createUserInvitation(invitation: InsertUserInvitation): Promise<UserInvitation> {
+    const id = randomUUID();
+    const now = new Date();
+    const [created] = await db.insert(userInvitationsTable).values({
+      id,
+      userId: invitation.userId,
+      email: invitation.email,
+      tokenHash: invitation.tokenHash,
+      purpose: invitation.purpose ?? "invite",
+      expiresAt: invitation.expiresAt,
+      usedAt: invitation.usedAt ?? null,
+      createdBy: invitation.createdBy ?? null,
+      createdAt: now,
+    }).returning();
+    return created;
+  }
+
+  async markInvitationUsed(id: string): Promise<UserInvitation | undefined> {
+    const [updated] = await db.update(userInvitationsTable)
+      .set({ usedAt: new Date() })
+      .where(eq(userInvitationsTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteUserInvitation(id: string): Promise<boolean> {
+    const result = await db.delete(userInvitationsTable).where(eq(userInvitationsTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async invalidateUserInvitations(userId: string, purpose?: InvitationPurpose): Promise<void> {
+    if (purpose) {
+      await db.delete(userInvitationsTable)
+        .where(and(eq(userInvitationsTable.userId, userId), eq(userInvitationsTable.purpose, purpose)));
+    } else {
+      await db.delete(userInvitationsTable).where(eq(userInvitationsTable.userId, userId));
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.email.toLowerCase() === email.toLowerCase());
   }
 }
 

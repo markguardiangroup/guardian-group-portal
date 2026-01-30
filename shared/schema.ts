@@ -107,7 +107,7 @@ export const users = pgTable("users", {
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
   // Client-specific: permission role within their site/company
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
-  status: text("status").$type<"active" | "inactive">().notNull().default("active"),
+  status: text("status").$type<"active" | "inactive" | "invited">().notNull().default("invited"),
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -115,6 +115,29 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// User status type for type safety
+export type UserStatus = "active" | "inactive" | "invited";
+
+// Invitation token purpose
+export type InvitationPurpose = "invite" | "password_reset";
+
+// User invitations table (for invite links and password resets)
+export const userInvitations = pgTable("user_invitations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  email: text("email").notNull(),
+  tokenHash: text("token_hash").notNull(), // Store hashed token only
+  purpose: text("purpose").$type<InvitationPurpose>().notNull().default("invite"),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"), // null if not yet used
+  createdBy: varchar("created_by"), // Admin/consultant who created the invite
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserInvitationSchema = createInsertSchema(userInvitations).omit({ id: true, createdAt: true });
+export type InsertUserInvitation = z.infer<typeof insertUserInvitationSchema>;
+export type UserInvitation = typeof userInvitations.$inferSelect;
 
 // Sites (Client locations - belong to a company)
 export const sites = pgTable("sites", {
