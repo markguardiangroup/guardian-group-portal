@@ -1047,35 +1047,6 @@ export default function UserManagement() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="border-b pb-4">
-              <h4 className="text-sm font-medium mb-3">Account Details</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-username">Username *</Label>
-                    <Input
-                      id="new-username"
-                      value={newUser.username}
-                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                      placeholder="Enter username"
-                      data-testid="input-new-username"
-                    />
-                  </div>
-                  </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="new-email">Email *</Label>
-                  <Input
-                    id="new-email"
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    placeholder="email@company.com"
-                    data-testid="input-new-email"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b pb-4">
               <h4 className="text-sm font-medium mb-3">Personal Details</h4>
               <div className="space-y-3">
                 <div className="grid grid-cols-4 gap-4">
@@ -1100,7 +1071,7 @@ export default function UserManagement() {
                   </div>
                   <div className="col-span-3 grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="new-firstname">First Name</Label>
+                      <Label htmlFor="new-firstname">First Name *</Label>
                       <Input
                         id="new-firstname"
                         value={newUser.firstName}
@@ -1117,7 +1088,7 @@ export default function UserManagement() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="new-lastname">Surname</Label>
+                      <Label htmlFor="new-lastname">Surname *</Label>
                       <Input
                         id="new-lastname"
                         value={newUser.lastName}
@@ -1133,6 +1104,32 @@ export default function UserManagement() {
                         data-testid="input-new-lastname"
                       />
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-username" className="text-muted-foreground">
+                      Username <span className="text-xs">(auto-generated)</span>
+                    </Label>
+                    <Input
+                      id="new-username"
+                      value={newUser.username}
+                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      placeholder="firstname.surname"
+                      className="bg-muted/30"
+                      data-testid="input-new-username"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-email">Email *</Label>
+                    <Input
+                      id="new-email"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-new-email"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
