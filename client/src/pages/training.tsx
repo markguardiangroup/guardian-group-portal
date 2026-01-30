@@ -334,45 +334,34 @@ export default function Training() {
         </div>
       </div>
 
-      {/* Module tabs */}
+      {/* Module tabs - Enhanced Prominence */}
       <div className="flex-shrink-0 border-b bg-background">
-        <div className="px-6 py-2">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ModuleFilter)}>
-            <TabsList className="h-9">
-              <TabsTrigger 
-                value="all" 
-                data-testid="tab-all" 
-                className="group flex items-center gap-2 px-4 data-[state=active]:bg-purple-600 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500"
-              >
-                <HardHat className="h-4 w-4 text-purple-600 dark:text-purple-400 group-data-[state=active]:text-white" />
-                <span className="hidden sm:inline">All Training</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="health_safety" 
-                data-testid="tab-health-safety" 
-                className="group flex items-center gap-2 px-4 data-[state=active]:bg-emerald-600 data-[state=active]:text-white dark:data-[state=active]:bg-emerald-500"
-              >
-                <HardHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-data-[state=active]:text-white" />
-                <span className="hidden sm:inline">Health & Safety</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="human_resources" 
-                data-testid="tab-human-resources" 
-                className="group flex items-center gap-2 px-4 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500"
-              >
-                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400 group-data-[state=active]:text-white" />
-                <span className="hidden sm:inline">Human Resources</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="employment_law" 
-                data-testid="tab-employment-law" 
-                className="group flex items-center gap-2 px-4 data-[state=active]:bg-pink-600 data-[state=active]:text-white dark:data-[state=active]:bg-pink-500"
-              >
-                <Scale className="h-4 w-4 text-pink-600 dark:text-pink-400 group-data-[state=active]:text-white" />
-                <span className="hidden sm:inline">Employment Law</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="px-6 py-3">
+          <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border">
+            {([
+              { value: "all", label: "All Training", Icon: HardHat, color: "text-purple-600 dark:text-purple-400", activeStyle: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+              { value: "health_safety", label: "Health & Safety", Icon: HardHat, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+              { value: "human_resources", label: "Human Resources", Icon: Users, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+              { value: "employment_law", label: "Employment Law", Icon: Scale, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
+            ] as const).map(({ value, label, Icon, color, activeStyle }) => {
+              const isActive = activeTab === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setActiveTab(value as ModuleFilter)}
+                  data-testid={`tab-${value.replace("_", "-")}`}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
+                    isActive 
+                      ? `${activeStyle} border shadow-sm ${color}` 
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isActive ? "" : ""}`} />
+                  <span className="text-xs sm:text-sm">{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
