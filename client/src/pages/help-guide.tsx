@@ -43,11 +43,11 @@ interface GuideSection {
   content: React.ReactNode;
 }
 
-function StepList({ steps }: { steps: string[] }) {
+function StepList({ steps, testId }: { steps: string[]; testId?: string }) {
   return (
-    <ol className="space-y-3 ml-4">
+    <ol className="space-y-3 ml-4" data-testid={testId || "step-list"}>
       {steps.map((step, index) => (
-        <li key={index} className="flex items-start gap-3">
+        <li key={index} className="flex items-start gap-3" data-testid={`step-${index + 1}`}>
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center font-medium">
             {index + 1}
           </span>
@@ -58,7 +58,7 @@ function StepList({ steps }: { steps: string[] }) {
   );
 }
 
-function TipBox({ children, type = "info" }: { children: React.ReactNode; type?: "info" | "warning" | "success" }) {
+function TipBox({ children, type = "info", testId }: { children: React.ReactNode; type?: "info" | "warning" | "success"; testId?: string }) {
   const styles = {
     info: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200",
     warning: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200",
@@ -71,7 +71,7 @@ function TipBox({ children, type = "info" }: { children: React.ReactNode; type?:
   };
 
   return (
-    <div className={`flex items-start gap-3 p-4 rounded-lg border ${styles[type]}`}>
+    <div className={`flex items-start gap-3 p-4 rounded-lg border ${styles[type]}`} data-testid={testId || `tip-${type}`}>
       <span className="flex-shrink-0 mt-0.5">{icons[type]}</span>
       <div className="text-sm">{children}</div>
     </div>
@@ -258,7 +258,7 @@ const guideSections: GuideSection[] = [
             Creating and Inviting a New User
           </h4>
           <StepList steps={[
-            "Go to Settings → User Management (or click 'Users' in the sidebar)",
+            "Click 'Users' in the sidebar (under the Admin section)",
             "Click the 'Add User' button",
             "Fill in the user's details: first name, last name, email, and username",
             "Select their role: Admin, Consultant, or Client",
@@ -485,7 +485,7 @@ const guideSections: GuideSection[] = [
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <StepList steps={[
-                  "Go to Training → Training Library",
+                  "Go to 'Training Library' in the sidebar (under Admin section)",
                   "Browse available courses by module (H&S, HR)",
                   "Click on a course to view details",
                   "Click 'Book for Site' to create a booking",
