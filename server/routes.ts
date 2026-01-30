@@ -3,12 +3,27 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import type { ModuleType } from "@shared/schema";
+import crypto from "crypto";
+import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const BCRYPT_SALT_ROUNDS = 12;
+
+// Invitation token configuration
+const INVITE_TOKEN_EXPIRY_HOURS = 48; // 48 hours for new user invites
+const RESET_TOKEN_EXPIRY_HOURS = 1; // 1 hour for password resets
+
+// Generate a secure random token
+function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Hash a token for storage (we don't store raw tokens)
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 
 const createDocumentSchema = z.object({
   title: z.string().min(1),
@@ -308,6 +323,262 @@ export async function registerRoutes(
       notes: user.notes,
     });
   });
+
+  // ==================== INVITATION & PASSWORD RESET ENDPOINTS ====================
+
+  // Validate an invitation token (public - no auth required)
+  app.get("/api/invitations/validate", async (req, res) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: "Token is required" });
+      }
+      
+      const tokenHash = hashToken(token);
+      const invitation = await storage.getUserInvitationByToken(tokenHash);
+      
+      if (!invitation) {
+        return res.status(404).json({ error: "Invalid or expired invitation link" });
+      }
+      
+      // Check if already used
+      if (invitation.usedAt) {
+        return res.status(400).json({ error: "This invitation has already been used" });
+      }
+      
+      // Check if expired
+      if (new Date() > new Date(invitation.expiresAt)) {
+        return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
+      }
+      
+      // Get user info for the form
+      const user = await storage.getUser(invitation.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({
+        valid: true,
+        purpose: invitation.purpose,
+        email: user.email,
+        fullName: user.fullName,
+        expiresAt: invitation.expiresAt,
+      });
+    } catch (error) {
+      console.error("Validate invitation error:", error);
+      res.status(500).json({ error: "Failed to validate invitation" });
+    }
+  });
+
+  // Accept an invitation and set password (public - no auth required)
+  app.post("/api/invitations/accept", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and password are required" });
+      }
+      
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      
+      const tokenHash = hashToken(token);
+      const invitation = await storage.getUserInvitationByToken(tokenHash);
+      
+      if (!invitation) {
+        return res.status(404).json({ error: "Invalid or expired invitation link" });
+      }
+      
+      if (invitation.usedAt) {
+        return res.status(400).json({ error: "This invitation has already been used" });
+      }
+      
+      if (new Date() > new Date(invitation.expiresAt)) {
+        return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+      
+      // Update user with the new password and set status to active
+      const updatedUser = await storage.updateUser(invitation.userId, {
+        password: hashedPassword,
+        status: "active",
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Mark the invitation as used
+      await storage.markInvitationUsed(invitation.id);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        action: invitation.purpose === "invite" ? "user_activated" : "password_reset",
+        userId: updatedUser.id,
+        userName: updatedUser.fullName,
+        details: invitation.purpose === "invite" 
+          ? "User accepted invitation and set their password" 
+          : "User reset their password",
+      });
+      
+      res.json({ 
+        success: true, 
+        message: invitation.purpose === "invite" 
+          ? "Account activated successfully. You can now log in." 
+          : "Password reset successfully. You can now log in."
+      });
+    } catch (error) {
+      console.error("Accept invitation error:", error);
+      res.status(500).json({ error: "Failed to complete password setup" });
+    }
+  });
+
+  // Resend invitation (admin only)
+  app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can resend invitations" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (targetUser.status !== "invited") {
+        return res.status(400).json({ error: "User has already activated their account" });
+      }
+      
+      // Invalidate any existing invitations for this user
+      await storage.invalidateUserInvitations(targetUser.id, "invite");
+      
+      // Generate new invitation token
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+      
+      await storage.createUserInvitation({
+        userId: targetUser.id,
+        email: targetUser.email,
+        tokenHash,
+        purpose: "invite",
+        expiresAt,
+        createdBy: currentUser.id,
+      });
+      
+      // Build the invite URL
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
+      
+      res.json({ 
+        success: true, 
+        inviteUrl,
+        inviteExpiresAt: expiresAt.toISOString(),
+        message: "Invitation link regenerated successfully"
+      });
+    } catch (error) {
+      console.error("Resend invitation error:", error);
+      res.status(500).json({ error: "Failed to resend invitation" });
+    }
+  });
+
+  // Request password reset (public - no auth required)
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      if (!user) {
+        return res.json({ 
+          success: true, 
+          message: "If an account exists with this email, a password reset link will be sent." 
+        });
+      }
+      
+      // User must be active to reset password
+      if (user.status === "invited") {
+        return res.json({ 
+          success: true, 
+          message: "If an account exists with this email, a password reset link will be sent." 
+        });
+      }
+      
+      // Invalidate any existing reset tokens for this user
+      await storage.invalidateUserInvitations(user.id, "password_reset");
+      
+      // Generate reset token
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+      
+      await storage.createUserInvitation({
+        userId: user.id,
+        email: user.email,
+        tokenHash,
+        purpose: "password_reset",
+        expiresAt,
+        createdBy: null,
+      });
+      
+      // Build the reset URL
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const resetUrl = `${baseUrl}/set-password?token=${token}`;
+      
+      // For now, we'll return the URL since email isn't set up yet
+      // When email is configured, this would send an email instead
+      console.log(`Password reset link for ${email}: ${resetUrl}`);
+      
+      res.json({ 
+        success: true, 
+        message: "If an account exists with this email, a password reset link will be sent.",
+        // Include resetUrl for now since email isn't configured - remove in production
+        resetUrl
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  // Get user's current invitation status (admin only)
+  app.get("/api/users/:userId/invitation", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view invitation status" });
+      }
+      
+      const invitations = await storage.getUserInvitationsByUser(req.params.userId);
+      const activeInvitation = invitations.find(inv => !inv.usedAt && new Date(inv.expiresAt) > new Date());
+      
+      if (!activeInvitation) {
+        return res.json({ hasActiveInvitation: false });
+      }
+      
+      // Generate the URL from the stored token hash
+      res.json({
+        hasActiveInvitation: true,
+        expiresAt: activeInvitation.expiresAt,
+        purpose: activeInvitation.purpose,
+      });
+    } catch (error) {
+      console.error("Get invitation status error:", error);
+      res.status(500).json({ error: "Failed to get invitation status" });
+    }
+  });
+
+  // ==================== END INVITATION ENDPOINTS ====================
 
   // Authentication middleware for protected routes
   const requireAuth = (req: any, res: any, next: any) => {
@@ -5306,7 +5577,7 @@ export async function registerRoutes(
     }
   });
 
-  // Create user (admin only)
+  // Create user (admin only) - creates with invited status and generates invite token
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
@@ -5319,14 +5590,14 @@ export async function registerRoutes(
       }
       
       const { 
-        username, email, fullName, password, role, companyId, 
+        username, email, fullName, role, companyId, 
         consultantTier, clientPermissionRole,
         title, firstName, lastName, jobTitle, department, phone, mobile,
         preferredContactMethod, notes
       } = req.body;
       
-      if (!username || !email || !password) {
-        return res.status(400).json({ error: "Username, email, and password are required" });
+      if (!username || !email) {
+        return res.status(400).json({ error: "Username and email are required" });
       }
       
       // Check if username or email already exists
@@ -5343,14 +5614,18 @@ export async function registerRoutes(
         `${firstName || ""} ${lastName || ""}`.trim() || 
         username;
       
+      // Create user with status 'invited' and a placeholder password
+      // The real password will be set when the user accepts the invitation
+      const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), BCRYPT_SALT_ROUNDS);
+      
       const newUser = await storage.createUser({
         username,
         email,
         fullName: computedFullName,
-        password,
+        password: placeholderPassword,
         role: role || "client",
         companyId: companyId || null,
-        status: "active",
+        status: "invited",
         consultantTier: consultantTier || null,
         clientPermissionRole: clientPermissionRole || "viewer",
         title: title || null,
@@ -5364,8 +5639,30 @@ export async function registerRoutes(
         notes: notes || null,
       });
       
+      // Generate invitation token
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+      
+      await storage.createUserInvitation({
+        userId: newUser.id,
+        email: newUser.email,
+        tokenHash,
+        purpose: "invite",
+        expiresAt,
+        createdBy: currentUser.id,
+      });
+      
+      // Build the invite URL
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
+      
       const { password: _, ...safeUser } = newUser;
-      res.status(201).json(safeUser);
+      res.status(201).json({ 
+        ...safeUser, 
+        inviteUrl,
+        inviteExpiresAt: expiresAt.toISOString()
+      });
     } catch (error) {
       console.error("Create user error:", error);
       res.status(500).json({ error: "Failed to create user" });
@@ -5374,7 +5671,7 @@ export async function registerRoutes(
 
   // Entity Users Routes
   
-  // Create user for an entity
+  // Create user for an entity (site) - with invitation flow
   app.post("/api/sites/:siteId/users", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
@@ -5388,13 +5685,13 @@ export async function registerRoutes(
       }
       
       const { 
-        username, email, fullName, password, clientPermissionRole,
+        username, email, fullName, clientPermissionRole,
         title, firstName, lastName, jobTitle, department, phone, mobile,
         preferredContactMethod, notes
       } = req.body;
       
-      if (!username || !email || !password) {
-        return res.status(400).json({ error: "Username, email, and password are required" });
+      if (!username || !email) {
+        return res.status(400).json({ error: "Username and email are required" });
       }
       
       // Check if username or email already exists
@@ -5417,14 +5714,17 @@ export async function registerRoutes(
         `${firstName || ""} ${lastName || ""}`.trim() || 
         username;
       
+      // Create user with status 'invited' and a placeholder password
+      const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), BCRYPT_SALT_ROUNDS);
+      
       const newUser = await storage.createUser({
         username,
         email,
         fullName: computedFullName,
-        password,
+        password: placeholderPassword,
         role: "client",
-        companyId: targetSite.companyId, // Users get company-level access
-        status: "active",
+        companyId: targetSite.companyId,
+        status: "invited",
         clientPermissionRole: clientPermissionRole || "viewer",
         title: title || null,
         firstName: firstName || null,
@@ -5437,8 +5737,30 @@ export async function registerRoutes(
         notes: notes || null,
       });
       
+      // Generate invitation token
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+      
+      await storage.createUserInvitation({
+        userId: newUser.id,
+        email: newUser.email,
+        tokenHash,
+        purpose: "invite",
+        expiresAt,
+        createdBy: currentUser.id,
+      });
+      
+      // Build the invite URL
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
+      
       const { password: _, ...safeUser } = newUser;
-      res.status(201).json(safeUser);
+      res.status(201).json({ 
+        ...safeUser, 
+        inviteUrl,
+        inviteExpiresAt: expiresAt.toISOString()
+      });
     } catch (error) {
       console.error("Create entity user error:", error);
       res.status(500).json({ error: "Failed to create user" });
