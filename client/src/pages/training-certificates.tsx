@@ -31,6 +31,10 @@ import {
   MapPin,
   Download,
   Eye,
+  HardHat,
+  Users,
+  Scale,
+  Filter,
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -45,11 +49,21 @@ interface SiteWithCompany extends Site {
   companyName?: string | null;
 }
 
+type ModuleFilter = "all" | "health_safety" | "human_resources" | "employment_law";
+
+const moduleFilterConfig = [
+  { value: "all" as const, label: "All Modules", Icon: Filter, color: "text-purple-600 dark:text-purple-400", activeStyle: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+  { value: "health_safety" as const, label: "Health & Safety", Icon: HardHat, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+  { value: "human_resources" as const, label: "Human Resources", Icon: Users, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+  { value: "employment_law" as const, label: "Employment Law", Icon: Scale, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
+];
+
 export default function TrainingCertificates() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedSite, setSelectedSite] = useState<string>("all");
+  const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
 
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -83,12 +97,15 @@ export default function TrainingCertificates() {
       cert.trainingCourseTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cert.trainingCourseCode?.toLowerCase().includes(searchQuery.toLowerCase());
 
+    const matchesModule =
+      moduleFilter === "all" || cert.trainingCourseModule === moduleFilter;
+
     const matchesCompany =
       selectedCompany === "all" || cert.companyName === selectedCompany;
 
     const matchesSite = selectedSite === "all" || cert.siteId === selectedSite;
 
-    return matchesSearch && matchesCompany && matchesSite;
+    return matchesSearch && matchesModule && matchesCompany && matchesSite;
   });
 
   const filteredSites = sites?.filter((site) => {
@@ -130,6 +147,28 @@ export default function TrainingCertificates() {
           </div>
         </div>
 
+      </div>
+
+      {/* Module Tabs - Enhanced Prominence */}
+      <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border mb-6">
+        {moduleFilterConfig.map(({ value, label, Icon, color, activeStyle }) => {
+          const isActive = moduleFilter === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setModuleFilter(value)}
+              data-testid={`module-tab-${value}`}
+              className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
+                isActive 
+                  ? `${activeStyle} border shadow-sm ${color}` 
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+              }`}
+            >
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
       <Card>
