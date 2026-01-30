@@ -77,6 +77,30 @@ const modulePaths: Record<string, string> = {
   employment_law: "/employment-law",
 };
 
+const moduleColors: Record<string, string> = {
+  health_safety: "text-emerald-600 dark:text-emerald-400",
+  human_resources: "text-blue-600 dark:text-blue-400",
+  employment_law: "text-pink-600 dark:text-pink-400",
+};
+
+const moduleBgColors: Record<string, string> = {
+  health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
+  human_resources: "bg-blue-100 dark:bg-blue-900/30",
+  employment_law: "bg-pink-100 dark:bg-pink-900/30",
+};
+
+const moduleBorderColors: Record<string, string> = {
+  health_safety: "border-emerald-200 dark:border-emerald-800",
+  human_resources: "border-blue-200 dark:border-blue-800",
+  employment_law: "border-pink-200 dark:border-pink-800",
+};
+
+const moduleGradients: Record<string, string> = {
+  health_safety: "from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/10",
+  human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
+  employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
+};
+
 type Step = "template" | "site" | "placeholders" | "complete";
 
 export default function CreateFromTemplate() {
@@ -418,14 +442,29 @@ export default function CreateFromTemplate() {
           />
         </div>
         <Select value={selectedModule} onValueChange={setSelectedModule}>
-          <SelectTrigger className="w-48" data-testid="select-module-filter">
+          <SelectTrigger className="w-56" data-testid="select-module-filter">
             <SelectValue placeholder="All Modules" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Modules</SelectItem>
-            <SelectItem value="health_safety">Health & Safety</SelectItem>
-            <SelectItem value="human_resources">Human Resources</SelectItem>
-            <SelectItem value="employment_law">Employment Law</SelectItem>
+            <SelectItem value="health_safety">
+              <span className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                Health & Safety
+              </span>
+            </SelectItem>
+            <SelectItem value="human_resources">
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                Human Resources
+              </span>
+            </SelectItem>
+            <SelectItem value="employment_law">
+              <span className="flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                Employment Law
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -448,20 +487,26 @@ export default function CreateFromTemplate() {
           {filteredTemplates.map((template) => {
             const ModuleIcon = moduleIcons[template.module] || FileText;
             const isSelected = selectedTemplateId === template.id;
+            const iconBg = moduleBgColors[template.module] || "bg-muted";
+            const iconColor = moduleColors[template.module] || "";
+            const borderColor = moduleBorderColors[template.module] || "";
 
             return (
               <Card
                 key={template.id}
-                className={`cursor-pointer hover-elevate transition-colors ${
-                  isSelected ? "ring-2 ring-primary" : ""
+                className={`cursor-pointer hover-elevate transition-all relative overflow-hidden ${
+                  isSelected 
+                    ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}` 
+                    : ""
                 }`}
                 onClick={() => setSelectedTemplateId(template.id)}
                 data-testid={`template-card-${template.id}`}
               >
-                <CardContent className="p-4">
+                <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
+                <CardContent className="p-4 relative">
                   <div className="flex items-start gap-3">
-                    <div className="p-2 bg-muted rounded-md">
-                      <ModuleIcon className="h-5 w-5" />
+                    <div className={`p-2 rounded-md ${iconBg}`}>
+                      <ModuleIcon className={`h-5 w-5 ${iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium truncate">{template.name}</h3>
@@ -471,7 +516,11 @@ export default function CreateFromTemplate() {
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${iconColor} ${borderColor}`}
+                        >
+                          <ModuleIcon className="h-3 w-3 mr-1" />
                           {moduleLabels[template.module] || template.module}
                         </Badge>
                         {template.folderTemplateName && (
@@ -483,7 +532,7 @@ export default function CreateFromTemplate() {
                       </div>
                     </div>
                     {isSelected && (
-                      <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                      <CheckCircle className={`h-5 w-5 flex-shrink-0 ${iconColor || "text-primary"}`} />
                     )}
                   </div>
                 </CardContent>
@@ -509,13 +558,21 @@ export default function CreateFromTemplate() {
   const renderSiteStep = () => (
     <div className="space-y-4">
       {selectedTemplate && (
-        <Card className="bg-muted/50">
-          <CardContent className="p-4">
+        <Card className={`relative overflow-hidden border ${moduleBorderColors[selectedTemplate.module] || ""}`}>
+          <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[selectedTemplate.module] || ""} pointer-events-none`} />
+          <CardContent className="p-4 relative">
             <div className="flex items-center gap-3">
-              <FileText className="h-5 w-5" />
+              {(() => {
+                const ModuleIcon = moduleIcons[selectedTemplate.module] || FileText;
+                return (
+                  <div className={`p-2 rounded-md ${moduleBgColors[selectedTemplate.module] || "bg-muted"}`}>
+                    <ModuleIcon className={`h-5 w-5 ${moduleColors[selectedTemplate.module] || ""}`} />
+                  </div>
+                );
+              })()}
               <div>
                 <p className="font-medium">{selectedTemplate.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className={`text-sm ${moduleColors[selectedTemplate.module] || "text-muted-foreground"}`}>
                   {moduleLabels[selectedTemplate.module]}
                 </p>
               </div>
