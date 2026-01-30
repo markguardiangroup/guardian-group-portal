@@ -113,7 +113,7 @@ interface DocumentFolder {
 }
 
 export default function DocumentUpload() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -121,6 +121,21 @@ export default function DocumentUpload() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+
+  // Detect module from URL path
+  const getModuleFromPath = (): ModuleType => {
+    if (location.includes("/health-safety")) return "health_safety";
+    if (location.includes("/human-resources")) return "human_resources";
+    if (location.includes("/employment-law")) return "employment_law";
+    if (location.includes("/training")) return "training";
+    return "health_safety"; // default
+  };
+  
+  const initialModule = getModuleFromPath();
+  const isModulePreselected = location.includes("/health-safety") || 
+    location.includes("/human-resources") || 
+    location.includes("/employment-law") || 
+    location.includes("/training");
 
   interface SiteWithCompany extends Site {
     companyName?: string | null;
@@ -147,7 +162,7 @@ export default function DocumentUpload() {
     defaultValues: {
       title: "",
       description: "",
-      module: "health_safety",
+      module: initialModule,
       documentTypeId: "",
       uploadScope: "site",
       siteId: "",
@@ -457,6 +472,7 @@ export default function DocumentUpload() {
                               form.setValue("documentTypeId", "");
                             }} 
                             value={field.value}
+                            disabled={isModulePreselected}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-module">
@@ -469,6 +485,11 @@ export default function DocumentUpload() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {isModulePreselected && (
+                            <FormDescription>
+                              Module is set based on where you navigated from
+                            </FormDescription>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
