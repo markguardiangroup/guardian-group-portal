@@ -296,6 +296,16 @@ export async function registerRoutes(
       role: user.role,
       companyId: user.companyId,
       clientPermissionRole: user.clientPermissionRole,
+      referenceNumber: user.referenceNumber,
+      title: user.title,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      jobTitle: user.jobTitle,
+      department: user.department,
+      phone: user.phone,
+      mobile: user.mobile,
+      preferredContactMethod: user.preferredContactMethod,
+      notes: user.notes,
     });
   });
 
