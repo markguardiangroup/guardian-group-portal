@@ -149,11 +149,6 @@ const adminNavItems = [
     icon: Users,
   },
   {
-    title: "Roadmap",
-    url: "/roadmap",
-    icon: Lightbulb,
-  },
-  {
     title: "Template Library",
     url: "/template-library",
     icon: BookOpen,
@@ -167,6 +162,11 @@ const adminNavItems = [
     title: "Help & Training Guide",
     url: "/help",
     icon: HelpCircle,
+  },
+  {
+    title: "Roadmap",
+    url: "/roadmap",
+    icon: Lightbulb,
   },
 ];
 
