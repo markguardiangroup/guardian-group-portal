@@ -484,15 +484,16 @@ export default function TrainingLibrary() {
         <TabsList className="grid w-full grid-cols-4">
           {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => {
             const Icon = moduleIcons[mod];
+            const isActive = activeModule === mod;
             return (
               <TabsTrigger 
                 key={mod} 
                 value={mod}
                 data-testid={`tab-${mod}`}
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${isActive ? moduleColors[mod] : ""}`}
               >
-                <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{moduleNames[mod]}</span>
+                <Icon className={`h-4 w-4 ${isActive ? "" : "text-muted-foreground"}`} />
+                <span className={`hidden sm:inline ${isActive ? "" : "text-muted-foreground"}`}>{moduleNames[mod]}</span>
               </TabsTrigger>
             );
           })}
@@ -1246,14 +1247,7 @@ function FolderView({
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const unassignedCourses = getUnassignedCourses();
 
-  // Expand all by default on first render
-  useState(() => {
-    const allFolderIds = folders.map(f => f.id);
-    if (unassignedCourses.length > 0) {
-      allFolderIds.push("unassigned");
-    }
-    setOpenFolders(allFolderIds);
-  });
+  // Start with all folders collapsed by default
 
   const toggleAllFolders = () => {
     const allFolderIds = folders.map(f => f.id);
