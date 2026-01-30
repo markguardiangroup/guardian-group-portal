@@ -63,6 +63,10 @@ import {
   MapPin,
   X,
   AlertTriangle,
+  Eye,
+  Phone,
+  Smartphone,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -129,6 +133,7 @@ export default function UserManagement() {
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const [editFormData, setEditFormData] = useState<{
     email: string;
     title: string;
@@ -563,7 +568,7 @@ export default function UserManagement() {
   const renderSiteAssignments = (u: UserWithAssignments) => {
     // For consultants with site assignments
     if (u.role === "consultant" && u.siteAssignments && u.siteAssignments.length > 0) {
-      const displayCount = 2;
+      const displayCount = 6;
       const visibleAssignments = u.siteAssignments.slice(0, displayCount);
       const remainingCount = u.siteAssignments.length - displayCount;
 
@@ -609,7 +614,7 @@ export default function UserManagement() {
 
     // For clients - show assigned sites from siteAssignments
     if (u.role === "client" && u.siteAssignments && u.siteAssignments.length > 0) {
-      const displayCount = 2;
+      const displayCount = 6;
       const visibleAssignments = u.siteAssignments.slice(0, displayCount);
       const remainingCount = u.siteAssignments.length - displayCount;
       
@@ -859,6 +864,10 @@ export default function UserManagement() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setViewingUser(u)} data-testid={`button-view-profile-${u.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Profile
+                        </DropdownMenuItem>
                         {isAdmin && (
                           <>
                             <DropdownMenuItem onClick={() => openEditDialog(u)}>
@@ -1258,6 +1267,133 @@ export default function UserManagement() {
             <Button onClick={handleSaveEdit} disabled={updateUserMutation.isPending} data-testid="button-save-edit">
               {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Profile Dialog */}
+      <Dialog open={!!viewingUser} onOpenChange={(open) => { if (!open) setViewingUser(null); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>
+              Full profile information
+            </DialogDescription>
+          </DialogHeader>
+          {viewingUser && (
+            <div className="space-y-6">
+              {/* User Header */}
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-xl font-medium">
+                  {viewingUser.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{viewingUser.fullName}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className={roleColors[viewingUser.role]}>
+                      {roleLabels[viewingUser.role]}
+                    </Badge>
+                    {viewingUser.referenceNumber && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {viewingUser.referenceNumber}
+                      </Badge>
+                    )}
+                    <Badge variant={viewingUser.status === "active" ? "default" : "secondary"}>
+                      {viewingUser.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground">Contact Information</h4>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{viewingUser.email}</span>
+                  </div>
+                  {viewingUser.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{viewingUser.phone}</span>
+                    </div>
+                  )}
+                  {viewingUser.mobile && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                      <span>{viewingUser.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Work Information */}
+              {(viewingUser.jobTitle || viewingUser.department) && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Work Information</h4>
+                  <div className="grid gap-2">
+                    {viewingUser.jobTitle && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <span>{viewingUser.jobTitle}</span>
+                      </div>
+                    )}
+                    {viewingUser.department && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>{viewingUser.department}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Company */}
+              {viewingUser.companyId && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Company</h4>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span>{companies.find(c => c.id === viewingUser.companyId)?.name || "-"}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Site Assignments */}
+              {viewingUser.siteAssignments && viewingUser.siteAssignments.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Assigned Sites</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingUser.siteAssignments.map((a) => (
+                      <Badge key={a.siteId} variant="outline">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {a.siteName}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {viewingUser.notes && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Notes</h4>
+                  <p className="text-sm bg-muted p-3 rounded-md">{viewingUser.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingUser(null)}>
+              Close
+            </Button>
+            {isAdmin && viewingUser && (
+              <Button onClick={() => { setViewingUser(null); openEditDialog(viewingUser); }}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit User
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
