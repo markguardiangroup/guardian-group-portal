@@ -642,31 +642,42 @@ export default function DocumentUpload() {
                     />
                   )}
 
-                  {uploadScope === "site" && selectedSiteId && moduleFolders.length > 0 && (
+                  {uploadScope === "site" && selectedSiteId && (
                     <FormField
                       control={form.control}
                       name="folderId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Folder *</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value || suggestedFolderId || ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid="select-folder">
-                                <SelectValue placeholder="Select a folder" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {moduleFolders.map((folder) => (
-                                <SelectItem key={folder.id} value={folder.id}>
-                                  {folder.name}
-                                  {suggestedFolderId === folder.id && " (suggested)"}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {provisionFoldersMutation.isPending ? (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              Setting up folders...
+                            </div>
+                          ) : moduleFolders.length > 0 ? (
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value || suggestedFolderId || ""}
+                            >
+                              <FormControl>
+                                <SelectTrigger data-testid="select-folder">
+                                  <SelectValue placeholder="Select a folder" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {moduleFolders.map((folder) => (
+                                  <SelectItem key={folder.id} value={folder.id}>
+                                    {folder.name}
+                                    {suggestedFolderId === folder.id && " (suggested)"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="text-sm text-muted-foreground py-2">
+                              No folders available for this module. Please wait while folders are being set up...
+                            </div>
+                          )}
                           <FormDescription>
                             {suggestedFolderId 
                               ? "Folder auto-selected based on document type assignment" 
