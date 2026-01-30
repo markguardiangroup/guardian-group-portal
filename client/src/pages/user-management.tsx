@@ -613,48 +613,48 @@ export default function UserManagement() {
       return <span className="text-sm text-muted-foreground">No assignments</span>;
     }
 
-    // For clients - show assigned sites from the sites list based on companyId
-    if (u.role === "client" && u.companyId) {
-      const companySites = sites.filter((s) => s.companyId === u.companyId);
-      if (companySites.length > 0) {
-        const displayCount = 2;
-        const visibleSites = companySites.slice(0, displayCount);
-        const remainingCount = companySites.length - displayCount;
-        
-        return (
-          <div className="flex flex-wrap items-center gap-1">
-            {visibleSites.map((s) => (
-              <Badge
-                key={s.id}
-                variant="outline"
-                className="text-xs"
-                data-testid={`badge-site-${s.id}`}
-              >
-                {s.name}
-              </Badge>
-            ))}
-            {remainingCount > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className="text-xs cursor-default">
-                    +{remainingCount} more
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="space-y-1">
-                    {companySites.slice(displayCount).map((s) => (
-                      <div key={s.id} className="text-xs">
-                        {s.name}
-                      </div>
-                    ))}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
-        );
-      }
-      return <span className="text-sm text-muted-foreground">No sites</span>;
+    // For clients - show assigned sites from siteAssignments
+    if (u.role === "client" && u.siteAssignments && u.siteAssignments.length > 0) {
+      const displayCount = 2;
+      const visibleAssignments = u.siteAssignments.slice(0, displayCount);
+      const remainingCount = u.siteAssignments.length - displayCount;
+      
+      return (
+        <div className="flex flex-wrap items-center gap-1">
+          {visibleAssignments.map((a) => (
+            <Badge
+              key={a.siteId}
+              variant="outline"
+              className="text-xs"
+              data-testid={`badge-site-${a.siteId}`}
+            >
+              {a.siteName}
+            </Badge>
+          ))}
+          {remainingCount > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className="text-xs cursor-default">
+                  +{remainingCount} more
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="space-y-1">
+                  {u.siteAssignments.slice(displayCount).map((a) => (
+                    <div key={a.siteId} className="text-xs">
+                      {a.siteName}
+                    </div>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
+    
+    if (u.role === "client") {
+      return <span className="text-sm text-muted-foreground">No assignments</span>;
     }
 
     // For admins - show "All Sites"

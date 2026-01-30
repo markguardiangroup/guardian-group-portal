@@ -5573,8 +5573,37 @@ export async function registerRoutes(
       }
       
       const allUsers = await storage.getAllUsers();
-      const safeUsers = allUsers.map(({ password, ...u }) => u);
-      res.json(safeUsers);
+      const allSites = await storage.getSites();
+      
+      // Enrich users with site assignments
+      const usersWithAssignments = await Promise.all(allUsers.map(async (u) => {
+        const { password, ...safeUser } = u;
+        
+        if (u.role === "consultant") {
+          // Get consultant site assignments
+          const assignments: { siteId: string; siteName: string }[] = [];
+          for (const site of allSites) {
+            const siteAssignments = await storage.getConsultantAssignments(site.id);
+            const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
+            if (userAssignment) {
+              assignments.push({ siteId: site.id, siteName: site.name });
+            }
+          }
+          return { ...safeUser, siteAssignments: assignments };
+        } else if (u.role === "client") {
+          // Get client site assignments
+          const clientAssignments = await storage.getClientSiteAssignments(u.id);
+          const assignments = clientAssignments.map(a => {
+            const site = allSites.find(s => s.id === a.siteId);
+            return { siteId: a.siteId, siteName: site?.name || "Unknown" };
+          });
+          return { ...safeUser, siteAssignments: assignments };
+        }
+        
+        return safeUser;
+      }));
+      
+      res.json(usersWithAssignments);
     } catch (error) {
       console.error("Get all users error:", error);
       res.status(500).json({ error: "Failed to fetch users" });
