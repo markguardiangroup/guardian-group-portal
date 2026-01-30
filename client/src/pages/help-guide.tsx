@@ -620,13 +620,13 @@ export default function HelpGuide() {
                 }`}
                 data-testid={`nav-${section.id}`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={selectedSection === section.id ? "text-primary-foreground" : "text-muted-foreground"}>
+                <div className="flex items-start gap-3">
+                  <span className={`flex-shrink-0 mt-0.5 ${selectedSection === section.id ? "text-primary-foreground" : "text-muted-foreground"}`}>
                     {section.icon}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{section.title}</div>
-                    <div className={`text-xs truncate ${
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{section.title}</div>
+                    <div className={`text-xs ${
                       selectedSection === section.id ? "text-primary-foreground/80" : "text-muted-foreground"
                     }`}>
                       {section.description}
