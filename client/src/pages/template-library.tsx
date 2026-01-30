@@ -1477,32 +1477,31 @@ export default function TemplateLibraryPage() {
           )}
         </div>
         
-        {/* Module Tabs - Training Library Style */}
-        <div className="border rounded-lg p-1 bg-muted/50">
-          <div className="grid grid-cols-4 gap-1">
-            {(["health_safety", "human_resources", "employment_law", "all"] as const).map((mod) => {
-              const isActive = selectedModule === mod;
-              const Icon = mod === "all" ? Filter : moduleIcons[mod];
-              const label = mod === "all" ? "All Modules" : moduleNames[mod];
-              const colorClass = mod === "all" ? "" : (isActive ? moduleColors[mod] : "");
-              
-              return (
-                <button
-                  key={mod}
-                  onClick={() => setSelectedModule(mod as ModuleType | "all")}
-                  data-testid={`module-tab-${mod}`}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive 
-                      ? `bg-background shadow-sm ${colorClass}` 
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${isActive && mod !== "all" ? "" : "text-muted-foreground"}`} />
-                  <span className="hidden sm:inline">{label}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Module Tabs - Enhanced Prominence */}
+        <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border">
+          {([
+            { value: "all", label: "All Modules", Icon: Filter, color: "text-purple-600 dark:text-purple-400", activeStyle: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+            { value: "health_safety", label: "Health & Safety", Icon: moduleIcons.health_safety, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+            { value: "human_resources", label: "Human Resources", Icon: moduleIcons.human_resources, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+            { value: "employment_law", label: "Employment Law", Icon: moduleIcons.employment_law, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
+          ] as const).map(({ value, label, Icon, color, activeStyle }) => {
+            const isActive = selectedModule === value;
+            return (
+              <button
+                key={value}
+                onClick={() => setSelectedModule(value as ModuleType | "all")}
+                data-testid={`module-tab-${value}`}
+                className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
+                  isActive 
+                    ? `${activeStyle} border shadow-sm ${color}` 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+                }`}
+              >
+                <Icon className={`h-5 w-5 sm:h-6 sm:w-6`} />
+                <span className="text-xs sm:text-sm">{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
