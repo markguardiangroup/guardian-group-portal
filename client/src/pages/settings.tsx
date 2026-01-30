@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,18 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTheme } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   User,
   Bell,
@@ -26,6 +36,7 @@ import {
   UserCog,
   Check,
   X,
+  Loader2,
 } from "lucide-react";
 import {
   clientPermissionCapabilities,
@@ -47,11 +58,66 @@ export default function Settings() {
   const [complianceAlerts, setComplianceAlerts] = useState(true);
   const [supportUpdates, setSupportUpdates] = useState(true);
 
+  // Profile form state
+  const [profileForm, setProfileForm] = useState({
+    title: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+    jobTitle: "",
+    department: "",
+    phone: "",
+    mobile: "",
+    preferredContactMethod: "email" as "email" | "phone" | "mobile",
+    notes: "",
+  });
+
+  // Initialize form with user data
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        title: user.title || "",
+        firstName: user.firstName || user.fullName?.split(" ")[0] || "",
+        lastName: user.lastName || user.fullName?.split(" ").slice(1).join(" ") || "",
+        email: user.email || "",
+        jobTitle: user.jobTitle || "",
+        department: user.department || "",
+        phone: user.phone || "",
+        mobile: user.mobile || "",
+        preferredContactMethod: user.preferredContactMethod || "email",
+        notes: user.notes || "",
+      });
+    }
+  }, [user]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: typeof profileForm) => {
+      if (!user) throw new Error("Not authenticated");
+      const fullName = `${data.firstName} ${data.lastName}`.trim();
+      const response = await apiRequest("PATCH", `/api/users/${user.id}`, {
+        ...data,
+        fullName,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSaveProfile = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved.",
-    });
+    updateProfileMutation.mutate(profileForm);
   };
 
   const handleSaveNotifications = () => {
@@ -115,65 +181,173 @@ export default function Settings() {
                 <div>
                   <p className="font-medium">{user?.fullName || "User"}</p>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  <Badge variant="outline" className="mt-1 capitalize">
-                    {user?.role || "client"}
-                  </Badge>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="capitalize">
+                      {user?.role || "client"}
+                    </Badge>
+                    {user?.referenceNumber && (
+                      <Badge variant="secondary" className="font-mono text-xs">
+                        {user.referenceNumber}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <Separator />
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input 
-                    id="firstName" 
-                    defaultValue={user?.fullName?.split(" ")[0] || ""} 
-                    data-testid="input-first-name" 
-                  />
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Personal Details</h3>
+                
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Select 
+                      value={profileForm.title} 
+                      onValueChange={(v) => setProfileForm({ ...profileForm, title: v })}
+                    >
+                      <SelectTrigger id="title" data-testid="select-title">
+                        <SelectValue placeholder="Select title" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Miss">Miss</SelectItem>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                        <SelectItem value="Prof">Prof</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input 
+                      id="firstName" 
+                      value={profileForm.firstName}
+                      onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                      data-testid="input-first-name" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input 
+                      id="lastName" 
+                      value={profileForm.lastName}
+                      onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                      data-testid="input-last-name" 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input 
-                    id="lastName" 
-                    defaultValue={user?.fullName?.split(" ").slice(1).join(" ") || ""} 
-                    data-testid="input-last-name" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    defaultValue={user?.email || ""} 
-                    data-testid="input-email" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input 
-                    id="phone" 
-                    type="tel" 
-                    placeholder="+44 7700 900123" 
-                    data-testid="input-phone" 
-                  />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input 
+                      id="jobTitle" 
+                      value={profileForm.jobTitle}
+                      onChange={(e) => setProfileForm({ ...profileForm, jobTitle: e.target.value })}
+                      placeholder="Enter your job title"
+                      data-testid="input-job-title" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input 
+                      id="department" 
+                      value={profileForm.department}
+                      onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                      placeholder="Enter your department"
+                      data-testid="input-department" 
+                    />
+                  </div>
                 </div>
               </div>
 
+              <Separator />
+
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground">Contact Information</h3>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      data-testid="input-email" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="preferredContact">Preferred Contact Method</Label>
+                    <Select 
+                      value={profileForm.preferredContactMethod} 
+                      onValueChange={(v: "email" | "phone" | "mobile") => setProfileForm({ ...profileForm, preferredContactMethod: v })}
+                    >
+                      <SelectTrigger id="preferredContact" data-testid="select-preferred-contact">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="phone">Phone</SelectItem>
+                        <SelectItem value="mobile">Mobile</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input 
+                      id="phone" 
+                      type="tel" 
+                      value={profileForm.phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      placeholder="+44 1onal 123456"
+                      data-testid="input-phone" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile">Mobile</Label>
+                    <Input 
+                      id="mobile" 
+                      type="tel" 
+                      value={profileForm.mobile}
+                      onChange={(e) => setProfileForm({ ...profileForm, mobile: e.target.value })}
+                      placeholder="+44 7700 900123"
+                      data-testid="input-mobile" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               <div className="space-y-2">
-                <Label htmlFor="jobTitle">Job Title</Label>
-                <Input 
-                  id="jobTitle" 
-                  placeholder="Enter your job title" 
-                  data-testid="input-job-title" 
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={profileForm.notes}
+                  onChange={(e) => setProfileForm({ ...profileForm, notes: e.target.value })}
+                  placeholder="Any additional notes or information..."
+                  rows={3}
+                  data-testid="input-notes"
                 />
               </div>
 
-              <Separator />
-
               <div className="flex justify-end">
-                <Button onClick={handleSaveProfile} data-testid="button-save-profile">
-                  <Save className="mr-2 h-4 w-4" />
+                <Button 
+                  onClick={handleSaveProfile} 
+                  disabled={updateProfileMutation.isPending}
+                  data-testid="button-save-profile"
+                >
+                  {updateProfileMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
                   Save Changes
                 </Button>
               </div>

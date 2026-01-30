@@ -11,6 +11,16 @@ interface AuthUser {
   role: UserRole;
   companyId: string | null;
   clientPermissionRole?: string | null;
+  referenceNumber?: string | null;
+  title?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  jobTitle?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+  preferredContactMethod?: "email" | "phone" | "mobile" | null;
+  notes?: string | null;
 }
 
 interface AuthContextType {
