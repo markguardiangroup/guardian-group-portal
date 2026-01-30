@@ -76,6 +76,8 @@ import {
   Wand2,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   Check,
   CircleDot,
   GripVertical,
@@ -367,6 +369,9 @@ export default function TemplateLibraryPage() {
   
   // Show archived toggle
   const [showArchived, setShowArchived] = useState(false);
+  
+  // Folder expansion state - starts collapsed by default
+  const [openFolders, setOpenFolders] = useState<string[]>([]);
   
   const { data: folderTemplates = [], isLoading: foldersLoading } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
@@ -711,6 +716,22 @@ export default function TemplateLibraryPage() {
   const getChildFolders = (parentId: string) => {
     return filteredFolders.filter(f => f.parentId === parentId);
   };
+  
+  // Get all folder IDs for expand/collapse all functionality
+  const getAllFolderIds = (): string[] => {
+    return folderTemplates.map(f => f.id);
+  };
+  
+  const toggleAllFolders = () => {
+    const allIds = getAllFolderIds();
+    if (openFolders.length === allIds.length) {
+      setOpenFolders([]);
+    } else {
+      setOpenFolders(allIds);
+    }
+  };
+  
+  const allFoldersExpanded = openFolders.length === getAllFolderIds().length && openFolders.length > 0;
   
   const getFolderName = (folderId: string) => {
     return folderTemplates.find(f => f.id === folderId)?.name || "Unknown";
@@ -1368,7 +1389,12 @@ export default function TemplateLibraryPage() {
           <div className="px-4 py-2 space-y-2">
             <SortableTemplatesList folderId={folder.id} templates={templatesInFolder} />
             {children.length > 0 && (
-              <Accordion type="multiple" className="w-full">
+              <Accordion 
+                type="multiple" 
+                className="w-full"
+                value={openFolders}
+                onValueChange={setOpenFolders}
+              >
                 {children.map(child => renderFolderTree(child, depth + 1, folderModule))}
               </Accordion>
             )}
@@ -1514,6 +1540,27 @@ export default function TemplateLibraryPage() {
                   <SelectItem value="no_renewal">No Renewal</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {folderTemplates.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={toggleAllFolders}
+                  data-testid="button-toggle-all-folders"
+                  className="whitespace-nowrap"
+                >
+                  {allFoldersExpanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      Collapse All
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Expand All
+                    </>
+                  )}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -1557,7 +1604,12 @@ export default function TemplateLibraryPage() {
                     </CardHeader>
                     <CardContent>
                       {rootFolders.length > 0 ? (
-                        <Accordion type="multiple" className="w-full">
+                        <Accordion 
+                          type="multiple" 
+                          className="w-full"
+                          value={openFolders}
+                          onValueChange={setOpenFolders}
+                        >
                           {rootFolders.map(folder => renderFolderTree(folder))}
                         </Accordion>
                       ) : (
