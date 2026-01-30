@@ -441,20 +441,20 @@ export default function TrainingDashboard() {
         )}
       </div>
 
-      {/* Status Tabs - Enhanced Prominence */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* Status Tabs */}
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab("booked")}
           data-testid="tab-booked"
-          className={`flex items-center justify-center gap-3 py-5 px-4 rounded-xl font-semibold text-lg transition-all border-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${
             activeTab === "booked"
-              ? "bg-amber-100 dark:bg-amber-900/40 border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-300 shadow-md"
-              : "bg-muted/30 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           }`}
         >
-          <Clock className="h-6 w-6" />
-          <span>Booked Training</span>
-          <Badge variant="secondary" className={`ml-2 text-base px-3 py-1 ${activeTab === "booked" ? "bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200" : ""}`}>
+          <Clock className="h-4 w-4" />
+          <span>Booked</span>
+          <Badge variant="secondary" className="ml-1">
             {metrics.booked}
           </Badge>
         </button>
@@ -462,15 +462,15 @@ export default function TrainingDashboard() {
         <button
           onClick={() => setActiveTab("completed")}
           data-testid="tab-completed"
-          className={`flex items-center justify-center gap-3 py-5 px-4 rounded-xl font-semibold text-lg transition-all border-2 ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium text-sm transition-colors ${
             activeTab === "completed"
-              ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300 shadow-md"
-              : "bg-muted/30 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
           }`}
         >
-          <CheckCircle className="h-6 w-6" />
-          <span>Completed Training</span>
-          <Badge variant="secondary" className={`ml-2 text-base px-3 py-1 ${activeTab === "completed" ? "bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200" : ""}`}>
+          <CheckCircle className="h-4 w-4" />
+          <span>Completed</span>
+          <Badge variant="secondary" className="ml-1">
             {metrics.completed}
           </Badge>
         </button>
