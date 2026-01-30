@@ -19,7 +19,12 @@ import {
   Mail,
   Shield,
   ClipboardList,
-  MessageSquare
+  MessageSquare,
+  Link2,
+  Briefcase,
+  Lock,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -389,6 +394,186 @@ const guideSections: GuideSection[] = [
             <li className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span>Avoid using easily guessable information</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "user-site-assignments",
+    title: "User Site Assignments",
+    icon: <Link2 className="h-5 w-5" />,
+    description: "How to assign users to companies and sites for access control",
+    lastUpdated: "January 2026",
+    forRoles: ["Admin", "Consultant"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          Users must be assigned to companies and sites to access the portal. This guide explains how site assignments work for different user roles.
+        </p>
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Client User Assignments
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Client users belong to a company and can access either all sites or specific sites within that company:
+          </p>
+          <StepList steps={[
+            "Navigate to Users from the sidebar",
+            "Click on the client user you want to configure",
+            "In the user's profile, you'll see their assigned company",
+            "Choose whether they have 'All Sites' access or 'Specific Sites' access",
+            "If 'Specific Sites', select which sites they should have access to",
+            "Save changes"
+          ]} />
+        </div>
+
+        <TipBox type="info">
+          Users with 'All Sites' access will automatically see any new sites added to their company. 
+          Users with 'Specific Sites' access will only see the sites you've explicitly assigned.
+        </TipBox>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Consultant Site Assignments
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Consultants are assigned to specific sites they manage. They can only see and work with their assigned sites:
+          </p>
+          <StepList steps={[
+            "Navigate to Users from the sidebar",
+            "Click on the consultant user",
+            "In the 'Site Assignments' section, click 'Manage Assignments'",
+            "Select the sites this consultant should have access to",
+            "Save the assignments"
+          ]} />
+        </div>
+
+        <TipBox type="warning">
+          Consultants cannot see any sites until they are explicitly assigned. Make sure to assign sites when creating a new consultant account.
+        </TipBox>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3">Permission Levels for Clients</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            When assigning sites to client users, you can also set their permission level:
+          </p>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-foreground">Viewer:</span> Can view documents and reports but cannot make changes
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <FileText className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-foreground">Contributor:</span> Can upload documents and submit for approval
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <Shield className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-foreground">Manager:</span> Full access including approving documents on behalf of the client
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "employment-law-cases",
+    title: "Employment Law Case Access",
+    icon: <Briefcase className="h-5 w-5" />,
+    description: "How case access works and adding users to Employment Law cases",
+    lastUpdated: "January 2026",
+    forRoles: ["Admin", "Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          Employment Law cases contain sensitive information and have restricted access by default. This guide explains how case access works.
+        </p>
+
+        <TipBox type="warning">
+          <strong>Important:</strong> By default, no users have access to Employment Law cases. Users must be explicitly added to each case to view or work with it.
+        </TipBox>
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            Why Cases Have Restricted Access
+          </h4>
+          <p className="text-sm text-muted-foreground">
+            Employment Law cases often contain confidential employee information, disciplinary records, and legal correspondence. 
+            To protect this sensitive data, access is controlled on a case-by-case basis. Even if a user has access to a site, 
+            they won't see any EL cases unless they're specifically granted access to each case.
+          </p>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Adding Users to a Case (Admin/Consultant)
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            To grant a user access to an Employment Law case:
+          </p>
+          <StepList steps={[
+            "Navigate to Employment Law from the sidebar",
+            "Find and open the case you want to manage",
+            "Look for the 'Case Access' or 'Manage Access' section",
+            "Click 'Add User' to grant access",
+            "Select the user(s) who should have access to this case",
+            "Choose their access level (View only, or Full access)",
+            "Save changes"
+          ]} />
+        </div>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <EyeOff className="h-4 w-4" />
+            What Users Without Access See
+          </h4>
+          <p className="text-sm text-muted-foreground">
+            If a user doesn't have access to any Employment Law cases, they will see an empty case list when they visit the 
+            Employment Law section. They will not be able to see that cases exist - ensuring complete confidentiality.
+          </p>
+        </div>
+
+        <TipBox type="info">
+          When you create a new Employment Law case, remember to add the relevant client users who need to be involved. 
+          The case creator (admin or consultant) automatically has access.
+        </TipBox>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3">Access Levels for Cases</h4>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-foreground">View Access:</span> Can view case details and documents but cannot make changes
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <FileText className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-foreground">Full Access:</span> Can view, add documents, update milestones, and manage case progress
+              </div>
             </li>
           </ul>
         </div>
