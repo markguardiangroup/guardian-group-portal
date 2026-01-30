@@ -36,6 +36,13 @@ A role-based access control model with tenant isolation is enforced:
 - **Client**: Access depends on site assignments, either all sites within their company or specific assigned sites.
 The `canUserAccessSite` helper function is critical for enforcing these rules.
 
+### User Site Assignment Management
+Admins can assign consultants and clients to sites directly from User Management:
+- **Consultants**: Can be assigned to any site across all companies
+- **Clients**: Can only be assigned to sites within their company
+- Confirmation dialogs are required before adding or removing site assignments
+- All assignment changes are logged in the audit trail
+
 ### Document Approval Workflow
 The platform supports two document approval workflows:
 - **Consultant-uploaded**: A three-stage process (Pending → Client Signed Off → Approved) with final consultant approval setting the renewal date.
