@@ -5567,8 +5567,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can see all users
-      if (user.role !== "admin") {
+      // Only admin and consultant can see all users (for admin reports)
+      if (user.role !== "admin" && user.role !== "consultant") {
         return res.status(403).json({ error: "Access denied" });
       }
       

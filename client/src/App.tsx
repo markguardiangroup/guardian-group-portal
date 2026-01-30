@@ -21,6 +21,7 @@ import SiteDetail from "@/pages/site-detail";
 import Companies from "@/pages/companies";
 import CompanyDetail from "@/pages/company-detail";
 import Reports from "@/pages/reports";
+import AdminReports from "@/pages/admin-reports";
 import Support from "@/pages/support";
 import Settings from "@/pages/settings";
 import UserManagement from "@/pages/user-management";
@@ -88,6 +89,7 @@ function Router() {
       <Route path="/sites" component={Sites} />
       <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/reports" component={Reports} />
+      <Route path="/admin-reports" component={AdminReports} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
       <Route path="/users" component={UserManagement} />

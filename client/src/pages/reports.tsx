@@ -41,23 +41,9 @@ import {
   Shield,
   Eye,
   EyeOff,
-  Users,
-  MapPin,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ComplianceSummary, Site, SiteWithDetails, Company, UserRole } from "@shared/schema";
-
-interface UserReportData {
-  id: string;
-  referenceNumber: string | null;
-  fullName: string;
-  email: string;
-  role: UserRole;
-  status: string;
-  companyId: string | null;
-  jobTitle?: string | null;
-  siteAssignments?: { siteId: string; siteName: string }[];
-}
+import type { ComplianceSummary, Site, SiteWithDetails, Company } from "@shared/schema";
 
 interface ReportData {
   summary: ComplianceSummary;
@@ -231,7 +217,6 @@ export default function Reports() {
   const [siteFilter, setSiteFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [showModuleReport, setShowModuleReport] = useState(false);
-  const [showUsersReport, setShowUsersReport] = useState(false);
 
   // Build query params for filtering
   const queryParams = new URLSearchParams();
@@ -262,60 +247,6 @@ export default function Reports() {
     queryKey: ["/api/sites"],
     enabled: showModuleReport,
   });
-
-  const { data: usersData = [] } = useQuery<UserReportData[]>({
-    queryKey: ["/api/users"],
-    enabled: showUsersReport,
-  });
-
-  const roleLabels: Record<UserRole, string> = {
-    admin: "Administrator",
-    consultant: "Consultant",
-    client: "Client",
-  };
-
-  const roleColors: Record<UserRole, string> = {
-    admin: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800",
-    consultant: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-    client: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-  };
-
-  const downloadUsersCSV = () => {
-    const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites"];
-    const rows = usersData.map(user => {
-      const company = companies.find(c => c.id === user.companyId);
-      const sites = user.siteAssignments?.map(s => s.siteName).join("; ") || "";
-      return [
-        user.referenceNumber || "",
-        user.fullName,
-        user.email,
-        roleLabels[user.role],
-        user.status,
-        company?.name || "",
-        user.jobTitle || "",
-        sites,
-      ];
-    });
-    
-    const csvContent = [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `users_report_${format(new Date(), "yyyy-MM-dd")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const downloadUsersExcel = () => {
-    // For simplicity, using CSV with .xls extension for Excel compatibility
-    downloadUsersCSV();
-  };
 
   const filteredSites = companyFilter === "all" 
     ? allSites 
@@ -487,22 +418,6 @@ export default function Reports() {
                 <div>
                   <p className="font-medium">Entity Module Status</p>
                   <p className="text-sm text-muted-foreground">Summary of all entities and their module access</p>
-                </div>
-              </div>
-              <Badge variant="secondary">View</Badge>
-            </div>
-            <div
-              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-              onClick={() => setShowUsersReport(true)}
-              data-testid="report-users"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
-                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="font-medium">Users Report</p>
-                  <p className="text-sm text-muted-foreground">List of all users with roles and site assignments</p>
                 </div>
               </div>
               <Badge variant="secondary">View</Badge>
@@ -706,140 +621,6 @@ export default function Reports() {
                     {sitesWithModules.filter(e => e.moduleAccess?.employment_law === "active").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active EL</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Users Report Dialog */}
-      <Dialog open={showUsersReport} onOpenChange={setShowUsersReport}>
-        <DialogContent className="max-w-5xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Users Report
-            </DialogTitle>
-            <DialogDescription>
-              Complete list of all users with their roles and site assignments. Generated on {format(new Date(), "MMMM d, yyyy 'at' h:mm a")}.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-muted-foreground">Roles:</span>
-                <Badge variant="outline" className={roleColors.admin}>Admin</Badge>
-                <Badge variant="outline" className={roleColors.consultant}>Consultant</Badge>
-                <Badge variant="outline" className={roleColors.client}>Client</Badge>
-              </div>
-              <Button variant="outline" size="sm" onClick={downloadUsersCSV} data-testid="button-download-users-csv">
-                <Download className="mr-2 h-4 w-4" />
-                Download CSV
-              </Button>
-            </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Reference</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Assigned Sites</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {usersData.map((user) => (
-                  <TableRow key={user.id} data-testid={`report-row-user-${user.id}`}>
-                    <TableCell>
-                      <span className="font-mono text-sm">{user.referenceNumber || "-"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{user.fullName}</div>
-                      {user.jobTitle && (
-                        <div className="text-xs text-muted-foreground">{user.jobTitle}</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={roleColors[user.role]}>
-                        {roleLabels[user.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.companyId ? (
-                        <span className="text-sm">
-                          {companies.find(c => c.id === user.companyId)?.name || "-"}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {user.siteAssignments && user.siteAssignments.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {user.siteAssignments.slice(0, 3).map((site) => (
-                            <Badge key={site.siteId} variant="outline" className="text-xs">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              {site.siteName}
-                            </Badge>
-                          ))}
-                          {user.siteAssignments.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{user.siteAssignments.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No assignments</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {usersData.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">
-                No users found.
-              </div>
-            )}
-
-            <div className="mt-6 border-t pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h4 className="font-medium">Summary</h4>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold">{usersData.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-purple-600">
-                    {usersData.filter(u => u.role === "admin").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Administrators</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-blue-600">
-                    {usersData.filter(u => u.role === "consultant").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Consultants</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-emerald-600">
-                    {usersData.filter(u => u.role === "client").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Clients</p>
                 </div>
               </div>
             </div>

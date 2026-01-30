@@ -17,6 +17,7 @@ import {
   GraduationCap,
   Lightbulb,
   HelpCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -159,6 +160,11 @@ const adminNavItems = [
     icon: GraduationCap,
   },
   {
+    title: "Admin Reports",
+    url: "/admin-reports",
+    icon: ShieldAlert,
+  },
+  {
     title: "Help & Training Guide",
     url: "/help",
     icon: HelpCircle,
@@ -175,6 +181,11 @@ const consultantNavItems = [
     title: "Sites",
     url: "/sites",
     icon: MapPin,
+  },
+  {
+    title: "Admin Reports",
+    url: "/admin-reports",
+    icon: ShieldAlert,
   },
   {
     title: "Help & Training Guide",
