@@ -437,56 +437,6 @@ export async function registerRoutes(
     }
   });
 
-  // Resend invitation (admin only)
-  app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
-    try {
-      const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can resend invitations" });
-      }
-      
-      const targetUser = await storage.getUser(req.params.userId);
-      if (!targetUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      if (targetUser.status !== "invited") {
-        return res.status(400).json({ error: "User has already activated their account" });
-      }
-      
-      // Invalidate any existing invitations for this user
-      await storage.invalidateUserInvitations(targetUser.id, "invite");
-      
-      // Generate new invitation token
-      const token = generateSecureToken();
-      const tokenHash = hashToken(token);
-      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
-      
-      await storage.createUserInvitation({
-        userId: targetUser.id,
-        email: targetUser.email,
-        tokenHash,
-        purpose: "invite",
-        expiresAt,
-        createdBy: currentUser.id,
-      });
-      
-      // Build the invite URL
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
-      
-      res.json({ 
-        success: true, 
-        inviteUrl,
-        inviteExpiresAt: expiresAt.toISOString(),
-        message: "Invitation link regenerated successfully"
-      });
-    } catch (error) {
-      console.error("Resend invitation error:", error);
-      res.status(500).json({ error: "Failed to resend invitation" });
-    }
-  });
-
   // Request password reset (public - no auth required)
   app.post("/api/auth/forgot-password", async (req, res) => {
     try {
@@ -551,34 +501,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get user's current invitation status (admin only)
-  app.get("/api/users/:userId/invitation", requireAuth, async (req, res) => {
-    try {
-      const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can view invitation status" });
-      }
-      
-      const invitations = await storage.getUserInvitationsByUser(req.params.userId);
-      const activeInvitation = invitations.find(inv => !inv.usedAt && new Date(inv.expiresAt) > new Date());
-      
-      if (!activeInvitation) {
-        return res.json({ hasActiveInvitation: false });
-      }
-      
-      // Generate the URL from the stored token hash
-      res.json({
-        hasActiveInvitation: true,
-        expiresAt: activeInvitation.expiresAt,
-        purpose: activeInvitation.purpose,
-      });
-    } catch (error) {
-      console.error("Get invitation status error:", error);
-      res.status(500).json({ error: "Failed to get invitation status" });
-    }
-  });
-
-  // ==================== END INVITATION ENDPOINTS ====================
+  // ==================== END PUBLIC INVITATION ENDPOINTS ====================
 
   // Authentication middleware for protected routes
   const requireAuth = (req: any, res: any, next: any) => {
@@ -632,6 +555,86 @@ export async function registerRoutes(
   app.use("/api/support", requireAuth);
   app.use("/api/audit", requireAuth);
   app.use("/api/modules", requireAuth);
+
+  // ==================== AUTHENTICATED INVITATION ENDPOINTS ====================
+
+  // Resend invitation (admin only)
+  app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can resend invitations" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (targetUser.status !== "invited") {
+        return res.status(400).json({ error: "User has already activated their account" });
+      }
+      
+      // Invalidate any existing invitations for this user
+      await storage.invalidateUserInvitations(targetUser.id, "invite");
+      
+      // Generate new invitation token
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+      
+      await storage.createUserInvitation({
+        userId: targetUser.id,
+        email: targetUser.email,
+        tokenHash,
+        purpose: "invite",
+        expiresAt,
+        createdBy: currentUser.id,
+      });
+      
+      // Build the invite URL
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
+      
+      res.json({ 
+        success: true, 
+        inviteUrl,
+        inviteExpiresAt: expiresAt.toISOString(),
+        message: "Invitation link regenerated successfully"
+      });
+    } catch (error) {
+      console.error("Resend invitation error:", error);
+      res.status(500).json({ error: "Failed to resend invitation" });
+    }
+  });
+
+  // Get user's current invitation status (admin only)
+  app.get("/api/users/:userId/invitation", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view invitation status" });
+      }
+      
+      const invitations = await storage.getUserInvitationsByUser(req.params.userId);
+      const activeInvitation = invitations.find(inv => !inv.usedAt && new Date(inv.expiresAt) > new Date());
+      
+      if (!activeInvitation) {
+        return res.json({ hasActiveInvitation: false });
+      }
+      
+      res.json({
+        hasActiveInvitation: true,
+        expiresAt: activeInvitation.expiresAt,
+        purpose: activeInvitation.purpose,
+      });
+    } catch (error) {
+      console.error("Get invitation status error:", error);
+      res.status(500).json({ error: "Failed to get invitation status" });
+    }
+  });
+
+  // ==================== END AUTHENTICATED INVITATION ENDPOINTS ====================
 
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {

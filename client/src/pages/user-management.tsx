@@ -56,6 +56,10 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  RefreshCw,
+  Link,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -76,7 +80,7 @@ interface UserWithAssignments {
   fullName: string;
   role: UserRole;
   companyId: string | null;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "invited";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
@@ -141,7 +145,6 @@ export default function UserManagement() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     username: "",
-    password: "",
     email: "",
     fullName: "",
     title: "",
@@ -158,6 +161,8 @@ export default function UserManagement() {
     consultantTier: "" as "" | "standard" | "senior" | "principal",
     clientPermissionRole: "viewer" as "viewer" | "contributor" | "manager",
   });
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
@@ -302,16 +307,11 @@ export default function UserManagement() {
       const response = await apiRequest("POST", "/api/users", payload);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "User Created",
-        description: "New user has been created successfully.",
-      });
       setIsAddUserOpen(false);
       setNewUser({
         username: "",
-        password: "",
         email: "",
         fullName: "",
         title: "",
@@ -328,6 +328,16 @@ export default function UserManagement() {
         consultantTier: "",
         clientPermissionRole: "viewer",
       });
+      // Show invite URL dialog if returned
+      if (data.inviteUrl) {
+        setInviteUrl(data.inviteUrl);
+        setShowInviteDialog(true);
+      } else {
+        toast({
+          title: "User Created",
+          description: "New user has been created successfully.",
+        });
+      }
     },
     onError: () => {
       toast({ title: "Failed to create user", variant: "destructive" });
@@ -335,8 +345,8 @@ export default function UserManagement() {
   });
 
   const handleAddUser = () => {
-    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-      toast({ title: "Username, email and password are required", variant: "destructive" });
+    if (!newUser.username.trim() || !newUser.email.trim()) {
+      toast({ title: "Username and email are required", variant: "destructive" });
       return;
     }
     // Auto-generate fullName from firstName and lastName if not provided
@@ -346,12 +356,50 @@ export default function UserManagement() {
     createUserMutation.mutate({ ...newUser, fullName });
   };
 
+  const resendInviteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("POST", `/api/users/${userId}/resend-invite`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.inviteUrl) {
+        setInviteUrl(data.inviteUrl);
+        setShowInviteDialog(true);
+      }
+      toast({
+        title: "Invitation Resent",
+        description: "A new invitation link has been generated.",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to resend invitation", variant: "destructive" });
+    },
+  });
+
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
     toast({
       title: newStatus === "active" ? "User Activated" : "User Deactivated",
       description: `${targetUser.fullName} has been ${newStatus === "active" ? "activated" : "deactivated"}.`,
     });
+  };
+
+  const handleCopyInviteLink = async () => {
+    if (inviteUrl) {
+      try {
+        await navigator.clipboard.writeText(inviteUrl);
+        toast({
+          title: "Link Copied",
+          description: "The invitation link has been copied to your clipboard.",
+        });
+      } catch (err) {
+        toast({
+          title: "Copy Failed",
+          description: "Please copy the link manually.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
@@ -640,9 +688,14 @@ export default function UserManagement() {
                     {renderSiteAssignments(u)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={u.status === "active" ? "default" : "secondary"}>
+                    <Badge 
+                      variant={u.status === "active" ? "default" : u.status === "invited" ? "outline" : "secondary"}
+                      className={u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" : ""}
+                    >
                       {u.status === "active" ? (
                         <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                      ) : u.status === "invited" ? (
+                        <><Clock className="h-3 w-3 mr-1" />Invited</>
                       ) : (
                         <><UserX className="h-3 w-3 mr-1" />Inactive</>
                       )}
@@ -662,13 +715,25 @@ export default function UserManagement() {
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit User
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
-                              {u.status === "active" ? (
-                                <><UserX className="h-4 w-4 mr-2" />Deactivate</>
-                              ) : (
-                                <><UserCheck className="h-4 w-4 mr-2" />Activate</>
-                              )}
-                            </DropdownMenuItem>
+                            {u.status === "invited" && (
+                              <DropdownMenuItem 
+                                onClick={() => resendInviteMutation.mutate(u.id)}
+                                disabled={resendInviteMutation.isPending}
+                                data-testid={`button-resend-invite-${u.id}`}
+                              >
+                                <RefreshCw className={`h-4 w-4 mr-2 ${resendInviteMutation.isPending ? 'animate-spin' : ''}`} />
+                                Resend Invitation
+                              </DropdownMenuItem>
+                            )}
+                            {u.status !== "invited" && (
+                              <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
+                                {u.status === "active" ? (
+                                  <><UserX className="h-4 w-4 mr-2" />Deactivate</>
+                                ) : (
+                                  <><UserCheck className="h-4 w-4 mr-2" />Activate</>
+                                )}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                           </>
                         )}
@@ -982,18 +1047,7 @@ export default function UserManagement() {
                       data-testid="input-new-username"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-password">Password *</Label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      placeholder="Enter password"
-                      data-testid="input-new-password"
-                    />
                   </div>
-                </div>
                 <div className="grid gap-2">
                   <Label htmlFor="new-email">Email *</Label>
                   <Input
@@ -1222,6 +1276,47 @@ export default function UserManagement() {
             </Button>
             <Button onClick={handleAddUser} disabled={createUserMutation.isPending} data-testid="button-create-user">
               {createUserMutation.isPending ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="h-5 w-5" />
+              Invitation Link
+            </DialogTitle>
+            <DialogDescription>
+              Share this link with the user so they can set up their password and activate their account. 
+              The link expires in 48 hours.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-2">
+              <Input
+                value={inviteUrl || ""}
+                readOnly
+                className="flex-1 font-mono text-sm"
+                data-testid="input-invite-url"
+              />
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={handleCopyInviteLink}
+                data-testid="button-copy-invite"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              Copy this link and share it securely with the new user. They will be prompted to create a password when they click the link.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowInviteDialog(false)} data-testid="button-close-invite-dialog">
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
