@@ -479,25 +479,35 @@ export default function TrainingLibrary() {
         )}
       </div>
 
-      {/* Module Tabs */}
+      {/* Module Tabs - Enhanced Prominence */}
       <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as ModuleType)}>
-        <TabsList className="grid w-full grid-cols-4">
+        <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border">
           {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => {
             const Icon = moduleIcons[mod];
             const isActive = activeModule === mod;
+            const activeStyles: Record<string, string> = {
+              health_safety: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700",
+              human_resources: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700",
+              employment_law: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700",
+              support: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700",
+            };
             return (
-              <TabsTrigger 
-                key={mod} 
-                value={mod}
+              <button
+                key={mod}
+                onClick={() => setActiveModule(mod)}
                 data-testid={`tab-${mod}`}
-                className={`flex items-center gap-2 ${isActive ? moduleColors[mod] : ""}`}
+                className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
+                  isActive 
+                    ? `${activeStyles[mod]} border shadow-sm ${moduleColors[mod]}` 
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+                }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? "" : "text-muted-foreground"}`} />
-                <span className={`hidden sm:inline ${isActive ? "" : "text-muted-foreground"}`}>{moduleNames[mod]}</span>
-              </TabsTrigger>
+                <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isActive ? "" : ""}`} />
+                <span className="text-xs sm:text-sm">{moduleNames[mod]}</span>
+              </button>
             );
           })}
-        </TabsList>
+        </div>
 
         {(["health_safety", "human_resources", "employment_law", "support"] as ModuleType[]).map((mod) => (
           <TabsContent key={mod} value={mod} className="mt-6">
