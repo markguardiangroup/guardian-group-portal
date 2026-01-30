@@ -38,13 +38,12 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Link } from "wouter";
-import type { Site, DocumentTypeRecord, ModuleType } from "@shared/schema";
+import type { Site, ModuleType } from "@shared/schema";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
-  documentTypeId: z.string().min(1, "Please select a document type"),
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),
   folderId: z.string().optional(),
@@ -90,21 +89,6 @@ const modulePaths: Record<ModuleType, string> = {
   reports: "/reports",
 };
 
-interface FolderTemplate {
-  id: string;
-  name: string;
-  code: string;
-  module: string;
-  parentId: string | null;
-  isActive: boolean;
-}
-
-interface FolderDocumentTypeRule {
-  id: string;
-  folderTemplateId: string;
-  documentTypeId: string;
-}
-
 interface DocumentFolder {
   id: string;
   name: string;
@@ -145,25 +129,12 @@ export default function DocumentUpload() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: documentTypes } = useQuery<DocumentTypeRecord[]>({
-    queryKey: ["/api/document-types"],
-  });
-
-  const { data: folderTemplates } = useQuery<FolderTemplate[]>({
-    queryKey: ["/api/folder-templates"],
-  });
-
-  const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
-    queryKey: ["/api/folder-document-type-rules"],
-  });
-
   const form = useForm<DocumentUploadForm>({
     resolver: zodResolver(documentUploadSchema),
     defaultValues: {
       title: "",
       description: "",
       module: initialModule,
-      documentTypeId: "",
       uploadScope: "site",
       siteId: "",
       folderId: "",
@@ -174,7 +145,6 @@ export default function DocumentUpload() {
 
   const selectedModule = form.watch("module");
   const selectedSiteId = form.watch("siteId");
-  const selectedDocTypeId = form.watch("documentTypeId");
   const uploadScope = form.watch("uploadScope");
 
   // Get unique companies from sites
@@ -185,10 +155,6 @@ export default function DocumentUpload() {
   // Filter sites by selected company
   const filteredSites = sites?.filter(site => 
     selectedCompany === "all" || site.companyName === selectedCompany
-  );
-
-  const filteredDocumentTypes = documentTypes?.filter(
-    (dt) => dt.module === selectedModule && dt.isActive
   );
 
   // Provision folders mutation
@@ -241,26 +207,8 @@ export default function DocumentUpload() {
   // Filter folders by selected module
   const moduleFolders = siteFolders?.filter(f => f.module === selectedModule) || [];
 
-  // Auto-select folder based on document type's assigned folder
-  const suggestedFolderId = (() => {
-    if (!selectedDocTypeId || !folderRules || !folderTemplates || !siteFolders) return null;
-    
-    // Find rule for this document type
-    const rule = folderRules.find(r => r.documentTypeId === selectedDocTypeId);
-    if (!rule) return null;
-    
-    // Find template name
-    const template = folderTemplates.find(t => t.id === rule.folderTemplateId);
-    if (!template) return null;
-    
-    // Find matching site folder by name
-    const matchingFolder = siteFolders.find(f => f.name === template.name && f.module === selectedModule);
-    return matchingFolder?.id || null;
-  })();
-
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
-      const selectedDocType = documentTypes?.find((dt) => dt.id === data.documentTypeId);
       
       if (data.uploadScope === "company" && selectedCompany !== "all") {
         // Upload to all sites in the company
@@ -272,12 +220,11 @@ export default function DocumentUpload() {
             title: data.title,
             description: data.description,
             module: data.module,
-            documentTypeId: data.documentTypeId,
             siteId: site.id,
             folderId: data.folderId || undefined,
             reviewDate: data.reviewDate,
             expiryDate: data.expiryDate,
-            type: selectedDocType?.code || "policy",
+            type: "supporting_document",
             fileName: selectedFile?.name || "document.pdf",
             fileSize: selectedFile?.size || 0,
             mimeType: selectedFile?.type || "application/pdf",
@@ -292,12 +239,11 @@ export default function DocumentUpload() {
           title: data.title,
           description: data.description,
           module: data.module,
-          documentTypeId: data.documentTypeId,
           siteId: data.siteId,
           folderId: data.folderId || undefined,
           reviewDate: data.reviewDate,
           expiryDate: data.expiryDate,
-          type: selectedDocType?.code || "policy",
+          type: "supporting_document",
           fileName: selectedFile?.name || "document.pdf",
           fileSize: selectedFile?.size || 0,
           mimeType: selectedFile?.type || "application/pdf",
@@ -467,10 +413,7 @@ export default function DocumentUpload() {
                         <FormItem>
                           <FormLabel>Module</FormLabel>
                           <Select 
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              form.setValue("documentTypeId", "");
-                            }} 
+                            onValueChange={field.onChange} 
                             value={field.value}
                             disabled={isModulePreselected}
                           >
@@ -495,40 +438,7 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="documentTypeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Document Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-document-type">
-                                <SelectValue placeholder="Select document type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {filteredDocumentTypes?.map((docType) => (
-                                <SelectItem key={docType.id} value={docType.id}>
-                                  {docType.name}
-                                  {docType.isRequired && " *"}
-                                </SelectItem>
-                              ))}
-                              {(!filteredDocumentTypes || filteredDocumentTypes.length === 0) && (
-                                <SelectItem value="no-doc-types" disabled>
-                                  No document types available
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>
-                            Document types marked with * are required for compliance
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                                      </div>
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormItem>
@@ -657,7 +567,7 @@ export default function DocumentUpload() {
                           ) : moduleFolders.length > 0 ? (
                             <Select 
                               onValueChange={field.onChange} 
-                              value={field.value || suggestedFolderId || ""}
+                              value={field.value || ""}
                             >
                               <FormControl>
                                 <SelectTrigger data-testid="select-folder">
@@ -668,7 +578,6 @@ export default function DocumentUpload() {
                                 {moduleFolders.map((folder) => (
                                   <SelectItem key={folder.id} value={folder.id}>
                                     {folder.name}
-                                    {suggestedFolderId === folder.id && " (suggested)"}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -679,9 +588,7 @@ export default function DocumentUpload() {
                             </div>
                           )}
                           <FormDescription>
-                            {suggestedFolderId 
-                              ? "Folder auto-selected based on document type assignment" 
-                              : "Select a folder to organize this document"}
+                            Select a folder to organize this document
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
