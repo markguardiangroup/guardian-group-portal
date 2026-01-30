@@ -250,7 +250,7 @@ export default function Sites() {
                 <TableHead>Site Name</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead className="hidden md:table-cell">Address</TableHead>
-                <TableHead className="hidden lg:table-cell">Site Manager</TableHead>
+                <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
                 <TableHead>Compliance</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
