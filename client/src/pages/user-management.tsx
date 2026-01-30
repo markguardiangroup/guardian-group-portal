@@ -60,6 +60,9 @@ import {
   RefreshCw,
   Link,
   Clock,
+  MapPin,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -163,6 +166,21 @@ export default function UserManagement() {
   });
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  
+  // Site assignment state
+  const [userSiteAssignments, setUserSiteAssignments] = useState<{
+    siteId: string;
+    siteName: string;
+    companyId: string;
+    companyName: string;
+    isPrimary: boolean;
+  }[]>([]);
+  const [siteAssignmentConfirm, setSiteAssignmentConfirm] = useState<{
+    type: "add" | "remove";
+    siteId: string;
+    siteName: string;
+  } | null>(null);
+  const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
 
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -276,6 +294,13 @@ export default function UserManagement() {
       consultantTier: u.consultantTier || "standard",
       clientPermissionRole: u.clientPermissionRole || "viewer",
     });
+    // Fetch site assignments for consultants and clients
+    if (u.role !== "admin" && isAdmin) {
+      fetchUserSiteAssignments(u.id);
+    } else {
+      setUserSiteAssignments([]);
+    }
+    setSelectedSiteToAdd("");
   };
 
   const updateUserMutation = useMutation({
@@ -308,6 +333,127 @@ export default function UserManagement() {
   const handleSaveEdit = () => {
     if (!editingUser || !editFormData) return;
     updateUserMutation.mutate({ id: editingUser.id, data: editFormData });
+  };
+
+  // Fetch site assignments when editing a user
+  const fetchUserSiteAssignments = async (userId: string) => {
+    try {
+      const response = await apiRequest("GET", `/api/users/${userId}/all-site-assignments`);
+      const data = await response.json();
+      setUserSiteAssignments(data || []);
+    } catch (error) {
+      console.error("Failed to fetch user site assignments:", error);
+      setUserSiteAssignments([]);
+    }
+  };
+
+  // Add site assignment mutation
+  const addSiteAssignmentMutation = useMutation({
+    mutationFn: async ({ userId, siteId }: { userId: string; siteId: string }) => {
+      const response = await apiRequest("POST", `/api/users/${userId}/site-assignments/${siteId}`, {});
+      return response.json();
+    },
+    onSuccess: () => {
+      if (editingUser) {
+        fetchUserSiteAssignments(editingUser.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      toast({
+        title: "Site Assigned",
+        description: "Site has been assigned to the user successfully.",
+      });
+      setSiteAssignmentConfirm(null);
+      setSelectedSiteToAdd("");
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to assign site", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      setSiteAssignmentConfirm(null);
+    },
+  });
+
+  // Remove site assignment mutation
+  const removeSiteAssignmentMutation = useMutation({
+    mutationFn: async ({ userId, siteId }: { userId: string; siteId: string }) => {
+      const response = await apiRequest("DELETE", `/api/users/${userId}/site-assignments/${siteId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      if (editingUser) {
+        fetchUserSiteAssignments(editingUser.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      toast({
+        title: "Site Removed",
+        description: "Site has been removed from the user successfully.",
+      });
+      setSiteAssignmentConfirm(null);
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to remove site", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      setSiteAssignmentConfirm(null);
+    },
+  });
+
+  // Get available sites for assignment (filtered based on user role)
+  const getAvailableSitesForUser = () => {
+    if (!editingUser) return [];
+    
+    const assignedSiteIds = userSiteAssignments.map(a => a.siteId);
+    
+    if (editingUser.role === "consultant") {
+      // Consultants can be assigned to any site
+      return sites.filter(s => !assignedSiteIds.includes(s.id));
+    } else if (editingUser.role === "client" && editingUser.companyId) {
+      // Clients can only be assigned to sites in their company
+      return sites.filter(s => s.companyId === editingUser.companyId && !assignedSiteIds.includes(s.id));
+    }
+    return [];
+  };
+
+  const handleAddSiteConfirm = () => {
+    if (!editingUser || !selectedSiteToAdd) return;
+    const site = sites.find(s => s.id === selectedSiteToAdd);
+    if (site) {
+      setSiteAssignmentConfirm({
+        type: "add",
+        siteId: selectedSiteToAdd,
+        siteName: site.name,
+      });
+    }
+  };
+
+  const handleRemoveSiteClick = (siteId: string, siteName: string) => {
+    setSiteAssignmentConfirm({
+      type: "remove",
+      siteId,
+      siteName,
+    });
+  };
+
+  const handleConfirmSiteAssignment = () => {
+    if (!editingUser || !siteAssignmentConfirm) return;
+    
+    if (siteAssignmentConfirm.type === "add") {
+      addSiteAssignmentMutation.mutate({
+        userId: editingUser.id,
+        siteId: siteAssignmentConfirm.siteId,
+      });
+    } else {
+      removeSiteAssignmentMutation.mutate({
+        userId: editingUser.id,
+        siteId: siteAssignmentConfirm.siteId,
+      });
+    }
   };
 
   const createUserMutation = useMutation({
@@ -1017,6 +1163,94 @@ export default function UserManagement() {
                 </div>
               </div>
 
+              {/* Site Assignments section - only for consultants and clients */}
+              {editFormData.role !== "admin" && isAdmin && (
+                <div className="border-b pb-4">
+                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Site Assignments
+                  </h4>
+                  
+                  {editFormData.role === "client" && !editFormData.companyId && (
+                    <p className="text-sm text-muted-foreground">
+                      Please assign a company first before adding site assignments.
+                    </p>
+                  )}
+                  
+                  {(editFormData.role === "consultant" || (editFormData.role === "client" && editFormData.companyId)) && (
+                    <div className="space-y-3">
+                      {/* Current assignments */}
+                      {userSiteAssignments.length > 0 ? (
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {userSiteAssignments.map((assignment) => (
+                              <Badge
+                                key={assignment.siteId}
+                                variant="secondary"
+                                className="flex items-center gap-1 pr-1"
+                              >
+                                <span>{assignment.siteName}</span>
+                                <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 ml-1 hover:bg-destructive/20"
+                                  onClick={() => handleRemoveSiteClick(assignment.siteId, assignment.siteName)}
+                                  data-testid={`button-remove-site-${assignment.siteId}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No sites assigned yet.</p>
+                      )}
+                      
+                      {/* Add new assignment */}
+                      {getAvailableSitesForUser().length > 0 && (
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1 grid gap-2">
+                            <Label htmlFor="add-site" className="text-xs text-muted-foreground">Add site</Label>
+                            <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
+                              <SelectTrigger id="add-site" data-testid="select-add-site">
+                                <SelectValue placeholder="Select a site to add" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getAvailableSitesForUser().map((site) => {
+                                  const company = companies.find(c => c.id === site.companyId);
+                                  return (
+                                    <SelectItem key={site.id} value={site.id}>
+                                      {site.name} {company ? `(${company.name})` : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddSiteConfirm}
+                            disabled={!selectedSiteToAdd}
+                            data-testid="button-add-site"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {getAvailableSitesForUser().length === 0 && userSiteAssignments.length > 0 && (
+                        <p className="text-xs text-muted-foreground">All available sites have been assigned.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
                 <div className="grid gap-2">
@@ -1346,6 +1580,51 @@ export default function UserManagement() {
           <DialogFooter>
             <Button onClick={() => setShowInviteDialog(false)} data-testid="button-close-invite-dialog">
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Site Assignment Confirmation Dialog */}
+      <Dialog open={!!siteAssignmentConfirm} onOpenChange={(open) => { if (!open) setSiteAssignmentConfirm(null); }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {siteAssignmentConfirm?.type === "add" ? "Confirm Site Assignment" : "Confirm Site Removal"}
+            </DialogTitle>
+            <DialogDescription>
+              {siteAssignmentConfirm?.type === "add" ? (
+                <>
+                  Are you sure you want to assign <strong>{editingUser?.fullName}</strong> to <strong>{siteAssignmentConfirm?.siteName}</strong>?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to remove <strong>{editingUser?.fullName}</strong> from <strong>{siteAssignmentConfirm?.siteName}</strong>?
+                  <br /><br />
+                  This will revoke their access to this site's documents and compliance data.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setSiteAssignmentConfirm(null)}
+              data-testid="button-cancel-site-assignment"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant={siteAssignmentConfirm?.type === "remove" ? "destructive" : "default"}
+              onClick={handleConfirmSiteAssignment}
+              disabled={addSiteAssignmentMutation.isPending || removeSiteAssignmentMutation.isPending}
+              data-testid="button-confirm-site-assignment"
+            >
+              {addSiteAssignmentMutation.isPending || removeSiteAssignmentMutation.isPending 
+                ? "Processing..." 
+                : siteAssignmentConfirm?.type === "add" ? "Yes, Assign Site" : "Yes, Remove Site"
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -200,10 +200,12 @@ export type InsertSiteRequest = z.infer<typeof insertSiteRequestSchema>;
 export type SiteRequest = typeof siteRequests.$inferSelect;
 
 // Consultant-Site assignments (which consultants work with which sites)
+// Note: entityId is the site ID (legacy naming from original design)
 export const consultantAssignments = pgTable("consultant_assignments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   consultantId: varchar("consultant_id").notNull(),
-  siteId: varchar("site_id").notNull(),
+  entityId: varchar("entity_id").notNull(), // This is the site ID
+  siteId: varchar("site_id"), // Optional, kept for compatibility
   isPrimary: boolean("is_primary").notNull().default(false),
   canManageModules: boolean("can_manage_modules").notNull().default(false),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),

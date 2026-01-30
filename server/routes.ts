@@ -6195,6 +6195,221 @@ export async function registerRoutes(
     }
   });
 
+  // Get all site assignments for any user (consultants or clients)
+  app.get("/api/users/:userId/all-site-assignments", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can view user assignments
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view user site assignments" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const allSites = await storage.getSites();
+      const companies = await storage.getCompanies();
+      
+      if (targetUser.role === "consultant") {
+        // Get all consultant assignments
+        const assignments: { siteId: string; siteName: string; companyId: string; companyName: string; isPrimary: boolean }[] = [];
+        
+        for (const site of allSites) {
+          const siteAssignments = await storage.getConsultantAssignments(site.id);
+          const userAssignment = siteAssignments.find(a => a.consultantId === targetUser.id);
+          if (userAssignment) {
+            const company = companies.find(c => c.id === site.companyId);
+            assignments.push({
+              siteId: site.id,
+              siteName: site.name,
+              companyId: site.companyId,
+              companyName: company?.name || "Unknown",
+              isPrimary: userAssignment.isPrimary || false,
+            });
+          }
+        }
+        
+        res.json(assignments);
+      } else if (targetUser.role === "client") {
+        // Get all client site assignments
+        const clientSites = await storage.getClientSites(targetUser.id);
+        
+        const assignments = clientSites.map(a => {
+          const site = allSites.find(s => s.id === a.siteId);
+          const company = companies.find(c => c.id === site?.companyId);
+          return {
+            siteId: a.siteId,
+            siteName: site?.name || "Unknown",
+            companyId: site?.companyId || "",
+            companyName: company?.name || "Unknown",
+            isPrimary: a.isPrimary || false,
+          };
+        });
+        
+        res.json(assignments);
+      } else {
+        // Admins don't have site assignments (they have full access)
+        res.json([]);
+      }
+    } catch (error) {
+      console.error("Get user site assignments error:", error);
+      res.status(500).json({ error: "Failed to fetch user site assignments" });
+    }
+  });
+
+  // Add site assignment to user (admin only)
+  app.post("/api/users/:userId/site-assignments/:siteId", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can add site assignments
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const site = await storage.getSite(req.params.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      const { isPrimary } = req.body;
+      
+      if (targetUser.role === "consultant") {
+        // Assign consultant to site
+        const assignment = await storage.assignConsultant({
+          consultantId: targetUser.id,
+          siteId: site.id,
+          isPrimary: isPrimary || false,
+        });
+        
+        // Create audit log
+        await storage.createAuditLog({
+          action: "consultant_assigned",
+          entityType: "site",
+          entityId: site.id,
+          userId: currentUser.id,
+          userName: currentUser.fullName,
+          details: `Assigned consultant ${targetUser.fullName} to site ${site.name}`,
+          metadata: { consultantId: targetUser.id, siteId: site.id },
+        });
+        
+        res.json(assignment);
+      } else if (targetUser.role === "client") {
+        // Validate client belongs to the site's company
+        if (targetUser.companyId !== site.companyId) {
+          return res.status(400).json({ 
+            error: "Client can only be assigned to sites within their company" 
+          });
+        }
+        
+        // Assign client to site
+        const assignment = await storage.addClientSiteAssignment({
+          clientId: targetUser.id,
+          siteId: site.id,
+          isPrimary: isPrimary || false,
+        });
+        
+        // Create audit log
+        await storage.createAuditLog({
+          action: "client_site_assigned",
+          entityType: "site",
+          entityId: site.id,
+          userId: currentUser.id,
+          userName: currentUser.fullName,
+          details: `Assigned client ${targetUser.fullName} to site ${site.name}`,
+          metadata: { clientId: targetUser.id, siteId: site.id },
+        });
+        
+        res.json(assignment);
+      } else {
+        res.status(400).json({ error: "Admins do not need site assignments" });
+      }
+    } catch (error) {
+      console.error("Add site assignment error:", error);
+      res.status(500).json({ error: "Failed to add site assignment" });
+    }
+  });
+
+  // Remove site assignment from user (admin only)
+  app.delete("/api/users/:userId/site-assignments/:siteId", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Only admin can remove site assignments
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const site = await storage.getSite(req.params.siteId);
+      if (!site) {
+        return res.status(404).json({ error: "Site not found" });
+      }
+      
+      let removed = false;
+      
+      if (targetUser.role === "consultant") {
+        removed = await storage.removeConsultantAssignment(targetUser.id, site.id);
+        
+        if (removed) {
+          await storage.createAuditLog({
+            action: "consultant_unassigned",
+            entityType: "site",
+            entityId: site.id,
+            userId: currentUser.id,
+            userName: currentUser.fullName,
+            details: `Removed consultant ${targetUser.fullName} from site ${site.name}`,
+            metadata: { consultantId: targetUser.id, siteId: site.id },
+          });
+        }
+      } else if (targetUser.role === "client") {
+        removed = await storage.removeClientSiteAssignment(targetUser.id, site.id);
+        
+        if (removed) {
+          await storage.createAuditLog({
+            action: "client_site_unassigned",
+            entityType: "site",
+            entityId: site.id,
+            userId: currentUser.id,
+            userName: currentUser.fullName,
+            details: `Removed client ${targetUser.fullName} from site ${site.name}`,
+            metadata: { clientId: targetUser.id, siteId: site.id },
+          });
+        }
+      }
+      
+      if (!removed) {
+        return res.status(404).json({ error: "Assignment not found" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove site assignment error:", error);
+      res.status(500).json({ error: "Failed to remove site assignment" });
+    }
+  });
+
   // Update user
   app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {

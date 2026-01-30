@@ -2351,7 +2351,7 @@ export class MemStorage implements IStorage {
   // Consultant Assignments - Database backed
   async getConsultantAssignments(siteId: string): Promise<ConsultantAssignment[]> {
     const results = await db.select().from(consultantAssignmentsTable)
-      .where(eq(consultantAssignmentsTable.siteId, siteId));
+      .where(eq(consultantAssignmentsTable.entityId, siteId));
     return results;
   }
 
@@ -2362,11 +2362,14 @@ export class MemStorage implements IStorage {
   }
 
   async assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment> {
+    // Use entityId for site (legacy naming from original design)
+    const siteId = assignment.siteId || assignment.entityId;
+    
     // Check if already assigned
     const [existing] = await db.select().from(consultantAssignmentsTable)
       .where(and(
         eq(consultantAssignmentsTable.consultantId, assignment.consultantId),
-        eq(consultantAssignmentsTable.siteId, assignment.siteId)
+        eq(consultantAssignmentsTable.entityId, siteId)
       ));
     if (existing) {
       return existing;
@@ -2374,7 +2377,8 @@ export class MemStorage implements IStorage {
 
     const [newAssignment] = await db.insert(consultantAssignmentsTable).values({
       consultantId: assignment.consultantId,
-      siteId: assignment.siteId,
+      entityId: siteId, // Main site ID field
+      siteId: siteId, // Also populate for compatibility
       isPrimary: assignment.isPrimary ?? false,
       canManageModules: assignment.canManageModules ?? false,
     }).returning();
@@ -2386,7 +2390,7 @@ export class MemStorage implements IStorage {
       .set(updates)
       .where(and(
         eq(consultantAssignmentsTable.consultantId, consultantId),
-        eq(consultantAssignmentsTable.siteId, siteId)
+        eq(consultantAssignmentsTable.entityId, siteId)
       ))
       .returning();
     return updated;
@@ -2396,7 +2400,7 @@ export class MemStorage implements IStorage {
     const result = await db.delete(consultantAssignmentsTable)
       .where(and(
         eq(consultantAssignmentsTable.consultantId, consultantId),
-        eq(consultantAssignmentsTable.siteId, siteId)
+        eq(consultantAssignmentsTable.entityId, siteId)
       ))
       .returning();
     return result.length > 0;
