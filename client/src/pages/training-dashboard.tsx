@@ -105,9 +105,10 @@ export default function TrainingDashboard() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesData } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies"],
   });
+  const companies = companiesData?.companies || [];
 
   const { data: trainingBookings = [], isLoading } = useQuery<TrainingBooking[]>({
     queryKey: ["/api/training-bookings"],
