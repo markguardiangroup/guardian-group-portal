@@ -7,7 +7,7 @@ import crypto from "crypto";
 import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
-import { registerObjectStorageRoutes, objectStorageClient } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -1305,23 +1305,20 @@ export async function registerRoutes(
         metadata: null,
       });
 
-      // Extract the object key from the fileUrl (remove /objects/ prefix)
-      const objectKey = fileUrl.replace(/^\/objects\//, '');
+      // Get the file from object storage using the ObjectStorageService
+      const objectStorageService = new ObjectStorageService();
       
-      // Get the file from object storage
-      const fileData = await objectStorageClient.downloadAsBytes(objectKey);
-      
-      if (!fileData) {
-        return res.status(404).json({ error: "File not found in storage" });
+      try {
+        const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+        
+        // Download the file to the response with the proper filename
+        await objectStorageService.downloadObject(objectFile, res, 0, fileName);
+      } catch (storageError: any) {
+        if (storageError.name === 'ObjectNotFoundError') {
+          return res.status(404).json({ error: "File not found in storage" });
+        }
+        throw storageError;
       }
-
-      // Set response headers for file download
-      res.setHeader('Content-Type', mimeType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.setHeader('Content-Length', fileData.length);
-      
-      // Send the file
-      res.send(Buffer.from(fileData));
     } catch (error) {
       console.error("Document download error:", error);
       res.status(500).json({ error: "Failed to download document" });
