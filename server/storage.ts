@@ -304,7 +304,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  // Users are now stored in the database, not in memory
   private companies: Map<string, Company>;
   private sites: Map<string, Site>;
   private documents: Map<string, Document>;
@@ -334,7 +334,7 @@ export class MemStorage implements IStorage {
   private userCounter: number = 0;
 
   constructor() {
-    this.users = new Map();
+    // Users are now stored in the database
     this.companies = new Map();
     this.sites = new Map();
     this.documents = new Map();
@@ -364,92 +364,11 @@ export class MemStorage implements IStorage {
   private initializeSampleData() {
     const now = new Date();
     
-    // Create sample users
-    this.userCounter = 5; // Start counter after sample data
-    const admin: User = {
-      id: "user-admin",
-      referenceNumber: "ADM-00001",
-      username: "admin",
-      password: "admin123",
-      email: "admin@guardiangroup.com",
-      fullName: "System Administrator",
-      role: "admin",
-      companyId: null,
-      status: "active",
-      consultantTier: null,
-      clientPermissionRole: null,
-      lastLoginAt: null,
-      createdAt: now,
-    };
-    this.users.set(admin.id, admin);
-
-    const consultant1: User = {
-      id: "user-1",
-      referenceNumber: "CON-00002",
-      username: "john.doe",
-      password: "consultant123",
-      email: "john.doe@guardiangroup.com",
-      fullName: "John Doe",
-      role: "consultant",
-      companyId: null,
-      status: "active",
-      consultantTier: "senior",
-      clientPermissionRole: null,
-      lastLoginAt: null,
-      createdAt: now,
-    };
-    this.users.set(consultant1.id, consultant1);
-
-    const consultant2: User = {
-      id: "user-consultant-2",
-      referenceNumber: "CON-00003",
-      username: "jane.smith",
-      password: "consultant123",
-      email: "jane.smith@guardiangroup.com",
-      fullName: "Jane Smith",
-      role: "consultant",
-      companyId: null,
-      status: "active",
-      consultantTier: "standard",
-      clientPermissionRole: null,
-      lastLoginAt: null,
-      createdAt: now,
-    };
-    this.users.set(consultant2.id, consultant2);
-
-    const client1: User = {
-      id: "user-client-1",
-      referenceNumber: "CLI-00004",
-      username: "sarah.acme",
-      password: "client123",
-      email: "sarah@acme-mfg.com",
-      fullName: "Sarah Johnson",
-      role: "client",
-      companyId: "company-1",
-      status: "active",
-      consultantTier: null,
-      clientPermissionRole: "owner",
-      lastLoginAt: null,
-      createdAt: now,
-    };
-    this.users.set(client1.id, client1);
-
-    const client2: User = {
-      id: "user-client-2",
-      referenceNumber: "CLI-00005",
-      username: "emma.tech",
-      password: "client123",
-      email: "emma@techcorp.co.uk",
-      fullName: "Emma Davis",
-      role: "client",
-      companyId: "company-2",
-      status: "active",
-      consultantTier: null,
-      clientPermissionRole: "approver",
-      lastLoginAt: null,
-      createdAt: now,
-    };
-    this.users.set(client2.id, client2);
+    // Users are now stored in the database (see initializeDefaultAdmin method)
+    // Initialize admin user in database asynchronously
+    this.initializeDefaultAdmin().catch(err => {
+      console.error("Failed to initialize default admin:", err);
+    });
 
     // Create sample companies
     this.companyCounter = 2; // Start counter after sample data
@@ -1431,51 +1350,75 @@ export class MemStorage implements IStorage {
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    try {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user from DB:", error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    try {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user by username from DB:", error);
+      return undefined;
+    }
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    try {
+      return await db.select().from(usersTable).orderBy(asc(usersTable.createdAt));
+    } catch (error) {
+      console.error("Error fetching all users from DB:", error);
+      return [];
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    this.userCounter++;
-    const role = insertUser.role ?? "client";
-    const referenceNumber = formatReferenceNumber(getUserReferencePrefix(role), this.userCounter);
-    const user: User = { 
-      ...insertUser, 
-      id,
-      referenceNumber,
-      role: role as any,
-      companyId: insertUser.companyId ?? null,
-      status: (insertUser.status ?? "active") as any,
-      consultantTier: (insertUser.consultantTier ?? null) as any,
-      clientPermissionRole: (insertUser.clientPermissionRole ?? null) as any,
-      lastLoginAt: null,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
-    return user;
+    try {
+      const role = insertUser.role ?? "client";
+      const prefix = getUserReferencePrefix(role);
+      
+      // Get the next reference number from the database
+      const [maxRef] = await db.select({ 
+        maxNum: sql<number>`COALESCE(MAX(CAST(SUBSTRING(reference_number FROM 5) AS INTEGER)), 0)` 
+      }).from(usersTable).where(sql`reference_number LIKE ${prefix + '-%'}`);
+      
+      const nextNum = (maxRef?.maxNum ?? 0) + 1;
+      const referenceNumber = formatReferenceNumber(prefix, nextNum);
+      
+      const [user] = await db.insert(usersTable).values({
+        ...insertUser,
+        referenceNumber,
+        role: role as any,
+        companyId: insertUser.companyId ?? null,
+        status: (insertUser.status ?? "invited") as any,
+        consultantTier: (insertUser.consultantTier ?? null) as any,
+        clientPermissionRole: (insertUser.clientPermissionRole ?? null) as any,
+      }).returning();
+      
+      return user;
+    } catch (error) {
+      console.error("Error creating user in DB:", error);
+      throw error;
+    }
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) {
+    try {
+      const [updatedUser] = await db.update(usersTable)
+        .set(updates)
+        .where(eq(usersTable.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user in DB:", error);
       return undefined;
     }
-    const updatedUser: User = {
-      ...user,
-      ...updates,
-    };
-    this.users.set(id, updatedUser);
-    return updatedUser;
   }
 
   // Sites
@@ -2552,17 +2495,25 @@ export class MemStorage implements IStorage {
 
   // Users by Company (get all users associated with a company)
   async getUsersBySite(siteId: string): Promise<User[]> {
-    // First get the site to find its company
-    const site = this.sites.get(siteId);
-    if (!site) return [];
-    // Return users that have access to this company
-    return Array.from(this.users.values())
-      .filter(u => u.companyId === site.companyId);
+    try {
+      // First get the site to find its company
+      const site = this.sites.get(siteId);
+      if (!site) return [];
+      // Return users that have access to this company
+      return await db.select().from(usersTable).where(eq(usersTable.companyId, site.companyId));
+    } catch (error) {
+      console.error("Error fetching users by site from DB:", error);
+      return [];
+    }
   }
 
   async getConsultants(): Promise<User[]> {
-    return Array.from(this.users.values())
-      .filter(u => u.role === "consultant");
+    try {
+      return await db.select().from(usersTable).where(eq(usersTable.role, "consultant"));
+    } catch (error) {
+      console.error("Error fetching consultants from DB:", error);
+      return [];
+    }
   }
 
   // Document Types (Admin-managed)
@@ -3935,7 +3886,41 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(u => u.email.toLowerCase() === email.toLowerCase());
+    try {
+      const [user] = await db.select().from(usersTable).where(sql`LOWER(email) = LOWER(${email})`);
+      return user;
+    } catch (error) {
+      console.error("Error fetching user by email from DB:", error);
+      return undefined;
+    }
+  }
+
+  // Initialize default admin user in database if not exists
+  async initializeDefaultAdmin(): Promise<void> {
+    try {
+      // Check if admin user exists
+      const existingAdmin = await this.getUserByUsername("admin");
+      if (!existingAdmin) {
+        console.log("Creating default admin user in database...");
+        // Import bcrypt dynamically to avoid circular deps
+        const bcrypt = await import("bcrypt");
+        const hashedPassword = await bcrypt.hash("admin123", 10);
+        
+        await db.insert(usersTable).values({
+          id: "user-admin",
+          referenceNumber: "ADM-00001",
+          username: "admin",
+          password: hashedPassword,
+          email: "admin@guardiangroup.com",
+          fullName: "System Administrator",
+          role: "admin",
+          status: "active",
+        });
+        console.log("Default admin user created successfully.");
+      }
+    } catch (error) {
+      console.error("Error initializing default admin:", error);
+    }
   }
 }
 
