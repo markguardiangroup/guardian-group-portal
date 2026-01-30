@@ -43,6 +43,14 @@ Admins can assign consultants and clients to sites directly from User Management
 - Confirmation dialogs are required before adding or removing site assignments
 - All assignment changes are logged in the audit trail
 
+### Admin Reports
+A separate Admin Reports section provides controlled access to sensitive reports for administrators and consultants only:
+- **Access Control**: Server-side role checks ensure clients cannot access sensitive user data (emails, roles, site assignments)
+- **Users Report**: Complete list of all users with reference numbers, roles, companies, status, and site assignments
+- **CSV Export**: Download capability for offline analysis
+- Reports are clearly marked as confidential with warning banners
+- The general Reports page remains accessible to all users for compliance-related reports
+
 ### Document Approval Workflow
 The platform supports two document approval workflows:
 - **Consultant-uploaded**: A three-stage process (Pending → Client Signed Off → Approved) with final consultant approval setting the renewal date.
