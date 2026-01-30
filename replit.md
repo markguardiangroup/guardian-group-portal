@@ -47,8 +47,8 @@ The training library features a separate folder structure per module, containing
 
 ### Storage Pattern
 A hybrid storage model is used:
-- **Database-backed (PostgreSQL)**: Stores Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, and Consultant Assignments.
-- **In-memory storage**: Used for Users, Companies, and Sites entities loaded at startup, with lookups referencing these in-memory maps for performance.
+- **Database-backed (PostgreSQL)**: Stores Users, Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, Consultant Assignments, and User Invitations. Users persist across server restarts.
+- **In-memory storage**: Used for Companies and Sites entities loaded at startup, with lookups referencing these in-memory maps for performance.
 
 ### Build Process
 Development uses Vite for the frontend with HMR and `tsx` for the Express API. Production builds compile the static frontend with Vite and bundle the server with esbuild. Drizzle Kit manages database migrations.
