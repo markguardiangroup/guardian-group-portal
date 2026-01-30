@@ -34,6 +34,7 @@ import MyTraining from "@/pages/my-training";
 import CreateFromTemplate from "@/pages/create-from-template";
 import DevelopmentRoadmap from "@/pages/development-roadmap";
 import SetPassword from "@/pages/set-password";
+import HelpGuide from "@/pages/help-guide";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -100,6 +101,7 @@ function Router() {
       <Route path="/training/certificates/:id" component={TrainingCertificates} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route path="/roadmap" component={DevelopmentRoadmap} />
+      <Route path="/help" component={HelpGuide} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -16,6 +16,7 @@ import {
   BookOpen,
   GraduationCap,
   Lightbulb,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -161,6 +162,24 @@ const adminNavItems = [
     title: "Training Library",
     url: "/training-library",
     icon: GraduationCap,
+  },
+  {
+    title: "Help & Training Guide",
+    url: "/help",
+    icon: HelpCircle,
+  },
+];
+
+const consultantNavItems = [
+  {
+    title: "Sites",
+    url: "/sites",
+    icon: MapPin,
+  },
+  {
+    title: "Help & Training Guide",
+    url: "/help",
+    icon: HelpCircle,
   },
 ];
 
@@ -371,11 +390,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
         {isPrivilegedUser && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Admin
+              {user?.role === "admin" ? "Admin" : "Tools"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminNavItems.map((item) => {
+                {(user?.role === "admin" ? adminNavItems : consultantNavItems).map((item) => {
                   const isActive = location === item.url || 
                     (item.url !== "/" && location.startsWith(item.url));
                   return (
