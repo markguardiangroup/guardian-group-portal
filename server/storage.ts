@@ -1697,8 +1697,8 @@ export class MemStorage implements IStorage {
     
     const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
     const company = site?.companyId ? this.companies.get(site.companyId) : undefined;
-    const uploader = doc.uploadedBy ? this.users.get(doc.uploadedBy) : undefined;
-    const assignee = doc.assignedTo ? this.users.get(doc.assignedTo) : undefined;
+    const uploader = doc.uploadedBy ? await this.getUser(doc.uploadedBy) : undefined;
+    const assignee = doc.assignedTo ? await this.getUser(doc.assignedTo) : undefined;
     const versions = await this.getDocumentVersions(id);
     
     return {
