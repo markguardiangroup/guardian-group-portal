@@ -410,30 +410,29 @@ const guideSections: GuideSection[] = [
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Users must be assigned to companies and sites to access the portal. This guide explains how site assignments work for different user roles.
+          Users must be assigned to sites to access the portal. Site assignments are managed directly from User Management.
         </p>
 
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Client User Assignments
+            Managing Site Assignments
           </h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Client users belong to a company and can access either all sites or specific sites within that company:
+            You can view and manage site assignments for any user directly from the Users page:
           </p>
           <StepList steps={[
             "Navigate to Users from the sidebar",
-            "Click on the client user you want to configure",
-            "In the user's profile, you'll see their assigned company",
-            "Choose whether they have 'All Sites' access or 'Specific Sites' access",
-            "If 'Specific Sites', select which sites they should have access to",
-            "Save changes"
+            "View assigned sites as badges in the 'Sites' column",
+            "Click the Actions menu (three dots) for any user",
+            "Select 'Add Site' to assign a new site",
+            "Select 'Remove Site' to remove an existing assignment",
+            "Confirm the change when prompted"
           ]} />
         </div>
 
         <TipBox type="info">
-          Users with 'All Sites' access will automatically see any new sites added to their company. 
-          Users with 'Specific Sites' access will only see the sites you've explicitly assigned.
+          Clients can only be assigned to sites within their company. Consultants can be assigned to any site across all companies.
         </TipBox>
 
         <Separator />
@@ -441,17 +440,15 @@ const guideSections: GuideSection[] = [
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Consultant Site Assignments
+            View Profile
           </h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Consultants are assigned to specific sites they manage. They can only see and work with their assigned sites:
+            To see all details about a user including their full list of site assignments:
           </p>
           <StepList steps={[
-            "Navigate to Users from the sidebar",
-            "Click on the consultant user",
-            "In the 'Site Assignments' section, click 'Manage Assignments'",
-            "Select the sites this consultant should have access to",
-            "Save the assignments"
+            "Click the Actions menu for the user",
+            "Select 'View Profile'",
+            "Review the user's details and all assigned sites"
           ]} />
         </div>
 
