@@ -134,6 +134,20 @@ const moduleBgColors: Record<string, string> = {
   support: "bg-purple-100 dark:bg-purple-900/30",
 };
 
+const moduleBorderColors: Record<string, string> = {
+  health_safety: "border-emerald-200 dark:border-emerald-800",
+  human_resources: "border-blue-200 dark:border-blue-800",
+  employment_law: "border-pink-200 dark:border-pink-800",
+  support: "border-purple-200 dark:border-purple-800",
+};
+
+const moduleGradients: Record<string, string> = {
+  health_safety: "from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/10",
+  human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
+  employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
+  support: "from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/10",
+};
+
 const getFileIcon = (mimeType: string) => {
   if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
     return FileSpreadsheet;
@@ -1425,6 +1439,34 @@ export default function TemplateLibraryPage() {
           )}
         </div>
         
+        {/* Module Tabs - Training Library Style */}
+        <div className="border rounded-lg p-1 bg-muted/50">
+          <div className="grid grid-cols-4 gap-1">
+            {(["health_safety", "human_resources", "employment_law", "all"] as const).map((mod) => {
+              const isActive = selectedModule === mod;
+              const Icon = mod === "all" ? Filter : moduleIcons[mod];
+              const label = mod === "all" ? "All Modules" : moduleNames[mod];
+              const colorClass = mod === "all" ? "" : (isActive ? moduleColors[mod] : "");
+              
+              return (
+                <button
+                  key={mod}
+                  onClick={() => setSelectedModule(mod as ModuleType | "all")}
+                  data-testid={`module-tab-${mod}`}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive 
+                      ? `bg-background shadow-sm ${colorClass}` 
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${isActive && mod !== "all" ? "" : "text-muted-foreground"}`} />
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
           <div className="relative flex-1 max-w-md min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1436,19 +1478,6 @@ export default function TemplateLibraryPage() {
               data-testid="input-search"
             />
           </div>
-          
-          <Select value={selectedModule} onValueChange={(v) => setSelectedModule(v as ModuleType | "all")}>
-            <SelectTrigger className="w-48" data-testid="select-module-filter">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter by module" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modules</SelectItem>
-              <SelectItem value="health_safety">Health & Safety</SelectItem>
-              <SelectItem value="human_resources">Human Resources</SelectItem>
-              <SelectItem value="employment_law">Employment Law</SelectItem>
-            </SelectContent>
-          </Select>
           
           {activeTab === "templates" && (
             <>
