@@ -362,6 +362,11 @@ export default function UserManagement() {
       toast({ title: "Username and email are required", variant: "destructive" });
       return;
     }
+    // Clients must be assigned to a company
+    if (newUser.role === "client" && !newUser.companyId) {
+      toast({ title: "Company is required for client users", variant: "destructive" });
+      return;
+    }
     // Auto-generate fullName from firstName and lastName if not provided
     const fullName = newUser.fullName.trim() || 
       `${newUser.firstName} ${newUser.lastName}`.trim() || 
@@ -1223,13 +1228,13 @@ export default function UserManagement() {
                   </div>
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
-                      <Label htmlFor="new-company">Company</Label>
+                      <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
                       <Select
                         value={newUser.companyId}
                         onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
                       >
                         <SelectTrigger id="new-company" data-testid="select-new-company">
-                          <SelectValue placeholder="Select company" />
+                          <SelectValue placeholder="Select company (required)" />
                         </SelectTrigger>
                         <SelectContent>
                           {companies.map((company) => (

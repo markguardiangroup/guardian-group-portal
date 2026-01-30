@@ -5604,6 +5604,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username and email are required" });
       }
       
+      // Clients must be assigned to a company
+      if ((role === "client" || !role) && !companyId) {
+        return res.status(400).json({ error: "Company is required for client users" });
+      }
+      
       // Check if username or email already exists
       const existingUsers = await storage.getAllUsers();
       if (existingUsers.some(u => u.username === username)) {
