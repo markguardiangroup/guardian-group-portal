@@ -12,38 +12,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   BarChart3,
-  Download,
   FileText,
   Calendar,
   TrendingUp,
   PieChart,
   Filter,
   Clock,
-  CheckCircle,
   AlertTriangle,
+  CheckCircle,
+  Download,
   Building2,
-  Shield,
-  Eye,
-  EyeOff,
 } from "lucide-react";
-import { format } from "date-fns";
-import type { ComplianceSummary, Site, SiteWithDetails, Company } from "@shared/schema";
+import type { ComplianceSummary, Site, Company } from "@shared/schema";
 
 interface ReportData {
   summary: ComplianceSummary;
@@ -216,7 +197,6 @@ export default function Reports() {
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [siteFilter, setSiteFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
-  const [showModuleReport, setShowModuleReport] = useState(false);
 
   // Build query params for filtering
   const queryParams = new URLSearchParams();
@@ -243,11 +223,6 @@ export default function Reports() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: sitesWithModules = [] } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
-    enabled: showModuleReport,
-  });
-
   const filteredSites = companyFilter === "all" 
     ? allSites 
     : allSites.filter(site => site.companyId === companyFilter);
@@ -255,20 +230,6 @@ export default function Reports() {
   const handleCompanyChange = (value: string) => {
     setCompanyFilter(value);
     setSiteFilter("all");
-  };
-
-  const moduleStatusColors = {
-    active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    visible: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    hidden: "bg-muted text-muted-foreground border-muted",
-  };
-
-  const getModuleStatusIcon = (status: string) => {
-    switch (status) {
-      case "active": return <CheckCircle className="h-3 w-3" />;
-      case "visible": return <Eye className="h-3 w-3" />;
-      default: return <EyeOff className="h-3 w-3" />;
-    }
   };
 
   if (isLoading) {
@@ -406,22 +367,6 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div
-              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-              onClick={() => setShowModuleReport(true)}
-              data-testid="report-entity-module-status"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                  <Shield className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Entity Module Status</p>
-                  <p className="text-sm text-muted-foreground">Summary of all entities and their module access</p>
-                </div>
-              </div>
-              <Badge variant="secondary">View</Badge>
-            </div>
             {[
               { title: "Full Compliance Report", description: "Complete overview of all compliance status", format: "PDF" },
               { title: "Document Inventory", description: "List of all documents with status", format: "Excel" },
@@ -441,192 +386,6 @@ export default function Reports() {
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={showModuleReport} onOpenChange={setShowModuleReport}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Entity Module Status Report
-            </DialogTitle>
-            <DialogDescription>
-              Summary of all entities and their module access status. Generated on {format(new Date(), "MMMM d, yyyy 'at' h:mm a")}.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            <div className="mb-4 flex items-center gap-4 text-sm">
-              <span className="text-muted-foreground">Legend:</span>
-              <div className="flex items-center gap-1">
-                <Badge variant="outline" className={moduleStatusColors.active}>
-                  <CheckCircle className="mr-1 h-3 w-3" />
-                  Active
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1">
-                <Badge variant="outline" className={moduleStatusColors.visible}>
-                  <Eye className="mr-1 h-3 w-3" />
-                  Visible
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1">
-                <Badge variant="outline" className={moduleStatusColors.hidden}>
-                  <EyeOff className="mr-1 h-3 w-3" />
-                  Hidden
-                </Badge>
-              </div>
-            </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>Assigned Consultants</TableHead>
-                  <TableHead>Sites</TableHead>
-                  <TableHead className="text-center">Health & Safety</TableHead>
-                  <TableHead className="text-center">Human Resources</TableHead>
-                  <TableHead className="text-center">Employment Law</TableHead>
-                  <TableHead className="text-center">Compliance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sitesWithModules.map((entity) => (
-                  <TableRow key={entity.id} data-testid={`report-row-${entity.id}`}>
-                    <TableCell>
-                      <div className="font-medium">{entity.name}</div>
-                      {entity.companyNumber && (
-                        <div className="text-xs text-muted-foreground">#{entity.companyNumber}</div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {entity.assignedConsultants && entity.assignedConsultants.length > 0 ? (
-                        <div className="space-y-1">
-                          {entity.assignedConsultants.map((consultant) => (
-                            <div key={consultant.id} className="flex items-center gap-1">
-                              <span className="text-sm">{consultant.name}</span>
-                              {consultant.isPrimary && (
-                                <Badge variant="outline" className="text-xs px-1 py-0">Primary</Badge>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">None assigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell>1</TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant="outline"
-                        className={moduleStatusColors[entity.moduleAccess?.health_safety || "hidden"]}
-                      >
-                        {getModuleStatusIcon(entity.moduleAccess?.health_safety || "hidden")}
-                        <span className="ml-1 capitalize">{entity.moduleAccess?.health_safety || "hidden"}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant="outline"
-                        className={moduleStatusColors[entity.moduleAccess?.human_resources || "hidden"]}
-                      >
-                        {getModuleStatusIcon(entity.moduleAccess?.human_resources || "hidden")}
-                        <span className="ml-1 capitalize">{entity.moduleAccess?.human_resources || "hidden"}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant="outline"
-                        className={moduleStatusColors[entity.moduleAccess?.employment_law || "hidden"]}
-                      >
-                        {getModuleStatusIcon(entity.moduleAccess?.employment_law || "hidden")}
-                        <span className="ml-1 capitalize">{entity.moduleAccess?.employment_law || "hidden"}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className={`font-medium ${
-                        (entity.complianceSummary?.complianceScore || 0) >= 90 ? "text-emerald-600" :
-                        (entity.complianceSummary?.complianceScore || 0) >= 70 ? "text-amber-600" : "text-red-600"
-                      }`}>
-                        {entity.complianceSummary?.complianceScore || 0}%
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {sitesWithModules.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">
-                No entities found.
-              </div>
-            )}
-
-            <div className="mt-6 border-t pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h4 className="font-medium">Summary</h4>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const headers = ["Entity", "Company Number", "Assigned Consultants", "Primary Consultant", "Sites", "Health & Safety", "Human Resources", "Employment Law", "Compliance Score"];
-                    const rows = sitesWithModules.map(entity => {
-                      const consultantNames = entity.assignedConsultants?.map(c => c.name).join("; ") || "";
-                      const primaryConsultant = entity.assignedConsultants?.find(c => c.isPrimary)?.name || "";
-                      return [
-                        entity.name,
-                        entity.companyNumber || "",
-                        consultantNames,
-                        primaryConsultant,
-                        1,
-                        entity.moduleAccess?.health_safety || "hidden",
-                        entity.moduleAccess?.human_resources || "hidden",
-                        entity.moduleAccess?.employment_law || "hidden",
-                        `${entity.complianceSummary?.complianceScore || 0}%`
-                      ];
-                    });
-                    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
-                    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `entity-module-status-${format(new Date(), "yyyy-MM-dd")}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  data-testid="button-download-csv"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download CSV
-                </Button>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-4">
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold">{sitesWithModules.length}</p>
-                  <p className="text-sm text-muted-foreground">Total Entities</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-emerald-600">
-                    {sitesWithModules.filter(e => e.moduleAccess?.health_safety === "active").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Active H&S</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-emerald-600">
-                    {sitesWithModules.filter(e => e.moduleAccess?.human_resources === "active").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Active HR</p>
-                </div>
-                <div className="rounded-md border p-3 text-center">
-                  <p className="text-2xl font-semibold text-emerald-600">
-                    {sitesWithModules.filter(e => e.moduleAccess?.employment_law === "active").length}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Active EL</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
