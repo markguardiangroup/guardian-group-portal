@@ -58,6 +58,10 @@ import {
   Eye,
   Trash2,
   Award,
+  HardHat,
+  Users,
+  Scale,
+  Filter,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -73,6 +77,15 @@ type Company = {
   name: string;
 };
 
+type ModuleFilter = "all" | "health_safety" | "human_resources" | "employment_law";
+
+const moduleFilterConfig = [
+  { value: "all" as const, label: "All Modules", Icon: Filter, color: "text-purple-600 dark:text-purple-400", activeStyle: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
+  { value: "health_safety" as const, label: "Health & Safety", Icon: HardHat, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+  { value: "human_resources" as const, label: "Human Resources", Icon: Users, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+  { value: "employment_law" as const, label: "Employment Law", Icon: Scale, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
+];
+
 export default function TrainingDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -81,6 +94,7 @@ export default function TrainingDashboard() {
   const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [siteFilter, setSiteFilter] = useState<string>("all");
+  const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
   
   const [bookingDialog, setBookingDialog] = useState(false);
   const [completeDialog, setCompleteDialog] = useState<TrainingBookingWithDetails | null>(null);
@@ -143,6 +157,9 @@ export default function TrainingDashboard() {
       if (activeTab === "booked" && booking.status !== "booked") return false;
       if (activeTab === "completed" && booking.status !== "completed") return false;
       
+      // Module filter
+      if (moduleFilter !== "all" && booking.course?.module !== moduleFilter) return false;
+      
       // Company filter
       if (companyFilter !== "all" && booking.site?.companyId !== companyFilter) return false;
       
@@ -157,7 +174,7 @@ export default function TrainingDashboard() {
       }
       return true;
     });
-  }, [bookingsWithDetails, activeTab, searchQuery, companyFilter, siteFilter]);
+  }, [bookingsWithDetails, activeTab, searchQuery, companyFilter, siteFilter, moduleFilter]);
 
   const metrics = useMemo(() => {
     const booked = bookingsWithDetails.filter(b => b.status === "booked").length;
@@ -339,6 +356,28 @@ export default function TrainingDashboard() {
             <p className="text-xs text-muted-foreground">All training bookings</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Module Tabs - Enhanced Prominence */}
+      <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border mb-6">
+        {moduleFilterConfig.map(({ value, label, Icon, color, activeStyle }) => {
+          const isActive = moduleFilter === value;
+          return (
+            <button
+              key={value}
+              onClick={() => setModuleFilter(value)}
+              data-testid={`module-tab-${value}`}
+              className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
+                isActive 
+                  ? `${activeStyle} border shadow-sm ${color}` 
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+              }`}
+            >
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+              <span className="text-xs sm:text-sm">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
