@@ -68,12 +68,19 @@ type TrainingBookingWithDetails = TrainingBooking & {
   site?: SiteWithDetails;
 };
 
+type Company = {
+  id: string;
+  name: string;
+};
+
 export default function TrainingDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   
   const [bookingDialog, setBookingDialog] = useState(false);
   const [completeDialog, setCompleteDialog] = useState<TrainingBookingWithDetails | null>(null);
@@ -98,6 +105,10 @@ export default function TrainingDashboard() {
     queryKey: ["/api/sites"],
   });
 
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+  });
+
   const { data: trainingBookings = [], isLoading } = useQuery<TrainingBooking[]>({
     queryKey: ["/api/training-bookings"],
   });
@@ -105,6 +116,18 @@ export default function TrainingDashboard() {
   const { data: trainingCourses = [] } = useQuery<TrainingCourse[]>({
     queryKey: ["/api/training-courses"],
   });
+
+  // Filter sites based on selected company
+  const filteredSitesForDropdown = useMemo(() => {
+    if (companyFilter === "all") return sites;
+    return sites.filter(s => s.companyId === companyFilter);
+  }, [sites, companyFilter]);
+
+  // Reset site filter when company changes
+  const handleCompanyFilterChange = (value: string) => {
+    setCompanyFilter(value);
+    setSiteFilter("all");
+  };
 
   const bookingsWithDetails: TrainingBookingWithDetails[] = useMemo(() => {
     return trainingBookings.map(booking => ({
@@ -119,6 +142,12 @@ export default function TrainingDashboard() {
       if (activeTab === "booked" && booking.status !== "booked") return false;
       if (activeTab === "completed" && booking.status !== "completed") return false;
       
+      // Company filter
+      if (companyFilter !== "all" && booking.site?.companyId !== companyFilter) return false;
+      
+      // Site filter
+      if (siteFilter !== "all" && booking.siteId !== siteFilter) return false;
+      
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesCourse = booking.course?.title?.toLowerCase().includes(query);
@@ -127,7 +156,7 @@ export default function TrainingDashboard() {
       }
       return true;
     });
-  }, [bookingsWithDetails, activeTab, searchQuery]);
+  }, [bookingsWithDetails, activeTab, searchQuery, companyFilter, siteFilter]);
 
   const metrics = useMemo(() => {
     const booked = bookingsWithDetails.filter(b => b.status === "booked").length;
@@ -311,9 +340,9 @@ export default function TrainingDashboard() {
         </Card>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-sm">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search courses or sites..."
@@ -323,6 +352,54 @@ export default function TrainingDashboard() {
             data-testid="input-search"
           />
         </div>
+
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
+            <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
+              <SelectValue placeholder="All Companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger className="w-[180px]" data-testid="select-site-filter">
+              <SelectValue placeholder="All Sites" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {filteredSitesForDropdown.map((site) => (
+                <SelectItem key={site.id} value={site.id}>
+                  {site.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {(companyFilter !== "all" || siteFilter !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCompanyFilter("all");
+              setSiteFilter("all");
+            }}
+            data-testid="button-clear-filters"
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       {/* Tabs & Table */}
