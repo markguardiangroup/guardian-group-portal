@@ -33,6 +33,7 @@ import TrainingCertificates from "@/pages/training-certificates";
 import MyTraining from "@/pages/my-training";
 import CreateFromTemplate from "@/pages/create-from-template";
 import DevelopmentRoadmap from "@/pages/development-roadmap";
+import SetPassword from "@/pages/set-password";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -106,6 +107,13 @@ function Router() {
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
+
+  // Check if we're on a public page (set-password for invitations/password reset)
+  const isPublicPage = window.location.pathname.startsWith('/set-password');
+
+  if (isPublicPage) {
+    return <SetPassword />;
+  }
 
   if (isLoading) {
     return (

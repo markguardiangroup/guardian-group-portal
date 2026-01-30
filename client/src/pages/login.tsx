@@ -4,12 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react";
 import logoFull from "@assets/IFRA_and_Guardian_Group_A3_1767695020984.jpg";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -24,6 +26,50 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetUrl, setResetUrl] = useState<string | null>(null);
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest("POST", "/api/auth/forgot-password", { email });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setResetSuccess(true);
+      if (data.resetUrl) {
+        setResetUrl(data.resetUrl);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    forgotPasswordMutation.mutate(forgotEmail);
+  };
+
+  const closeForgotPasswordDialog = () => {
+    setShowForgotPassword(false);
+    setForgotEmail("");
+    setResetSuccess(false);
+    setResetUrl(null);
+  };
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -142,8 +188,92 @@ export default function Login() {
                   </>
                 )}
               </Button>
+
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-sm text-slate-600 hover:text-slate-800 hover:bg-transparent underline"
+                  onClick={() => setShowForgotPassword(true)}
+                  data-testid="button-forgot-password"
+                >
+                  Forgot your password?
+                </Button>
+              </div>
             </form>
           </Form>
+
+          <Dialog open={showForgotPassword} onOpenChange={closeForgotPasswordDialog}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogDescription>
+                  {resetSuccess 
+                    ? "Password reset instructions have been sent."
+                    : "Enter your email address and we'll send you a link to reset your password."}
+                </DialogDescription>
+              </DialogHeader>
+              {!resetSuccess ? (
+                <form onSubmit={handleForgotPassword}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="forgot-email">Email</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        data-testid="input-forgot-email"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={closeForgotPasswordDialog}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={forgotPasswordMutation.isPending}
+                      data-testid="button-send-reset"
+                    >
+                      {forgotPasswordMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Reset Link"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              ) : (
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    If an account exists with this email address, you will receive a password reset link shortly.
+                  </p>
+                  {resetUrl && (
+                    <div className="p-3 bg-muted rounded-md mb-4">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        (Development mode - Reset link for testing:)
+                      </p>
+                      <code className="text-xs break-all">{resetUrl}</code>
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button onClick={closeForgotPasswordDialog} data-testid="button-close-reset">
+                      Close
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           <div className="mt-6 border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
             <p className="text-sm font-semibold text-blue-800 text-center mb-3">
