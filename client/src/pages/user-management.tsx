@@ -164,6 +164,19 @@ export default function UserManagement() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
 
+  const generateUsername = (firstName: string, lastName: string): string => {
+    const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
+    const cleanLast = lastName.toLowerCase().replace(/[^a-z]/g, '');
+    if (cleanFirst && cleanLast) {
+      return `${cleanFirst}.${cleanLast}`;
+    } else if (cleanFirst) {
+      return cleanFirst;
+    } else if (cleanLast) {
+      return cleanLast;
+    }
+    return '';
+  };
+
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
 
@@ -1091,7 +1104,14 @@ export default function UserManagement() {
                       <Input
                         id="new-firstname"
                         value={newUser.firstName}
-                        onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                        onChange={(e) => {
+                          const firstName = e.target.value;
+                          setNewUser({ 
+                            ...newUser, 
+                            firstName,
+                            username: generateUsername(firstName, newUser.lastName)
+                          });
+                        }}
                         placeholder="First name"
                         data-testid="input-new-firstname"
                       />
@@ -1101,7 +1121,14 @@ export default function UserManagement() {
                       <Input
                         id="new-lastname"
                         value={newUser.lastName}
-                        onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                        onChange={(e) => {
+                          const lastName = e.target.value;
+                          setNewUser({ 
+                            ...newUser, 
+                            lastName,
+                            username: generateUsername(newUser.firstName, lastName)
+                          });
+                        }}
                         placeholder="Surname"
                         data-testid="input-new-lastname"
                       />
