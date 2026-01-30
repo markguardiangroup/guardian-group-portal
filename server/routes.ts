@@ -7,7 +7,7 @@ import crypto from "crypto";
 import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, objectStorageClient } from "./replit_integrations/object_storage";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -1255,7 +1255,7 @@ export async function registerRoutes(
     }
   });
 
-  // Document download endpoint - generates PDF
+  // Document download endpoint - returns original uploaded file
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -1274,6 +1274,24 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
 
+      // Check if a specific version is requested
+      const requestedVersion = req.query.version ? parseInt(req.query.version as string) : null;
+      let fileUrl = document.fileUrl;
+      let fileName = document.fileName;
+      let mimeType = document.mimeType;
+
+      if (requestedVersion && requestedVersion !== document.version) {
+        // Get the specific version from history
+        const versions = await storage.getDocumentVersions(req.params.id);
+        const versionInfo = versions.find(v => v.version === requestedVersion);
+        if (!versionInfo) {
+          return res.status(404).json({ error: "Version not found" });
+        }
+        fileUrl = versionInfo.fileUrl;
+        fileName = versionInfo.fileName;
+        mimeType = versionInfo.mimeType;
+      }
+
       // Log document download
       await storage.createAuditLog({
         action: "document_downloaded",
@@ -1283,135 +1301,27 @@ export async function registerRoutes(
         documentId: document.id,
         supportRequestId: null,
         module: document.module,
-        details: `Downloaded ${document.title}${req.query.version ? ` (Version ${req.query.version})` : ''}`,
+        details: `Downloaded ${document.title}${requestedVersion ? ` (Version ${requestedVersion})` : ''}`,
         metadata: null,
       });
 
-      // Check if a specific version is requested
-      const requestedVersion = req.query.version ? parseInt(req.query.version as string) : null;
-      let versionInfo = null;
-      let displayVersion = document.version;
-      let displayFileName = document.fileName;
-      let displayFileSize = document.fileSize;
-      let versionDate = document.updatedAt;
-      let changeNote = null;
-
-      if (requestedVersion && requestedVersion !== document.version) {
-        // Get the specific version from history
-        const versions = await storage.getDocumentVersions(req.params.id);
-        versionInfo = versions.find(v => v.version === requestedVersion);
-        if (!versionInfo) {
-          return res.status(404).json({ error: "Version not found" });
-        }
-        displayVersion = versionInfo.version;
-        displayFileName = versionInfo.fileName;
-        displayFileSize = versionInfo.fileSize;
-        versionDate = versionInfo.createdAt;
-        changeNote = versionInfo.changeNote;
+      // Extract the object key from the fileUrl (remove /objects/ prefix)
+      const objectKey = fileUrl.replace(/^\/objects\//, '');
+      
+      // Get the file from object storage
+      const fileData = await objectStorageClient.downloadAsBytes(objectKey);
+      
+      if (!fileData) {
+        return res.status(404).json({ error: "File not found in storage" });
       }
 
-      // Get entity name for the PDF
-      const entity = await storage.getSite(document.siteId);
-      const entityName = entity?.name || 'Unknown Entity';
-
-      // Generate PDF document
-      const doc = new PDFDocument({ margin: 50 });
-
-      // Set response headers for PDF download
-      const fileName = displayFileName.replace(/\.[^/.]+$/, '') + '.pdf';
-      res.setHeader('Content-Type', 'application/pdf');
+      // Set response headers for file download
+      res.setHeader('Content-Type', mimeType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-
-      // Pipe the PDF to the response
-      doc.pipe(res);
-
-      // Header with Guardian branding
-      doc.fontSize(24).fillColor('#1a365d').text('Guardian Group', { align: 'center' });
-      doc.fontSize(12).fillColor('#666').text('Health & Safety | Human Resources', { align: 'center' });
-      doc.moveDown(2);
-
-      // Document title with version
-      doc.fontSize(20).fillColor('#000').text(document.title, { align: 'center' });
-      doc.fontSize(12).fillColor('#666').text(`Version ${displayVersion}`, { align: 'center' });
-      if (requestedVersion && requestedVersion !== document.version) {
-        doc.fontSize(10).fillColor('#999').text('(Historical Version)', { align: 'center' });
-      }
-      doc.moveDown();
-
-      // Horizontal line
-      doc.strokeColor('#e2e8f0').lineWidth(1)
-         .moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-      doc.moveDown();
-
-      // Document details section
-      doc.fontSize(14).fillColor('#1a365d').text('Document Information');
-      doc.moveDown(0.5);
-
-      const details = [
-        ['Type', document.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())],
-        ['Version', `${displayVersion}${displayVersion === document.version ? ' (Current)' : ' (Historical)'}`],
-        ['File Name', displayFileName],
-        ['File Size', `${Math.round(displayFileSize / 1024)} KB`],
-        ['Entity', entityName],
-        ['Module', document.module === 'health_safety' ? 'Health & Safety' : 'Human Resources'],
-      ];
-
-      // Only show status for current version
-      if (displayVersion === document.version) {
-        details.push(['Status', document.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())]);
-        details.push(['Approval Status', document.approvalStatus.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())]);
-      }
-
-      doc.fontSize(11);
-      details.forEach(([label, value]) => {
-        doc.fillColor('#666').text(`${label}: `, { continued: true });
-        doc.fillColor('#000').text(value);
-      });
-
-      doc.moveDown();
-
-      // Change note for historical versions
-      if (changeNote) {
-        doc.fontSize(14).fillColor('#1a365d').text('Version Notes');
-        doc.moveDown(0.5);
-        doc.fontSize(11).fillColor('#000').text(changeNote);
-        doc.moveDown();
-      }
-
-      // Description
-      if (document.description) {
-        doc.fontSize(14).fillColor('#1a365d').text('Description');
-        doc.moveDown(0.5);
-        doc.fontSize(11).fillColor('#000').text(document.description);
-        doc.moveDown();
-      }
-
-      // Dates section
-      doc.fontSize(14).fillColor('#1a365d').text('Version Date');
-      doc.moveDown(0.5);
-      doc.fontSize(11);
-      doc.fillColor('#666').text('Created: ', { continued: true });
-      doc.fillColor('#000').text(versionDate ? new Date(versionDate).toLocaleDateString('en-GB') : 'N/A');
-
-      if (displayVersion === document.version) {
-        if (document.reviewDate) {
-          doc.fillColor('#666').text('Review Date: ', { continued: true });
-          doc.fillColor('#000').text(new Date(document.reviewDate).toLocaleDateString('en-GB'));
-        }
-        if (document.expiryDate) {
-          doc.fillColor('#666').text('Expiry Date: ', { continued: true });
-          doc.fillColor('#000').text(new Date(document.expiryDate).toLocaleDateString('en-GB'));
-        }
-      }
-
-      // Footer
-      doc.moveDown(3);
-      doc.fontSize(9).fillColor('#999')
-         .text('This document is generated by Guardian Group H&S Portal.', { align: 'center' })
-         .text(`Generated: ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB')}`, { align: 'center' });
-
-      // Finalize PDF
-      doc.end();
+      res.setHeader('Content-Length', fileData.length);
+      
+      // Send the file
+      res.send(Buffer.from(fileData));
     } catch (error) {
       console.error("Document download error:", error);
       res.status(500).json({ error: "Failed to download document" });
