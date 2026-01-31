@@ -191,6 +191,7 @@ type TemplateFormData = {
   folderTemplateId: string;
   isRequired: boolean;
   renewalPeriodMonths: number | null;
+  requiresApproval: boolean;
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -232,6 +233,7 @@ const defaultTemplateFormData: TemplateFormData = {
   folderTemplateId: "",
   isRequired: false,
   renewalPeriodMonths: null,
+  requiresApproval: true,
   fileName: "",
   fileUrl: "",
   fileSize: 0,
@@ -807,6 +809,7 @@ export default function TemplateLibraryPage() {
       sortOrder: templateFormData.sortOrder,
       isRequired: templateFormData.isRequired,
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
+      requiresApproval: templateFormData.requiresApproval,
     });
   };
   
@@ -819,6 +822,7 @@ export default function TemplateLibraryPage() {
       folderTemplateId: template.folderTemplateId,
       isRequired: template.isRequired || false,
       renewalPeriodMonths: template.renewalPeriodMonths || null,
+      requiresApproval: template.requiresApproval !== false,
       fileName: template.fileName,
       fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
@@ -843,6 +847,7 @@ export default function TemplateLibraryPage() {
         sortOrder: templateFormData.sortOrder,
         isRequired: templateFormData.isRequired,
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
+        requiresApproval: templateFormData.requiresApproval,
       },
     });
   };
@@ -2045,6 +2050,18 @@ export default function TemplateLibraryPage() {
               />
               <p className="text-xs text-muted-foreground">JSON array of placeholder names that will be auto-filled</p>
             </div>
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+              <div className="space-y-0.5">
+                <Label htmlFor="template-requiresApproval" className="font-medium">Requires Client Approval</Label>
+                <p className="text-xs text-muted-foreground">Documents from this template will need client sign-off</p>
+              </div>
+              <Switch
+                id="template-requiresApproval"
+                checked={templateFormData.requiresApproval}
+                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
+                data-testid="switch-template-requires-approval"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsTemplateDialogOpen(false)}>Cancel</Button>
@@ -2106,6 +2123,18 @@ export default function TemplateLibraryPage() {
                 <Label htmlFor="edit-template-required" className="font-normal cursor-pointer">
                   Required for compliance
                 </Label>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="edit-template-requiresApproval" className="font-normal cursor-pointer">Requires Client Approval</Label>
+                  <p className="text-xs text-muted-foreground">Documents will need client sign-off</p>
+                </div>
+                <Switch
+                  id="edit-template-requiresApproval"
+                  checked={templateFormData.requiresApproval}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
+                  data-testid="switch-edit-template-requires-approval"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period (months)</Label>
