@@ -591,15 +591,54 @@ const guideSections: GuideSection[] = [
         </p>
 
         <div>
+          <h4 className="font-semibold mb-3">Template Approval Settings</h4>
+          <p className="text-sm text-muted-foreground mb-4">
+            Each document template can be configured to require client approval or not. This setting determines 
+            how documents created from that template are handled:
+          </p>
+          
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg border bg-card">
+              <h5 className="font-medium mb-2 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                Requires Client Approval (Default)
+              </h5>
+              <p className="text-sm text-muted-foreground">
+                Documents start with "Review Required" status and must go through the approval workflow 
+                before being marked as compliant. This is the standard setting for most compliance documents.
+              </p>
+            </div>
+            
+            <div className="p-4 rounded-lg border bg-card">
+              <h5 className="font-medium mb-2 flex items-center gap-2">
+                <ChevronRight className="h-4 w-4 text-blue-500" />
+                No Approval Required
+              </h5>
+              <p className="text-sm text-muted-foreground">
+                Documents are automatically marked as "Compliant" when uploaded, bypassing the approval workflow. 
+                Useful for informational documents that don't need client sign-off.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <TipBox type="info">
+          Admins can configure the approval setting for each template in the Template Library. 
+          Look for the "Requires Client Approval" toggle in the template settings.
+        </TipBox>
+
+        <Separator />
+
+        <div>
           <h4 className="font-semibold mb-3">Document Workflow Overview</h4>
           <p className="text-sm text-muted-foreground mb-4">
-            Documents go through an approval process depending on who uploads them:
+            For templates that require approval, documents go through an approval process depending on who uploads them:
           </p>
           
           <div className="space-y-4">
             <div className="p-4 rounded-lg border bg-card">
               <h5 className="font-medium mb-2">Consultant-Uploaded Documents</h5>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm flex-wrap">
                 <Badge variant="outline">Pending</Badge>
                 <ChevronRight className="h-4 w-4" />
                 <Badge className="bg-blue-500">Client Signed Off</Badge>
@@ -613,7 +652,7 @@ const guideSections: GuideSection[] = [
             
             <div className="p-4 rounded-lg border bg-card">
               <h5 className="font-medium mb-2">Client-Uploaded Documents</h5>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm flex-wrap">
                 <Badge variant="outline">Pending</Badge>
                 <ChevronRight className="h-4 w-4" />
                 <Badge className="bg-green-500">Approved</Badge>
