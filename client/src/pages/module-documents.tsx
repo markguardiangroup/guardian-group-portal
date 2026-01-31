@@ -1167,8 +1167,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Document Details</CardTitle>
+              <Badge variant="outline" className="text-sm font-semibold">
+                Current Version: {document.version}
+              </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1182,19 +1185,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">File</p>
-                  <p>{document.fileName}</p>
+                  <p>{decodeURIComponent(document.fileName)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">File Size</p>
                   <p>{(document.fileSize / 1024).toFixed(1)} KB</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Review Date</p>
-                  <p>{document.renewalDate ? format(new Date(document.renewalDate), "MMM d, yyyy") : "Not set"}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                  <p>{document.updatedAt ? format(new Date(document.updatedAt), "MMM d, yyyy 'at' h:mm a") : "Unknown"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Uploaded By</p>
                   <p>{document.uploadedByName || "Unknown"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Review Date</p>
+                  <p>{document.renewalDate ? format(new Date(document.renewalDate), "MMM d, yyyy") : "Not set"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Document Type</p>
+                  <p>{getDocTypeLabel(document.type, (document as any).documentTypeId)}</p>
                 </div>
               </div>
               {document.description && (
@@ -1281,12 +1292,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <CardHeader>
                   <CardTitle>{getTitle()}</CardTitle>
                   <CardDescription>{getDescription()}</CardDescription>
-                  {isSignedOff && (
-                    <Badge variant="secondary" className="mt-2 w-fit">
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Client signed off - awaiting final approval
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="font-semibold">
+                      Reviewing Version {document.version}
                     </Badge>
-                  )}
+                    {isSignedOff && (
+                      <Badge variant="secondary">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Client signed off - awaiting final approval
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-3">
@@ -1453,7 +1469,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 onClick={() => downloadDocument(id, document.fileName)}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download Document
+                Download Current (v{document.version})
               </Button>
               <Button 
                 variant="outline" 
@@ -1481,7 +1497,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           {document.versions && document.versions.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Version History</CardTitle>
+                <CardTitle>Previous Versions</CardTitle>
+                <CardDescription className="text-xs">
+                  Archived when new versions were uploaded
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -1490,7 +1509,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       <div>
                         <p className="text-sm font-medium">Version {version.version}</p>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(version.createdAt), "MMM d, yyyy")}
+                          Archived {format(new Date(version.createdAt), "MMM d, yyyy")}
                         </p>
                       </div>
                       <Button 
