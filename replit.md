@@ -57,6 +57,10 @@ The platform supports two document approval workflows:
 - **Client-uploaded**: A two-stage process (Pending → Approved) with consultant/admin approval setting the renewal date.
 Renewal dates are calculated based on approval date and template renewal period, with a 30-day buffer.
 
+Document templates have a `requiresApproval` setting (default: true) that controls whether documents created from them need client approval:
+- **Requires Approval (true)**: Documents start with status "review_required" and approvalStatus "pending", requiring the standard approval workflow.
+- **No Approval Required (false)**: Documents are automatically marked as "compliant" upon creation/upload, bypassing the approval workflow.
+
 ### Training Library
 The training library features a separate folder structure per module, containing Training Courses with detailed information (summary, overview, FAQs, method: online/in_person). Consultants can create Training Bookings for sites, including access credentials. Clients can view their booked and completed training, with functionality to view access credentials.
 
