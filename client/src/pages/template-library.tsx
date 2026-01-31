@@ -318,6 +318,7 @@ export default function TemplateLibraryPage() {
   const [selectedModule, setSelectedModule] = useState<ModuleType | "all">("all");
   const [requiredFilter, setRequiredFilter] = useState<"all" | "required" | "optional">("all");
   const [renewalFilter, setRenewalFilter] = useState<"all" | "has_renewal" | "no_renewal">("all");
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "needs_approval" | "auto_compliant">("all");
   
   // Template dialogs
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
@@ -650,8 +651,14 @@ export default function TemplateLibraryPage() {
     } else if (renewalFilter === "no_renewal") {
       result = result.filter(t => t.renewalPeriodMonths === null || t.renewalPeriodMonths === undefined);
     }
+    // Approval filter: needs approval vs auto-compliant
+    if (approvalFilter === "needs_approval") {
+      result = result.filter(t => t.requiresApproval !== false);
+    } else if (approvalFilter === "auto_compliant") {
+      result = result.filter(t => t.requiresApproval === false);
+    }
     return result;
-  }, [templates, selectedModule, searchQuery, requiredFilter, renewalFilter]);
+  }, [templates, selectedModule, searchQuery, requiredFilter, renewalFilter, approvalFilter]);
   
   const filteredDocTypes = useMemo(() => {
     let result = documentTypes;
@@ -1146,17 +1153,28 @@ export default function TemplateLibraryPage() {
             <FileIcon className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">{template.name}</p>
               {template.isRequired && (
-                <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs py-0">
+                <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs py-0" title="This document is required for compliance">
                   <AlertCircle className="h-3 w-3 mr-1" />
-                  Required
+                  Compliance
+                </Badge>
+              )}
+              {template.requiresApproval === false ? (
+                <Badge variant="outline" className="text-green-600 border-green-600 text-xs py-0" title="Documents are automatically marked compliant">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Auto-Compliant
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-blue-600 border-blue-600 text-xs py-0" title="Documents require client approval">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Needs Approval
                 </Badge>
               )}
               {template.renewalPeriodMonths && (
                 <Badge variant="outline" className="text-xs py-0">
-                  <Clock className="h-3 w-3 mr-1" />
+                  <RotateCcw className="h-3 w-3 mr-1" />
                   {template.renewalPeriodMonths}mo
                 </Badge>
               )}
@@ -1542,6 +1560,17 @@ export default function TemplateLibraryPage() {
                   <SelectItem value="all">All Renewals</SelectItem>
                   <SelectItem value="has_renewal">Has Renewal Period</SelectItem>
                   <SelectItem value="no_renewal">No Renewal</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={approvalFilter} onValueChange={(v) => setApprovalFilter(v as "all" | "needs_approval" | "auto_compliant")}>
+                <SelectTrigger className="w-44" data-testid="select-approval-filter">
+                  <SelectValue placeholder="Approval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Approval</SelectItem>
+                  <SelectItem value="needs_approval">Needs Approval</SelectItem>
+                  <SelectItem value="auto_compliant">Auto-Compliant</SelectItem>
                 </SelectContent>
               </Select>
               
