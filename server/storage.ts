@@ -2992,6 +2992,7 @@ export class MemStorage implements IStorage {
       placeholders: template.placeholders ?? null,
       isRequired: template.isRequired ?? false,
       renewalPeriodMonths: template.renewalPeriodMonths ?? null,
+      requiresApproval: template.requiresApproval ?? true, // Default to requiring approval
       isActive: template.isActive ?? true,
       sortOrder: template.sortOrder ?? 0,
       createdBy: template.createdBy,

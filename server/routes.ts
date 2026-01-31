@@ -1194,6 +1194,19 @@ export async function registerRoutes(
         changeNote: changeNote || `Replaced by version ${newVersionNumber}`,
       });
       
+      // Check if template requires approval
+      let newStatus: "review_required" | "compliant" = "review_required";
+      let newApprovalStatus: "pending" | null = "pending";
+      
+      if (document.templateId) {
+        const template = await storage.getDocumentTemplateById(document.templateId);
+        if (template && template.requiresApproval === false) {
+          // Template doesn't require approval - auto-mark as compliant
+          newStatus = "compliant";
+          newApprovalStatus = null;
+        }
+      }
+      
       // Update the main document with new file info
       const updatedDocument = await storage.updateDocument(document.id, {
         fileName,
@@ -1201,8 +1214,8 @@ export async function registerRoutes(
         fileSize,
         mimeType,
         version: newVersionNumber,
-        status: "review_required", // New version requires review
-        approvalStatus: "pending", // Reset approval status
+        status: newStatus,
+        approvalStatus: newApprovalStatus,
         updatedAt: new Date(),
       });
       
@@ -1345,6 +1358,19 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to upload documents to this site" });
       }
       
+      // Check if template requires approval
+      let documentStatus: "review_required" | "compliant" = "review_required";
+      let documentApprovalStatus: "pending" | null = "pending";
+      
+      if (body.templateId) {
+        const template = await storage.getDocumentTemplateById(body.templateId);
+        if (template && template.requiresApproval === false) {
+          // Template doesn't require approval - auto-mark as compliant
+          documentStatus = "compliant";
+          documentApprovalStatus = null;
+        }
+      }
+      
       const document = await storage.createDocument({
         title: body.title,
         description: body.description || null,
@@ -1359,8 +1385,8 @@ export async function registerRoutes(
         fileSize: body.fileSize,
         mimeType: body.mimeType,
         version: 1,
-        status: "review_required",
-        approvalStatus: "pending",
+        status: documentStatus,
+        approvalStatus: documentApprovalStatus,
         reviewDate: body.reviewDate ? new Date(body.reviewDate) : null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         uploadedBy: user.id,
@@ -2262,6 +2288,7 @@ export async function registerRoutes(
         sortOrder: z.number().optional(),
         isRequired: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
+        requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
       });
       
       const parsed = schema.safeParse(req.body);
@@ -2329,6 +2356,7 @@ export async function registerRoutes(
         isActive: z.boolean().optional(),
         isRequired: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
+        requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
       });
       
       const parsed = schema.safeParse(req.body);
