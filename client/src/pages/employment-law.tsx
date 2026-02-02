@@ -150,6 +150,7 @@ function CasesList() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const [showArchived, setShowArchived] = useState(false);
+  const [caseToArchive, setCaseToArchive] = useState<Case | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -224,6 +225,7 @@ function CasesList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      setCaseToArchive(null);
       toast({ title: "Case archived successfully" });
     },
     onError: () => {
@@ -542,7 +544,7 @@ function CasesList() {
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem
-                                  onClick={() => archiveCaseMutation.mutate(caseItem.id)}
+                                  onClick={() => setCaseToArchive(caseItem)}
                                   data-testid={`button-archive-case-${caseItem.id}`}
                                 >
                                   <Archive className="mr-2 h-4 w-4" />
@@ -578,6 +580,30 @@ function CasesList() {
         onSubmit={(data) => createCaseMutation.mutate(data)}
         isLoading={createCaseMutation.isPending}
       />
+
+      {/* Archive Confirmation Dialog */}
+      <AlertDialog open={!!caseToArchive} onOpenChange={(open) => !open && setCaseToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Case</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive case <span className="font-semibold">{caseToArchive?.caseReference}</span>?
+              <br /><br />
+              Archived cases will be hidden from the main case list but can be restored later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-archive">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => caseToArchive && archiveCaseMutation.mutate(caseToArchive.id)}
+              disabled={archiveCaseMutation.isPending}
+              data-testid="button-confirm-archive"
+            >
+              {archiveCaseMutation.isPending ? "Archiving..." : "Archive Case"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </div>
   );
