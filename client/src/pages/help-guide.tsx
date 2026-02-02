@@ -191,12 +191,16 @@ const guideSections: GuideSection[] = [
           <StepList steps={[
             "Navigate to 'Companies' in the sidebar",
             "Click the 'Add Company' button in the top right",
-            "Fill in the company details: name, address, contact information",
-            "Optionally add company-specific notes",
+            "Fill in the company details: name and address",
             "Click 'Create' to save the new company",
-            "The system will automatically generate a reference number (CMP-XXXXX)"
+            "The system will automatically generate a reference number (CMP-XXXXX)",
+            "After creating users for this company, you can edit the company to assign a primary contact"
           ]} />
         </div>
+
+        <TipBox type="info">
+          Company and site contacts must be registered users from that company. When you first create a company, no users exist yet - create users in the Users section first, then edit the company to assign a primary contact. Contact details are automatically populated from the selected user's profile.
+        </TipBox>
 
         <Separator />
 
@@ -215,10 +219,6 @@ const guideSections: GuideSection[] = [
             "The system will generate a site reference number (STE-XXXXX)"
           ]} />
         </div>
-
-        <TipBox type="info">
-          Site contacts must be registered users from this company. If no users are available, create them first in the Users section. This ensures contact details stay in sync with user profiles.
-        </TipBox>
 
         <TipBox type="success">
           After creating a site, you can assign consultants to manage it and invite client users who work at that location. Module access (H&S, HR, Employment Law) is configured at the company level and applies to all sites.
