@@ -280,6 +280,7 @@ export default function CompanyDetail() {
     contactPosition: "",
     contactPhone: "",
     contactEmail: "",
+    contactUserId: "",
     status: "active" as "active" | "inactive" | "pending",
   });
   const [newSiteForm, setNewSiteForm] = useState({
@@ -319,7 +320,7 @@ export default function CompanyDetail() {
   );
 
   // Handler to select a user as site contact
-  const handleSelectContactUser = (userId: string) => {
+  const handleSelectSiteContactUser = (userId: string) => {
     if (userId === "none") {
       // Clear contact fields
       setNewSiteForm({
@@ -337,6 +338,33 @@ export default function CompanyDetail() {
     if (selectedUser) {
       setNewSiteForm({
         ...newSiteForm,
+        contactUserId: userId,
+        contactName: selectedUser.fullName || "",
+        contactPosition: selectedUser.jobTitle || "",
+        contactPhone: selectedUser.phone || selectedUser.mobile || "",
+        contactEmail: selectedUser.email || "",
+      });
+    }
+  };
+
+  // Handler to select a user as company contact
+  const handleSelectCompanyContactUser = (userId: string) => {
+    if (userId === "none") {
+      setEditForm({
+        ...editForm,
+        contactUserId: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      return;
+    }
+    
+    const selectedUser = companyUsers.find((u) => u.id === userId);
+    if (selectedUser) {
+      setEditForm({
+        ...editForm,
         contactUserId: userId,
         contactName: selectedUser.fullName || "",
         contactPosition: selectedUser.jobTitle || "",
@@ -425,6 +453,10 @@ export default function CompanyDetail() {
 
   const openEditDialog = () => {
     if (company) {
+      // Try to find the user whose details match the current contact
+      const matchingUser = companyUsers.find(
+        (u) => u.email === company.contactEmail || u.fullName === company.contactName
+      );
       setEditForm({
         name: company.name || "",
         companyNumber: company.companyNumber || "",
@@ -439,6 +471,7 @@ export default function CompanyDetail() {
         contactPosition: company.contactPosition || "",
         contactPhone: company.contactPhone || "",
         contactEmail: company.contactEmail || "",
+        contactUserId: matchingUser?.id || "",
         status: company.status || "active",
       });
       setEditDialogOpen(true);
@@ -817,54 +850,68 @@ export default function CompanyDetail() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
+              <h4 className="text-sm font-medium mb-3">Primary Contact (Optional)</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select a registered user from this company to be the primary contact.
+              </p>
+              
+              {companyUsers.length > 0 ? (
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-contact-name">Contact Name</Label>
-                    <Input
-                      id="edit-contact-name"
-                      value={editForm.contactName}
-                      onChange={(e) => setEditForm({ ...editForm, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-edit-company-contact-name"
-                    />
+                    <Label htmlFor="edit-contact-user">Select Contact</Label>
+                    <Select
+                      value={editForm.contactUserId || "none"}
+                      onValueChange={handleSelectCompanyContactUser}
+                    >
+                      <SelectTrigger id="edit-contact-user" data-testid="select-company-contact-user">
+                        <SelectValue placeholder="Select a user..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No contact selected</SelectItem>
+                        {companyUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-contact-position">Job Position</Label>
-                    <Input
-                      id="edit-contact-position"
-                      value={editForm.contactPosition}
-                      onChange={(e) => setEditForm({ ...editForm, contactPosition: e.target.value })}
-                      placeholder="e.g., Operations Manager"
-                      data-testid="input-edit-company-contact-position"
-                    />
-                  </div>
+
+                  {editForm.contactUserId && (
+                    <div className="rounded-md border p-3 bg-muted/50">
+                      <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Name:</span>{" "}
+                          <span className="font-medium">{editForm.contactName || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Position:</span>{" "}
+                          <span className="font-medium">{editForm.contactPosition || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>{" "}
+                          <span className="font-medium">{editForm.contactPhone || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Email:</span>{" "}
+                          <span className="font-medium">{editForm.contactEmail || "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-phone">Phone</Label>
-                    <Input
-                      id="edit-phone"
-                      value={editForm.contactPhone}
-                      onChange={(e) => setEditForm({ ...editForm, contactPhone: e.target.value })}
-                      placeholder="+44 1234 567890"
-                      data-testid="input-edit-company-phone"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-email">Email</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={editForm.contactEmail}
-                      onChange={(e) => setEditForm({ ...editForm, contactEmail: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="input-edit-company-email"
-                    />
-                  </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <UserIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No users available in this company yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can add users in the <strong>Users</strong> section and then assign them as the primary contact.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-status">Status</Label>
@@ -1005,7 +1052,7 @@ export default function CompanyDetail() {
                     <Label htmlFor="new-site-contact-user">Select Contact</Label>
                     <Select
                       value={newSiteForm.contactUserId || "none"}
-                      onValueChange={handleSelectContactUser}
+                      onValueChange={handleSelectSiteContactUser}
                     >
                       <SelectTrigger id="new-site-contact-user" data-testid="select-site-contact-user">
                         <SelectValue placeholder="Select a user..." />
