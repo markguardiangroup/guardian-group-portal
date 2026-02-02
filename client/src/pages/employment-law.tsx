@@ -516,20 +516,22 @@ function CasesList() {
                       {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/employment-law/cases/${caseItem.id}`} data-testid={`button-view-case-${caseItem.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        {isPrivilegedUser && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" data-testid={`button-case-menu-${caseItem.id}`}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" data-testid={`button-case-menu-${caseItem.id}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/employment-law/cases/${caseItem.id}`} data-testid={`button-view-case-${caseItem.id}`}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Case
+                            </Link>
+                          </DropdownMenuItem>
+                          {isPrivilegedUser && (
+                            <>
+                              <DropdownMenuSeparator />
                               {caseItem.isArchived ? (
                                 <DropdownMenuItem
                                   onClick={() => unarchiveCaseMutation.mutate(caseItem.id)}
@@ -547,10 +549,10 @@ function CasesList() {
                                   Archive Case
                                 </DropdownMenuItem>
                               )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
