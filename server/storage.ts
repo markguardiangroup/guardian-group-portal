@@ -223,7 +223,7 @@ export interface IStorage {
   getFolderTemplate(id: string): Promise<FolderTemplate | undefined>;
   createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate>;
   updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined>;
-  deleteFolderTemplate(id: string): Promise<boolean>;
+  deleteFolderTemplate(id: string, deletedBy?: string): Promise<boolean>;
   
   // Folder-Document Type Rules
   getAllFolderDocumentTypeRules(): Promise<FolderDocumentTypeRule[]>;
@@ -2862,37 +2862,63 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async deleteFolderTemplate(id: string): Promise<boolean> {
+  async deleteFolderTemplate(id: string, deletedBy?: string): Promise<boolean> {
     try {
-      // First remove any rules associated with this template
-      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
+      // Get the folder being deleted to know its module
+      const folderToDelete = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
+      const module = folderToDelete[0]?.module;
       
-      // Delete child templates recursively
-      const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
-      for (const child of children) {
-        await this.deleteFolderTemplate(child.id);
+      // Find or create a root-level "Uncategorized" folder for this module to move orphaned templates to
+      let uncategorizedFolder = await db.select().from(folderTemplatesTable)
+        .where(and(
+          eq(folderTemplatesTable.code, `uncategorized_${module}`),
+          eq(folderTemplatesTable.module, module as any),
+          isNull(folderTemplatesTable.parentId)
+        ));
+      
+      let uncategorizedFolderId: string | null = uncategorizedFolder[0]?.id || null;
+      
+      // Create uncategorized folder if it doesn't exist and we have document templates to move
+      const documentTemplatesInFolder = await db.select().from(documentTemplatesTable)
+        .where(eq(documentTemplatesTable.folderTemplateId, id));
+      
+      if (documentTemplatesInFolder.length > 0 && !uncategorizedFolderId && module) {
+        const newFolder = await this.createFolderTemplate({
+          name: "Uncategorized",
+          code: `uncategorized_${module}`,
+          module: module as any,
+          description: "Document templates from deleted folders",
+          parentId: null,
+          isRequired: false,
+          sortOrder: 9999,
+          createdBy: deletedBy || "system",
+        });
+        uncategorizedFolderId = newFolder.id;
       }
       
-      // Delete the template
+      // Move document templates to uncategorized folder (or leave as-is if no folder created)
+      if (uncategorizedFolderId) {
+        await db.update(documentTemplatesTable)
+          .set({ folderTemplateId: uncategorizedFolderId, updatedAt: new Date() })
+          .where(eq(documentTemplatesTable.folderTemplateId, id));
+      }
+      
+      // Remove any rules associated with this template
+      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
+      
+      // Delete child folder templates recursively
+      const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
+      for (const child of children) {
+        await this.deleteFolderTemplate(child.id, deletedBy);
+      }
+      
+      // Delete the folder template
       await db.delete(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
       this.folderTemplates.delete(id);
       return true;
     } catch (error) {
       console.error("Error deleting folder template from DB:", error);
-      // Fallback to memory-based deletion
-      const rules = Array.from(this.folderDocumentTypeRules.values());
-      for (const rule of rules) {
-        if (rule.folderTemplateId === id) {
-          this.folderDocumentTypeRules.delete(rule.id);
-        }
-      }
-      const templates = Array.from(this.folderTemplates.values());
-      for (const template of templates) {
-        if (template.parentId === id) {
-          await this.deleteFolderTemplate(template.id);
-        }
-      }
-      return this.folderTemplates.delete(id);
+      return false;
     }
   }
 

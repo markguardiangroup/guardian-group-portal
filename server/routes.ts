@@ -2043,7 +2043,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Folder template not found" });
       }
       
-      await storage.deleteFolderTemplate(req.params.id);
+      await storage.deleteFolderTemplate(req.params.id, user.id);
       res.status(204).send();
     } catch (error) {
       console.error("Delete folder template error:", error);
