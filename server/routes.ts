@@ -5915,6 +5915,7 @@ export async function registerRoutes(
       
       const assignment = await storage.assignConsultant({
         consultantId,
+        entityId: req.params.siteId,
         siteId: req.params.siteId,
         isPrimary: isPrimary || false,
       });
@@ -6254,6 +6255,7 @@ export async function registerRoutes(
         // Assign consultant to site
         const assignment = await storage.assignConsultant({
           consultantId: targetUser.id,
+          entityId: site.id,
           siteId: site.id,
           isPrimary: isPrimary || false,
         });
@@ -6279,10 +6281,9 @@ export async function registerRoutes(
         }
         
         // Assign client to site
-        const assignment = await storage.addClientSiteAssignment({
+        const assignment = await storage.assignClientToSite({
           clientId: targetUser.id,
           siteId: site.id,
-          isPrimary: isPrimary || false,
         });
         
         // Create audit log
