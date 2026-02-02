@@ -33,6 +33,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PriorityBadge, SupportStatusBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
@@ -277,6 +287,15 @@ function CreateSupportRequestDialog({ sites, onSuccess }: { sites: SiteWithDetai
 function InlineStatusSelect({ request }: { request: SupportRequest }) {
   const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = useState<"open" | "in_progress" | "resolved" | "closed">(request.status);
+  const [pendingStatus, setPendingStatus] = useState<"open" | "in_progress" | "resolved" | "closed" | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const statusLabels: Record<string, string> = {
+    open: "Open",
+    in_progress: "In Progress",
+    resolved: "Resolved",
+    closed: "Closed",
+  };
 
   const mutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -303,28 +322,70 @@ function InlineStatusSelect({ request }: { request: SupportRequest }) {
   });
 
   const handleStatusChange = (newStatus: "open" | "in_progress" | "resolved" | "closed") => {
-    setCurrentStatus(newStatus);
-    mutation.mutate(newStatus);
+    if (newStatus !== currentStatus) {
+      setPendingStatus(newStatus);
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (pendingStatus) {
+      setCurrentStatus(pendingStatus);
+      mutation.mutate(pendingStatus);
+    }
+    setShowConfirmDialog(false);
+    setPendingStatus(null);
+  };
+
+  const handleCancelStatusChange = () => {
+    setShowConfirmDialog(false);
+    setPendingStatus(null);
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Status:</span>
-      <Select value={currentStatus} onValueChange={handleStatusChange} disabled={mutation.isPending}>
-        <SelectTrigger className="w-[140px] h-8" data-testid={`select-status-${request.id}`}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="open">Open</SelectItem>
-          <SelectItem value="in_progress">In Progress</SelectItem>
-          <SelectItem value="resolved">Resolved</SelectItem>
-          <SelectItem value="closed">Closed</SelectItem>
-        </SelectContent>
-      </Select>
-      {mutation.isPending && (
-        <span className="text-xs text-muted-foreground">Saving...</span>
-      )}
-    </div>
+    <>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Status:</span>
+        <Select value={currentStatus} onValueChange={handleStatusChange} disabled={mutation.isPending}>
+          <SelectTrigger className="w-[140px] h-8" data-testid={`select-status-${request.id}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+        {mutation.isPending && (
+          <span className="text-xs text-muted-foreground">Saving...</span>
+        )}
+      </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the ticket status from "{statusLabels[currentStatus]}" to "{pendingStatus ? statusLabels[pendingStatus] : ''}"?
+              {pendingStatus === "closed" && (
+                <span className="block mt-2 font-medium text-foreground">
+                  Closing this ticket will mark it as complete.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelStatusChange} data-testid="button-cancel-status-change">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmStatusChange} data-testid="button-confirm-status-change">
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
