@@ -287,12 +287,14 @@ function CasesList() {
     return matchesSearch && matchesStatus && matchesType;
   }) || [];
 
-  const openCases = cases?.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length || 0;
-  const resolvedCases = cases?.filter(c => c.status === "resolved" || c.status === "closed").length || 0;
-  const urgentCases = cases?.filter(c => {
+  // Always exclude archived cases from metrics
+  const activeCases = cases?.filter(c => !c.isArchived) || [];
+  const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const resolvedCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const urgentCases = activeCases.filter(c => {
     if (!c.responseDeadline) return false;
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
-  }).length || 0;
+  }).length;
 
   if (isLoading || sitesLoading) {
     return (
@@ -1896,13 +1898,15 @@ function EmploymentLawDashboardView() {
   
   const isLoading = summaryLoading || casesLoading || sitesLoading;
   
-  const openCases = cases?.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length || 0;
-  const urgentCases = cases?.filter(c => {
+  // Always exclude archived cases from metrics
+  const activeCases = cases?.filter(c => !c.isArchived) || [];
+  const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const urgentCases = activeCases.filter(c => {
     if (!c.responseDeadline) return false;
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
-  }).length || 0;
+  }).length;
   
-  // Get recent 5 documents and cases
+  // Get recent 5 documents and cases (excluding archived)
   const recentDocs = useMemo(() => {
     if (!recentDocuments) return [];
     return [...recentDocuments]
@@ -1913,6 +1917,7 @@ function EmploymentLawDashboardView() {
   const recentCases = useMemo(() => {
     if (!cases) return [];
     return [...cases]
+      .filter(c => !c.isArchived)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5);
   }, [cases]);
