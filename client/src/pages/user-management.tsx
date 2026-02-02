@@ -1816,7 +1816,8 @@ export default function UserManagement() {
             <AlertDialogCancel data-testid="button-cancel-status-change">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmStatusChange}
-              className={statusConfirm?.newStatus === "inactive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              disabled={updateStatusMutation.isPending}
+              className={statusConfirm?.newStatus === "inactive" ? "bg-destructive text-destructive-foreground" : ""}
               data-testid="button-confirm-status-change"
             >
               {updateStatusMutation.isPending 

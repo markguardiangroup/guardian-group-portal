@@ -17,6 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -359,6 +369,12 @@ export default function TemplateLibraryPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplate | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
+  
+  // Folder delete confirmation
+  const [folderToDelete, setFolderToDelete] = useState<FolderTemplate | null>(null);
+  
+  // Doc type delete confirmation  
+  const [docTypeToDelete, setDocTypeToDelete] = useState<DocumentTypeRecord | null>(null);
   
   // Queries
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
@@ -903,8 +919,13 @@ export default function TemplateLibraryPage() {
   };
   
   const handleDeleteFolder = (folder: FolderTemplate) => {
-    if (confirm(`Are you sure you want to delete "${folder.name}"?`)) {
-      deleteFolderMutation.mutate(folder.id);
+    setFolderToDelete(folder);
+  };
+
+  const confirmDeleteFolder = () => {
+    if (folderToDelete) {
+      deleteFolderMutation.mutate(folderToDelete.id);
+      setFolderToDelete(null);
     }
   };
   
@@ -980,8 +1001,13 @@ export default function TemplateLibraryPage() {
   };
   
   const handleDeleteDocType = (docType: DocumentTypeRecord) => {
-    if (confirm(`Are you sure you want to delete "${docType.name}"?`)) {
-      deleteDocTypeMutation.mutate(docType.id);
+    setDocTypeToDelete(docType);
+  };
+
+  const confirmDeleteDocType = () => {
+    if (docTypeToDelete) {
+      deleteDocTypeMutation.mutate(docTypeToDelete.id);
+      setDocTypeToDelete(null);
     }
   };
   
@@ -3124,6 +3150,58 @@ export default function TemplateLibraryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Folder Delete Confirmation */}
+      <AlertDialog open={!!folderToDelete} onOpenChange={(open) => !open && setFolderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the folder template <strong>"{folderToDelete?.name}"</strong>?
+              <span className="block mt-2 text-foreground">
+                This will remove the folder from the template structure. Sites that already have this folder will not be affected.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-folder">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteFolder}
+              disabled={deleteFolderMutation.isPending}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-delete-folder"
+            >
+              {deleteFolderMutation.isPending ? "Deleting..." : "Yes, Delete Folder"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Doc Type Delete Confirmation */}
+      <AlertDialog open={!!docTypeToDelete} onOpenChange={(open) => !open && setDocTypeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document Type</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the document type <strong>"{docTypeToDelete?.name}"</strong>?
+              <span className="block mt-2 text-foreground">
+                This will remove the document type and its folder assignments. Existing documents of this type will not be affected.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-doctype">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteDocType}
+              disabled={deleteDocTypeMutation.isPending}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-delete-doctype"
+            >
+              {deleteDocTypeMutation.isPending ? "Deleting..." : "Yes, Delete Document Type"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
