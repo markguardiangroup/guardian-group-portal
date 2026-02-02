@@ -229,11 +229,19 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string }[] }>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; contactEmail?: string | null; contactName?: string | null }[] }>({
     queryKey: ["/api/companies"],
     enabled: isAdmin || isConsultant,
   });
   const companies = companiesResponse?.companies || [];
+
+  // Helper to check if a user is the primary contact for their company
+  const isPrimaryContact = (u: UserWithAssignments) => {
+    if (u.role !== "client" || !u.companyId) return false;
+    const company = companies.find(c => c.id === u.companyId);
+    if (!company?.contactEmail) return false;
+    return company.contactEmail.toLowerCase() === u.email.toLowerCase();
+  };
 
   const usersWithSiteInfo = allUsers.map((u) => {
     if (u.role === "client" && u.companyId) {
@@ -852,9 +860,16 @@ export default function UserManagement() {
                   </TableCell>
                   <TableCell>
                     {u.companyId ? (
-                      <span className="text-sm">
-                        {companies.find(c => c.id === u.companyId)?.name || "-"}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm">
+                          {companies.find(c => c.id === u.companyId)?.name || "-"}
+                        </span>
+                        {isPrimaryContact(u) && (
+                          <Badge variant="outline" className="w-fit text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                            Primary Contact
+                          </Badge>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">-</span>
                     )}
