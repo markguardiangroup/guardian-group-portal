@@ -27,6 +27,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -1322,13 +1332,23 @@ function CaseDetailView({ id }: { id: string }) {
         </div>
       </div>
 
-      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Case Status</DialogTitle>
-            <DialogDescription>Change the status of this case</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+      <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>You are about to change the status of case <span className="font-semibold">{caseData?.caseReference}</span>.</p>
+              <div className="flex items-center gap-2 py-2">
+                <span className="text-muted-foreground">Current:</span>
+                <CaseStatusBadge status={caseData?.status as CaseStatus || "open"} />
+                <ArrowRight className="h-4 w-4 text-muted-foreground mx-2" />
+                <span className="text-muted-foreground">New:</span>
+                <CaseStatusBadge status={newStatus} />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium mb-2 block">Select New Status</label>
             <Select value={newStatus} onValueChange={(v) => setNewStatus(v as CaseStatus)}>
               <SelectTrigger data-testid="select-new-status">
                 <SelectValue />
@@ -1342,19 +1362,19 @@ function CaseDetailView({ id }: { id: string }) {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowStatusDialog(false)}>Cancel</Button>
-            <Button
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
               onClick={() => updateCaseMutation.mutate({ status: newStatus })}
               disabled={updateCaseMutation.isPending}
               className="bg-pink-600 hover:bg-pink-700"
               data-testid="button-confirm-status"
             >
-              {updateCaseMutation.isPending ? "Updating..." : "Update Status"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {updateCaseMutation.isPending ? "Updating..." : "Confirm Status Change"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showMilestoneDialog} onOpenChange={setShowMilestoneDialog}>
         <DialogContent>
