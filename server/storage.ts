@@ -456,10 +456,10 @@ export class MemStorage implements IStorage {
         county: "Greater Manchester",
         postalCode: "M3 4CD",
         country: "United Kingdom",
-        contactName: "Mike Williams",
+        contactName: "Mike Brown",
         contactPosition: "Warehouse Manager",
         contactPhone: "+44 161 123 4569",
-        contactEmail: "mike@acme-mfg.com",
+        contactEmail: "mike.brown@acme-mfg.com",
       },
       {
         id: "site-3",
