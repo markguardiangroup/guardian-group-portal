@@ -697,40 +697,6 @@ export default function Dashboard() {
     return null;
   }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
 
-  if (isLoading || isAuthLoading || sitesLoading) {
-    return (
-      <div className="space-y-8 p-8">
-        <div>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <Skeleton className="h-64 w-full" />
-        <div className="grid gap-6 md:grid-cols-3">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  // Compliance modules (not including support)
-  const complianceModules: { module: ModuleType; name: string }[] = [
-    { module: "health_safety", name: "Health & Safety" },
-    { module: "human_resources", name: "Human Resources" },
-    { module: "employment_law", name: "Employment Law" },
-  ];
-
-  const summaries = moduleSummaries || [];
-  // Filter to only compliance modules (exclude support)
-  const complianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
-  // Show all non-active modules as locked so clients can see what's available
-  const lockedModules = complianceModules.filter(m => !hasActiveAccess(m.module));
-  
-  // Check if user has access to support
-  const hasSupportAccess = hasActiveAccess("support");
-  const isSupportLocked = !hasSupportAccess;
-
   // Get site compliance summary for accurate overall score (includes ALL document types)
   // This is used when a specific site is selected to ensure consistency with sites list
   const selectedSiteComplianceSummary = useMemo(() => {
@@ -774,6 +740,40 @@ export default function Dashboard() {
     
     return totals;
   }, [siteId, sites, selectedCompany]);
+
+  if (isLoading || isAuthLoading || sitesLoading) {
+    return (
+      <div className="space-y-8 p-8">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="mt-2 h-4 w-64" />
+        </div>
+        <Skeleton className="h-64 w-full" />
+        <div className="grid gap-6 md:grid-cols-3">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // Compliance modules (not including support)
+  const complianceModules: { module: ModuleType; name: string }[] = [
+    { module: "health_safety", name: "Health & Safety" },
+    { module: "human_resources", name: "Human Resources" },
+    { module: "employment_law", name: "Employment Law" },
+  ];
+
+  const summaries = moduleSummaries || [];
+  // Filter to only compliance modules (exclude support)
+  const complianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
+  // Show all non-active modules as locked so clients can see what's available
+  const lockedModules = complianceModules.filter(m => !hasActiveAccess(m.module));
+  
+  // Check if user has access to support
+  const hasSupportAccess = hasActiveAccess("support");
+  const isSupportLocked = !hasSupportAccess;
 
   return (
     <div className="space-y-8 p-8">
