@@ -282,13 +282,13 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
     return groups;
   }, [filteredCourses, trainingFolders]);
 
-  // Get featured courses (manually marked as featured by admin)
+  // Get featured courses (manually marked as featured by admin) - respects filters
   const featuredCourses = useMemo(() => {
-    if (!trainingCourses) return [];
-    return trainingCourses
+    if (!filteredCourses) return [];
+    return filteredCourses
       .filter(course => course.isFeatured)
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [trainingCourses]);
+  }, [filteredCourses]);
 
   // Count training by status
   const requiredCount = filteredCourses.filter((c) => c.isRequired).length;

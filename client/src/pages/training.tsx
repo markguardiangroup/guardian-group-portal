@@ -261,11 +261,11 @@ export default function Training() {
   }, [filteredCourses, trainingFolders]);
 
   const featuredCourses = useMemo(() => {
-    if (!trainingCourses) return [];
-    return trainingCourses
+    if (!filteredCourses) return [];
+    return filteredCourses
       .filter(course => course.isFeatured)
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [trainingCourses]);
+  }, [filteredCourses]);
 
   const requiredCount = filteredCourses.filter((c) => c.isRequired).length;
   const totalCourses = trainingCourses?.length || 0;
