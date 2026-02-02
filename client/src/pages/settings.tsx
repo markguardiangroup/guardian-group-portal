@@ -639,13 +639,27 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground mb-4">
                     These roles determine what client users can do within their organization.
                   </p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Note:</strong> Currently, all client users are assigned the <strong>Owner</strong> role with full permissions. Additional permission levels (Approver, Contributor, Viewer) are available for future use.
+                    </p>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
                           {(["owner", "approver", "contributor", "viewer"] as ClientPermissionRole[]).map(role => (
-                            <th key={role} className="text-center py-3 px-2 font-medium capitalize">{role}</th>
+                            <th key={role} className="text-center py-3 px-2 font-medium">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="capitalize">{role}</span>
+                                {role === "owner" ? (
+                                  <Badge variant="default" className="text-xs">Active</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs opacity-60">Future</Badge>
+                                )}
+                              </div>
+                            </th>
                           ))}
                         </tr>
                       </thead>
@@ -683,13 +697,27 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground mb-4">
                     These tiers determine what consultants can do across the platform.
                   </p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Note:</strong> Currently, all consultants are assigned the <strong>Senior</strong> tier with full capabilities. Additional tiers (Standard, Junior) are available for future use.
+                    </p>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
                           {(["senior", "standard", "junior"] as ConsultantTier[]).map(tier => (
-                            <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
+                            <th key={tier} className="text-center py-3 px-2 font-medium">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="capitalize">{tier}</span>
+                                {tier === "senior" ? (
+                                  <Badge variant="default" className="text-xs">Active</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs opacity-60">Future</Badge>
+                                )}
+                              </div>
+                            </th>
                           ))}
                         </tr>
                       </thead>
