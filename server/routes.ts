@@ -1018,14 +1018,18 @@ export async function registerRoutes(
       if (module !== "health_safety" && module !== "human_resources" && module !== "employment_law" && module !== "training") {
         return res.status(400).json({ error: "Invalid module" });
       }
+      const includeArchived = req.query.includeArchived === "true";
       const allDocuments = await storage.getDocuments(module);
       
       // Get document templates to enrich documents with isRequired/renewalPeriodMonths
       const docTemplates = await storage.getDocumentTemplates(module);
       
-      // Filter documents by sites the user can access
+      // Filter documents by sites the user can access and archived status
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
+          // Filter out archived documents unless includeArchived is true
+          if (!includeArchived && doc.isArchived) return null;
+          
           const canAccess = await canUserAccessSite(user, doc.siteId);
           if (!canAccess) return null;
           
@@ -1648,6 +1652,59 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Document archive error:", error);
       res.status(500).json({ error: "Failed to archive document" });
+    }
+  });
+
+  // Restore (unarchive) a document
+  app.post("/api/documents/:id/restore", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const documentId = req.params.id;
+
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Authorization: check if user can access this document's site
+      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+
+      // Only admins and consultants can restore documents
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot restore documents" });
+      }
+
+      const document = await storage.updateDocument(documentId, {
+        isArchived: false,
+      });
+
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      await storage.createAuditLog({
+        action: "document_restored",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: document.siteId,
+        documentId: document.id,
+        supportRequestId: null,
+        module: existingDoc.module,
+        details: "Document restored from archive",
+        metadata: null,
+      });
+
+      res.json({ message: "Document restored successfully", document });
+    } catch (error) {
+      console.error("Document restore error:", error);
+      res.status(500).json({ error: "Failed to restore document" });
     }
   });
 
