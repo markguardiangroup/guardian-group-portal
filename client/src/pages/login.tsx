@@ -84,6 +84,8 @@ export default function Login() {
       return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: async () => {
+      // Clear all cached queries before redirecting
+      queryClient.clear();
       toast({
         title: "Welcome",
         description: "You have successfully logged in",
@@ -290,6 +292,7 @@ export default function Login() {
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={async () => {
                     try {
+                      queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -316,10 +319,11 @@ export default function Login() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={async () => {
                     try {
+                      queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username: "john.doe", password: "consultant123" }),
+                        body: JSON.stringify({ username: "john.doe", password: "admin123" }),
                         credentials: "include"
                       });
                       window.location.href = "/";
@@ -334,7 +338,7 @@ export default function Login() {
               </div>
               <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
                 <div className="text-slate-700">
-                  <span className="font-semibold">Client:</span> sarah.acme
+                  <span className="font-semibold">Client:</span> sarah.johnson
                 </div>
                 <Button
                   type="button"
@@ -342,10 +346,11 @@ export default function Login() {
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={async () => {
                     try {
+                      queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username: "sarah.acme", password: "client123" }),
+                        body: JSON.stringify({ username: "sarah.johnson", password: "admin123" }),
                         credentials: "include"
                       });
                       window.location.href = "/";
