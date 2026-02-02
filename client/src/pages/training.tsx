@@ -271,6 +271,19 @@ export default function Training() {
   const totalCourses = trainingCourses?.length || 0;
   const totalFolders = trainingFolders?.length || 0;
 
+  // Check if any filters are active
+  const hasActiveFilters = searchQuery || filterRequired !== "all" || filterMethod !== "all" || filterProvider !== "all";
+
+  // Auto-expand folders containing matching courses when filters are applied
+  useEffect(() => {
+    if (hasActiveFilters && trainingFolders) {
+      const foldersWithCourses = trainingFolders
+        .filter(folder => groupedByFolder[folder.id]?.length > 0)
+        .map(folder => folder.id);
+      setOpenFolders(foldersWithCourses);
+    }
+  }, [hasActiveFilters, groupedByFolder, trainingFolders]);
+
   const handleBookingEnquiry = (course: TrainingCourse) => {
     setSelectedCourse(course);
     setShowEnquiryDialog(true);
