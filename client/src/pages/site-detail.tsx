@@ -855,6 +855,7 @@ export default function SiteDetail() {
     contactPosition: "",
     contactPhone: "",
     contactEmail: "",
+    contactUserId: "",
   });
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
@@ -866,6 +867,44 @@ export default function SiteDetail() {
     queryKey: ["/api/companies", entity?.companyId],
     enabled: !!entity?.companyId,
   });
+
+  // Fetch all users to filter for company users
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: !!entity?.companyId,
+  });
+
+  // Filter to get only client users from this company
+  const companyUsers = allUsers.filter(
+    (u) => u.role === "client" && u.companyId === entity?.companyId && u.status !== "inactive"
+  );
+
+  // Handler to select a user as site contact in edit mode
+  const handleSelectContactUser = (userId: string) => {
+    if (userId === "none") {
+      setEditSiteData({
+        ...editSiteData,
+        contactUserId: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      return;
+    }
+    
+    const selectedUser = companyUsers.find((u) => u.id === userId);
+    if (selectedUser) {
+      setEditSiteData({
+        ...editSiteData,
+        contactUserId: userId,
+        contactName: selectedUser.fullName || "",
+        contactPosition: selectedUser.jobTitle || "",
+        contactPhone: selectedUser.phone || selectedUser.mobile || "",
+        contactEmail: selectedUser.email || "",
+      });
+    }
+  };
 
   const updateSiteMutation = useMutation({
     mutationFn: async (data: typeof editSiteData) => {
@@ -885,6 +924,10 @@ export default function SiteDetail() {
 
   const handleEditSite = () => {
     if (entity) {
+      // Try to find the user whose details match the current contact
+      const matchingUser = companyUsers.find(
+        (u) => u.email === entity.contactEmail || u.fullName === entity.contactName
+      );
       setEditSiteData({
         name: entity.name || "",
         addressLine1: entity.addressLine1 || "",
@@ -897,6 +940,7 @@ export default function SiteDetail() {
         contactPosition: entity.contactPosition || "",
         contactPhone: entity.contactPhone || "",
         contactEmail: entity.contactEmail || "",
+        contactUserId: matchingUser?.id || "",
       });
       setIsEditSiteOpen(true);
     }
@@ -1095,54 +1139,68 @@ export default function SiteDetail() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Site Contact</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-name">Contact Name</Label>
-                    <Input
-                      id="site-contact-name"
-                      value={editSiteData.contactName}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-site-contact-name"
-                    />
+              <h4 className="text-sm font-medium mb-3">Primary Site Contact (Optional)</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select a registered user from this company to be the primary contact for this site.
+              </p>
+              
+              {companyUsers.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="site-contact-user">Select Contact</Label>
+                    <Select
+                      value={editSiteData.contactUserId || "none"}
+                      onValueChange={handleSelectContactUser}
+                    >
+                      <SelectTrigger id="site-contact-user" data-testid="select-site-contact-user">
+                        <SelectValue placeholder="Select a user..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No contact selected</SelectItem>
+                        {companyUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-position">Job Position</Label>
-                    <Input
-                      id="site-contact-position"
-                      value={editSiteData.contactPosition}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, contactPosition: e.target.value })}
-                      placeholder="e.g., Site Manager"
-                      data-testid="input-site-contact-position"
-                    />
-                  </div>
+
+                  {editSiteData.contactUserId && (
+                    <div className="rounded-md border p-3 bg-muted/50">
+                      <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Name:</span>{" "}
+                          <span className="font-medium">{editSiteData.contactName || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Position:</span>{" "}
+                          <span className="font-medium">{editSiteData.contactPosition || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>{" "}
+                          <span className="font-medium">{editSiteData.contactPhone || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Email:</span>{" "}
+                          <span className="font-medium">{editSiteData.contactEmail || "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-phone">Phone</Label>
-                    <Input
-                      id="site-phone"
-                      value={editSiteData.contactPhone}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, contactPhone: e.target.value })}
-                      placeholder="+44 123 456 7890"
-                      data-testid="input-site-phone"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-email">Email</Label>
-                    <Input
-                      id="site-email"
-                      type="email"
-                      value={editSiteData.contactEmail}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, contactEmail: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="input-site-email"
-                    />
-                  </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <Users className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No users available in this company yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can add users in the <strong>Users</strong> section and then assign them as site contacts.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           <DialogFooter>
