@@ -109,7 +109,6 @@ const loginSchema = z.object({
 
 const createDocumentTypeSchema = z.object({
   name: z.string().min(1),
-  code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   description: z.string().optional(),
   isRequired: z.boolean().optional(),
@@ -1960,7 +1959,6 @@ export async function registerRoutes(
       
       const schema = z.object({
         name: z.string().min(1),
-        code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only"),
         module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
         description: z.string().optional(),
         parentId: z.string().nullable().optional(),
@@ -1974,7 +1972,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
       
-      // Convert null parentId to undefined for storage
+      // Convert null parentId to undefined for storage - code is auto-generated
       const dataForStorage = {
         ...parsed.data,
         parentId: parsed.data.parentId ?? undefined,
@@ -4170,9 +4168,9 @@ export async function registerRoutes(
       }
 
       const body = parseResult.data;
+      // Code is auto-generated in the storage layer as TPL-XXXXX
       const documentType = await storage.createDocumentType({
         name: body.name,
-        code: body.code,
         module: body.module,
         description: body.description || null,
         isRequired: body.isRequired ?? false,

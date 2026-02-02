@@ -2549,13 +2549,33 @@ export class MemStorage implements IStorage {
     }
   }
 
+  private async generateNextTemplateCode(): Promise<string> {
+    // Get all existing template/doc type codes that match TPL-XXXXX pattern
+    const allDocTypes = await this.getDocumentTypes();
+    const tplPattern = /^TPL-(\d{5})$/;
+    let maxNum = 0;
+    
+    for (const docType of allDocTypes) {
+      const match = docType.code.match(tplPattern);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    
+    const nextNum = maxNum + 1;
+    return `TPL-${nextNum.toString().padStart(5, '0')}`;
+  }
+
   async createDocumentType(docType: InsertDocumentType): Promise<DocumentTypeRecord> {
     const id = randomUUID();
     const now = new Date();
+    // Auto-generate the template code
+    const code = await this.generateNextTemplateCode();
     const newDocType: DocumentTypeRecord = {
       id,
       name: docType.name,
-      code: docType.code,
+      code,
       module: docType.module as ModuleType,
       description: docType.description ?? null,
       isRequired: docType.isRequired ?? false,
@@ -2723,13 +2743,33 @@ export class MemStorage implements IStorage {
     }
   }
 
+  private async generateNextFolderCode(): Promise<string> {
+    // Get all existing folder codes that match FLD-XXXXX pattern
+    const allFolders = await this.getFolderTemplates();
+    const fldPattern = /^FLD-(\d{5})$/;
+    let maxNum = 0;
+    
+    for (const folder of allFolders) {
+      const match = folder.code.match(fldPattern);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    
+    const nextNum = maxNum + 1;
+    return `FLD-${nextNum.toString().padStart(5, '0')}`;
+  }
+
   async createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate> {
     const id = randomUUID();
     const now = new Date();
+    // Auto-generate the folder code
+    const code = await this.generateNextFolderCode();
     const newTemplate: FolderTemplate = {
       id,
       name: template.name,
-      code: template.code,
+      code,
       module: template.module as ModuleType,
       description: template.description ?? null,
       parentId: template.parentId ?? null,

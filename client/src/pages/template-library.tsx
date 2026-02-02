@@ -210,12 +210,10 @@ type TemplateFormData = {
   sortOrder: number;
   createNewFolder: boolean;
   newFolderName: string;
-  newFolderCode: string;
 };
 
 type FolderFormData = {
   name: string;
-  code: string;
   module: ModuleType;
   description: string;
   parentId: string | null;
@@ -226,7 +224,6 @@ type FolderFormData = {
 
 type DocTypeFormData = {
   name: string;
-  code: string;
   module: ModuleType;
   folderTemplateId: string;
   description: string;
@@ -252,12 +249,10 @@ const defaultTemplateFormData: TemplateFormData = {
   sortOrder: 0,
   createNewFolder: false,
   newFolderName: "",
-  newFolderCode: "",
 };
 
 const defaultFolderFormData: FolderFormData = {
   name: "",
-  code: "",
   module: "health_safety",
   description: "",
   parentId: null,
@@ -268,7 +263,6 @@ const defaultFolderFormData: FolderFormData = {
 
 const defaultDocTypeFormData: DocTypeFormData = {
   name: "",
-  code: "",
   module: "health_safety",
   folderTemplateId: "",
   description: "",
@@ -286,9 +280,7 @@ type WizardData = {
   folderName: string;
   createNewFolder: boolean;
   newFolderName: string;
-  newFolderCode: string;
   docTypeName: string;
-  docTypeCode: string;
   docTypeDescription: string;
   isRequired: boolean;
   renewalPeriodMonths: number | null;
@@ -304,9 +296,7 @@ const defaultWizardData: WizardData = {
   folderName: "",
   createNewFolder: false,
   newFolderName: "",
-  newFolderCode: "",
   docTypeName: "",
-  docTypeCode: "",
   docTypeDescription: "",
   isRequired: false,
   renewalPeriodMonths: null,
@@ -767,14 +757,6 @@ export default function TemplateLibraryPage() {
     return folderTemplates.find(t => t.id === parentId)?.name || null;
   };
   
-  const generateCode = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, "")
-      .replace(/\s+/g, "_")
-      .substring(0, 50);
-  };
-  
   // Template handlers
   const handleCreateTemplate = async () => {
     if (!templateFormData.name) {
@@ -791,14 +773,13 @@ export default function TemplateLibraryPage() {
     
     // If creating a new folder, create it first
     if (templateFormData.createNewFolder) {
-      if (!templateFormData.newFolderName || !templateFormData.newFolderCode) {
-        toast({ title: "Validation error", description: "Please fill in folder name and code", variant: "destructive" });
+      if (!templateFormData.newFolderName) {
+        toast({ title: "Validation error", description: "Please fill in folder name", variant: "destructive" });
         return;
       }
       try {
         const response = await apiRequest("POST", "/api/folder-templates", {
           name: templateFormData.newFolderName,
-          code: templateFormData.newFolderCode,
           module: templateFormData.module,
           description: "",
           parentId: null,
@@ -854,7 +835,6 @@ export default function TemplateLibraryPage() {
       sortOrder: template.sortOrder,
       createNewFolder: false,
       newFolderName: "",
-      newFolderCode: "",
     });
     setIsEditTemplateDialogOpen(true);
   };
@@ -888,8 +868,8 @@ export default function TemplateLibraryPage() {
   
   // Folder handlers
   const handleCreateFolder = () => {
-    if (!folderFormData.name || !folderFormData.code) {
-      toast({ title: "Validation error", description: "Please fill in all required fields", variant: "destructive" });
+    if (!folderFormData.name) {
+      toast({ title: "Validation error", description: "Please enter a folder name", variant: "destructive" });
       return;
     }
     createFolderMutation.mutate(folderFormData);
@@ -899,7 +879,6 @@ export default function TemplateLibraryPage() {
     setSelectedFolder(folder);
     setFolderFormData({
       name: folder.name,
-      code: folder.code,
       module: folder.module,
       description: folder.description || "",
       parentId: folder.parentId,
@@ -932,14 +911,13 @@ export default function TemplateLibraryPage() {
   
   // Document type handlers
   const handleCreateDocType = async () => {
-    if (!docTypeFormData.name || !docTypeFormData.code || !docTypeFormData.folderTemplateId) {
+    if (!docTypeFormData.name || !docTypeFormData.folderTemplateId) {
       toast({ title: "Validation error", description: "Please fill in all required fields including folder", variant: "destructive" });
       return;
     }
     try {
       const response = await apiRequest("POST", "/api/document-types", {
         name: docTypeFormData.name,
-        code: docTypeFormData.code,
         module: docTypeFormData.module,
         description: docTypeFormData.description || undefined,
         isRequired: docTypeFormData.isRequired,
@@ -972,7 +950,6 @@ export default function TemplateLibraryPage() {
       : "";
     setDocTypeFormData({
       name: docType.name,
-      code: docType.code,
       module: docType.module,
       folderTemplateId: folderId,
       description: docType.description || "",
@@ -990,7 +967,6 @@ export default function TemplateLibraryPage() {
       id: selectedDocType.id,
       data: {
         name: docTypeFormData.name,
-        code: docTypeFormData.code,
         description: docTypeFormData.description,
         isRequired: docTypeFormData.isRequired,
         renewalPeriodMonths: docTypeFormData.renewalPeriodMonths,
@@ -1043,15 +1019,14 @@ export default function TemplateLibraryPage() {
       setWizardStep("folder");
     } else if (wizardStep === "folder") {
       if (wizardData.createNewFolder) {
-        if (!wizardData.newFolderName || !wizardData.newFolderCode) {
-          toast({ title: "Validation error", description: "Please enter folder name and code", variant: "destructive" });
+        if (!wizardData.newFolderName) {
+          toast({ title: "Validation error", description: "Please enter folder name", variant: "destructive" });
           return;
         }
         setWizardLoading(true);
         try {
           const response = await apiRequest("POST", "/api/folder-templates", {
             name: wizardData.newFolderName,
-            code: wizardData.newFolderCode,
             module: wizardData.module,
             description: "",
             parentId: null,
@@ -1077,15 +1052,14 @@ export default function TemplateLibraryPage() {
         setWizardStep("doctype");
       }
     } else if (wizardStep === "doctype") {
-      if (!wizardData.docTypeName || !wizardData.docTypeCode) {
-        toast({ title: "Validation error", description: "Please enter template type name and code", variant: "destructive" });
+      if (!wizardData.docTypeName) {
+        toast({ title: "Validation error", description: "Please enter template type name", variant: "destructive" });
         return;
       }
       setWizardLoading(true);
       try {
         const response = await apiRequest("POST", "/api/document-types", {
           name: wizardData.docTypeName,
-          code: wizardData.docTypeCode,
           module: wizardData.module,
           description: wizardData.docTypeDescription || undefined,
           isRequired: wizardData.isRequired,
@@ -1936,7 +1910,7 @@ export default function TemplateLibraryPage() {
                   type="button"
                   size="sm"
                   variant={!templateFormData.createNewFolder ? "default" : "outline"}
-                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: false, newFolderName: "", newFolderCode: "" })}
+                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: false, newFolderName: "" })}
                   data-testid="button-select-existing-folder"
                 >
                   Select Existing
@@ -1986,17 +1960,7 @@ export default function TemplateLibraryPage() {
                       placeholder="e.g., Policies"
                       data-testid="input-new-folder-name"
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="new-folder-code" className="text-sm">Folder Code</Label>
-                    <Input
-                      id="new-folder-code"
-                      value={templateFormData.newFolderCode}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
-                      placeholder="e.g., policies"
-                      data-testid="input-new-folder-code"
-                    />
-                    <p className="text-xs text-muted-foreground">Lowercase letters and underscores only</p>
+                    <p className="text-xs text-muted-foreground">A unique code will be generated automatically</p>
                   </div>
                 </div>
               )}
@@ -2433,17 +2397,6 @@ export default function TemplateLibraryPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="folder-code">Code</Label>
-              <Input
-                id="folder-code"
-                value={folderFormData.code}
-                onChange={(e) => setFolderFormData({ ...folderFormData, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') })}
-                placeholder="e.g., fire_safety_docs"
-                data-testid="input-folder-code"
-              />
-              <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and underscores only</p>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="folder-module">Module</Label>
               <Select 
                 value={folderFormData.module} 
@@ -2594,24 +2547,10 @@ export default function TemplateLibraryPage() {
               <Input
                 id="doctype-name"
                 value={docTypeFormData.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setDocTypeFormData({ ...docTypeFormData, name, code: generateCode(name) });
-                }}
+                onChange={(e) => setDocTypeFormData({ ...docTypeFormData, name: e.target.value })}
                 placeholder="Fire Risk Assessment"
                 data-testid="input-doctype-name"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="doctype-code">Code</Label>
-              <Input
-                id="doctype-code"
-                value={docTypeFormData.code}
-                onChange={(e) => setDocTypeFormData({ ...docTypeFormData, code: e.target.value })}
-                placeholder="fire_risk_assessment"
-                data-testid="input-doctype-code"
-              />
-              <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and underscores only</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="doctype-module">Module <span className="text-red-500">*</span></Label>
@@ -2948,24 +2887,11 @@ export default function TemplateLibraryPage() {
                       <Input
                         id="wizard-folder-name"
                         value={wizardData.newFolderName}
-                        onChange={(e) => {
-                          const name = e.target.value;
-                          const code = name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);
-                          setWizardData(prev => ({ ...prev, newFolderName: name, newFolderCode: code }));
-                        }}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, newFolderName: e.target.value }))}
                         placeholder="e.g., Fire Safety Documents"
                         data-testid="wizard-input-folder-name"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="wizard-folder-code">Folder Code</Label>
-                      <Input
-                        id="wizard-folder-code"
-                        value={wizardData.newFolderCode}
-                        onChange={(e) => setWizardData(prev => ({ ...prev, newFolderCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }))}
-                        placeholder="e.g., fire_safety_docs"
-                        data-testid="wizard-input-folder-code"
-                      />
+                      <p className="text-xs text-muted-foreground">A unique code (FLD-XXXXX) will be generated automatically</p>
                     </div>
                   </div>
                 )}
@@ -2980,30 +2906,17 @@ export default function TemplateLibraryPage() {
                   Define the template type that will be stored in "{wizardData.folderName || wizardData.newFolderName}".
                 </p>
                 
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="pt-2">
                   <div className="space-y-2">
                     <Label htmlFor="wizard-doctype-name">Template Type Name</Label>
                     <Input
                       id="wizard-doctype-name"
                       value={wizardData.docTypeName}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        const code = name.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);
-                        setWizardData(prev => ({ ...prev, docTypeName: name, docTypeCode: code }));
-                      }}
+                      onChange={(e) => setWizardData(prev => ({ ...prev, docTypeName: e.target.value }))}
                       placeholder="e.g., Fire Risk Assessment"
                       data-testid="wizard-input-doctype-name"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="wizard-doctype-code">Code</Label>
-                    <Input
-                      id="wizard-doctype-code"
-                      value={wizardData.docTypeCode}
-                      onChange={(e) => setWizardData(prev => ({ ...prev, docTypeCode: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }))}
-                      placeholder="fire_risk_assessment"
-                      data-testid="wizard-input-doctype-code"
-                    />
+                    <p className="text-xs text-muted-foreground">A unique code (TPL-XXXXX) will be generated automatically</p>
                   </div>
                 </div>
                 

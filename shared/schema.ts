@@ -417,6 +417,7 @@ export const documentTypes = pgTable("document_types", {
 
 export const insertDocumentTypeSchema = createInsertSchema(documentTypes).omit({ 
   id: true, 
+  code: true, // Auto-generated as TPL-XXXXX
   createdAt: true, 
   updatedAt: true 
 });
@@ -441,6 +442,7 @@ export const folderTemplates = pgTable("folder_templates", {
 
 export const insertFolderTemplateSchema = createInsertSchema(folderTemplates).omit({ 
   id: true, 
+  code: true, // Auto-generated as FLD-XXXXX
   createdAt: true, 
   updatedAt: true 
 });
