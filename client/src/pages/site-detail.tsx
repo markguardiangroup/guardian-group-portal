@@ -95,7 +95,7 @@ interface UserWithoutPassword {
   createdAt: Date;
 }
 
-function OverviewTab({ entity, sites, onEditSite, onAddSite, companyId, companyName }: { entity: Site; sites: Site[]; onEditSite: () => void; onAddSite: () => void; companyId?: string; companyName?: string }) {
+function OverviewTab({ entity, onEditSite, companyId, companyName }: { entity: Site; onEditSite: () => void; companyId?: string; companyName?: string }) {
   return (
     <div className="space-y-6">
       {/* Parent Company Card */}
@@ -158,67 +158,6 @@ function OverviewTab({ entity, sites, onEditSite, onAddSite, companyId, companyN
                 {entity.contactPhone && <p>{entity.contactPhone}</p>}
                 {entity.contactEmail && <p>{entity.contactEmail}</p>}
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-base">Sites ({sites.length})</CardTitle>
-            <CardDescription>Physical locations for this entity</CardDescription>
-          </div>
-          <Button size="sm" onClick={onAddSite} data-testid="button-add-site">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Site
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {sites.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sites registered for this entity.</p>
-          ) : (
-            <div className="space-y-3">
-              {sites.map((site) => (
-                <div
-                  key={site.id}
-                  className="flex items-start gap-3 rounded-md border p-3"
-                  data-testid={`site-${site.id}`}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{site.name}</p>
-                      {site.referenceNumber && (
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {site.referenceNumber}
-                        </Badge>
-                      )}
-                    </div>
-                    {(site.addressLine1 || site.city) && (
-                      <p className="text-sm text-muted-foreground">
-                        {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
-                      </p>
-                    )}
-                    <div className="mt-1 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      {site.contactName && (
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {site.contactName}
-                        </span>
-                      )}
-                      {site.contactPhone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {site.contactPhone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </CardContent>
@@ -904,21 +843,7 @@ export default function SiteDetail() {
   const { toast } = useToast();
   const siteId = params.siteId;
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
-  const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   const [editSiteData, setEditSiteData] = useState({
-    name: "",
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    county: "",
-    postalCode: "",
-    country: "",
-    contactName: "",
-    contactPosition: "",
-    contactPhone: "",
-    contactEmail: "",
-  });
-  const [newSiteData, setNewSiteData] = useState({
     name: "",
     addressLine1: "",
     addressLine2: "",
@@ -934,11 +859,6 @@ export default function SiteDetail() {
 
   const { data: entity, isLoading: entityLoading } = useQuery<Site>({
     queryKey: ["/api/sites", siteId],
-    enabled: !!siteId,
-  });
-
-  const { data: sites = [] } = useQuery<Site[]>({
-    queryKey: ["/api/sites", siteId, "sites"],
     enabled: !!siteId,
   });
 
@@ -988,50 +908,6 @@ export default function SiteDetail() {
       return;
     }
     updateSiteMutation.mutate(editSiteData);
-  };
-
-  const createSiteMutation = useMutation({
-    mutationFn: async (data: typeof newSiteData & { companyId: string }) => {
-      const response = await apiRequest("POST", "/api/sites", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Site created successfully" });
-      setIsAddSiteOpen(false);
-      setNewSiteData({
-        name: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        county: "",
-        postalCode: "",
-        country: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
-      });
-    },
-    onError: () => {
-      toast({ title: "Failed to create site", variant: "destructive" });
-    },
-  });
-
-  const handleAddSite = () => {
-    setIsAddSiteOpen(true);
-  };
-
-  const handleCreateSite = () => {
-    if (!newSiteData.name.trim()) {
-      toast({ title: "Site name is required", variant: "destructive" });
-      return;
-    }
-    if (!entity?.companyId) {
-      toast({ title: "Company ID is required", variant: "destructive" });
-      return;
-    }
-    createSiteMutation.mutate({ ...newSiteData, companyId: entity.companyId });
   };
 
   if (entityLoading) {
@@ -1112,7 +988,7 @@ export default function SiteDetail() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab entity={entity} sites={sites} onEditSite={handleEditSite} onAddSite={handleAddSite} companyId={entity.companyId} companyName={parentCompany?.name} />
+          <OverviewTab entity={entity} onEditSite={handleEditSite} companyId={entity.companyId} companyName={parentCompany?.name} />
         </TabsContent>
 
         <TabsContent value="consultants">
@@ -1275,162 +1151,6 @@ export default function SiteDetail() {
             </Button>
             <Button onClick={handleSaveSite} disabled={updateSiteMutation.isPending} data-testid="button-save-site">
               {updateSiteMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Site</DialogTitle>
-            <DialogDescription>
-              Create a new site for {parentCompany?.name || "this company"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="new-site-name">Site Name *</Label>
-              <Input
-                id="new-site-name"
-                placeholder="e.g., Main Factory, Head Office"
-                value={newSiteData.name}
-                onChange={(e) => setNewSiteData({ ...newSiteData, name: e.target.value })}
-                data-testid="input-new-site-name"
-              />
-            </div>
-
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Address</h4>
-              <div className="space-y-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="new-site-address-line1">Address Line 1</Label>
-                  <Input
-                    id="new-site-address-line1"
-                    value={newSiteData.addressLine1}
-                    onChange={(e) => setNewSiteData({ ...newSiteData, addressLine1: e.target.value })}
-                    placeholder="Street address"
-                    data-testid="input-new-site-address-line1"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="new-site-address-line2">Address Line 2</Label>
-                  <Input
-                    id="new-site-address-line2"
-                    value={newSiteData.addressLine2}
-                    onChange={(e) => setNewSiteData({ ...newSiteData, addressLine2: e.target.value })}
-                    placeholder="Suite, floor, building (optional)"
-                    data-testid="input-new-site-address-line2"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-city">City</Label>
-                    <Input
-                      id="new-site-city"
-                      value={newSiteData.city}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, city: e.target.value })}
-                      placeholder="City"
-                      data-testid="input-new-site-city"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-county">County</Label>
-                    <Input
-                      id="new-site-county"
-                      value={newSiteData.county}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, county: e.target.value })}
-                      placeholder="County"
-                      data-testid="input-new-site-county"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-postal-code">Postal Code</Label>
-                    <Input
-                      id="new-site-postal-code"
-                      value={newSiteData.postalCode}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, postalCode: e.target.value })}
-                      placeholder="Postal code"
-                      data-testid="input-new-site-postal-code"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-country">Country</Label>
-                    <Input
-                      id="new-site-country"
-                      value={newSiteData.country}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, country: e.target.value })}
-                      placeholder="Country"
-                      data-testid="input-new-site-country"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-contact-name">Contact Name</Label>
-                    <Input
-                      id="new-site-contact-name"
-                      value={newSiteData.contactName}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-new-site-contact-name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-contact-position">Position</Label>
-                    <Input
-                      id="new-site-contact-position"
-                      value={newSiteData.contactPosition}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, contactPosition: e.target.value })}
-                      placeholder="Job title"
-                      data-testid="input-new-site-contact-position"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-phone">Phone</Label>
-                    <Input
-                      id="new-site-phone"
-                      value={newSiteData.contactPhone}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, contactPhone: e.target.value })}
-                      placeholder="+44 123 456 7890"
-                      data-testid="input-new-site-phone"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-site-email">Email</Label>
-                    <Input
-                      id="new-site-email"
-                      type="email"
-                      value={newSiteData.contactEmail}
-                      onChange={(e) => setNewSiteData({ ...newSiteData, contactEmail: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="input-new-site-email"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddSiteOpen(false)} data-testid="button-cancel-add-site">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateSite}
-              disabled={createSiteMutation.isPending}
-              data-testid="button-create-new-site"
-            >
-              {createSiteMutation.isPending ? "Creating..." : "Create Site"}
             </Button>
           </DialogFooter>
         </DialogContent>

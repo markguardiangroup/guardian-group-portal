@@ -47,6 +47,7 @@ import {
   FileText,
   Pencil,
   Globe,
+  Plus,
 } from "lucide-react";
 import type { Company, SiteWithDetails, ComplianceSummary } from "@shared/schema";
 
@@ -264,6 +265,7 @@ export default function CompanyDetail() {
   const isAdmin = user?.role === "admin";
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
@@ -279,6 +281,19 @@ export default function CompanyDetail() {
     contactPhone: "",
     contactEmail: "",
     status: "active" as "active" | "inactive" | "pending",
+  });
+  const [newSiteForm, setNewSiteForm] = useState({
+    name: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
+    contactPhone: "",
+    contactEmail: "",
   });
 
   const { data: company, isLoading, error } = useQuery<CompanyWithSites>({
@@ -317,6 +332,55 @@ export default function CompanyDetail() {
       });
     },
   });
+
+  const createSiteMutation = useMutation({
+    mutationFn: async (data: typeof newSiteForm) => {
+      const response = await apiRequest("POST", "/api/sites", { ...data, companyId });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      setAddSiteDialogOpen(false);
+      setNewSiteForm({
+        name: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      toast({
+        title: "Site created",
+        description: "The new site has been added to this company.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create site. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddSiteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSiteForm.name.trim()) {
+      toast({
+        title: "Validation error",
+        description: "Site name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createSiteMutation.mutate(newSiteForm);
+  };
 
   const openEditDialog = () => {
     if (company) {
@@ -563,6 +627,12 @@ export default function CompanyDetail() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
+          {isAdmin && (
+            <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Site
+            </Button>
+          )}
         </div>
         
         {sites.length > 0 ? (
@@ -581,6 +651,12 @@ export default function CompanyDetail() {
               <p className="mt-1 text-sm text-muted-foreground">
                 This company doesn't have any sites yet
               </p>
+              {isAdmin && (
+                <Button className="mt-4" size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-first-site">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add First Site
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -780,6 +856,168 @@ export default function CompanyDetail() {
                 data-testid="button-save-company"
               >
                 {updateCompanyMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addSiteDialogOpen} onOpenChange={setAddSiteDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Site</DialogTitle>
+            <DialogDescription>
+              Add a new site location to this company.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddSiteSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-site-name">Site Name *</Label>
+              <Input
+                id="new-site-name"
+                value={newSiteForm.name}
+                onChange={(e) => setNewSiteForm({ ...newSiteForm, name: e.target.value })}
+                placeholder="e.g., Main Office, Warehouse, Factory"
+                data-testid="input-new-site-name"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="new-site-address-line1">Address Line 1</Label>
+                  <Input
+                    id="new-site-address-line1"
+                    value={newSiteForm.addressLine1}
+                    onChange={(e) => setNewSiteForm({ ...newSiteForm, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-new-site-address-line1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-site-address-line2">Address Line 2</Label>
+                  <Input
+                    id="new-site-address-line2"
+                    value={newSiteForm.addressLine2}
+                    onChange={(e) => setNewSiteForm({ ...newSiteForm, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-new-site-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-city">City</Label>
+                    <Input
+                      id="new-site-city"
+                      value={newSiteForm.city}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-new-site-city"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-county">County</Label>
+                    <Input
+                      id="new-site-county"
+                      value={newSiteForm.county}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-new-site-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-postalCode">Postal Code</Label>
+                    <Input
+                      id="new-site-postalCode"
+                      value={newSiteForm.postalCode}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, postalCode: e.target.value })}
+                      placeholder="Postal Code"
+                      data-testid="input-new-site-postalCode"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-country">Country</Label>
+                    <Input
+                      id="new-site-country"
+                      value={newSiteForm.country}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-new-site-country"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Site Contact (Optional)</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-contact-name">Contact Name</Label>
+                    <Input
+                      id="new-site-contact-name"
+                      value={newSiteForm.contactName}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-new-site-contact-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-contact-position">Position</Label>
+                    <Input
+                      id="new-site-contact-position"
+                      value={newSiteForm.contactPosition}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactPosition: e.target.value })}
+                      placeholder="e.g., Site Manager"
+                      data-testid="input-new-site-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-phone">Phone</Label>
+                    <Input
+                      id="new-site-phone"
+                      value={newSiteForm.contactPhone}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactPhone: e.target.value })}
+                      placeholder="+44 1234 567890"
+                      data-testid="input-new-site-phone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-email">Email</Label>
+                    <Input
+                      id="new-site-email"
+                      type="email"
+                      value={newSiteForm.contactEmail}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactEmail: e.target.value })}
+                      placeholder="email@company.com"
+                      data-testid="input-new-site-email"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddSiteDialogOpen(false)}
+                data-testid="button-cancel-add-site"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createSiteMutation.isPending}
+                data-testid="button-save-new-site"
+              >
+                {createSiteMutation.isPending ? "Creating..." : "Add Site"}
               </Button>
             </DialogFooter>
           </form>
