@@ -314,7 +314,13 @@ function SupportCard() {
   );
 }
 
-function TrainingCard() {
+interface TrainingCardProps {
+  siteId?: string | null;
+  selectedCompany?: string | null;
+  sites?: SiteWithDetails[];
+}
+
+function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
@@ -322,9 +328,27 @@ function TrainingCard() {
     queryKey: ["/api/training-bookings"],
   });
 
-  const bookedCount = trainingBookings.filter(b => b.status === "booked").length;
-  const completedCount = trainingBookings.filter(b => b.status === "completed").length;
-  const totalBookings = trainingBookings.length;
+  // Filter bookings based on selected site or company
+  const filteredBookings = useMemo(() => {
+    if (siteId) {
+      // Filter by specific site (convert string to number for comparison)
+      const numericSiteId = parseInt(siteId, 10);
+      return trainingBookings.filter(b => b.siteId === numericSiteId);
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      // Filter by company - get all site IDs for this company
+      const companySiteIds = sites
+        .filter(s => s.companyName === selectedCompany)
+        .map(s => s.id);
+      return trainingBookings.filter(b => companySiteIds.includes(b.siteId));
+    }
+    // No filter - return all
+    return trainingBookings;
+  }, [trainingBookings, siteId, selectedCompany, sites]);
+
+  const bookedCount = filteredBookings.filter(b => b.status === "booked").length;
+  const completedCount = filteredBookings.filter(b => b.status === "completed").length;
+  const totalBookings = filteredBookings.length;
 
   return (
     <Card className="hover-elevate theme-training border-t-4 border-t-purple-500 bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20" data-testid="card-module-training">
@@ -956,7 +980,7 @@ export default function Dashboard() {
       <div>
         <h2 className="mb-4 text-xl font-semibold">Training</h2>
         <div className="grid gap-6 md:grid-cols-3">
-          <TrainingCard />
+          <TrainingCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
         </div>
       </div>
 
