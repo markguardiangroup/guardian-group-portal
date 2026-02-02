@@ -3068,12 +3068,27 @@ export default function TemplateLibraryPage() {
       <AlertDialog open={!!folderToDelete} onOpenChange={(open) => !open && setFolderToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Folder Template</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the folder template <strong>"{folderToDelete?.name}"</strong>?
-              <span className="block mt-2 text-foreground">
-                This will remove the folder from the template structure. Sites that already have this folder will not be affected.
-              </span>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Folder Template
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Are you sure you want to delete the folder template <strong className="text-foreground">"{folderToDelete?.name}"</strong>?
+                </p>
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Warning:</strong> This action cannot be undone. All document templates within this folder will also be removed from the template library. Existing site documents are not affected.
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Only administrators can delete folders from the template library.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
