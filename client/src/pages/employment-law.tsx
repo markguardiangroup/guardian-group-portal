@@ -451,7 +451,7 @@ function CasesList() {
                   className="gap-2"
                 >
                   <Archive className="h-4 w-4" />
-                  {showArchived ? "Showing Archived" : "Show Archived"}
+                  {showArchived ? "Hide Archived" : "Show Archived"}
                 </Button>
               )}
             </div>
