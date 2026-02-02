@@ -221,8 +221,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
+  const [showArchived, setShowArchived] = useState(false);
   
   const { user } = useAuth();
+  const { toast } = useToast();
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
   const ModuleIcon = module === "health_safety" ? HardHat : module === "training" ? FileText : Users;
@@ -231,6 +233,54 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  
+  // Restore document mutation
+  const restoreMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      return apiRequest("POST", `/api/documents/${documentId}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}?includeArchived=true`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      toast({
+        title: "Document restored",
+        description: "The document has been restored from the archive.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to restore document.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Archive document mutation (for list view)
+  const archiveMutationList = useMutation({
+    mutationFn: async (documentId: string) => {
+      return apiRequest("POST", `/api/documents/${documentId}/archive`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}?includeArchived=true`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      toast({
+        title: "Document archived",
+        description: "The document has been archived.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to archive document.",
+        variant: "destructive",
+      });
+    },
+  });
   
   // Fetch sites for all users
   const { data: sites } = useQuery<SiteWithCompany[]>({
@@ -267,7 +317,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   };
 
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents/module", module],
+    queryKey: showArchived 
+      ? [`/api/documents/module/${module}?includeArchived=true`]
+      : [`/api/documents/module/${module}`],
   });
 
   const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
@@ -560,6 +612,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <span className="text-muted-foreground">{hierarchy.summary.overdue}</span>
               </div>
             </div>
+          )}
+          
+          {/* Show/Hide Archived toggle for privileged users */}
+          {isPrivilegedUser && (
+            <Button
+              variant={showArchived ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+              data-testid="button-toggle-archived-documents"
+              className="gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
           )}
         </div>
       </div>
@@ -854,11 +920,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
                           <FileText className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <div>
-                          <p className="font-medium">{doc.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            v{doc.version} - {doc.fileName}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium">{doc.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              v{doc.version} - {doc.fileName}
+                            </p>
+                          </div>
+                          {doc.isArchived && (
+                            <Badge variant="secondary" className="gap-1 bg-muted">
+                              <Archive className="h-3 w-3" />
+                              Archived
+                            </Badge>
+                          )}
                         </div>
                       </Link>
                     </TableCell>
@@ -918,10 +992,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           {isPrivilegedUser && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archive
-                              </DropdownMenuItem>
+                              {doc.isArchived ? (
+                                <DropdownMenuItem 
+                                  onClick={() => restoreMutation.mutate(doc.id)}
+                                  disabled={restoreMutation.isPending}
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Restore from Archive
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => archiveMutationList.mutate(doc.id)}
+                                  disabled={archiveMutationList.isPending}
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive
+                                </DropdownMenuItem>
+                              )}
                             </>
                           )}
                         </DropdownMenuContent>
@@ -1110,6 +1198,31 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     archiveMutation.mutate({ reason: archiveReason || undefined });
   };
 
+  const restoreMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/documents/${id}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      toast({
+        title: "Document restored",
+        description: "The document has been restored from the archive.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to restore document",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId) {
       return type.replace(/_/g, " ");
@@ -1153,7 +1266,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold">{document.title}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">{document.title}</h1>
+            {document.isArchived && (
+              <Badge variant="secondary" className="gap-1 bg-muted">
+                <Archive className="h-3 w-3" />
+                Archived
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground">
             Version {document.version} - {getDocTypeLabel(document.type, (document as any).documentTypeId)}
           </p>
@@ -1481,15 +1602,28 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 Upload New Version
               </Button>
               {isPrivilegedUser && (
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-destructive hover:text-destructive" 
-                  data-testid="button-archive-document"
-                  onClick={() => setShowArchiveDialog(true)}
-                >
-                  <Archive className="mr-2 h-4 w-4" />
-                  Archive Document
-                </Button>
+                document.isArchived ? (
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    data-testid="button-restore-document"
+                    onClick={() => restoreMutation.mutate()}
+                    disabled={restoreMutation.isPending}
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    {restoreMutation.isPending ? "Restoring..." : "Restore from Archive"}
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-destructive hover:text-destructive" 
+                    data-testid="button-archive-document"
+                    onClick={() => setShowArchiveDialog(true)}
+                  >
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive Document
+                  </Button>
+                )
               )}
             </CardContent>
           </Card>
