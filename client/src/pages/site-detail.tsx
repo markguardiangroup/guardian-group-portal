@@ -762,21 +762,31 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   );
 }
 
+interface SiteWithCompliance {
+  id: string;
+  complianceSummary?: {
+    totalDocuments: number;
+    compliantDocuments: number;
+    reviewRequired: number;
+    overdueDocuments: number;
+    complianceScore: number;
+  };
+}
+
 function ComplianceTab({ siteId }: { siteId: string }) {
-  const { data: documents = [] } = useQuery<any[]>({
-    queryKey: ["/api/documents", { siteId }],
-    queryFn: async () => {
-      const response = await fetch(`/api/documents?siteId=${siteId}`, { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch documents");
-      return response.json();
-    },
+  // Fetch from /api/sites to get consistent compliance data (same as sites list)
+  const { data: sites = [] } = useQuery<SiteWithCompliance[]>({
+    queryKey: ["/api/sites"],
   });
 
-  const compliantDocs = documents.filter((d) => d.status === "compliant").length;
-  const reviewDocs = documents.filter((d) => d.status === "review_required").length;
-  const overdueDocs = documents.filter((d) => d.status === "overdue").length;
-  const totalDocs = documents.length;
-  const complianceScore = totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 0;
+  // Find the current site's compliance summary
+  const site = sites.find((s) => s.id === siteId);
+  const summary = site?.complianceSummary;
+  
+  const compliantDocs = summary?.compliantDocuments || 0;
+  const reviewDocs = summary?.reviewRequired || 0;
+  const overdueDocs = summary?.overdueDocuments || 0;
+  const complianceScore = summary?.complianceScore || 0;
 
   return (
     <div className="space-y-6">

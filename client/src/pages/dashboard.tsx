@@ -374,15 +374,34 @@ function TrainingCard() {
   );
 }
 
-function OverallComplianceCard({ summaries }: { summaries: ModuleSummary[] }) {
-  const totalDocs = summaries.reduce((acc, s) => acc + s.totalDocuments, 0);
-  const compliantDocs = summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
-  const reviewDocs = summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
-  const overdueDocs = summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
-  const pendingApprovals = summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
-  const awaitingYourApproval = summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
-  const awaitingOthersApproval = summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
-  const overallScore = totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 100;
+interface SiteComplianceSummary {
+  totalDocuments: number;
+  compliantDocuments: number;
+  reviewRequired: number;
+  overdueDocuments: number;
+  complianceScore: number;
+  pendingApprovals?: number;
+  awaitingYourApproval?: number;
+  awaitingOthersApproval?: number;
+}
+
+function OverallComplianceCard({ 
+  summaries, 
+  siteComplianceSummary 
+}: { 
+  summaries: ModuleSummary[];
+  siteComplianceSummary?: SiteComplianceSummary | null;
+}) {
+  // Use site compliance summary if available (more accurate, includes all document types)
+  // Otherwise fall back to aggregating module summaries
+  const totalDocs = siteComplianceSummary?.totalDocuments ?? summaries.reduce((acc, s) => acc + s.totalDocuments, 0);
+  const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
+  const reviewDocs = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
+  const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
+  const pendingApprovals = siteComplianceSummary?.pendingApprovals ?? summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
+  const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
+  const awaitingOthersApproval = siteComplianceSummary?.awaitingOthersApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
+  const overallScore = siteComplianceSummary?.complianceScore ?? (totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 100);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -712,6 +731,50 @@ export default function Dashboard() {
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
 
+  // Get site compliance summary for accurate overall score (includes ALL document types)
+  // This is used when a specific site is selected to ensure consistency with sites list
+  const selectedSiteComplianceSummary = useMemo(() => {
+    if (!siteId || !sites) return null;
+    const selectedSite = sites.find(s => s.id === siteId);
+    return selectedSite?.complianceSummary || null;
+  }, [siteId, sites]);
+  
+  // For company-wide or all-sites view, aggregate from all visible sites
+  const aggregatedComplianceSummary = useMemo(() => {
+    if (siteId) return null; // Use site-specific summary instead
+    if (!sites || sites.length === 0) return null;
+    
+    // Filter sites based on selected company
+    const relevantSites = selectedCompany && selectedCompany !== "all"
+      ? sites.filter(s => s.companyName === selectedCompany)
+      : sites;
+    
+    const totals = relevantSites.reduce((acc, site) => {
+      const summary = site.complianceSummary;
+      if (summary) {
+        acc.totalDocuments += summary.totalDocuments || 0;
+        acc.compliantDocuments += summary.compliantDocuments || 0;
+        acc.reviewRequired += summary.reviewRequired || 0;
+        acc.overdueDocuments += summary.overdueDocuments || 0;
+        acc.pendingApprovals += summary.pendingApprovals || 0;
+      }
+      return acc;
+    }, { 
+      totalDocuments: 0, 
+      compliantDocuments: 0, 
+      reviewRequired: 0, 
+      overdueDocuments: 0, 
+      pendingApprovals: 0,
+      complianceScore: 0,
+    });
+    
+    totals.complianceScore = totals.totalDocuments > 0 
+      ? Math.round((totals.compliantDocuments / totals.totalDocuments) * 100) 
+      : 100;
+    
+    return totals;
+  }, [siteId, sites, selectedCompany]);
+
   return (
     <div className="space-y-8 p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -755,7 +818,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <OverallComplianceCard summaries={complianceSummaries} />
+      <OverallComplianceCard 
+        summaries={complianceSummaries} 
+        siteComplianceSummary={selectedSiteComplianceSummary || aggregatedComplianceSummary}
+      />
 
       {/* Renewal Compliance Section */}
       <Card data-testid="card-renewal-compliance-overview">
