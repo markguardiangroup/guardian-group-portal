@@ -41,7 +41,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { SiteWithDetails, ComplianceSummary, Company } from "@shared/schema";
+import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/schema";
+import { Users } from "lucide-react";
 
 function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
@@ -95,6 +96,7 @@ export default function Sites() {
     contactPosition: "",
     contactPhone: "",
     contactEmail: "",
+    contactUserId: "",
   });
   const { toast } = useToast();
 
@@ -106,6 +108,45 @@ export default function Sites() {
     queryKey: ["/api/companies"],
   });
   const companies = companiesResponse?.companies;
+
+  // Fetch all users to filter for company users
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  // Filter to get only client users from the selected company
+  const companyUsers = newSite.companyId 
+    ? allUsers.filter(
+        (u) => u.role === "client" && u.companyId === newSite.companyId && u.status !== "inactive"
+      )
+    : [];
+
+  // Handler to select a user as site contact
+  const handleSelectContactUser = (userId: string) => {
+    if (userId === "none") {
+      setNewSite({
+        ...newSite,
+        contactUserId: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      return;
+    }
+    
+    const selectedUser = companyUsers.find((u) => u.id === userId);
+    if (selectedUser) {
+      setNewSite({
+        ...newSite,
+        contactUserId: userId,
+        contactName: selectedUser.fullName || "",
+        contactPosition: selectedUser.jobTitle || "",
+        contactPhone: selectedUser.phone || selectedUser.mobile || "",
+        contactEmail: selectedUser.email || "",
+      });
+    }
+  };
 
   const createSiteMutation = useMutation({
     mutationFn: async (data: typeof newSite) => {
@@ -129,6 +170,7 @@ export default function Sites() {
         contactPosition: "",
         contactPhone: "",
         contactEmail: "",
+        contactUserId: "",
       });
     },
     onError: () => {
@@ -442,54 +484,75 @@ export default function Sites() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Contact</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="contact-name">Contact Name</Label>
-                    <Input
-                      id="contact-name"
-                      value={newSite.contactName}
-                      onChange={(e) => setNewSite({ ...newSite, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-contact-name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="contact-position">Position</Label>
-                    <Input
-                      id="contact-position"
-                      value={newSite.contactPosition}
-                      onChange={(e) => setNewSite({ ...newSite, contactPosition: e.target.value })}
-                      placeholder="Job title"
-                      data-testid="input-contact-position"
-                    />
-                  </div>
+              <h4 className="text-sm font-medium mb-3">Primary Site Contact (Optional)</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select a registered user from the company to be the primary contact for this site.
+              </p>
+              
+              {!newSite.companyId ? (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <Users className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Please select a company first to see available contacts.
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="contact-phone">Phone</Label>
-                    <Input
-                      id="contact-phone"
-                      value={newSite.contactPhone}
-                      onChange={(e) => setNewSite({ ...newSite, contactPhone: e.target.value })}
-                      placeholder="+44 123 456 7890"
-                      data-testid="input-contact-phone"
-                    />
+              ) : companyUsers.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="site-contact-user">Select Contact</Label>
+                    <Select
+                      value={newSite.contactUserId || "none"}
+                      onValueChange={handleSelectContactUser}
+                    >
+                      <SelectTrigger id="site-contact-user" data-testid="select-site-contact-user">
+                        <SelectValue placeholder="Select a user..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No contact selected</SelectItem>
+                        {companyUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="contact-email">Email</Label>
-                    <Input
-                      id="contact-email"
-                      type="email"
-                      value={newSite.contactEmail}
-                      onChange={(e) => setNewSite({ ...newSite, contactEmail: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="input-contact-email"
-                    />
-                  </div>
+
+                  {newSite.contactUserId && (
+                    <div className="rounded-md border p-3 bg-muted/50">
+                      <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Name:</span>{" "}
+                          <span className="font-medium">{newSite.contactName || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Position:</span>{" "}
+                          <span className="font-medium">{newSite.contactPosition || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>{" "}
+                          <span className="font-medium">{newSite.contactPhone || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Email:</span>{" "}
+                          <span className="font-medium">{newSite.contactEmail || "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <Users className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No users available in this company yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can add users in the <strong>Users</strong> section and then assign them as site contacts.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
