@@ -88,6 +88,8 @@ import {
   UserPlus,
   UserMinus,
   Shield,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -147,6 +149,7 @@ function CasesList() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
+  const [showArchived, setShowArchived] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -195,7 +198,7 @@ function CasesList() {
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
   const { data: cases, isLoading } = useQuery<Case[]>({
-    queryKey: ["/api/cases", siteId, selectedCompanyId],
+    queryKey: ["/api/cases", siteId, selectedCompanyId, showArchived],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) {
@@ -204,10 +207,41 @@ function CasesList() {
       if (selectedCompanyId) {
         params.set("entityId", selectedCompanyId);
       }
+      if (showArchived) {
+        params.set("includeArchived", "true");
+      }
       const url = params.toString() ? `/api/cases?${params.toString()}` : "/api/cases";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
+    },
+  });
+  
+  // Archive mutation
+  const archiveCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      return apiRequest("POST", `/api/cases/${caseId}/archive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      toast({ title: "Case archived successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to archive case", variant: "destructive" });
+    },
+  });
+
+  // Unarchive mutation
+  const unarchiveCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      return apiRequest("POST", `/api/cases/${caseId}/unarchive`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      toast({ title: "Case restored from archive" });
+    },
+    onError: () => {
+      toast({ title: "Failed to restore case", variant: "destructive" });
     },
   });
   
@@ -406,6 +440,18 @@ function CasesList() {
                   <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
                 </SelectContent>
               </Select>
+              {isPrivilegedUser && (
+                <Button
+                  variant={showArchived ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowArchived(!showArchived)}
+                  data-testid="button-toggle-archived"
+                  className="gap-2"
+                >
+                  <Archive className="h-4 w-4" />
+                  {showArchived ? "Showing Archived" : "Show Archived"}
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -429,7 +475,15 @@ function CasesList() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {caseItem.isConfidential && <Lock className="h-3 w-3 text-pink-600" />}
-                        {caseItem.caseReference}
+                        {caseItem.isArchived && <Archive className="h-3 w-3 text-muted-foreground" />}
+                        <span className={caseItem.isArchived ? "text-muted-foreground" : ""}>
+                          {caseItem.caseReference}
+                        </span>
+                        {caseItem.isArchived && (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">
+                            Archived
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -462,11 +516,41 @@ function CasesList() {
                       {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/employment-law/cases/${caseItem.id}`} data-testid={`button-view-case-${caseItem.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/employment-law/cases/${caseItem.id}`} data-testid={`button-view-case-${caseItem.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        {isPrivilegedUser && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" data-testid={`button-case-menu-${caseItem.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {caseItem.isArchived ? (
+                                <DropdownMenuItem
+                                  onClick={() => unarchiveCaseMutation.mutate(caseItem.id)}
+                                  data-testid={`button-unarchive-case-${caseItem.id}`}
+                                >
+                                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                                  Restore from Archive
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => archiveCaseMutation.mutate(caseItem.id)}
+                                  data-testid={`button-archive-case-${caseItem.id}`}
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive Case
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

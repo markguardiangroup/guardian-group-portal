@@ -4456,6 +4456,7 @@ export async function registerRoutes(
       const siteId = req.query.siteId as string | undefined;
       const entityId = req.query.entityId as string | undefined;
       const status = req.query.status as any;
+      const includeArchived = req.query.includeArchived === "true";
 
       // Clients can only see cases for their company's sites
       if (user.role === "client" && siteId) {
@@ -4466,7 +4467,12 @@ export async function registerRoutes(
       }
 
       // Build filters based on user role and query params
-      const filters: { siteId?: string; entityId?: string; status?: any } = {};
+      const filters: { siteId?: string; entityId?: string; status?: any; includeArchived?: boolean } = {};
+      
+      // Only admins and consultants can view archived cases
+      if (includeArchived && (user.role === "admin" || user.role === "consultant")) {
+        filters.includeArchived = true;
+      }
       
       if (user.role === "client" && user.companyId) {
         // Clients can only see cases from their own company
@@ -4650,6 +4656,80 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update case error:", error);
       res.status(500).json({ error: "Failed to update case" });
+    }
+  });
+
+  // Archive a case
+  app.post("/api/cases/:id/archive", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admins and consultants can archive cases
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot archive cases" });
+      }
+
+      const existingCase = await storage.getCase(req.params.id);
+      if (!existingCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const archivedCase = await storage.archiveCase(req.params.id);
+      
+      await storage.createAuditLog({
+        action: "case_archived",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingCase.siteId,
+        caseId: existingCase.id,
+        module: "employment_law",
+        details: `Case ${existingCase.caseReference} archived`,
+      });
+
+      res.json(archivedCase);
+    } catch (error) {
+      console.error("Archive case error:", error);
+      res.status(500).json({ error: "Failed to archive case" });
+    }
+  });
+
+  // Unarchive a case
+  app.post("/api/cases/:id/unarchive", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Only admins and consultants can unarchive cases
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot unarchive cases" });
+      }
+
+      const existingCase = await storage.getCase(req.params.id);
+      if (!existingCase) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+
+      const unarchivedCase = await storage.unarchiveCase(req.params.id);
+      
+      await storage.createAuditLog({
+        action: "case_unarchived",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingCase.siteId,
+        caseId: existingCase.id,
+        module: "employment_law",
+        details: `Case ${existingCase.caseReference} restored from archive`,
+      });
+
+      res.json(unarchivedCase);
+    } catch (error) {
+      console.error("Unarchive case error:", error);
+      res.status(500).json({ error: "Failed to unarchive case" });
     }
   });
 
