@@ -58,7 +58,6 @@ import {
   Crown,
   MoreHorizontal,
   Pencil,
-  KeyRound,
   Shield,
 } from "lucide-react";
 import {
@@ -392,12 +391,6 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                           Primary
                         </Badge>
                       )}
-                      {assignment.canManageModules && (
-                        <Badge variant="outline" className="gap-1 border-primary/50 text-primary">
-                          <KeyRound className="h-3 w-3" />
-                          Module Manager
-                        </Badge>
-                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">{assignment.consultantEmail}</p>
                   </div>
@@ -432,23 +425,6 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                         >
                           <Star className="mr-2 h-4 w-4" />
                           Remove Primary Status
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      {!assignment.canManageModules && (
-                        <DropdownMenuItem
-                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, canManageModules: true })}
-                        >
-                          <KeyRound className="mr-2 h-4 w-4" />
-                          Grant Module Management
-                        </DropdownMenuItem>
-                      )}
-                      {assignment.canManageModules && (
-                        <DropdownMenuItem
-                          onClick={() => updateMutation.mutate({ consultantId: assignment.consultantId, canManageModules: false })}
-                        >
-                          <KeyRound className="mr-2 h-4 w-4" />
-                          Revoke Module Management
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
