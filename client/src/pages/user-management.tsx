@@ -31,6 +31,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -134,6 +144,7 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
+  const [statusConfirm, setStatusConfirm] = useState<{ user: UserWithAssignments; newStatus: "active" | "inactive" } | null>(null);
   const [editFormData, setEditFormData] = useState<{
     email: string;
     title: string;
@@ -539,12 +550,36 @@ export default function UserManagement() {
     },
   });
 
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "active" | "inactive" }) => {
+      return apiRequest("PATCH", `/api/users/${id}`, { status });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: variables.status === "active" ? "User Activated" : "User Deactivated",
+        description: `User has been ${variables.status === "active" ? "activated" : "deactivated"} successfully.`,
+      });
+      setStatusConfirm(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update user status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
-    toast({
-      title: newStatus === "active" ? "User Activated" : "User Deactivated",
-      description: `${targetUser.fullName} has been ${newStatus === "active" ? "activated" : "deactivated"}.`,
-    });
+    setStatusConfirm({ user: targetUser, newStatus });
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (statusConfirm) {
+      updateStatusMutation.mutate({ id: statusConfirm.user.id, status: statusConfirm.newStatus });
+    }
   };
 
   const handleCopyInviteLink = async () => {
@@ -1751,6 +1786,47 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* User Status Confirmation Dialog */}
+      <AlertDialog open={!!statusConfirm} onOpenChange={(open) => !open && setStatusConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {statusConfirm?.newStatus === "inactive" ? "Deactivate User" : "Activate User"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusConfirm?.newStatus === "inactive" ? (
+                <>
+                  Are you sure you want to deactivate <strong>{statusConfirm?.user.fullName}</strong>?
+                  <span className="block mt-2 text-foreground">
+                    This will prevent them from logging in and accessing the portal.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Are you sure you want to activate <strong>{statusConfirm?.user.fullName}</strong>?
+                  <span className="block mt-2 text-foreground">
+                    This will restore their access to the portal.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-status-change">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmStatusChange}
+              className={statusConfirm?.newStatus === "inactive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              data-testid="button-confirm-status-change"
+            >
+              {updateStatusMutation.isPending 
+                ? "Processing..." 
+                : statusConfirm?.newStatus === "inactive" ? "Yes, Deactivate" : "Yes, Activate"
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
