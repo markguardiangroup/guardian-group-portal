@@ -5524,8 +5524,8 @@ export async function registerRoutes(
           }
           return { ...safeUser, siteAssignments: assignments };
         } else if (u.role === "client") {
-          // Get client site assignments
-          const clientAssignments = await storage.getClientSiteAssignments(u.id);
+          // Get client site assignments - use getClientSites which queries by clientId
+          const clientAssignments = await storage.getClientSites(u.id);
           const assignments = clientAssignments.map(a => {
             const site = allSites.find(s => s.id === a.siteId);
             return { siteId: a.siteId, siteName: site?.name || "Unknown" };
