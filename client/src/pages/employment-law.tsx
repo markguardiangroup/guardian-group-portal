@@ -92,14 +92,7 @@ const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgCol
 };
 
 const caseTypeConfig: Record<CaseType, { label: string; icon: typeof Briefcase }> = {
-  disciplinary: { label: "Disciplinary", icon: Scale },
-  grievance: { label: "Grievance", icon: Users },
-  tupe: { label: "TUPE", icon: Briefcase },
-  redundancy: { label: "Redundancy", icon: Users },
-  tribunal_claim: { label: "Tribunal Claim", icon: Scale },
-  settlement: { label: "Settlement", icon: FileText },
-  appeal: { label: "Appeal", icon: Scale },
-  investigation: { label: "Investigation", icon: Search },
+  tribunal_claim: { label: "Tribunal Case", icon: Scale },
 };
 
 function CaseStatusBadge({ status }: { status: CaseStatus }) {
@@ -391,14 +384,7 @@ function CasesList() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="disciplinary">Disciplinary</SelectItem>
-                  <SelectItem value="grievance">Grievance</SelectItem>
-                  <SelectItem value="tupe">TUPE</SelectItem>
-                  <SelectItem value="redundancy">Redundancy</SelectItem>
-                  <SelectItem value="tribunal_claim">Tribunal Claim</SelectItem>
-                  <SelectItem value="settlement">Settlement</SelectItem>
-                  <SelectItem value="appeal">Appeal</SelectItem>
-                  <SelectItem value="investigation">Investigation</SelectItem>
+                  <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -508,7 +494,7 @@ function CreateCaseDialog({
     siteId: "",
     employeeName: "",
     employeeId: "",
-    caseType: "disciplinary" as CaseType,
+    caseType: "tribunal_claim" as CaseType,
     description: "",
     isConfidential: true,
     responseDeadline: "",
@@ -604,14 +590,7 @@ function CreateCaseDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="disciplinary">Disciplinary</SelectItem>
-                <SelectItem value="grievance">Grievance</SelectItem>
-                <SelectItem value="tupe">TUPE</SelectItem>
-                <SelectItem value="redundancy">Redundancy</SelectItem>
-                <SelectItem value="tribunal_claim">Tribunal Claim</SelectItem>
-                <SelectItem value="settlement">Settlement</SelectItem>
-                <SelectItem value="appeal">Appeal</SelectItem>
-                <SelectItem value="investigation">Investigation</SelectItem>
+                <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
               </SelectContent>
             </Select>
           </div>
