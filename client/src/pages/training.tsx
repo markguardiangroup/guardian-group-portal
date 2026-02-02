@@ -67,7 +67,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { TrainingFolder, TrainingCourse, TrainingFAQ, PricingTable, ModuleType, Site } from "@shared/schema";
+import type { TrainingFolder, TrainingCourse, TrainingFAQ, PricingTable, ModuleType, Site, Company } from "@shared/schema";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -160,6 +160,12 @@ export default function Training() {
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
     enabled: !!user,
+  });
+
+  // Fetch user's company for auto-population
+  const { data: companyData } = useQuery<Company>({
+    queryKey: ["/api/companies", user?.companyId],
+    enabled: !!user?.companyId,
   });
 
   const trainingFolders = useMemo(() => {
@@ -627,7 +633,7 @@ export default function Training() {
         setShowEnquiryDialog(open);
         if (!open) setSelectedCourse(null);
       }}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Booking Enquiry</DialogTitle>
             <DialogDescription>
@@ -635,6 +641,47 @@ export default function Training() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Auto-populated Course Details */}
+            <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Course Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Course:</span>
+                  <p className="font-medium" data-testid="text-course-title">{selectedCourse?.title}</p>
+                </div>
+                {selectedCourse?.productCode && (
+                  <div>
+                    <span className="text-muted-foreground">Code:</span>
+                    <p className="font-medium font-mono" data-testid="text-course-code">{selectedCourse.productCode}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Auto-populated User Details */}
+            <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+              <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Your Details</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Name:</span>
+                  <p className="font-medium" data-testid="text-user-name">{user?.fullName || "-"}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Email:</span>
+                  <p className="font-medium" data-testid="text-user-email">{user?.email || "-"}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Telephone:</span>
+                  <p className="font-medium" data-testid="text-user-phone">{user?.phone || user?.mobile || "-"}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Company:</span>
+                  <p className="font-medium" data-testid="text-user-company">{companyData?.name || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Site Selection */}
             {sites && sites.length > 1 && (
               <div className="space-y-2">
                 <Label htmlFor="enquiry-site">Site</Label>
