@@ -730,26 +730,12 @@ function UsersTab({ siteId }: { siteId: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => toggleClientSiteAccess(user.id)}
                           data-testid={`toggle-site-access-${user.id}`}
                         >
                           <Shield className="mr-2 h-4 w-4" />
                           {assignedClientIds.has(user.id) ? "Remove Site Access" : "Grant Site Access"}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => updateMutation.mutate({
-                            userId: user.id,
-                            status: user.status === "active" ? "inactive" : "active"
-                          })}
-                        >
-                          {user.status === "active" ? "Deactivate" : "Activate"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
