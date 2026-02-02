@@ -700,7 +700,11 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Name:</span>
-                  <p className="font-medium" data-testid="text-user-name">{user?.fullName || "-"}</p>
+                  <p className="font-medium" data-testid="text-user-name">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user?.fullName || "-"}
+                  </p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Email:</span>
