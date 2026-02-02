@@ -209,21 +209,20 @@ const guideSections: GuideSection[] = [
             "Open the company by clicking on it in the Companies list",
             "In the company detail view, find the 'Sites' section",
             "Click 'Add Site' to create a new site",
-            "Enter the site name and address",
-            "Configure which modules this site has access to (H&S, HR, Employment Law)",
-            "Click 'Create' to save the site",
+            "Enter the site name, address, and optional contact details",
+            "Click 'Add Site' to save",
             "The system will generate a site reference number (STE-XXXXX)"
           ]} />
         </div>
 
         <TipBox type="success">
-          After creating a site, you can assign consultants to manage it and invite client users who work at that location.
+          After creating a site, you can assign consultants to manage it and invite client users who work at that location. Module access (H&S, HR, Employment Law) is configured at the company level and applies to all sites.
         </TipBox>
 
         <div>
           <h4 className="font-semibold mb-3">Module Access</h4>
           <p className="text-sm text-muted-foreground mb-3">
-            Each site can have access to different compliance modules based on your client's subscription:
+            Each company can have access to different compliance modules based on their subscription. Module access is configured on the company page and applies to all sites within that company:
           </p>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
