@@ -13,7 +13,7 @@ export type UserRole = "admin" | "consultant" | "client";
 export type ConsultantTier = "senior" | "standard" | "junior";
 
 // Client permission roles (for client users within their entity)
-export type ClientPermissionRole = "owner" | "approver" | "contributor" | "viewer";
+export type ClientPermissionRole = "owner" | "manager" | "approver" | "contributor" | "viewer";
 
 // Site request status
 export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
@@ -866,6 +866,14 @@ export interface ClientCapabilities {
 
 export const clientPermissionCapabilities: Record<ClientPermissionRole, ClientCapabilities> = {
   owner: {
+    canApproveDocuments: true,
+    canSubmitDocuments: true,
+    canComment: true,
+    canView: true,
+    canRequestSupport: true,
+    canManageTeam: true,
+  },
+  manager: {
     canApproveDocuments: true,
     canSubmitDocuments: true,
     canComment: true,
