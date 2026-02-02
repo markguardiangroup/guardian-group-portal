@@ -154,10 +154,12 @@ export interface IStorage {
   revokeDocumentTypeAccess(siteId: string, documentTypeId: string): Promise<boolean>;
   
   // Cases (Employment Law)
-  getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus }): Promise<Case[]>;
+  getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus; includeArchived?: boolean }): Promise<Case[]>;
   getCase(id: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined>;
+  archiveCase(id: string): Promise<Case | undefined>;
+  unarchiveCase(id: string): Promise<Case | undefined>;
   getCaseDocuments(caseId: string): Promise<Document[]>;
   
   // Case Milestones
@@ -2086,8 +2088,12 @@ export class MemStorage implements IStorage {
   }
 
   // Cases (Employment Law) - Database backed
-  async getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus }): Promise<Case[]> {
+  async getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus; includeArchived?: boolean }): Promise<Case[]> {
     let allCases = await db.select().from(casesTable);
+    // Filter out archived cases by default
+    if (!filters?.includeArchived) {
+      allCases = allCases.filter(c => !c.isArchived);
+    }
     if (filters?.siteId) {
       allCases = allCases.filter(c => c.siteId === filters.siteId);
     }
@@ -2098,6 +2104,22 @@ export class MemStorage implements IStorage {
       allCases = allCases.filter(c => c.status === filters.status);
     }
     return allCases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async archiveCase(id: string): Promise<Case | undefined> {
+    const [updated] = await db.update(casesTable)
+      .set({ isArchived: true, updatedAt: new Date() })
+      .where(eq(casesTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async unarchiveCase(id: string): Promise<Case | undefined> {
+    const [updated] = await db.update(casesTable)
+      .set({ isArchived: false, updatedAt: new Date() })
+      .where(eq(casesTable.id, id))
+      .returning();
+    return updated;
   }
 
   async getCase(id: string): Promise<Case | undefined> {
