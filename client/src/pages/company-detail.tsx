@@ -35,7 +35,7 @@ import {
   Mail,
   ArrowLeft,
   Users,
-  User,
+  User as UserIcon,
   Settings,
   CheckCircle,
   AlertTriangle,
@@ -49,7 +49,7 @@ import {
   Globe,
   Plus,
 } from "lucide-react";
-import type { Company, SiteWithDetails, ComplianceSummary } from "@shared/schema";
+import type { Company, SiteWithDetails, ComplianceSummary, User } from "@shared/schema";
 
 interface CompanyModuleAccess {
   healthSafety: boolean;
@@ -136,7 +136,7 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               {site.contactName && (
                 <span className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" />
+                  <UserIcon className="h-3.5 w-3.5" />
                   {site.contactName}{site.contactPosition && ` (${site.contactPosition})`}
                 </span>
               )}
@@ -294,6 +294,7 @@ export default function CompanyDetail() {
     contactPosition: "",
     contactPhone: "",
     contactEmail: "",
+    contactUserId: "", // ID of selected user for contact
   });
 
   const { data: company, isLoading, error } = useQuery<CompanyWithSites>({
@@ -305,6 +306,45 @@ export default function CompanyDetail() {
     },
     enabled: !!companyId,
   });
+
+  // Fetch all users to filter for company users (clients in this company)
+  const { data: allUsers = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    enabled: !!companyId,
+  });
+
+  // Filter to get only client users from this company
+  const companyUsers = allUsers.filter(
+    (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive"
+  );
+
+  // Handler to select a user as site contact
+  const handleSelectContactUser = (userId: string) => {
+    if (userId === "none") {
+      // Clear contact fields
+      setNewSiteForm({
+        ...newSiteForm,
+        contactUserId: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      return;
+    }
+    
+    const selectedUser = companyUsers.find((u) => u.id === userId);
+    if (selectedUser) {
+      setNewSiteForm({
+        ...newSiteForm,
+        contactUserId: userId,
+        contactName: selectedUser.fullName || "",
+        contactPosition: selectedUser.jobTitle || "",
+        contactPhone: selectedUser.phone || selectedUser.mobile || "",
+        contactEmail: selectedUser.email || "",
+      });
+    }
+  };
 
   const handleManageSite = (siteId: string) => {
     navigate(`/sites/${siteId}`);
@@ -354,6 +394,7 @@ export default function CompanyDetail() {
         contactPosition: "",
         contactPhone: "",
         contactEmail: "",
+        contactUserId: "",
       });
       toast({
         title: "Site created",
@@ -553,7 +594,7 @@ export default function CompanyDetail() {
                 <div className="space-y-1.5 text-sm">
                   {company.contactName && (
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
                       <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
                     </div>
                   )}
@@ -953,54 +994,68 @@ export default function CompanyDetail() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Site Contact (Optional)</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
+              <h4 className="text-sm font-medium mb-3">Primary Site Contact (Optional)</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select a registered user from this company to be the primary contact for this site.
+              </p>
+              
+              {companyUsers.length > 0 ? (
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="new-site-contact-name">Contact Name</Label>
-                    <Input
-                      id="new-site-contact-name"
-                      value={newSiteForm.contactName}
-                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-new-site-contact-name"
-                    />
+                    <Label htmlFor="new-site-contact-user">Select Contact</Label>
+                    <Select
+                      value={newSiteForm.contactUserId || "none"}
+                      onValueChange={handleSelectContactUser}
+                    >
+                      <SelectTrigger id="new-site-contact-user" data-testid="select-site-contact-user">
+                        <SelectValue placeholder="Select a user..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No contact selected</SelectItem>
+                        {companyUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-site-contact-position">Position</Label>
-                    <Input
-                      id="new-site-contact-position"
-                      value={newSiteForm.contactPosition}
-                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactPosition: e.target.value })}
-                      placeholder="e.g., Site Manager"
-                      data-testid="input-new-site-contact-position"
-                    />
-                  </div>
+
+                  {newSiteForm.contactUserId && (
+                    <div className="rounded-md border p-3 bg-muted/50">
+                      <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Name:</span>{" "}
+                          <span className="font-medium">{newSiteForm.contactName || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Position:</span>{" "}
+                          <span className="font-medium">{newSiteForm.contactPosition || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>{" "}
+                          <span className="font-medium">{newSiteForm.contactPhone || "—"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Email:</span>{" "}
+                          <span className="font-medium">{newSiteForm.contactEmail || "—"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-site-phone">Phone</Label>
-                    <Input
-                      id="new-site-phone"
-                      value={newSiteForm.contactPhone}
-                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactPhone: e.target.value })}
-                      placeholder="+44 1234 567890"
-                      data-testid="input-new-site-phone"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-site-email">Email</Label>
-                    <Input
-                      id="new-site-email"
-                      type="email"
-                      value={newSiteForm.contactEmail}
-                      onChange={(e) => setNewSiteForm({ ...newSiteForm, contactEmail: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid="input-new-site-email"
-                    />
-                  </div>
+              ) : (
+                <div className="rounded-md border border-dashed p-4 text-center">
+                  <UserIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No users available in this company yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can add users in the <strong>Users</strong> section and then assign them as site contacts.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
 
             <DialogFooter>

@@ -209,11 +209,16 @@ const guideSections: GuideSection[] = [
             "Open the company by clicking on it in the Companies list",
             "In the company detail view, find the 'Sites' section",
             "Click 'Add Site' to create a new site",
-            "Enter the site name, address, and optional contact details",
+            "Enter the site name and address details",
+            "Optionally select a registered user as the primary site contact (their details are auto-populated)",
             "Click 'Add Site' to save",
             "The system will generate a site reference number (STE-XXXXX)"
           ]} />
         </div>
+
+        <TipBox type="info">
+          Site contacts must be registered users from this company. If no users are available, create them first in the Users section. This ensures contact details stay in sync with user profiles.
+        </TipBox>
 
         <TipBox type="success">
           After creating a site, you can assign consultants to manage it and invite client users who work at that location. Module access (H&S, HR, Employment Law) is configured at the company level and applies to all sites.
