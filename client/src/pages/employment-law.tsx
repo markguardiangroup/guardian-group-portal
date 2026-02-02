@@ -104,8 +104,17 @@ function CaseStatusBadge({ status }: { status: CaseStatus }) {
   );
 }
 
-function CaseTypeBadge({ type }: { type: CaseType }) {
-  const config = caseTypeConfig[type];
+function CaseTypeBadge({ type }: { type: string }) {
+  const config = caseTypeConfig[type as CaseType];
+  // Fallback for legacy case types that no longer exist in config
+  if (!config) {
+    return (
+      <Badge variant="outline" className="gap-1">
+        <Scale className="h-3 w-3" />
+        {type.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+      </Badge>
+    );
+  }
   const Icon = config.icon;
   return (
     <Badge variant="outline" className="gap-1">
