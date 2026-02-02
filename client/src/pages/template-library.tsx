@@ -1196,12 +1196,6 @@ export default function TemplateLibraryPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/create-from-template?templateId=${template.id}`} data-testid={`button-use-template-${template.id}`}>
-              <Upload className="h-3 w-3 mr-1" />
-              Use
-            </Link>
-          </Button>
           {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
