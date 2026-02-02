@@ -177,8 +177,8 @@ export default function UserManagement() {
     notes: "",
     role: "client" as "admin" | "consultant" | "client",
     companyId: "",
-    consultantTier: "" as "" | "standard" | "senior" | "principal",
-    clientPermissionRole: "viewer" as "viewer" | "contributor" | "manager",
+    consultantTier: "senior" as "" | "standard" | "senior" | "principal",
+    clientPermissionRole: "owner" as "viewer" | "contributor" | "manager" | "owner",
   });
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -301,8 +301,8 @@ export default function UserManagement() {
       notes: u.notes || "",
       role: u.role,
       companyId: u.companyId || "",
-      consultantTier: u.consultantTier || "standard",
-      clientPermissionRole: u.clientPermissionRole || "viewer",
+      consultantTier: "senior",
+      clientPermissionRole: "owner",
     });
     // Fetch site assignments for consultants and clients
     if (u.role !== "admin" && isAdmin) {
@@ -494,8 +494,8 @@ export default function UserManagement() {
         notes: "",
         role: "client",
         companyId: "",
-        consultantTier: "",
-        clientPermissionRole: "viewer",
+        consultantTier: "senior",
+        clientPermissionRole: "owner",
       });
       // Show invite URL dialog if returned
       if (data.inviteUrl) {
@@ -863,16 +863,6 @@ export default function UserManagement() {
                     <Badge variant="outline" className={roleColors[u.role]}>
                       {roleLabels[u.role]}
                     </Badge>
-                    {u.consultantTier && (
-                      <span className="ml-2 text-xs text-muted-foreground capitalize">
-                        ({u.consultantTier})
-                      </span>
-                    )}
-                    {u.clientPermissionRole && (
-                      <span className="ml-2 text-xs text-muted-foreground capitalize">
-                        ({u.clientPermissionRole})
-                      </span>
-                    )}
                   </TableCell>
                   <TableCell>
                     {renderSiteAssignments(u)}
@@ -1159,37 +1149,7 @@ export default function UserManagement() {
                         </Select>
                       </div>
                     )}
-                    {editFormData.role === "consultant" && (
-                      <div className="grid gap-2">
-                        <Label htmlFor="edit-tier">Consultant Tier</Label>
-                        <Select value={editFormData.consultantTier} onValueChange={(v) => setEditFormData({ ...editFormData, consultantTier: v })}>
-                          <SelectTrigger id="edit-tier" data-testid="select-edit-tier">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="senior">Senior</SelectItem>
-                            <SelectItem value="principal">Principal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
                   </div>
-                  {editFormData.role === "client" && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-permission">Permission Level</Label>
-                      <Select value={editFormData.clientPermissionRole} onValueChange={(v) => setEditFormData({ ...editFormData, clientPermissionRole: v })}>
-                        <SelectTrigger id="edit-permission" data-testid="select-edit-permission">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="viewer">Viewer</SelectItem>
-                          <SelectItem value="contributor">Contributor</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1637,43 +1597,7 @@ export default function UserManagement() {
                       </Select>
                     </div>
                   )}
-                  {newUser.role === "consultant" && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-tier">Consultant Tier</Label>
-                      <Select
-                        value={newUser.consultantTier}
-                        onValueChange={(value: "" | "standard" | "senior" | "principal") => setNewUser({ ...newUser, consultantTier: value })}
-                      >
-                        <SelectTrigger id="new-tier" data-testid="select-new-tier">
-                          <SelectValue placeholder="Select tier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="senior">Senior</SelectItem>
-                          <SelectItem value="principal">Principal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                 </div>
-                {newUser.role === "client" && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-permission">Permission Level</Label>
-                    <Select
-                      value={newUser.clientPermissionRole}
-                      onValueChange={(value: "viewer" | "contributor" | "manager") => setNewUser({ ...newUser, clientPermissionRole: value })}
-                    >
-                      <SelectTrigger id="new-permission" data-testid="select-new-permission">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                        <SelectItem value="contributor">Contributor</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
             </div>
 
