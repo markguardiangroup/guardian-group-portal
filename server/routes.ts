@@ -1365,7 +1365,11 @@ export async function registerRoutes(
       let documentStatus: "review_required" | "compliant" = "review_required";
       let documentApprovalStatus: "pending" | null = "pending";
       
-      if (body.templateId) {
+      // Training certificates are automatically compliant - they prove completion
+      if (body.module === "training") {
+        documentStatus = "compliant";
+        documentApprovalStatus = null;
+      } else if (body.templateId) {
         const template = await storage.getDocumentTemplateById(body.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval - auto-mark as compliant
