@@ -474,24 +474,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   const [editRole, setEditRole] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("");
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [addUserMode, setAddUserMode] = useState<"select" | "create">("select");
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [newUser, setNewUser] = useState({
-    username: "",
-    email: "",
-    fullName: "",
-    password: "",
-    title: "",
-    firstName: "",
-    lastName: "",
-    jobTitle: "",
-    department: "",
-    phone: "",
-    mobile: "",
-    preferredContactMethod: "email" as "email" | "phone" | "mobile",
-    notes: "",
-    clientPermissionRole: "viewer",
-  });
 
   const { data: users = [], isLoading } = useQuery<UserWithoutPassword[]>({
     queryKey: ["/api/sites", siteId, "users"],
@@ -575,49 +558,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       toast({ title: "Failed to update user", variant: "destructive" });
     },
   });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof newUser) => {
-      const response = await apiRequest("POST", `/api/sites/${siteId}/users`, data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "users"] });
-      toast({ title: "User created successfully" });
-      setIsAddUserOpen(false);
-      setNewUser({
-        username: "",
-        email: "",
-        fullName: "",
-        password: "",
-        title: "",
-        firstName: "",
-        lastName: "",
-        jobTitle: "",
-        department: "",
-        phone: "",
-        mobile: "",
-        preferredContactMethod: "email",
-        notes: "",
-        clientPermissionRole: "viewer",
-      });
-    },
-    onError: (error: any) => {
-      toast({ title: error?.message || "Failed to create user", variant: "destructive" });
-    },
-  });
-
-  const handleAddUser = () => {
-    if (!newUser.username.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-      toast({ title: "Username, email and password are required", variant: "destructive" });
-      return;
-    }
-    // Auto-generate fullName from firstName and lastName if not provided
-    const fullName = newUser.fullName.trim() || 
-      `${newUser.firstName} ${newUser.lastName}`.trim() || 
-      newUser.username;
-    createMutation.mutate({ ...newUser, fullName });
-  };
 
   const roleLabels: Record<string, string> = {
     owner: "Owner",
@@ -790,296 +730,78 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       <Dialog open={isAddUserOpen} onOpenChange={(open) => {
         setIsAddUserOpen(open);
         if (!open) {
-          setAddUserMode("select");
           setSelectedUserId("");
         }
       }}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Add User to Site</DialogTitle>
             <DialogDescription>
-              {addUserMode === "select" 
-                ? "Select an existing company user to grant access to this site."
-                : "Create a new client user for this entity."}
+              Select an existing company user to grant access to this site.
             </DialogDescription>
           </DialogHeader>
           
-          {/* Mode toggle tabs */}
-          <div className="flex gap-2 border-b pb-2">
-            <Button
-              variant={addUserMode === "select" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setAddUserMode("select")}
-              data-testid="button-mode-select"
-            >
-              Select Existing User
-            </Button>
-            <Button
-              variant={addUserMode === "create" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setAddUserMode("create")}
-              data-testid="button-mode-create"
-            >
-              Create New User
-            </Button>
-          </div>
-
-          {addUserMode === "select" ? (
-            <div className="grid gap-4 py-4">
-              {availableUsers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="mx-auto h-12 w-12 mb-3 opacity-50" />
-                  <p className="font-medium">No available users</p>
-                  <p className="text-sm mt-1">All company users are already assigned to this site, or no users exist yet.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setAddUserMode("create")}
-                    data-testid="button-switch-to-create"
-                  >
-                    Create New User
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="select-user">Select User</Label>
-                    <Select
-                      value={selectedUserId}
-                      onValueChange={setSelectedUserId}
-                    >
-                      <SelectTrigger id="select-user" data-testid="select-existing-user">
-                        <SelectValue placeholder="Choose a user to add..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableUsers.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{user.fullName}</span>
-                              <span className="text-muted-foreground">({user.email})</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedUserId && (
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      {(() => {
-                        const selected = availableUsers.find(u => u.id === selectedUserId);
-                        return selected ? (
-                          <div className="space-y-2">
-                            <p className="font-medium">{selected.fullName}</p>
-                            <p className="text-sm text-muted-foreground">{selected.email}</p>
-                            <Badge variant="outline" className="text-xs">
-                              {roleLabels[selected.clientPermissionRole || "viewer"] || "Viewer"}
-                            </Badge>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4 py-4">
-              <div className="border-b pb-4">
-                <h4 className="text-sm font-medium mb-3">Account Details</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-username">Username *</Label>
-                      <Input
-                        id="new-user-username"
-                        value={newUser.username}
-                        onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                        placeholder="Enter username"
-                        data-testid="input-new-user-username"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-password">Password *</Label>
-                      <Input
-                        id="new-user-password"
-                        type="password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                        placeholder="Enter password"
-                        data-testid="input-new-user-password"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-user-email">Email *</Label>
-                    <Input
-                      id="new-user-email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      placeholder="email@example.com"
-                      data-testid="input-new-user-email"
-                    />
-                  </div>
-                </div>
+          <div className="grid gap-4 py-4">
+            {availableUsers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="mx-auto h-12 w-12 mb-3 opacity-50" />
+                <p className="font-medium">No available users</p>
+                <p className="text-sm mt-1">All company users are already assigned to this site, or no users exist yet.</p>
+                <p className="text-sm mt-4 text-primary">
+                  To add a new user, go to the Users section under Admin.
+                </p>
               </div>
-
-              <div className="border-b pb-4">
-                <h4 className="text-sm font-medium mb-3">Personal Details</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-title">Title</Label>
-                      <Select
-                        value={newUser.title}
-                        onValueChange={(value) => setNewUser({ ...newUser, title: value })}
-                      >
-                        <SelectTrigger id="new-user-title" data-testid="select-new-user-title">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Mr">Mr</SelectItem>
-                          <SelectItem value="Mrs">Mrs</SelectItem>
-                          <SelectItem value="Ms">Ms</SelectItem>
-                          <SelectItem value="Miss">Miss</SelectItem>
-                          <SelectItem value="Dr">Dr</SelectItem>
-                          <SelectItem value="Prof">Prof</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-3 grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="new-user-firstname">First Name</Label>
-                        <Input
-                          id="new-user-firstname"
-                          value={newUser.firstName}
-                          onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                          placeholder="First name"
-                          data-testid="input-new-user-firstname"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="new-user-lastname">Surname</Label>
-                        <Input
-                          id="new-user-lastname"
-                          value={newUser.lastName}
-                          onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                          placeholder="Surname"
-                          data-testid="input-new-user-lastname"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-jobtitle">Job Title</Label>
-                      <Input
-                        id="new-user-jobtitle"
-                        value={newUser.jobTitle}
-                        onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
-                        placeholder="e.g., Safety Manager"
-                        data-testid="input-new-user-jobtitle"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-department">Department</Label>
-                      <Input
-                        id="new-user-department"
-                        value={newUser.department}
-                        onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                        placeholder="e.g., Operations"
-                        data-testid="input-new-user-department"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-b pb-4">
-                <h4 className="text-sm font-medium mb-3">Contact Details</h4>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-phone">Phone</Label>
-                      <Input
-                        id="new-user-phone"
-                        value={newUser.phone}
-                        onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                        placeholder="+44 123 456 7890"
-                        data-testid="input-new-user-phone"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-user-mobile">Mobile</Label>
-                      <Input
-                        id="new-user-mobile"
-                        value={newUser.mobile}
-                        onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
-                        placeholder="+44 7xx xxx xxxx"
-                        data-testid="input-new-user-mobile"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-user-preferred">Preferred Contact Method</Label>
-                    <Select
-                      value={newUser.preferredContactMethod}
-                      onValueChange={(value: "email" | "phone" | "mobile") => setNewUser({ ...newUser, preferredContactMethod: value })}
-                    >
-                      <SelectTrigger id="new-user-preferred" data-testid="select-new-user-preferred">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="mobile">Mobile</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-b pb-4">
-                <h4 className="text-sm font-medium mb-3">Access</h4>
+            ) : (
+              <>
                 <div className="grid gap-2">
-                  <Label htmlFor="new-user-role">Permission Role</Label>
+                  <Label htmlFor="select-user">Select User</Label>
                   <Select
-                    value={newUser.clientPermissionRole}
-                    onValueChange={(value) => setNewUser({ ...newUser, clientPermissionRole: value })}
+                    value={selectedUserId}
+                    onValueChange={setSelectedUserId}
                   >
-                    <SelectTrigger id="new-user-role" data-testid="select-new-user-role">
-                      <SelectValue />
+                    <SelectTrigger id="select-user" data-testid="select-existing-user">
+                      <SelectValue placeholder="Choose a user to add..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
-                      <SelectItem value="approver">Approver</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      {availableUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{user.fullName}</span>
+                            <span className="text-muted-foreground">({user.email})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
-                <div className="grid gap-2">
-                  <Textarea
-                    value={newUser.notes}
-                    onChange={(e) => setNewUser({ ...newUser, notes: e.target.value })}
-                    placeholder="Any additional notes about this user..."
-                    className="min-h-[80px]"
-                    data-testid="textarea-new-user-notes"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+                {selectedUserId && (
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    {(() => {
+                      const selected = availableUsers.find(u => u.id === selectedUserId);
+                      return selected ? (
+                        <div className="space-y-2">
+                          <p className="font-medium">{selected.fullName}</p>
+                          <p className="text-sm text-muted-foreground">{selected.email}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {roleLabels[selected.clientPermissionRole || "viewer"] || "Viewer"}
+                          </Badge>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Need to add someone new? Create them first in the Users section under Admin.
+                </p>
+              </>
+            )}
+          </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddUserOpen(false)} data-testid="button-cancel-add-user">
               Cancel
             </Button>
-            {addUserMode === "select" ? (
+            {availableUsers.length > 0 && (
               <Button 
                 onClick={() => {
                   if (selectedUserId) {
@@ -1092,10 +814,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                 data-testid="button-assign-user"
               >
                 {assignClientMutation.isPending ? "Adding..." : "Add User"}
-              </Button>
-            ) : (
-              <Button onClick={handleAddUser} disabled={createMutation.isPending} data-testid="button-save-new-user">
-                {createMutation.isPending ? "Creating..." : "Create User"}
               </Button>
             )}
           </DialogFooter>
