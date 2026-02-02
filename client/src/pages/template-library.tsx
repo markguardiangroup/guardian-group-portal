@@ -3066,40 +3066,56 @@ export default function TemplateLibraryPage() {
 
       {/* Folder Delete Confirmation */}
       <AlertDialog open={!!folderToDelete} onOpenChange={(open) => !open && setFolderToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Delete Folder Template
+              Permanent Deletion - Review Required
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p>
-                  Are you sure you want to delete the folder template <strong className="text-foreground">"{folderToDelete?.name}"</strong>?
+                  You are about to permanently delete the folder template <strong className="text-foreground">"{folderToDelete?.name}"</strong>.
                 </p>
-                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Warning:</strong> This action cannot be undone. All document templates within this folder will also be removed from the template library. Existing site documents are not affected.
+                
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-300 dark:border-red-800 rounded-md p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-800 dark:text-red-200 space-y-2">
+                      <p className="font-semibold">This action is irreversible and will:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-1">
+                        <li>Permanently remove this folder from the template library</li>
+                        <li>Delete all document templates contained within this folder</li>
+                        <li>Affect future site compliance structure</li>
+                      </ul>
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Only administrators can delete folders from the template library.
+
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Recommended:</strong> Review this folder's contents and confirm with your team before proceeding. Consider whether templates should be moved to another folder first.
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  This action is restricted to administrators only and will be logged in the audit trail.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete-folder">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel data-testid="button-cancel-delete-folder">Cancel & Review</AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmDeleteFolder}
               disabled={deleteFolderMutation.isPending}
               className="bg-destructive text-destructive-foreground"
               data-testid="button-confirm-delete-folder"
             >
-              {deleteFolderMutation.isPending ? "Deleting..." : "Yes, Delete Folder"}
+              {deleteFolderMutation.isPending ? "Deleting..." : "I Understand, Delete Permanently"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
