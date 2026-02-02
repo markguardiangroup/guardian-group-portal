@@ -145,10 +145,11 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
-  const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [requestType, setRequestType] = useState<"info" | "booking">("info");
-  const [requestMessage, setRequestMessage] = useState("");
+  const [showEnquiryDialog, setShowEnquiryDialog] = useState(false);
+  const [enquiryMessage, setEnquiryMessage] = useState("");
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
+  const [numberOfAttendees, setNumberOfAttendees] = useState("");
+  const [preferredTimeframe, setPreferredTimeframe] = useState("");
   
   // Filter states
   const [filterRequired, setFilterRequired] = useState<"all" | "required" | "recommended">("all");
@@ -185,27 +186,34 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
     enabled: !!user,
   });
 
-  // Submit training request mutation
-  const submitRequestMutation = useMutation({
-    mutationFn: async (data: { trainingCourseId: string; siteId: string; requestType: "info" | "booking"; message?: string }) => {
+  // Submit booking enquiry mutation
+  const submitEnquiryMutation = useMutation({
+    mutationFn: async (data: { 
+      trainingCourseId: string; 
+      siteId: string; 
+      requestType: "booking"; 
+      message?: string;
+      numberOfAttendees?: string;
+      preferredTimeframe?: string;
+    }) => {
       const response = await apiRequest("POST", "/api/training-requests", data);
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: requestType === "info" ? "Request Submitted" : "Booking Request Submitted",
-        description: requestType === "info" 
-          ? "We'll get back to you with more information soon." 
-          : "Your training booking request has been submitted.",
+        title: "Booking Enquiry Submitted",
+        description: "We'll review your enquiry and get back to you soon.",
       });
-      setShowRequestDialog(false);
-      setRequestMessage("");
+      setShowEnquiryDialog(false);
+      setEnquiryMessage("");
+      setNumberOfAttendees("");
+      setPreferredTimeframe("");
       setSelectedCourse(null);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit request",
+        description: error instanceof Error ? error.message : "Failed to submit enquiry",
         variant: "destructive",
       });
     },
@@ -282,33 +290,35 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   const totalCourses = trainingCourses?.length || 0;
   const totalFolders = trainingFolders?.length || 0;
 
-  const handleRequestInfo = (course: TrainingCourse) => {
+  const handleBookingEnquiry = (course: TrainingCourse) => {
     setSelectedCourse(course);
-    setRequestType("info");
-    setShowRequestDialog(true);
+    setShowEnquiryDialog(true);
   };
 
-  const handleBookTraining = (course: TrainingCourse) => {
-    setSelectedCourse(course);
-    setRequestType("booking");
-    setShowRequestDialog(true);
-  };
-
-  const handleSubmitRequest = () => {
+  const handleSubmitEnquiry = () => {
     if (!selectedCourse || !selectedSiteId) {
       toast({
         title: "Site Required",
-        description: "Please select a site for this training request.",
+        description: "Please select a site for this training enquiry.",
         variant: "destructive",
       });
       return;
     }
     
-    submitRequestMutation.mutate({
+    // Combine all form data into the message for backend compatibility
+    const fullMessage = [
+      numberOfAttendees ? `Number of attendees: ${numberOfAttendees}` : null,
+      preferredTimeframe ? `Preferred timeframe: ${preferredTimeframe}` : null,
+      enquiryMessage ? `Additional requirements: ${enquiryMessage}` : null,
+    ].filter(Boolean).join("\n");
+    
+    submitEnquiryMutation.mutate({
       trainingCourseId: selectedCourse.id,
       siteId: selectedSiteId,
-      requestType,
-      message: requestMessage || undefined,
+      requestType: "booking",
+      message: fullMessage || undefined,
+      numberOfAttendees: numberOfAttendees || undefined,
+      preferredTimeframe: preferredTimeframe || undefined,
     });
   };
 
@@ -520,8 +530,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                       moduleBgColor={moduleBgColors[module]}
                       buttonColor={moduleButtonColors[module]}
                       onViewDetails={() => setSelectedCourse(course)}
-                      onRequestInfo={() => handleRequestInfo(course)}
-                      onBookTraining={() => handleBookTraining(course)}
+                      onBookingEnquiry={() => handleBookingEnquiry(course)}
                     />
                   ))}
                 </div>
@@ -559,8 +568,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                           moduleBgColor={moduleBgColors[module]}
                           buttonColor={moduleButtonColors[module]}
                           onViewDetails={() => setSelectedCourse(course)}
-                          onRequestInfo={() => handleRequestInfo(course)}
-                          onBookTraining={() => handleBookTraining(course)}
+                          onBookingEnquiry={() => handleBookingEnquiry(course)}
                         />
                       ))}
                     </CardContent>
@@ -619,8 +627,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                                     moduleBgColor={moduleBgColors[module]}
                                     buttonColor={moduleButtonColors[module]}
                                     onViewDetails={() => setSelectedCourse(course)}
-                                    onRequestInfo={() => handleRequestInfo(course)}
-                                    onBookTraining={() => handleBookTraining(course)}
+                                    onBookingEnquiry={() => handleBookingEnquiry(course)}
                                   />
                                 ))}
                               </div>
@@ -638,43 +645,38 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
       </div>
 
       {/* Course Detail Dialog */}
-      <Dialog open={!!selectedCourse && !showRequestDialog} onOpenChange={(open) => !open && setSelectedCourse(null)}>
+      <Dialog open={!!selectedCourse && !showEnquiryDialog} onOpenChange={(open) => !open && setSelectedCourse(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedCourse && (
             <CourseDetailView
               course={selectedCourse}
               module={module}
               onClose={() => setSelectedCourse(null)}
-              onRequestInfo={() => handleRequestInfo(selectedCourse)}
-              onBookTraining={() => handleBookTraining(selectedCourse)}
+              onBookingEnquiry={() => handleBookingEnquiry(selectedCourse)}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Request Dialog */}
-      <Dialog open={showRequestDialog} onOpenChange={(open) => {
-        setShowRequestDialog(open);
+      {/* Booking Enquiry Dialog */}
+      <Dialog open={showEnquiryDialog} onOpenChange={(open) => {
+        setShowEnquiryDialog(open);
         if (!open) setSelectedCourse(null);
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {requestType === "info" ? "Request More Information" : "Book Training"}
-            </DialogTitle>
+            <DialogTitle>Booking Enquiry</DialogTitle>
             <DialogDescription>
-              {requestType === "info" 
-                ? `Request more details about "${selectedCourse?.title}"`
-                : `Submit a booking request for "${selectedCourse?.title}"`}
+              Submit an enquiry for "{selectedCourse?.title}"
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Site Selection */}
             {sites && sites.length > 1 && (
               <div className="space-y-2">
-                <Label htmlFor="request-site">Site</Label>
+                <Label htmlFor="enquiry-site">Site</Label>
                 <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                  <SelectTrigger data-testid="select-request-site">
+                  <SelectTrigger data-testid="select-enquiry-site">
                     <SelectValue placeholder="Select a site" />
                   </SelectTrigger>
                   <SelectContent>
@@ -689,7 +691,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             )}
             {sites && sites.length === 1 && (
               <div className="text-sm text-muted-foreground">
-                Request for: <span className="font-medium">{sites[0].name}</span>
+                Enquiry for: <span className="font-medium">{sites[0].name}</span>
               </div>
             )}
             {(!sites || sites.length === 0) && (
@@ -699,43 +701,53 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="request-message">Message (optional)</Label>
+              <Label htmlFor="number-of-attendees">Number of Attendees</Label>
+              <Input
+                id="number-of-attendees"
+                type="text"
+                value={numberOfAttendees}
+                onChange={(e) => setNumberOfAttendees(e.target.value)}
+                placeholder="e.g., 5 people, 10-15, entire team"
+                data-testid="input-number-attendees"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferred-timeframe">When is the training needed?</Label>
+              <Input
+                id="preferred-timeframe"
+                type="text"
+                value={preferredTimeframe}
+                onChange={(e) => setPreferredTimeframe(e.target.value)}
+                placeholder="e.g., ASAP, within 2 weeks, March 2024"
+                data-testid="input-preferred-timeframe"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="enquiry-message">Specific Requirements (optional)</Label>
               <Textarea
-                id="request-message"
-                value={requestMessage}
-                onChange={(e) => setRequestMessage(e.target.value)}
-                placeholder={requestType === "info" 
-                  ? "What would you like to know about this training?"
-                  : "Any specific requirements or preferred dates?"
-                }
-                rows={4}
-                data-testid="input-request-message"
+                id="enquiry-message"
+                value={enquiryMessage}
+                onChange={(e) => setEnquiryMessage(e.target.value)}
+                placeholder="Any specific requirements, questions, or additional information..."
+                rows={3}
+                data-testid="input-enquiry-message"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setShowRequestDialog(false);
+              setShowEnquiryDialog(false);
               setSelectedCourse(null);
             }}>
               Cancel
             </Button>
             <Button 
-              onClick={handleSubmitRequest}
-              disabled={submitRequestMutation.isPending || !selectedSiteId}
-              data-testid="button-submit-request"
+              onClick={handleSubmitEnquiry}
+              disabled={submitEnquiryMutation.isPending || !selectedSiteId}
+              data-testid="button-submit-enquiry"
             >
-              {requestType === "info" ? (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Request Info
-                </>
-              ) : (
-                <>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Book Training
-                </>
-              )}
+              <Mail className="h-4 w-4 mr-2" />
+              Submit Enquiry
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -752,8 +764,7 @@ function FeaturedCourseCard({
   moduleBgColor,
   buttonColor,
   onViewDetails,
-  onRequestInfo,
-  onBookTraining,
+  onBookingEnquiry,
 }: {
   course: TrainingCourse;
   module: ModuleType;
@@ -761,8 +772,7 @@ function FeaturedCourseCard({
   moduleBgColor: string;
   buttonColor: string;
   onViewDetails: () => void;
-  onRequestInfo: () => void;
-  onBookTraining: () => void;
+  onBookingEnquiry: () => void;
 }) {
   return (
     <Card 
@@ -825,25 +835,15 @@ function FeaturedCourseCard({
             <span>Click to view full details</span>
           </div>
           
-          <div className="flex gap-2 pt-2 border-t mt-auto" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={onRequestInfo}
-              data-testid={`button-featured-info-${course.id}`}
-            >
-              <Mail className="h-4 w-4 mr-1" />
-              Enquire
-            </Button>
+          <div className="flex pt-2 border-t mt-auto" onClick={(e) => e.stopPropagation()}>
             <Button
               size="sm"
               className={`flex-1 ${buttonColor}`}
-              onClick={onBookTraining}
+              onClick={onBookingEnquiry}
               data-testid={`button-featured-book-${course.id}`}
             >
-              <Calendar className="h-4 w-4 mr-1" />
-              Book
+              <Mail className="h-4 w-4 mr-1" />
+              Booking Enquiry
             </Button>
           </div>
         </div>
@@ -859,16 +859,14 @@ function TrainingCard({
   moduleBgColor,
   buttonColor,
   onViewDetails,
-  onRequestInfo,
-  onBookTraining,
+  onBookingEnquiry,
 }: {
   course: TrainingCourse;
   moduleColor: string;
   moduleBgColor: string;
   buttonColor: string;
   onViewDetails: () => void;
-  onRequestInfo: () => void;
-  onBookTraining: () => void;
+  onBookingEnquiry: () => void;
 }) {
   return (
     <Card 
@@ -946,25 +944,15 @@ function TrainingCard({
                 </div>
               </div>
               
-              <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={onRequestInfo}
-                  data-testid={`button-request-info-${course.id}`}
-                >
-                  <Mail className="h-3.5 w-3.5 mr-1" />
-                  Enquire
-                </Button>
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"
                   className={`h-8 text-xs ${buttonColor}`}
-                  onClick={onBookTraining}
-                  data-testid={`button-book-training-${course.id}`}
+                  onClick={onBookingEnquiry}
+                  data-testid={`button-booking-enquiry-${course.id}`}
                 >
-                  <Calendar className="h-3.5 w-3.5 mr-1" />
-                  Book
+                  <Mail className="h-3.5 w-3.5 mr-1" />
+                  Booking Enquiry
                 </Button>
               </div>
             </div>
@@ -980,14 +968,12 @@ function CourseDetailView({
   course,
   module,
   onClose,
-  onRequestInfo,
-  onBookTraining,
+  onBookingEnquiry,
 }: {
   course: TrainingCourse;
   module: ModuleType;
   onClose: () => void;
-  onRequestInfo: () => void;
-  onBookTraining: () => void;
+  onBookingEnquiry: () => void;
 }) {
   const parsedFaqs: TrainingFAQ[] = course.faqs ? JSON.parse(course.faqs) : [];
   let parsedPricingTable: PricingTable | null = null;
@@ -1151,24 +1137,15 @@ function CourseDetailView({
           </Button>
         )}
 
-        {/* Action buttons */}
-        <div className="flex gap-3 pt-2 border-t">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={onRequestInfo}
-            data-testid="button-detail-request-info"
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Request More Info
-          </Button>
+        {/* Action button */}
+        <div className="flex pt-2 border-t">
           <Button
             className={`flex-1 ${moduleButtonColors[module]}`}
-            onClick={onBookTraining}
-            data-testid="button-detail-book-training"
+            onClick={onBookingEnquiry}
+            data-testid="button-detail-booking-enquiry"
           >
-            <Calendar className="h-4 w-4 mr-2" />
-            Book This Training
+            <Mail className="h-4 w-4 mr-2" />
+            Booking Enquiry
           </Button>
         </div>
       </div>
