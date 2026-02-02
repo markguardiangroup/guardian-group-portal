@@ -506,7 +506,6 @@ function CreateCaseDialog({
   const [formData, setFormData] = useState({
     entityId: "",
     siteId: "",
-    caseReference: "",
     employeeName: "",
     employeeId: "",
     caseType: "disciplinary" as CaseType,
@@ -595,38 +594,26 @@ function CreateCaseDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Case Reference</label>
-              <Input
-                value={formData.caseReference}
-                onChange={(e) => setFormData({ ...formData, caseReference: e.target.value })}
-                placeholder="EL-2024-XXX"
-                required
-                data-testid="input-case-reference"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Case Type</label>
-              <Select
-                value={formData.caseType}
-                onValueChange={(v) => setFormData({ ...formData, caseType: v as CaseType })}
-              >
-                <SelectTrigger data-testid="select-case-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="disciplinary">Disciplinary</SelectItem>
-                  <SelectItem value="grievance">Grievance</SelectItem>
-                  <SelectItem value="tupe">TUPE</SelectItem>
-                  <SelectItem value="redundancy">Redundancy</SelectItem>
-                  <SelectItem value="tribunal_claim">Tribunal Claim</SelectItem>
-                  <SelectItem value="settlement">Settlement</SelectItem>
-                  <SelectItem value="appeal">Appeal</SelectItem>
-                  <SelectItem value="investigation">Investigation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Case Type</label>
+            <Select
+              value={formData.caseType}
+              onValueChange={(v) => setFormData({ ...formData, caseType: v as CaseType })}
+            >
+              <SelectTrigger data-testid="select-case-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="disciplinary">Disciplinary</SelectItem>
+                <SelectItem value="grievance">Grievance</SelectItem>
+                <SelectItem value="tupe">TUPE</SelectItem>
+                <SelectItem value="redundancy">Redundancy</SelectItem>
+                <SelectItem value="tribunal_claim">Tribunal Claim</SelectItem>
+                <SelectItem value="settlement">Settlement</SelectItem>
+                <SelectItem value="appeal">Appeal</SelectItem>
+                <SelectItem value="investigation">Investigation</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

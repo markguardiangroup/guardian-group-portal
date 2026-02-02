@@ -2105,12 +2105,33 @@ export class MemStorage implements IStorage {
     return result;
   }
 
+  private async generateNextCaseReference(): Promise<string> {
+    // Get all existing case references that match CSE-XXXXX pattern
+    const allCases = await db.select({ caseReference: casesTable.caseReference }).from(casesTable);
+    const csePattern = /^CSE-(\d{5})$/;
+    let maxNum = 0;
+    
+    for (const caseItem of allCases) {
+      const match = caseItem.caseReference.match(csePattern);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    
+    const nextNum = maxNum + 1;
+    return `CSE-${nextNum.toString().padStart(5, '0')}`;
+  }
+
   async createCase(insertCase: InsertCase): Promise<Case> {
+    // Auto-generate case reference
+    const caseReference = await this.generateNextCaseReference();
+    
     // Auto-create a standalone folder for the case documents (case-specific, not shown in main folder hierarchy)
-    const folderName = `${insertCase.caseReference} - ${insertCase.employeeName}`;
+    const folderName = `${caseReference} - ${insertCase.employeeName}`;
     const folder = await this.createDocumentFolder({
       name: folderName,
-      description: `Documents for case ${insertCase.caseReference}`,
+      description: `Documents for case ${caseReference}`,
       module: "employment_law",
       siteId: insertCase.siteId,
       parentId: null, // Case folders are standalone, accessed only through case detail view
@@ -2121,6 +2142,7 @@ export class MemStorage implements IStorage {
     
     const [newCase] = await db.insert(casesTable).values({
       ...insertCase,
+      caseReference, // Use auto-generated reference
       folderId: folder.id, // Link to auto-created folder
       status: insertCase.status ?? "open",
       description: insertCase.description ?? null,

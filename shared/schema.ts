@@ -373,6 +373,7 @@ export const cases = pgTable("cases", {
 
 export const insertCaseSchema = createInsertSchema(cases).omit({ 
   id: true, 
+  caseReference: true, // Auto-generated as CSE-XXXXX
   createdAt: true, 
   updatedAt: true 
 });
