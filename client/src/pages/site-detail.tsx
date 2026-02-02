@@ -765,6 +765,11 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
 function ComplianceTab({ siteId }: { siteId: string }) {
   const { data: documents = [] } = useQuery<any[]>({
     queryKey: ["/api/documents", { siteId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/documents?siteId=${siteId}`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch documents");
+      return response.json();
+    },
   });
 
   const compliantDocs = documents.filter((d) => d.status === "compliant").length;
