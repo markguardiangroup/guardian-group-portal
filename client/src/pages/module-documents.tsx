@@ -1737,17 +1737,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {approvalAction === "approve" ? "Approve Document" : 
-               approvalAction === "reject" ? "Reject Document" : "Request Changes"}
+              {approvalAction === "approve" 
+                ? (user?.role === "client" && document?.approvalStatus === "pending" ? "Confirm Sign-Off" : "Approve Document")
+                : approvalAction === "reject" ? "Reject Document" : "Request Changes"}
             </DialogTitle>
             <DialogDescription>
               {approvalAction === "approve" 
-                ? "This will mark the document as approved and compliant."
+                ? (user?.role === "client" && document?.approvalStatus === "pending"
+                    ? "By signing off, you confirm that you have received and reviewed this document. It will then be sent to the consultant for final approval."
+                    : "This will mark the document as approved and compliant.")
                 : approvalAction === "reject"
                 ? "This will reject the document. Please provide a reason."
                 : "Please describe the changes required."}
             </DialogDescription>
           </DialogHeader>
+          {user?.role === "client" && approvalAction === "approve" && document?.approvalStatus === "pending" && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Please confirm:</strong> I have read and reviewed the document "{document?.title}" and I acknowledge its contents.
+              </p>
+            </div>
+          )}
           <div className="py-4">
             <Textarea
               placeholder={approvalAction === "approve" ? "Optional comments..." : "Please provide details..."}
@@ -1767,7 +1777,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               variant={approvalAction === "reject" ? "destructive" : "default"}
               data-testid="button-confirm-approval"
             >
-              {approvalMutation.isPending ? "Processing..." : "Confirm"}
+              {approvalMutation.isPending ? "Processing..." : 
+                (user?.role === "client" && approvalAction === "approve" && document?.approvalStatus === "pending" 
+                  ? "Sign Off" 
+                  : "Confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
