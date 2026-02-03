@@ -166,7 +166,18 @@ export default function CreateFromTemplate() {
     enabled: !!selectedSiteId,
   });
 
-  const moduleFolders = siteFolders.filter(f => f.module === selectedTemplate?.module);
+  // Filter and sort folders hierarchically: parents first, then children immediately after
+  const moduleFolders = (() => {
+    const filtered = siteFolders.filter(f => f.module === selectedTemplate?.module);
+    const result: typeof siteFolders = [];
+    const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    for (const parent of parentFolders) {
+      result.push(parent);
+      const children = filtered.filter(f => f.parentId === parent.id).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      result.push(...children);
+    }
+    return result;
+  })();
 
   const provisionFoldersMutation = useMutation({
     mutationFn: async ({ siteId, module }: { siteId: string; module: string }) => {
@@ -723,7 +734,7 @@ export default function CreateFromTemplate() {
                   <SelectContent>
                     {moduleFolders.map((folder) => (
                       <SelectItem key={folder.id} value={folder.id}>
-                        {folder.name}
+                        {folder.parentId ? "└ " : ""}{folder.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
