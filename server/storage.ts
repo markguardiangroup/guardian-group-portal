@@ -1938,6 +1938,9 @@ export class MemStorage implements IStorage {
     let docs = allDocs;
     if (module) {
       docs = docs.filter(d => d.module === module);
+    } else {
+      // Exclude training documents from overall compliance metrics (training is tracked separately)
+      docs = docs.filter(d => d.module !== "training");
     }
     if (siteId) {
       docs = docs.filter(d => d.siteId === siteId);
