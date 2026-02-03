@@ -1202,7 +1202,7 @@ export async function registerRoutes(
       let newApprovalStatus: "pending" | null = "pending";
       
       if (document.templateId) {
-        const template = await storage.getDocumentTemplateById(document.templateId);
+        const template = await storage.getDocumentTemplate(document.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval - auto-mark as compliant
           newStatus = "compliant";
@@ -1370,7 +1370,7 @@ export async function registerRoutes(
         documentStatus = "compliant";
         documentApprovalStatus = null;
       } else if (body.templateId) {
-        const template = await storage.getDocumentTemplateById(body.templateId);
+        const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval - auto-mark as compliant
           documentStatus = "compliant";
