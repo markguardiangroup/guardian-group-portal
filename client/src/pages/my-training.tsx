@@ -171,10 +171,10 @@ export default function MyTraining() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-purple-600" />
-            My Training
+            Training Dashboard
           </h1>
           <p className="text-muted-foreground">
-            View your booked training courses and access information
+            View your booked training courses, certificates and access information
           </p>
         </div>
       </div>

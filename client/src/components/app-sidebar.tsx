@@ -98,9 +98,9 @@ const moduleNavItems: {
     module: "training" as ModuleType,
     subItems: [
       { title: "Dashboard", url: "/training/dashboard", adminOnly: true },
-      { title: "My Training", url: "/training/my-training", clientOnly: true },
+      { title: "Dashboard", url: "/training/my-training", clientOnly: true },
       { title: "Browse Courses", url: "/training" },
-      { title: "Certificates", url: "/training/certificates", adminOnly: true },
+      { title: "Certificates", url: "/training/certificates" },
     ],
   },
   {
