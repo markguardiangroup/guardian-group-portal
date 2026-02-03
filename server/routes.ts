@@ -5504,8 +5504,10 @@ export async function registerRoutes(
 
           // Also get dynamically created child folders (like case folders)
           // These are folders with parentId pointing to one of the site folders for this template
+          // Exclude folders that already have a templateId (they're already covered by childFoldersFromTemplates)
+          const templateChildFolderIds = childFolderTemplates.map(cf => cf.id);
           const dynamicChildFolders = siteFolders
-            .filter(sf => sf.parentId && matchingFolderIds.includes(sf.parentId))
+            .filter(sf => sf.parentId && matchingFolderIds.includes(sf.parentId) && !sf.templateId)
             .map(dynamicFolder => {
               const dynamicFolderDocs = siteDocuments.filter(d => d.folderId === dynamicFolder.id);
               return {
