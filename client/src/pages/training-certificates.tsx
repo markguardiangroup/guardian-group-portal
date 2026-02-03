@@ -42,7 +42,6 @@ import {
   Users,
   Scale,
   Filter,
-  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Document, Site, TrainingBooking, TrainingCourse } from "@shared/schema";
@@ -449,18 +448,6 @@ export default function TrainingCertificates() {
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download
-                  </a>
-                </Button>
-              )}
-              {viewDialog.fileUrl && (
-                <Button variant="outline" asChild data-testid="button-dialog-open">
-                  <a
-                    href={viewDialog.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open
                   </a>
                 </Button>
               )}
