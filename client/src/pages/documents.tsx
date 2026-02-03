@@ -570,6 +570,12 @@ function DocumentsListView() {
         </DialogContent>
       </Dialog>
 
+      {/* DEBUG: Show selected site ID */}
+      <div className="bg-yellow-100 p-2 text-sm rounded">
+        DEBUG: selectedSiteId = "{selectedSiteId}" | viewMode = "{viewMode}" | hierarchy folders: {hierarchy?.folders?.length ?? 0}
+        {hierarchy?.folders?.[0]?.childFolders && ` | child folders: ${hierarchy.folders[0].childFolders.length}`}
+      </div>
+
       {/* Folder View */}
       {viewMode === "folder" && selectedSiteId !== "all" && (
         <div className="space-y-4">
