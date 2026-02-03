@@ -4610,9 +4610,11 @@ export async function registerRoutes(
       const cases = await storage.getCases(filters);
       
       // Filter out confidential cases for non-privileged users
+      // Consultants with site access can see all cases (including confidential) at their assigned sites
       const filteredCases = cases.filter(c => {
         if (!c.isConfidential) return true;
         if (user.role === "admin") return true;
+        if (user.role === "consultant") return true; // Consultants can see all confidential cases at their assigned sites
         if (c.createdBy === user.id) return true;
         if (c.assignedConsultant === user.id) return true;
         if (c.restrictedToUsers && c.restrictedToUsers.includes(user.id)) return true;
@@ -4645,9 +4647,10 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized to view this case" });
       }
 
-      // Check confidentiality
+      // Check confidentiality - consultants with site access can see all confidential cases
       if (caseData.isConfidential) {
         const canAccess = user.role === "admin" || 
+          user.role === "consultant" || // Consultants can see all confidential cases at their assigned sites
           caseData.createdBy === user.id || 
           caseData.assignedConsultant === user.id ||
           (caseData.restrictedToUsers && caseData.restrictedToUsers.includes(user.id));
