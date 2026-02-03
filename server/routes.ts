@@ -1900,15 +1900,72 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this site" });
       }
       
-      // Check if folders already exist for this site/module
+      // Get existing folders and templates
       const existingFolders = await storage.getDocumentFolders(siteId, module);
-      if (existingFolders.length > 0) {
+      const templates = await storage.getFolderTemplates(module as any);
+      const activeTemplates = templates.filter(t => t.isActive);
+      
+      if (existingFolders.length === 0) {
+        // No folders - provision all from templates
+        const folders = await storage.provisionFoldersFromTemplates(siteId, module, user.id);
+        return res.status(201).json({ folders, provisioned: true });
+      }
+      
+      // Check if there are any templates missing site folders
+      const existingTemplateIds = new Set(existingFolders.map(f => f.templateId).filter(Boolean));
+      const missingTemplates = activeTemplates.filter(t => !existingTemplateIds.has(t.id));
+      
+      if (missingTemplates.length === 0) {
         return res.json({ folders: existingFolders, provisioned: false });
       }
       
-      // Provision new folders from templates
-      const folders = await storage.provisionFoldersFromTemplates(siteId, module, user.id);
-      res.status(201).json({ folders, provisioned: true });
+      // Provision missing folders - need to handle parent-child relationships
+      const createdFolders: typeof existingFolders = [];
+      const templateIdToFolderId = new Map<string, string>();
+      
+      // Build map of existing template -> folder
+      for (const folder of existingFolders) {
+        if (folder.templateId) {
+          templateIdToFolderId.set(folder.templateId, folder.id);
+        }
+      }
+      
+      // Sort missing templates - parents first (no parentId), then children
+      const sortedMissing = [...missingTemplates].sort((a, b) => {
+        if (!a.parentId && b.parentId) return -1;
+        if (a.parentId && !b.parentId) return 1;
+        return a.sortOrder - b.sortOrder;
+      });
+      
+      for (const template of sortedMissing) {
+        // Determine parent folder ID
+        let parentFolderId: string | undefined = undefined;
+        if (template.parentId) {
+          // Find parent folder ID from existing folders or just created ones
+          parentFolderId = templateIdToFolderId.get(template.parentId);
+          if (!parentFolderId) {
+            // Parent template doesn't have a folder yet, skip for now
+            console.log(`Skipping template ${template.name} - parent folder not found`);
+            continue;
+          }
+        }
+        
+        const folder = await storage.createDocumentFolder({
+          name: template.name,
+          description: template.description ?? undefined,
+          module: template.module,
+          siteId,
+          parentId: parentFolderId,
+          templateId: template.id,
+          sortOrder: template.sortOrder,
+          createdBy: user.id,
+        });
+        templateIdToFolderId.set(template.id, folder.id);
+        createdFolders.push(folder);
+      }
+      
+      const allFolders = [...existingFolders, ...createdFolders];
+      res.status(201).json({ folders: allFolders, provisioned: true, newFolders: createdFolders.length });
     } catch (error) {
       console.error("Provision folders error:", error);
       res.status(500).json({ error: "Failed to provision folders" });

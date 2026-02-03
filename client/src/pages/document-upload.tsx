@@ -94,6 +94,9 @@ interface DocumentFolder {
   name: string;
   siteId: string;
   module: string;
+  parentId?: string | null;
+  sortOrder?: number;
+  templateId?: string | null;
 }
 
 export default function DocumentUpload() {
@@ -185,18 +188,16 @@ export default function DocumentUpload() {
       if (!res.ok) return [];
       const folders = await res.json();
       
-      // Auto-provision folders if none exist for this module
-      if (folders.filter((f: DocumentFolder) => f.module === selectedModule).length === 0) {
-        try {
-          await provisionFoldersMutation.mutateAsync({ siteId: selectedSiteId, module: selectedModule });
-          // Refetch after provisioning
-          const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
-            credentials: "include",
-          });
-          if (newRes.ok) return newRes.json();
-        } catch (e) {
-          console.error("Failed to provision folders:", e);
-        }
+      // Always call provision to sync any missing template folders
+      try {
+        await provisionFoldersMutation.mutateAsync({ siteId: selectedSiteId, module: selectedModule });
+        // Refetch after provisioning in case new folders were created
+        const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+          credentials: "include",
+        });
+        if (newRes.ok) return newRes.json();
+      } catch (e) {
+        console.error("Failed to provision folders:", e);
       }
       
       return folders;
@@ -204,8 +205,19 @@ export default function DocumentUpload() {
     enabled: !!selectedSiteId && uploadScope === "site",
   });
 
-  // Filter folders by selected module
-  const moduleFolders = siteFolders?.filter(f => f.module === selectedModule) || [];
+  // Filter and sort folders hierarchically by selected module
+  const moduleFolders = (() => {
+    const filtered = siteFolders?.filter(f => f.module === selectedModule) || [];
+    // Sort hierarchically: parents first, then children immediately after their parent
+    const result: DocumentFolder[] = [];
+    const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    for (const parent of parentFolders) {
+      result.push(parent);
+      const children = filtered.filter(f => f.parentId === parent.id).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      result.push(...children);
+    }
+    return result;
+  })();
 
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
@@ -577,7 +589,7 @@ export default function DocumentUpload() {
                               <SelectContent>
                                 {moduleFolders.map((folder) => (
                                   <SelectItem key={folder.id} value={folder.id}>
-                                    {folder.name}
+                                    {folder.parentId ? "└ " : ""}{folder.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
