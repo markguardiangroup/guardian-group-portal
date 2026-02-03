@@ -93,7 +93,7 @@ export default function TrainingCertificateUpload() {
               Only consultants and administrators can upload training certificates.
             </p>
             <Link href="/training/my-training">
-              <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-go-to-my-training">
+              <Button className="bg-purple-600 text-white" data-testid="button-go-to-my-training">
                 <GraduationCap className="h-4 w-4 mr-2" />
                 View Training Dashboard
               </Button>

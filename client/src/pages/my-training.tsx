@@ -470,7 +470,7 @@ export default function MyTraining() {
         </CardContent>
       </Card>
 
-      {/* View Dialog */}
+      {/* View Dialog - Enhanced for completed training details */}
       {viewDialog && (
         <Dialog open={!!viewDialog} onOpenChange={() => setViewDialog(null)}>
           <DialogContent className="max-w-lg">
@@ -481,22 +481,78 @@ export default function MyTraining() {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {viewDialog.course?.productCode && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-24">Course Code:</Label>
+                  <code className="bg-muted px-2 py-1 rounded text-sm">{viewDialog.course.productCode}</code>
+                </div>
+              )}
+              
               {viewDialog.site && (
                 <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{viewDialog.site.name}</span>
+                  <Label className="text-muted-foreground w-24">Site:</Label>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{viewDialog.site.name}</span>
+                  </div>
                 </div>
               )}
+              
               {viewDialog.scheduledDate && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{format(new Date(viewDialog.scheduledDate), "EEEE, dd MMMM yyyy")}</span>
+                  <Label className="text-muted-foreground w-24">Scheduled:</Label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>{format(new Date(viewDialog.scheduledDate), "EEEE, dd MMMM yyyy")}</span>
+                  </div>
                 </div>
               )}
+              
               {viewDialog.completedAt && (
-                <div className="flex items-center gap-2 text-sm text-emerald-600">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Completed: {format(new Date(viewDialog.completedAt), "dd MMM yyyy")}</span>
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-24">Completed:</Label>
+                  <div className="flex items-center gap-1 text-emerald-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>{format(new Date(viewDialog.completedAt), "dd MMM yyyy")}</span>
+                  </div>
+                </div>
+              )}
+
+              {(viewDialog.providerName || viewDialog.providerContact) && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Label className="text-muted-foreground w-24">Provider:</Label>
+                  <div className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span>
+                      {viewDialog.providerName}
+                      {viewDialog.providerContact && ` - ${viewDialog.providerContact}`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {viewDialog.notes && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Label className="text-muted-foreground w-24">Notes:</Label>
+                  <p className="text-muted-foreground">{viewDialog.notes}</p>
+                </div>
+              )}
+
+              {viewDialog.certificateId && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                    <Award className="h-5 w-5" />
+                    <span className="font-medium">Certificate Available</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1 mb-3">
+                    Your training certificate is ready for viewing and download.
+                  </p>
+                  <Link href="/training/certificates">
+                    <Button size="sm" className="bg-purple-600 text-white" data-testid="button-view-certificates">
+                      <Award className="h-4 w-4 mr-2" />
+                      View Certificates
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>
