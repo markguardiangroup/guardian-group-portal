@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,10 +37,12 @@ import {
   Award,
   ExternalLink,
   Copy,
+  Filter,
 } from "lucide-react";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { SiteCombobox } from "@/components/site-combobox";
+import { CompanyCombobox } from "@/components/company-combobox";
 
 import type { TrainingCourse, SiteWithDetails, TrainingBooking } from "@shared/schema";
 
@@ -54,6 +56,8 @@ export default function MyTraining() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
   const [viewDialog, setViewDialog] = useState<TrainingBookingWithDetails | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
@@ -69,6 +73,28 @@ export default function MyTraining() {
     queryKey: ["/api/training-courses"],
   });
 
+  const companies = useMemo(() => {
+    const uniqueCompanies = Array.from(new Set(sites.map(s => s.companyName).filter(Boolean)));
+    return uniqueCompanies.sort();
+  }, [sites]);
+
+  const filteredSites = useMemo(() => {
+    if (selectedCompany && selectedCompany !== "all") {
+      return sites.filter(s => s.companyName === selectedCompany);
+    }
+    return sites;
+  }, [sites, selectedCompany]);
+
+  const handleCompanyChange = (company: string | null) => {
+    setSelectedCompany(company);
+    if (selectedSiteId && company && company !== "all") {
+      const currentSite = sites.find(s => s.id === selectedSiteId);
+      if (currentSite?.companyName !== company) {
+        setSelectedSiteId(null);
+      }
+    }
+  };
+
   const bookingsWithDetails: TrainingBookingWithDetails[] = useMemo(() => {
     return trainingBookings.map(booking => ({
       ...booking,
@@ -81,15 +107,33 @@ export default function MyTraining() {
     return bookingsWithDetails.filter(booking => {
       if (activeTab === "booked" && booking.status !== "booked") return false;
       if (activeTab === "completed" && booking.status !== "completed") return false;
+      
+      if (selectedSiteId && selectedSiteId !== "all") {
+        if (booking.siteId !== selectedSiteId) return false;
+      }
+      
+      if (selectedCompany && selectedCompany !== "all") {
+        if (booking.site?.companyName !== selectedCompany) return false;
+      }
+      
       return true;
     });
-  }, [bookingsWithDetails, activeTab]);
+  }, [bookingsWithDetails, activeTab, selectedSiteId, selectedCompany]);
 
   const metrics = useMemo(() => {
-    const booked = bookingsWithDetails.filter(b => b.status === "booked").length;
-    const completed = bookingsWithDetails.filter(b => b.status === "completed").length;
+    let relevantBookings = bookingsWithDetails;
+    
+    if (selectedSiteId && selectedSiteId !== "all") {
+      relevantBookings = relevantBookings.filter(b => b.siteId === selectedSiteId);
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      relevantBookings = relevantBookings.filter(b => b.site?.companyName === selectedCompany);
+    }
+    
+    const booked = relevantBookings.filter(b => b.status === "booked").length;
+    const completed = relevantBookings.filter(b => b.status === "completed").length;
     return { booked, completed };
-  }, [bookingsWithDetails]);
+  }, [bookingsWithDetails, selectedSiteId, selectedCompany]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -134,8 +178,44 @@ export default function MyTraining() {
         </div>
       </div>
 
+      {/* Filters */}
+      {sites.length > 1 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span className="font-medium">Filter by:</span>
+              </div>
+              {companies.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">Company</Label>
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-44"
+                    testId="select-company-training"
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Site</Label>
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-44"
+                  testId="select-site-training"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card 
           className={`cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500" : "hover-elevate"}`}
           onClick={() => setActiveTab("booked")}
@@ -167,39 +247,37 @@ export default function MyTraining() {
         </Card>
       </div>
 
-      {/* Tabs & Table */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
-        <TabsList>
-          <TabsTrigger value="booked" data-testid="tab-booked">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Booked ({metrics.booked})
-          </TabsTrigger>
-          <TabsTrigger value="completed" data-testid="tab-completed">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Completed ({metrics.completed})
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs & Content */}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
+            <TabsList>
+              <TabsTrigger value="booked" data-testid="tab-booked">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Booked ({metrics.booked})
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="tab-completed">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Completed ({metrics.completed})
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="booked" className="mt-4">
-          {isLoading ? (
-            <Card>
-              <CardContent className="py-8 space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </CardContent>
-            </Card>
-          ) : filteredBookings.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Active Training</h3>
-                <p className="text-muted-foreground">
-                  You don't have any training courses booked at the moment.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
+            <TabsContent value="booked" className="mt-6">
+              {isLoading ? (
+                <div className="py-8 space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : filteredBookings.length === 0 ? (
+                <div className="py-12 text-center">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No Active Training</h3>
+                  <p className="text-muted-foreground">
+                    You don't have any training courses booked at the moment.
+                  </p>
+                </div>
+              ) : (
             <div className="grid gap-4">
               {filteredBookings.map((booking) => (
                 <Card key={booking.id} className="hover-elevate" data-testid={`card-booking-${booking.id}`}>
@@ -383,8 +461,49 @@ export default function MyTraining() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* View Dialog */}
+      {viewDialog && (
+        <Dialog open={!!viewDialog} onOpenChange={() => setViewDialog(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-purple-600" />
+                {viewDialog.course?.title || "Training Details"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {viewDialog.site && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{viewDialog.site.name}</span>
+                </div>
+              )}
+              {viewDialog.scheduledDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>{format(new Date(viewDialog.scheduledDate), "EEEE, dd MMMM yyyy")}</span>
+                </div>
+              )}
+              {viewDialog.completedAt && (
+                <div className="flex items-center gap-2 text-sm text-emerald-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Completed: {format(new Date(viewDialog.completedAt), "dd MMM yyyy")}</span>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewDialog(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
