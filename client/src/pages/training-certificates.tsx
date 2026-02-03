@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,8 +22,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   GraduationCap,
-  Upload,
   Search,
   FileText,
   Calendar,
@@ -35,8 +42,8 @@ import {
   Users,
   Scale,
   Filter,
+  ExternalLink,
 } from "lucide-react";
-import { Link } from "wouter";
 import { format } from "date-fns";
 import type { Document, Site, TrainingBooking, TrainingCourse } from "@shared/schema";
 
@@ -65,6 +72,7 @@ export default function TrainingCertificates() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [selectedSite, setSelectedSite] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
+  const [viewDialog, setViewDialog] = useState<CertificateWithDetails | null>(null);
 
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -333,15 +341,14 @@ export default function TrainingCertificates() {
                             </a>
                           </Button>
                         )}
-                        <Link href={`/training/certificates/${cert.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid={`button-view-${cert.id}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setViewDialog(cert)}
+                          data-testid={`button-view-${cert.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -355,6 +362,114 @@ export default function TrainingCertificates() {
       <div className="text-sm text-muted-foreground">
         Showing {filteredCertificates.length} certificate{filteredCertificates.length !== 1 ? "s" : ""}
       </div>
+
+      {/* View Certificate Dialog */}
+      {viewDialog && (
+        <Dialog open={!!viewDialog} onOpenChange={() => setViewDialog(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-purple-600" />
+                Certificate Details
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex items-start gap-2 text-sm">
+                <Label className="text-muted-foreground w-28 shrink-0">Course:</Label>
+                <span className="font-medium">{viewDialog.trainingCourseTitle || viewDialog.title}</span>
+              </div>
+
+              {viewDialog.trainingCourseCode && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-28 shrink-0">Course Code:</Label>
+                  <code className="bg-muted px-2 py-1 rounded text-sm">{viewDialog.trainingCourseCode}</code>
+                </div>
+              )}
+
+              {viewDialog.siteName && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-28 shrink-0">Site:</Label>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{viewDialog.siteName}</span>
+                  </div>
+                </div>
+              )}
+
+              {isAdminOrConsultant && viewDialog.companyName && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-28 shrink-0">Company:</Label>
+                  <div className="flex items-center gap-1">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span>{viewDialog.companyName}</span>
+                  </div>
+                </div>
+              )}
+
+              {viewDialog.trainingDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-28 shrink-0">Certificate Date:</Label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span>{format(new Date(viewDialog.trainingDate), "dd MMMM yyyy")}</span>
+                  </div>
+                </div>
+              )}
+
+              {viewDialog.renewalDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-28 shrink-0">Renewal Date:</Label>
+                  <div className="flex items-center gap-1">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    <span>{format(new Date(viewDialog.renewalDate), "dd MMMM yyyy")}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 text-sm">
+                <Label className="text-muted-foreground w-28 shrink-0">Status:</Label>
+                {getStatusBadge(viewDialog)}
+              </div>
+
+              <div className="flex items-center gap-2 text-sm">
+                <Label className="text-muted-foreground w-28 shrink-0">File:</Label>
+                <div className="flex items-center gap-1">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">{viewDialog.fileName}</span>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex flex-wrap gap-2">
+              {viewDialog.fileUrl && (
+                <Button asChild data-testid="button-dialog-download">
+                  <a
+                    href={`${viewDialog.fileUrl}?download=${encodeURIComponent(viewDialog.fileName)}`}
+                    download={viewDialog.fileName}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </a>
+                </Button>
+              )}
+              {viewDialog.fileUrl && (
+                <Button variant="outline" asChild data-testid="button-dialog-open">
+                  <a
+                    href={viewDialog.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open
+                  </a>
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setViewDialog(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
