@@ -178,40 +178,36 @@ export default function MyTraining() {
         </div>
       </div>
 
-      {/* Filters */}
-      {sites.length > 1 && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Filter className="h-4 w-4" />
-                <span className="font-medium">Filter by:</span>
-              </div>
-              {companies.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm whitespace-nowrap">Company</Label>
-                  <CompanyCombobox
-                    sites={sites}
-                    value={selectedCompany}
-                    onValueChange={handleCompanyChange}
-                    className="w-44"
-                    testId="select-company-training"
-                  />
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Label className="text-sm whitespace-nowrap">Site</Label>
-                <SiteCombobox
-                  sites={filteredSites}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-44"
-                  testId="select-site-training"
-                />
-              </div>
+      {/* Filters - always show if user has sites access */}
+      {sites.length > 0 && (
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            <span className="font-medium">Filter by:</span>
+          </div>
+          {companies.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Company</Label>
+              <CompanyCombobox
+                sites={sites}
+                value={selectedCompany}
+                onValueChange={handleCompanyChange}
+                className="w-44"
+                testId="select-company-training"
+              />
             </div>
-          </CardContent>
-        </Card>
+          )}
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Site</Label>
+            <SiteCombobox
+              sites={filteredSites}
+              value={selectedSiteId}
+              onValueChange={setSelectedSiteId}
+              className="w-44"
+              testId="select-site-training"
+            />
+          </div>
+        </div>
       )}
 
       {/* Metrics Cards */}

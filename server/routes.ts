@@ -3373,7 +3373,7 @@ export async function registerRoutes(
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
         filteredBookings = bookings.filter(b => assignedSiteIds.has(b.siteId));
       } else if (user.role === "client" && user.companyId) {
-        const sites = await storage.getSitesByCompany(user.companyId);
+        const sites = await storage.getSitesByCompanyId(user.companyId);
         const clientSiteIds = new Set(sites.map(s => s.id));
         filteredBookings = bookings.filter(b => clientSiteIds.has(b.siteId));
       }
