@@ -165,7 +165,8 @@ export default function MyTraining() {
   }
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="space-y-6 p-8">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -178,76 +179,77 @@ export default function MyTraining() {
         </div>
       </div>
 
-      {/* Filters - always show if user has sites access */}
-      {sites.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" />
-            <span className="font-medium">Filter by:</span>
-          </div>
-          {companies.length > 1 && (
-            <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Company</Label>
-              <CompanyCombobox
-                sites={sites}
-                value={selectedCompany}
-                onValueChange={handleCompanyChange}
-                className="w-44"
-                testId="select-company-training"
-              />
+      {/* Filters & Metrics Card */}
+      <Card>
+        <CardContent className="p-6 space-y-6">
+          {/* Filters */}
+          {sites.length > 0 && (
+            <div className="flex flex-wrap items-center gap-4 pb-4 border-b">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" />
+                <span className="font-medium">Filter by:</span>
+              </div>
+              {companies.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">Company</Label>
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-44"
+                    testId="select-company-training"
+                  />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Site</Label>
+                <SiteCombobox
+                  sites={filteredSites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-44"
+                  testId="select-site-training"
+                />
+              </div>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm whitespace-nowrap">Site</Label>
-            <SiteCombobox
-              sites={filteredSites}
-              value={selectedSiteId}
-              onValueChange={setSelectedSiteId}
-              className="w-44"
-              testId="select-site-training"
-            />
+
+          {/* Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div 
+              className={`p-4 rounded-lg border cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20" : "hover:bg-muted/50"}`}
+              onClick={() => setActiveTab("booked")}
+              data-testid="card-booked"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Active Bookings</span>
+                <BookOpen className="h-4 w-4 text-purple-600" />
+              </div>
+              <div className="text-3xl font-bold">{metrics.booked}</div>
+              <p className="text-xs text-muted-foreground mt-1">Training courses booked for you</p>
+            </div>
+
+            <div 
+              className={`p-4 rounded-lg border cursor-pointer transition-all ${activeTab === "completed" ? "ring-2 ring-emerald-500 bg-emerald-50 dark:bg-emerald-900/20" : "hover:bg-muted/50"}`}
+              onClick={() => setActiveTab("completed")}
+              data-testid="card-completed"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Completed</span>
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div className="text-3xl font-bold">{metrics.completed}</div>
+              <p className="text-xs text-muted-foreground mt-1">Training courses completed</p>
+            </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card 
-          className={`cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500" : "hover-elevate"}`}
-          onClick={() => setActiveTab("booked")}
-          data-testid="card-booked"
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
-            <CardTitle className="text-sm font-medium">Active Bookings</CardTitle>
-            <BookOpen className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.booked}</div>
-            <p className="text-xs text-muted-foreground">Training courses booked for you</p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className={`cursor-pointer transition-all ${activeTab === "completed" ? "ring-2 ring-emerald-500" : "hover-elevate"}`}
-          onClick={() => setActiveTab("completed")}
-          data-testid="card-completed"
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.completed}</div>
-            <p className="text-xs text-muted-foreground">Training courses completed</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs & Content */}
+      {/* Training List */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
-            <TabsList>
+            <TabsList className="mb-6">
               <TabsTrigger value="booked" data-testid="tab-booked">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Booked ({metrics.booked})
@@ -258,7 +260,7 @@ export default function MyTraining() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="booked" className="mt-6">
+            <TabsContent value="booked" className="mt-0">
               {isLoading ? (
                 <div className="py-8 space-y-4">
                   <Skeleton className="h-12 w-full" />
@@ -385,28 +387,23 @@ export default function MyTraining() {
           )}
         </TabsContent>
 
-        <TabsContent value="completed" className="mt-4">
+        <TabsContent value="completed" className="mt-0">
           {isLoading ? (
-            <Card>
-              <CardContent className="py-8 space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </CardContent>
-            </Card>
+            <div className="py-8 space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
           ) : filteredBookings.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Completed Training</h3>
-                <p className="text-muted-foreground">
-                  You haven't completed any training courses yet.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="py-12 text-center">
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No Completed Training</h3>
+              <p className="text-muted-foreground">
+                You haven't completed any training courses yet.
+              </p>
+            </div>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Course</TableHead>
@@ -454,10 +451,9 @@ export default function MyTraining() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
+            </div>
           )}
-            </TabsContent>
+        </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
