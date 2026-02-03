@@ -206,40 +206,41 @@ export default function TrainingCertificates() {
             </div>
 
             {isAdminOrConsultant && (
-              <>
-                <Select value={selectedCompany} onValueChange={(v) => {
-                  setSelectedCompany(v);
-                  setSelectedSite("all");
-                }}>
-                  <SelectTrigger className="w-[200px]" data-testid="select-company">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="All Companies" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Companies</SelectItem>
-                    {companies.map((company) => (
-                      <SelectItem key={company} value={company!}>
-                        {company}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Select value={selectedCompany} onValueChange={(v) => {
+                setSelectedCompany(v);
+                setSelectedSite("all");
+              }}>
+                <SelectTrigger className="w-[200px]" data-testid="select-company">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="All Companies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Companies</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company} value={company!}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
-                <Select value={selectedSite} onValueChange={setSelectedSite}>
-                  <SelectTrigger className="w-[200px]" data-testid="select-site">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="All Sites" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sites</SelectItem>
-                    {filteredSites.map((site) => (
-                      <SelectItem key={site.id} value={site.id}>
-                        {site.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </>
+            {/* Site filter available for all users */}
+            {filteredSites.length > 1 && (
+              <Select value={selectedSite} onValueChange={setSelectedSite}>
+                <SelectTrigger className="w-[200px]" data-testid="select-site">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="All Sites" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sites</SelectItem>
+                  {filteredSites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
         </CardHeader>
