@@ -331,16 +331,15 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
   // Filter bookings based on selected site or company
   const filteredBookings = useMemo(() => {
     if (siteId) {
-      // Filter by specific site (convert string to number for comparison)
-      const numericSiteId = parseInt(siteId, 10);
-      return trainingBookings.filter(b => b.siteId === numericSiteId);
+      // Filter by specific site (siteId is a string like "site-1")
+      return trainingBookings.filter(b => b.siteId === siteId);
     }
     if (selectedCompany && selectedCompany !== "all") {
       // Filter by company - get all site IDs for this company
       const companySiteIds = sites
         .filter(s => s.companyName === selectedCompany)
         .map(s => s.id);
-      return trainingBookings.filter(b => companySiteIds.includes(b.siteId));
+      return trainingBookings.filter(b => companySiteIds.includes(b.siteId as string));
     }
     // No filter - return all
     return trainingBookings;
