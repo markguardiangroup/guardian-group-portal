@@ -5606,6 +5606,12 @@ export async function registerRoutes(
 
           const childFolders = [...childFoldersFromTemplates, ...dynamicChildFolders];
           
+          // Calculate aggregate stats including child folder documents
+          const childDocsTotal = childFolders.reduce((sum, cf) => sum + (cf.stats?.totalDocuments || 0), 0);
+          const childCompliant = childFolders.reduce((sum, cf) => sum + (cf.stats?.compliant || 0), 0);
+          const childReviewRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.reviewRequired || 0), 0);
+          const childOverdue = childFolders.reduce((sum, cf) => sum + (cf.stats?.overdue || 0), 0);
+          
           return {
             id: folderTemplate.id,
             name: folderTemplate.name,
@@ -5634,10 +5640,10 @@ export async function registerRoutes(
             }),
             childFolders,
             stats: {
-              totalDocuments: folderDocuments.length,
-              compliant: compliantCount,
-              reviewRequired: reviewRequiredCount,
-              overdue: overdueCount,
+              totalDocuments: folderDocuments.length + childDocsTotal,
+              compliant: compliantCount + childCompliant,
+              reviewRequired: reviewRequiredCount + childReviewRequired,
+              overdue: overdueCount + childOverdue,
               pendingApproval: pendingApprovalCount,
               requiredTemplates: requiredTemplates.length,
               fulfilledRequired: fulfilledRequiredCount,
