@@ -739,46 +739,47 @@ function DocumentsListView() {
                           </div>
                         )}
 
-                        {/* Child folders */}
+                        {/* Child folders - always show section if there are child folders in the template */}
                         {folder.childFolders && folder.childFolders.length > 0 && (
                           <div className="mt-4 border-t pt-4">
-                            <h4 className="mb-2 text-sm font-medium text-muted-foreground">Sub-folders</h4>
-                            <Accordion type="multiple" className="w-full">
+                            <h4 className="mb-3 text-sm font-medium">Sub-folders ({folder.childFolders.length})</h4>
+                            <div className="space-y-2">
                               {folder.childFolders.map((child) => (
-                                <AccordionItem key={child.id} value={child.id} className="border rounded-md mb-2">
-                                  <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                                <div key={child.id} className="rounded-md border bg-muted/30 p-3">
+                                  <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <Folder className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm font-medium">{child.name}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({child.documents.length} docs)
-                                      </span>
+                                      <span className="font-medium">{child.name}</span>
+                                      {child.isRequired && (
+                                        <Badge variant="outline" className="text-xs">Required</Badge>
+                                      )}
                                     </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent className="px-3 pb-3">
-                                    {child.documents.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {child.documents.map((doc) => (
-                                          <Link
-                                            key={doc.id}
-                                            href={`/documents/${doc.id}`}
-                                            className="flex items-center justify-between rounded-md border p-2 hover-elevate"
-                                          >
-                                            <div className="flex items-center gap-2">
-                                              <FileText className="h-4 w-4 text-muted-foreground" />
-                                              <span className="text-sm">{doc.title}</span>
-                                            </div>
-                                            <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                          </Link>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-muted-foreground">No documents</p>
-                                    )}
-                                  </AccordionContent>
-                                </AccordionItem>
+                                    <span className="text-xs text-muted-foreground">
+                                      {child.documents.length} documents
+                                    </span>
+                                  </div>
+                                  {child.documents.length > 0 ? (
+                                    <div className="mt-2 space-y-1 pl-6">
+                                      {child.documents.map((doc) => (
+                                        <Link
+                                          key={doc.id}
+                                          href={`/documents/${doc.id}`}
+                                          className="flex items-center justify-between rounded-md border bg-background p-2 hover-elevate"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <FileText className="h-4 w-4 text-muted-foreground" />
+                                            <span className="text-sm">{doc.title}</span>
+                                          </div>
+                                          <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                        </Link>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 pl-6 text-sm text-muted-foreground">No documents uploaded yet</p>
+                                  )}
+                                </div>
                               ))}
-                            </Accordion>
+                            </div>
                           </div>
                         )}
                       </AccordionContent>
