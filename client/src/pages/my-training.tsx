@@ -410,6 +410,7 @@ export default function MyTraining() {
                       <TableHead>Site</TableHead>
                       <TableHead>Completed</TableHead>
                       <TableHead>Certificate</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -446,6 +447,17 @@ export default function MyTraining() {
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setViewDialog(booking)}
+                            data-testid={`button-view-completed-${booking.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

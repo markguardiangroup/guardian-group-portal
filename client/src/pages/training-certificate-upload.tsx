@@ -95,7 +95,7 @@ export default function TrainingCertificateUpload() {
             <Link href="/training/my-training">
               <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-go-to-my-training">
                 <GraduationCap className="h-4 w-4 mr-2" />
-                View My Training
+                View Training Dashboard
               </Button>
             </Link>
           </CardContent>

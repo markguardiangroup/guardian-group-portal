@@ -388,7 +388,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
 
         <Button className="w-full border-purple-500 text-purple-600 dark:text-purple-400" variant="outline" asChild>
           <Link href={isPrivilegedUser ? "/training/dashboard" : "/training/my-training"} data-testid="link-module-training">
-            {isPrivilegedUser ? "Manage Training" : "My Training"}
+            {isPrivilegedUser ? "Manage Training" : "View Training"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>

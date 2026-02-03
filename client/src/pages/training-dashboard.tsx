@@ -280,9 +280,9 @@ export default function TrainingDashboard() {
             <p className="text-muted-foreground">
               This dashboard is only available to consultants and administrators.
             </p>
-            <Link href="/training">
+            <Link href="/training/my-training">
               <Button className="mt-4" data-testid="link-my-training">
-                View My Training
+                View Training Dashboard
               </Button>
             </Link>
           </CardContent>

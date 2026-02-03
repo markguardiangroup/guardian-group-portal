@@ -730,7 +730,7 @@ const guideSections: GuideSection[] = [
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <StepList steps={[
-                  "Go to Training → My Training",
+                  "Go to Training → Dashboard",
                   "View your booked courses and their status",
                   "For online courses, click to view access credentials",
                   "Once completed, view and download your certificates"
