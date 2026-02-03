@@ -4854,9 +4854,11 @@ export async function registerRoutes(
   });
 
   // Helper function to check case confidentiality access
+  // Consultants with site access can see all confidential cases at their assigned sites
   const canAccessConfidentialCase = (caseData: any, user: any): boolean => {
     if (!caseData.isConfidential) return true;
     if (user.role === "admin") return true;
+    if (user.role === "consultant") return true; // Consultants can access all confidential cases at their assigned sites
     if (caseData.createdBy === user.id) return true;
     if (caseData.assignedConsultant === user.id) return true;
     if (caseData.restrictedToUsers) {
