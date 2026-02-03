@@ -816,7 +816,7 @@ function CaseDetailView({ id }: { id: string }) {
 
   // Fetch company and site details for display
   const { data: company } = useQuery<{ id: string; name: string }>({
-    queryKey: ["/api/entities", caseData?.entityId],
+    queryKey: ["/api/companies", caseData?.entityId],
     enabled: !!caseData?.entityId,
   });
 
