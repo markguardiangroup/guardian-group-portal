@@ -732,6 +732,21 @@ export default function TemplateLibraryPage() {
     return filteredFolders.filter(f => f.parentId === parentId);
   };
   
+  // Sort folders hierarchically: parents first, then their children immediately after
+  const sortFoldersHierarchically = (folders: FolderTemplate[]) => {
+    const result: FolderTemplate[] = [];
+    const parentFolders = folders.filter(f => !f.parentId).sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    for (const parent of parentFolders) {
+      result.push(parent);
+      // Add children of this parent immediately after
+      const children = folders.filter(f => f.parentId === parent.id).sort((a, b) => a.sortOrder - b.sortOrder);
+      result.push(...children);
+    }
+    
+    return result;
+  };
+  
   // Get all folder IDs for expand/collapse all functionality
   const getAllFolderIds = (): string[] => {
     return folderTemplates.map(f => f.id);
@@ -1123,7 +1138,9 @@ export default function TemplateLibraryPage() {
   };
   
   const getWizardFoldersForModule = () => {
-    return folderTemplates.filter(f => f.module === wizardData.module && f.isActive);
+    return sortFoldersHierarchically(
+      folderTemplates.filter(f => f.module === wizardData.module && f.isActive)
+    );
   };
   
   const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
@@ -1930,9 +1947,9 @@ export default function TemplateLibraryPage() {
                       <SelectValue placeholder="Select a folder" />
                     </SelectTrigger>
                     <SelectContent>
-                      {folderTemplates
-                        .filter(f => f.module === templateFormData.module && f.isActive)
-                        .map(folder => (
+                      {sortFoldersHierarchically(
+                        folderTemplates.filter(f => f.module === templateFormData.module && f.isActive)
+                      ).map(folder => (
                           <SelectItem key={folder.id} value={folder.id}>
                             {folder.parentId ? "└ " : ""}{folder.name}
                           </SelectItem>
@@ -2572,13 +2589,13 @@ export default function TemplateLibraryPage() {
                   <SelectValue placeholder="Select a folder" />
                 </SelectTrigger>
                 <SelectContent>
-                  {folderTemplates
-                    .filter(f => f.module === docTypeFormData.module && f.isActive)
-                    .map(folder => (
+                  {sortFoldersHierarchically(
+                    folderTemplates.filter(f => f.module === docTypeFormData.module && f.isActive)
+                  ).map(folder => (
                       <SelectItem key={folder.id} value={folder.id}>
                         <div className="flex items-center gap-2">
                           <Folder className="h-4 w-4 text-amber-500" />
-                          {folder.name}
+                          {folder.parentId ? "└ " : ""}{folder.name}
                         </div>
                       </SelectItem>
                     ))}
@@ -2862,7 +2879,7 @@ export default function TemplateLibraryPage() {
                           <SelectItem key={folder.id} value={folder.id}>
                             <div className="flex items-center gap-2">
                               <Folder className="h-4 w-4 text-amber-500" />
-                              {folder.name}
+                              {folder.parentId ? "└ " : ""}{folder.name}
                             </div>
                           </SelectItem>
                         ))}
