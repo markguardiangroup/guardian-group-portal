@@ -164,7 +164,7 @@ function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
     queryKey: ["/api/cases"],
   });
 
-  const openCases = cases.filter(c => c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const openCases = cases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
   const resolvedCases = cases.filter(c => c.status === "resolved" || c.status === "closed").length;
   const totalCases = cases.length;
 
