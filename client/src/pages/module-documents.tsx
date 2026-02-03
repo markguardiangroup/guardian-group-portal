@@ -719,6 +719,71 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="pl-8 space-y-2">
+                            {/* Child Folders */}
+                            {(folder as any).childFolders && (folder as any).childFolders.length > 0 && (
+                              <div className="space-y-2 mb-4">
+                                {(folder as any).childFolders.map((childFolder: any) => {
+                                  const childStatusBadge = getFolderStatusBadge(childFolder.stats || { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 });
+                                  return (
+                                    <div key={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]}`}>
+                                      <div className="flex items-center justify-between p-3 bg-muted/30">
+                                        <div className="flex items-center gap-3">
+                                          <div className={`flex h-7 w-7 items-center justify-center rounded-md ${moduleBgColors[module]}`}>
+                                            <FolderOpen className={`h-3.5 w-3.5 ${moduleColors[module]}`} />
+                                          </div>
+                                          <span className="font-medium text-sm">{childFolder.name}</span>
+                                          {childFolder.isRequired && (
+                                            <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant={childStatusBadge.variant}>{childStatusBadge.label}</Badge>
+                                          <span className="text-xs text-muted-foreground">
+                                            {childFolder.stats?.totalDocuments || 0} doc{(childFolder.stats?.totalDocuments || 0) !== 1 ? "s" : ""}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="p-3 pl-10 space-y-2">
+                                        {childFolder.documents && childFolder.documents.length > 0 ? (
+                                          childFolder.documents.map((doc: any) => (
+                                            <Link
+                                              key={doc.id}
+                                              href={`${basePath}/documents/${doc.id}`}
+                                              className="flex items-center justify-between p-2 rounded-md border hover-elevate"
+                                              data-testid={`link-document-${doc.id}`}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                  <p className="font-medium text-sm">{doc.title}</p>
+                                                  <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                            </Link>
+                                          ))
+                                        ) : (
+                                          <div className="text-center py-4 text-muted-foreground">
+                                            <p className="text-xs">No documents in this subfolder</p>
+                                            <Button variant="ghost" size="sm" asChild className="mt-1">
+                                              <Link href={`${basePath}/documents/upload`}>
+                                                <Upload className="mr-2 h-3 w-3" />
+                                                Upload
+                                              </Link>
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            
+                            {/* Parent Folder Documents */}
                             {folder.documents.length > 0 ? (
                               folder.documents.map((doc) => (
                                 <Link
@@ -751,7 +816,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   </div>
                                 </Link>
                               ))
-                            ) : (
+                            ) : !(folder as any).childFolders?.length ? (
                               <div className="text-center py-6 text-muted-foreground">
                                 <p className="text-sm">No documents in this folder</p>
                                 <Button variant="ghost" size="sm" asChild className="mt-2">
@@ -761,7 +826,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   </Link>
                                 </Button>
                               </div>
-                            )}
+                            ) : null}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
