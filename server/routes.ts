@@ -53,7 +53,6 @@ const createDocumentSchema = z.object({
 const createCaseSchema = z.object({
   entityId: z.string().min(1),
   siteId: z.string().min(1),
-  caseReference: z.string().min(1),
   employeeName: z.string().min(1),
   employeeId: z.string().optional(),
   caseType: z.enum(["disciplinary", "grievance", "tupe", "redundancy", "tribunal_claim", "settlement", "appeal", "investigation"]),
