@@ -741,7 +741,7 @@ function DocumentsListView() {
 
                         {/* Child folders */}
                         {folder.childFolders && folder.childFolders.length > 0 && (
-                          <div className="mt-4">
+                          <div className="mt-4 border-t pt-4">
                             <h4 className="mb-2 text-sm font-medium text-muted-foreground">Sub-folders</h4>
                             <Accordion type="multiple" className="w-full">
                               {folder.childFolders.map((child) => (
