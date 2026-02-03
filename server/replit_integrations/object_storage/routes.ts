@@ -23,12 +23,15 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.post("/api/uploads/file", async (req, res) => {
     try {
-      const fileName = req.headers["x-file-name"] as string;
+      const rawFileName = req.headers["x-file-name"] as string;
       const contentType = req.headers["content-type"] || "application/octet-stream";
       
-      if (!fileName) {
+      if (!rawFileName) {
         return res.status(400).json({ error: "Missing x-file-name header" });
       }
+      
+      // Decode the filename (client encodes it for safe header transmission)
+      const fileName = decodeURIComponent(rawFileName);
 
       const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = randomUUID();
