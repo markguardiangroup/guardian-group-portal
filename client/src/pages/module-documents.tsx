@@ -788,49 +788,51 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
                             
                             {/* Parent Folder Documents */}
-                            {folder.documents.length > 0 ? (
-                              folder.documents.map((doc) => (
-                                <Link
-                                  key={doc.id}
-                                  href={`${basePath}/documents/${doc.id}`}
-                                  className="flex items-center justify-between p-3 rounded-md border hover-elevate"
-                                  data-testid={`link-document-${doc.id}`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    <div>
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="font-medium text-sm">{doc.title}</p>
-                                        {doc.isRequired && (
-                                          <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
-                                        )}
-                                        {doc.renewalPeriodMonths && (
-                                          <Badge variant="secondary" className="text-xs">{doc.renewalPeriodMonths}mo</Badge>
-                                        )}
-                                        {doc.renewalDate && (
-                                          <Badge variant="outline" className="text-xs">Renew: {format(new Date(doc.renewalDate), "MMM d, yyyy")}</Badge>
-                                        )}
+                            {folder.documents.length > 0 && (
+                              <div className="space-y-2">
+                                {folder.documents.map((doc) => (
+                                  <Link
+                                    key={doc.id}
+                                    href={`${basePath}/documents/${doc.id}`}
+                                    className="flex items-center justify-between p-3 rounded-md border hover-elevate"
+                                    data-testid={`link-document-${doc.id}`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="font-medium text-sm">{doc.title}</p>
+                                          {doc.isRequired && (
+                                            <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                                          )}
+                                          {doc.renewalPeriodMonths && (
+                                            <Badge variant="secondary" className="text-xs">{doc.renewalPeriodMonths}mo</Badge>
+                                          )}
+                                          {doc.renewalDate && (
+                                            <Badge variant="outline" className="text-xs">Renew: {format(new Date(doc.renewalDate), "MMM d, yyyy")}</Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">v{doc.version}</p>
                                       </div>
-                                      <p className="text-xs text-muted-foreground">v{doc.version}</p>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                </Link>
-                              ))
-                            ) : !(folder as any).childFolders?.length ? (
-                              <div className="text-center py-6 text-muted-foreground">
-                                <p className="text-sm">No documents in this folder</p>
-                                <Button variant="ghost" size="sm" asChild className="mt-2">
-                                  <Link href={`${basePath}/documents/upload`}>
-                                    <Upload className="mr-2 h-3 w-3" />
-                                    Upload Document
+                                    <div className="flex items-center gap-2">
+                                      <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    </div>
                                   </Link>
-                                </Button>
+                                ))}
                               </div>
-                            ) : null}
+                            )}
+                            
+                            {/* Upload to parent folder option - always show */}
+                            <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={`${basePath}/documents/upload`}>
+                                  <Upload className="mr-2 h-3 w-3" />
+                                  Upload to {folder.name}
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
