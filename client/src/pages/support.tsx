@@ -815,6 +815,27 @@ export default function Support() {
         </div>
       )}
 
+      {!isPrivilegedUser && sites.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filter by Site:</span>
+          </div>
+          <Select value={siteFilter} onValueChange={setSiteFilter}>
+            <SelectTrigger className="w-48" data-testid="filter-site-client">
+              <MapPin className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Sites" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
+              {sites.map((site) => (
+                <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid gap-6 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
