@@ -3915,6 +3915,10 @@ export async function registerRoutes(
         } else {
           requests = requests.filter(r => r.createdBy === user.id);
         }
+        // Apply site filter for clients
+        if (siteId) {
+          requests = requests.filter(r => r.siteId === siteId);
+        }
       }
       
       // Enrich with user names, unread count, and latest message
