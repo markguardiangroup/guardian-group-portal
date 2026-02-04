@@ -3902,10 +3902,10 @@ export async function registerRoutes(
         }
       } else {
         // Clients see only their own requests from their accessible sites
-        const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
-        if (clientSiteAssignments.length > 0) {
+        const clientSites = await storage.getClientSites(user.id);
+        if (clientSites.length > 0) {
           // Client has specific site assignments
-          const assignedSiteIds = clientSiteAssignments.map(a => a.siteId);
+          const assignedSiteIds = clientSites.map(a => a.siteId);
           requests = requests.filter(r => r.createdBy === user.id && assignedSiteIds.includes(r.siteId));
         } else if (user.companyId) {
           // Client can access all sites in their company
