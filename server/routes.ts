@@ -3964,7 +3964,7 @@ export async function registerRoutes(
       if (user.role === "admin") {
         relevantRequests = allRequests;
       } else if (user.role === "consultant") {
-        const assignments = await storage.getConsultantAssignments(user.id);
+        const assignments = await storage.getConsultantSites(user.id);
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
         relevantRequests = allRequests.filter(r => assignedSiteIds.has(r.siteId));
       } else {
