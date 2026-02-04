@@ -3715,8 +3715,21 @@ export async function registerRoutes(
         return;
       }
       
-      // Client sees only sites in their company
+      // Client sees only their assigned sites, or all company sites if no specific assignments
       if (user.role === "client" && user.companyId) {
+        const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
+        
+        if (clientSiteAssignments.length > 0) {
+          // Client has specific site assignments - only show those sites
+          const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+          const filteredSites = allSites.filter(site => 
+            site.companyId === user.companyId && assignedSiteIds.has(site.id)
+          );
+          res.json(filteredSites);
+          return;
+        }
+        
+        // No specific assignments - show all sites in company
         const filteredSites = allSites.filter(site => site.companyId === user.companyId);
         res.json(filteredSites);
         return;
