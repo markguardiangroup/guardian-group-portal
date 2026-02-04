@@ -360,7 +360,34 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-client"
                 >
-                  Login as Client
+                  Login as Client (Sarah)
+                </Button>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
+                <div className="text-slate-700">
+                  <span className="font-semibold">Client:</span> mike.brown
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={async () => {
+                    try {
+                      queryClient.clear();
+                      await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: "mike.brown", password: "admin123" }),
+                        credentials: "include"
+                      });
+                      window.location.href = "/";
+                    } catch (e) {
+                      console.error("Login failed", e);
+                    }
+                  }}
+                  data-testid="button-dev-login-client-mike"
+                >
+                  Login as Client (Mike)
                 </Button>
               </div>
             </div>
