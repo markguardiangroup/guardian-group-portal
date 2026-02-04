@@ -159,9 +159,15 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
   );
 }
 
-function EmploymentLawCard({ summary }: { summary: ModuleSummary }) {
+function EmploymentLawCard({ summary, siteId }: { summary: ModuleSummary; siteId?: string | null }) {
   const { data: cases = [] } = useQuery<Case[]>({
-    queryKey: ["/api/cases"],
+    queryKey: ["/api/cases", siteId],
+    queryFn: async () => {
+      const url = siteId ? `/api/cases?siteId=${siteId}` : "/api/cases";
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch cases");
+      return response.json();
+    },
   });
 
   const openCases = cases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
@@ -962,7 +968,7 @@ export default function Dashboard() {
         <div className="grid gap-6 md:grid-cols-3">
           {complianceSummaries.map((summary) => (
             summary.module === "employment_law" 
-              ? <EmploymentLawCard key={summary.module} summary={summary} />
+              ? <EmploymentLawCard key={summary.module} summary={summary} siteId={siteId} />
               : <ModuleCard key={summary.module} summary={summary} />
           ))}
           {lockedModules.map((m) => (
