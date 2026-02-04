@@ -3717,7 +3717,7 @@ export async function registerRoutes(
       
       // Client sees only their assigned sites, or all company sites if no specific assignments
       if (user.role === "client" && user.companyId) {
-        const clientSiteAssignments = await storage.getClientSiteAssignments(user.id);
+        const clientSiteAssignments = await storage.getClientSites(user.id);
         
         if (clientSiteAssignments.length > 0) {
           // Client has specific site assignments - only show those sites
