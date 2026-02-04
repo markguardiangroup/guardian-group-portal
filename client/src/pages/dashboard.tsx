@@ -258,9 +258,15 @@ function EmploymentLawCard({ summary, siteId }: { summary: ModuleSummary; siteId
   );
 }
 
-function SupportCard() {
+function SupportCard({ siteId }: { siteId?: string | null }) {
   const { data: supportRequests = [] } = useQuery<SupportRequest[]>({
-    queryKey: ["/api/support-requests"],
+    queryKey: ["/api/support-requests", siteId],
+    queryFn: async () => {
+      const url = siteId ? `/api/support-requests?siteId=${siteId}` : "/api/support-requests";
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch support requests");
+      return response.json();
+    },
   });
 
   const openRequests = supportRequests.filter(r => r.status === "open" || r.status === "in_progress").length;
@@ -994,7 +1000,7 @@ export default function Dashboard() {
         <div>
           <h2 className="mb-4 text-xl font-semibold">Support</h2>
           {hasSupportAccess ? (
-            <SupportCard />
+            <SupportCard siteId={siteId} />
           ) : (
             <LockedModuleCard 
               moduleName="Support" 
