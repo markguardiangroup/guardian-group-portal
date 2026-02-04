@@ -594,8 +594,8 @@ export default function Dashboard() {
     queryKey: ["/api/sites"],
   });
   
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
+  // Clients can see the site filter to confirm their access (even with single site)
+  const clientHasSites = isClientUser && sites && sites.length > 0;
   
   // Filter sites by selected company for the site dropdown
   const filteredSites = useMemo(() => {
@@ -714,11 +714,11 @@ export default function Dashboard() {
       return "All Clients";
     }
     // For clients with multiple sites showing "all"
-    if (clientHasMultipleSites && !selectedSiteId) {
+    if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }
     return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
 
   // Get site compliance summary for accurate overall score (includes ALL document types)
   // This is used when a specific site is selected to ensure consistency with sites list
@@ -818,7 +818,7 @@ export default function Dashboard() {
             <span>Need support?</span>
           </Link>
           {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
-          {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
+          {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
             <>
               {isPrivilegedUser && (
                 <CompanyCombobox

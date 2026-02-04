@@ -161,8 +161,8 @@ function CasesList() {
     queryKey: ["/api/sites"],
   });
   
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
+  // Clients can see the site filter to confirm their access (even with single site)
+  const clientHasSites = isClientUser && sites && sites.length > 0;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -258,11 +258,11 @@ function CasesList() {
       }
       return "All Clients";
     }
-    if (clientHasMultipleSites && !selectedSiteId) {
+    if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }
     return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -332,7 +332,7 @@ function CasesList() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <>
                 {isPrivilegedUser && (
                   <CompanyCombobox
@@ -1800,8 +1800,8 @@ function EmploymentLawDashboardView() {
     queryKey: ["/api/sites"],
   });
   
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
+  // Clients can see the site filter to confirm their access (even with single site)
+  const clientHasSites = isClientUser && sites && sites.length > 0;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -1845,11 +1845,11 @@ function EmploymentLawDashboardView() {
       }
       return "All Clients";
     }
-    if (clientHasMultipleSites && !selectedSiteId) {
+    if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }
     return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
   
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
@@ -2027,7 +2027,7 @@ function EmploymentLawDashboardView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 {isPrivilegedUser && (

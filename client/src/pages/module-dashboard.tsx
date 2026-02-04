@@ -152,8 +152,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     queryKey: ["/api/sites"],
   });
   
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && sites && sites.length > 1;
+  // Clients can see the site filter to confirm their access (even with single site)
+  const clientHasSites = isClientUser && sites && sites.length > 0;
   
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
@@ -274,11 +274,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       return "All Clients";
     }
     // For clients with multiple sites showing "all"
-    if (clientHasMultipleSites && !selectedSiteId) {
+    if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }
     return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasMultipleSites]);
+  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
   
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
@@ -349,7 +349,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
-            {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
+            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 {isPrivilegedUser && (
