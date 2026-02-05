@@ -2331,95 +2331,48 @@ export class MemStorage implements IStorage {
     return result.length > 0;
   }
 
-  // Client Site Assignments
+  // Client Site Assignments (database-backed)
   async getClientSiteAssignments(siteId: string): Promise<ClientSiteAssignment[]> {
-    // Try database first
-    try {
-      const result = await db.select().from(clientSiteAssignmentsTable).where(eq(clientSiteAssignmentsTable.siteId, siteId));
-      return result;
-    } catch {
-      return Array.from(this.clientSiteAssignments.values())
-        .filter(a => a.siteId === siteId);
-    }
+    return await db.select().from(clientSiteAssignmentsTable)
+      .where(eq(clientSiteAssignmentsTable.siteId, siteId));
   }
 
   async getClientSites(clientId: string): Promise<ClientSiteAssignment[]> {
-    // Try database first
-    try {
-      const result = await db.select().from(clientSiteAssignmentsTable).where(eq(clientSiteAssignmentsTable.clientId, clientId));
-      return result;
-    } catch {
-      return Array.from(this.clientSiteAssignments.values())
-        .filter(a => a.clientId === clientId);
-    }
+    return await db.select().from(clientSiteAssignmentsTable)
+      .where(eq(clientSiteAssignmentsTable.clientId, clientId));
   }
 
   async assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment> {
     // Check if already assigned
-    try {
-      const existing = await db.select().from(clientSiteAssignmentsTable)
-        .where(and(
-          eq(clientSiteAssignmentsTable.clientId, assignment.clientId),
-          eq(clientSiteAssignmentsTable.siteId, assignment.siteId)
-        ));
-      if (existing.length > 0) {
-        return existing[0];
-      }
-      const result = await db.insert(clientSiteAssignmentsTable).values({
-        clientId: assignment.clientId,
-        siteId: assignment.siteId,
-        assignedBy: assignment.assignedBy,
-      }).returning();
-      return result[0];
-    } catch {
-      const existing = Array.from(this.clientSiteAssignments.values())
-        .find(a => a.clientId === assignment.clientId && a.siteId === assignment.siteId);
-      if (existing) {
-        return existing;
-      }
-      const id = randomUUID();
-      const newAssignment: ClientSiteAssignment = {
-        id,
-        clientId: assignment.clientId,
-        siteId: assignment.siteId,
-        assignedAt: new Date(),
-        assignedBy: assignment.assignedBy || null,
-      };
-      this.clientSiteAssignments.set(id, newAssignment);
-      return newAssignment;
+    const existing = await db.select().from(clientSiteAssignmentsTable)
+      .where(and(
+        eq(clientSiteAssignmentsTable.clientId, assignment.clientId),
+        eq(clientSiteAssignmentsTable.siteId, assignment.siteId)
+      ));
+    if (existing.length > 0) {
+      return existing[0];
     }
+    const result = await db.insert(clientSiteAssignmentsTable).values({
+      clientId: assignment.clientId,
+      siteId: assignment.siteId,
+      assignedBy: assignment.assignedBy,
+    }).returning();
+    return result[0];
   }
 
   async removeClientSiteAssignment(clientId: string, siteId: string): Promise<boolean> {
-    try {
-      const result = await db.delete(clientSiteAssignmentsTable)
-        .where(and(
-          eq(clientSiteAssignmentsTable.clientId, clientId),
-          eq(clientSiteAssignmentsTable.siteId, siteId)
-        ));
-      return true;
-    } catch {
-      const assignment = Array.from(this.clientSiteAssignments.entries())
-        .find(([_, a]) => a.clientId === clientId && a.siteId === siteId);
-      if (assignment) {
-        this.clientSiteAssignments.delete(assignment[0]);
-        return true;
-      }
-      return false;
-    }
+    await db.delete(clientSiteAssignmentsTable)
+      .where(and(
+        eq(clientSiteAssignmentsTable.clientId, clientId),
+        eq(clientSiteAssignmentsTable.siteId, siteId)
+      ));
+    return true;
   }
 
   async hasClientSiteAssignments(clientId: string): Promise<boolean> {
-    try {
-      const result = await db.select().from(clientSiteAssignmentsTable)
-        .where(eq(clientSiteAssignmentsTable.clientId, clientId));
-      const hasAssignments = result.length > 0;
-      return hasAssignments;
-    } catch {
-      const hasAssignments = Array.from(this.clientSiteAssignments.values())
-        .some(a => a.clientId === clientId);
-      return hasAssignments;
-    }
+    const result = await db.select().from(clientSiteAssignmentsTable)
+      .where(eq(clientSiteAssignmentsTable.clientId, clientId));
+    return result.length > 0;
   }
 
   // Users by Company (get all users associated with a company)
@@ -2445,33 +2398,18 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // Document Types (Admin-managed)
+  // Document Types (Admin-managed - Database-backed)
   async getDocumentTypes(module?: ModuleType): Promise<DocumentTypeRecord[]> {
-    try {
-      let query = db.select().from(documentTypes);
-      if (module) {
-        query = query.where(eq(documentTypes.module, module)) as typeof query;
-      }
-      const types = await query.orderBy(asc(documentTypes.sortOrder));
-      return types;
-    } catch (error) {
-      console.error("Error fetching document types from DB:", error);
-      let types = Array.from(this.documentTypesMap.values());
-      if (module) {
-        types = types.filter(t => t.module === module);
-      }
-      return types.sort((a, b) => a.sortOrder - b.sortOrder);
+    let query = db.select().from(documentTypes);
+    if (module) {
+      query = query.where(eq(documentTypes.module, module)) as typeof query;
     }
+    return await query.orderBy(asc(documentTypes.sortOrder));
   }
 
   async getDocumentType(id: string): Promise<DocumentTypeRecord | undefined> {
-    try {
-      const [docType] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
-      return docType;
-    } catch (error) {
-      console.error("Error fetching document type from DB:", error);
-      return this.documentTypesMap.get(id);
-    }
+    const [docType] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
+    return docType;
   }
 
   private async generateNextTemplateCode(): Promise<string> {
@@ -2512,56 +2450,24 @@ export class MemStorage implements IStorage {
       updatedAt: now,
     };
     
-    try {
-      await db.insert(documentTypes).values(newDocType);
-    } catch (error) {
-      console.error("Error saving document type to DB:", error);
-    }
-    
-    this.documentTypesMap.set(id, newDocType);
+    await db.insert(documentTypes).values(newDocType);
     return newDocType;
   }
 
   async updateDocumentType(id: string, updates: Partial<DocumentTypeRecord>): Promise<DocumentTypeRecord | undefined> {
-    try {
-      const [existing] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
-      if (!existing) {
-        // Fallback to memory
-        const memExisting = this.documentTypesMap.get(id);
-        if (!memExisting) return undefined;
-        const updated: DocumentTypeRecord = { ...memExisting, ...updates, updatedAt: new Date() };
-        this.documentTypesMap.set(id, updated);
-        return updated;
-      }
-      
-      const updatedData = {
-        ...updates,
-        updatedAt: new Date(),
-      };
-      
-      await db.update(documentTypes).set(updatedData).where(eq(documentTypes.id, id));
-      
-      const [updated] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
-      return updated;
-    } catch (error) {
-      console.error("Error updating document type:", error);
-      const existing = this.documentTypesMap.get(id);
-      if (!existing) return undefined;
-      const updated: DocumentTypeRecord = { ...existing, ...updates, updatedAt: new Date() };
-      this.documentTypesMap.set(id, updated);
-      return updated;
-    }
+    const [existing] = await db.select().from(documentTypes).where(eq(documentTypes.id, id));
+    if (!existing) return undefined;
+    
+    const [updated] = await db.update(documentTypes)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(documentTypes.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteDocumentType(id: string): Promise<boolean> {
-    try {
-      await db.delete(documentTypes).where(eq(documentTypes.id, id));
-      this.documentTypesMap.delete(id);
-      return true;
-    } catch (error) {
-      console.error("Error deleting document type:", error);
-      return this.documentTypesMap.delete(id);
-    }
+    await db.delete(documentTypes).where(eq(documentTypes.id, id));
+    return true;
   }
 
   // Document Folders
@@ -2641,31 +2547,16 @@ export class MemStorage implements IStorage {
 
   // Folder Templates (Admin-managed master folder structure - Database-backed)
   async getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]> {
-    try {
-      let query = db.select().from(folderTemplatesTable);
-      if (module) {
-        query = query.where(eq(folderTemplatesTable.module, module)) as typeof query;
-      }
-      const templates = await query.orderBy(asc(folderTemplatesTable.sortOrder));
-      return templates;
-    } catch (error) {
-      console.error("Error fetching folder templates from DB:", error);
-      let templates = Array.from(this.folderTemplates.values());
-      if (module) {
-        templates = templates.filter(t => t.module === module);
-      }
-      return templates.sort((a, b) => a.sortOrder - b.sortOrder);
+    let query = db.select().from(folderTemplatesTable);
+    if (module) {
+      query = query.where(eq(folderTemplatesTable.module, module)) as typeof query;
     }
+    return await query.orderBy(asc(folderTemplatesTable.sortOrder));
   }
 
   async getFolderTemplate(id: string): Promise<FolderTemplate | undefined> {
-    try {
-      const [template] = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
-      return template;
-    } catch (error) {
-      console.error("Error fetching folder template from DB:", error);
-      return this.folderTemplates.get(id);
-    }
+    const [template] = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
+    return template;
   }
 
   private async generateNextFolderCode(): Promise<string> {
@@ -2706,106 +2597,52 @@ export class MemStorage implements IStorage {
       updatedAt: now,
     };
     
-    try {
-      const [inserted] = await db.insert(folderTemplatesTable).values(newTemplate).returning();
-      this.folderTemplates.set(inserted.id, inserted);
-      return inserted;
-    } catch (error) {
-      console.error("Error inserting folder template to DB:", error);
-      this.folderTemplates.set(id, newTemplate);
-      return newTemplate;
-    }
+    const [inserted] = await db.insert(folderTemplatesTable).values(newTemplate).returning();
+    return inserted;
   }
 
   async updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined> {
-    try {
-      const [updated] = await db.update(folderTemplatesTable)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(eq(folderTemplatesTable.id, id))
-        .returning();
-      if (updated) {
-        this.folderTemplates.set(id, updated);
-      }
-      return updated;
-    } catch (error) {
-      console.error("Error updating folder template in DB:", error);
-      const existing = this.folderTemplates.get(id);
-      if (!existing) {
-        return undefined;
-      }
-      const updated: FolderTemplate = {
-        ...existing,
-        ...updates,
-        updatedAt: new Date(),
-      };
-      this.folderTemplates.set(id, updated);
-      return updated;
-    }
+    const [updated] = await db.update(folderTemplatesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(folderTemplatesTable.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteFolderTemplate(id: string): Promise<boolean> {
-    try {
-      // First remove any rules associated with this template
-      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
-      
-      // Delete child templates recursively
-      const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
-      for (const child of children) {
-        await this.deleteFolderTemplate(child.id);
-      }
-      
-      // Delete the template
-      await db.delete(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
-      this.folderTemplates.delete(id);
-      return true;
-    } catch (error) {
-      console.error("Error deleting folder template from DB:", error);
-      // Fallback to memory-based deletion
-      const rules = Array.from(this.folderDocumentTypeRules.values());
-      for (const rule of rules) {
-        if (rule.folderTemplateId === id) {
-          this.folderDocumentTypeRules.delete(rule.id);
-        }
-      }
-      const templates = Array.from(this.folderTemplates.values());
-      for (const template of templates) {
-        if (template.parentId === id) {
-          await this.deleteFolderTemplate(template.id);
-        }
-      }
-      return this.folderTemplates.delete(id);
+    // First remove any rules associated with this template
+    await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
+    
+    // Delete child templates recursively
+    const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
+    for (const child of children) {
+      await this.deleteFolderTemplate(child.id);
     }
+    
+    // Delete the template
+    await db.delete(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
+    return true;
   }
 
   // Folder-Document Type Rules (Database-backed)
   async getAllFolderDocumentTypeRules(): Promise<FolderDocumentTypeRule[]> {
-    try {
-      return await db.select().from(folderDocumentTypeRulesTable).orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
-    } catch (error) {
-      console.error("Error fetching folder document type rules from DB:", error);
-      return Array.from(this.folderDocumentTypeRules.values());
-    }
+    return await db.select().from(folderDocumentTypeRulesTable).orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
   }
 
   async getFolderDocumentTypeRules(folderTemplateId: string): Promise<FolderDocumentTypeRule[]> {
-    try {
-      return await db.select().from(folderDocumentTypeRulesTable)
-        .where(eq(folderDocumentTypeRulesTable.folderTemplateId, folderTemplateId))
-        .orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
-    } catch (error) {
-      console.error("Error fetching folder rules from DB:", error);
-      return Array.from(this.folderDocumentTypeRules.values())
-        .filter(r => r.folderTemplateId === folderTemplateId)
-        .sort((a, b) => a.sortOrder - b.sortOrder);
-    }
+    return await db.select().from(folderDocumentTypeRulesTable)
+      .where(eq(folderDocumentTypeRulesTable.folderTemplateId, folderTemplateId))
+      .orderBy(asc(folderDocumentTypeRulesTable.sortOrder));
   }
 
   async getDocumentTypeRulesForTemplate(folderTemplateId: string): Promise<(FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[]> {
     const rules = await this.getFolderDocumentTypeRules(folderTemplateId);
-    return rules.map(rule => {
-      const documentType = this.documentTypesMap.get(rule.documentTypeId);
-      return { ...rule, documentType };
-    });
+    const result: (FolderDocumentTypeRule & { documentType?: DocumentTypeRecord })[] = [];
+    for (const rule of rules) {
+      const documentType = await this.getDocumentType(rule.documentTypeId);
+      result.push({ ...rule, documentType });
+    }
+    return result;
   }
 
   async createFolderDocumentTypeRule(rule: InsertFolderDocumentTypeRule): Promise<FolderDocumentTypeRule> {
@@ -2821,26 +2658,13 @@ export class MemStorage implements IStorage {
       createdAt: now,
     };
     
-    try {
-      const [inserted] = await db.insert(folderDocumentTypeRulesTable).values(newRule).returning();
-      this.folderDocumentTypeRules.set(inserted.id, inserted);
-      return inserted;
-    } catch (error) {
-      console.error("Error inserting folder rule to DB, using memory:", error);
-      this.folderDocumentTypeRules.set(id, newRule);
-      return newRule;
-    }
+    const [inserted] = await db.insert(folderDocumentTypeRulesTable).values(newRule).returning();
+    return inserted;
   }
 
   async deleteFolderDocumentTypeRule(id: string): Promise<boolean> {
-    try {
-      await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.id, id));
-      this.folderDocumentTypeRules.delete(id);
-      return true;
-    } catch (error) {
-      console.error("Error deleting folder rule from DB:", error);
-      return this.folderDocumentTypeRules.delete(id);
-    }
+    await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.id, id));
+    return true;
   }
 
   // ============================================
@@ -2848,95 +2672,59 @@ export class MemStorage implements IStorage {
   // ============================================
   
   async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]> {
-    try {
-      let query = db.select().from(documentTemplatesTable);
-      const conditions = [];
-      if (module) {
-        conditions.push(eq(documentTemplatesTable.module, module));
-      }
-      if (folderTemplateId) {
-        conditions.push(eq(documentTemplatesTable.folderTemplateId, folderTemplateId));
-      }
-      conditions.push(eq(documentTemplatesTable.isActive, true));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions)) as typeof query;
-      }
-      const templates = await query.orderBy(asc(documentTemplatesTable.sortOrder));
-      return templates;
-    } catch (error) {
-      console.error("Error fetching document templates from DB:", error);
-      let templates = Array.from(this.documentTemplates.values());
-      
-      if (module) {
-        templates = templates.filter(t => t.module === module);
-      }
-      if (folderTemplateId) {
-        templates = templates.filter(t => t.folderTemplateId === folderTemplateId);
-      }
-      
-      return templates.filter(t => t.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+    let query = db.select().from(documentTemplatesTable);
+    const conditions = [];
+    if (module) {
+      conditions.push(eq(documentTemplatesTable.module, module));
     }
+    if (folderTemplateId) {
+      conditions.push(eq(documentTemplatesTable.folderTemplateId, folderTemplateId));
+    }
+    conditions.push(eq(documentTemplatesTable.isActive, true));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as typeof query;
+    }
+    const templates = await query.orderBy(asc(documentTemplatesTable.sortOrder));
+    return templates;
   }
   
   async getArchivedDocumentTemplates(): Promise<DocumentTemplate[]> {
-    try {
-      const templates = await db.select().from(documentTemplatesTable)
-        .where(eq(documentTemplatesTable.isActive, false))
-        .orderBy(asc(documentTemplatesTable.sortOrder));
-      return templates;
-    } catch (error) {
-      console.error("Error fetching archived templates from DB:", error);
-      return Array.from(this.documentTemplates.values())
-        .filter(t => !t.isActive)
-        .sort((a, b) => a.sortOrder - b.sortOrder);
-    }
+    return await db.select().from(documentTemplatesTable)
+      .where(eq(documentTemplatesTable.isActive, false))
+      .orderBy(asc(documentTemplatesTable.sortOrder));
   }
   
   async restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean> {
-    try {
-      const restoreData = {
-        isActive: true,
-        deletedAt: null,
-        deletedBy: null,
-        deletionReason: null,
-        updatedAt: new Date(),
-      };
-      
-      await db.update(documentTemplatesTable).set(restoreData).where(eq(documentTemplatesTable.id, id));
-      
-      // Update memory cache too
-      const existing = this.documentTemplates.get(id);
-      if (existing) {
-        this.documentTemplates.set(id, { ...existing, ...restoreData });
-      }
-      
-      // Log to audit trail
-      await this.createAuditLog({
-        userId: restoredBy,
-        action: 'template_restored',
-        entityType: 'document_template',
-        entityId: id,
-        details: JSON.stringify({ 
-          templateName: existing?.name || 'Unknown',
-        }),
-      });
-      
-      return true;
-    } catch (error) {
-      console.error("Error restoring document template:", error);
-      return false;
-    }
+    const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+    
+    const restoreData = {
+      isActive: true,
+      deletedAt: null,
+      deletedBy: null,
+      deletionReason: null,
+      updatedAt: new Date(),
+    };
+    
+    await db.update(documentTemplatesTable).set(restoreData).where(eq(documentTemplatesTable.id, id));
+    
+    // Log to audit trail
+    await this.createAuditLog({
+      userId: restoredBy,
+      action: 'template_restored',
+      entityType: 'document_template',
+      entityId: id,
+      details: JSON.stringify({ 
+        templateName: existing?.name || 'Unknown',
+      }),
+    });
+    
+    return true;
   }
   
   async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
-    try {
-      const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
-      return template;
-    } catch (error) {
-      console.error("Error fetching document template from DB:", error);
-      return this.documentTemplates.get(id);
-    }
+    const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+    return template;
   }
   
   async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {
@@ -2969,41 +2757,21 @@ export class MemStorage implements IStorage {
     };
     
     // Persist to database
-    try {
-      const [inserted] = await db.insert(documentTemplatesTable).values(newTemplate).returning();
-      this.documentTemplates.set(inserted.id, inserted);
-      
-      // Create initial version
-      await this.createDocumentTemplateVersion({
-        templateId: inserted.id,
-        version: 1,
-        fileName: template.fileName,
-        fileUrl: template.fileUrl,
-        fileSize: template.fileSize,
-        mimeType: template.mimeType,
-        changeNote: "Initial version",
-        uploadedBy: template.createdBy,
-      });
-      
-      return inserted;
-    } catch (error) {
-      console.error("Error inserting document template to DB:", error);
-      this.documentTemplates.set(id, newTemplate);
-      
-      // Create initial version in memory
-      await this.createDocumentTemplateVersion({
-        templateId: id,
-        version: 1,
-        fileName: template.fileName,
-        fileUrl: template.fileUrl,
-        fileSize: template.fileSize,
-        mimeType: template.mimeType,
-        changeNote: "Initial version",
-        uploadedBy: template.createdBy,
-      });
-      
-      return newTemplate;
-    }
+    const [inserted] = await db.insert(documentTemplatesTable).values(newTemplate).returning();
+    
+    // Create initial version
+    await this.createDocumentTemplateVersion({
+      templateId: inserted.id,
+      version: 1,
+      fileName: template.fileName,
+      fileUrl: template.fileUrl,
+      fileSize: template.fileSize,
+      mimeType: template.mimeType,
+      changeNote: "Initial version",
+      uploadedBy: template.createdBy,
+    });
+    
+    return inserted;
   }
   
   async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined> {
@@ -3021,76 +2789,49 @@ export class MemStorage implements IStorage {
     }
     
     // Persist to database
-    try {
-      const [updated] = await db.update(documentTemplatesTable)
-        .set(updateData)
-        .where(eq(documentTemplatesTable.id, id))
-        .returning();
-      
-      if (updated) {
-        this.documentTemplates.set(id, updated);
-        return updated;
-      }
-    } catch (error) {
-      console.error("Error updating document template in DB:", error);
-    }
+    const [updated] = await db.update(documentTemplatesTable)
+      .set(updateData)
+      .where(eq(documentTemplatesTable.id, id))
+      .returning();
     
-    // Fallback to in-memory if DB fails - use sanitized updateData
-    const fallbackTemplate = { ...dbTemplate, ...updateData } as DocumentTemplate;
-    this.documentTemplates.set(id, fallbackTemplate);
-    return fallbackTemplate;
+    return updated;
   }
   
   async deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
-    try {
-      // Soft delete - mark as inactive with audit info
-      const deletionData = {
-        isActive: false,
-        deletedAt: new Date(),
-        deletedBy: deletedBy,
-        deletionReason: reason,
-        updatedAt: new Date(),
-      };
-      
-      await db.update(documentTemplatesTable).set(deletionData).where(eq(documentTemplatesTable.id, id));
-      
-      // Update memory cache too
-      const existing = this.documentTemplates.get(id);
-      if (existing) {
-        this.documentTemplates.set(id, { ...existing, ...deletionData });
-      }
-      
-      // Log to audit trail
-      await this.createAuditLog({
-        userId: deletedBy,
-        action: 'template_deleted',
-        entityType: 'document_template',
-        entityId: id,
-        details: JSON.stringify({ 
-          templateName: existing?.name || 'Unknown',
-          reason: reason 
-        }),
-      });
-      
-      return true;
-    } catch (error) {
-      console.error("Error soft-deleting document template:", error);
-      return false;
-    }
+    // Get existing template for audit log
+    const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+    
+    // Soft delete - mark as inactive with audit info
+    const deletionData = {
+      isActive: false,
+      deletedAt: new Date(),
+      deletedBy: deletedBy,
+      deletionReason: reason,
+      updatedAt: new Date(),
+    };
+    
+    await db.update(documentTemplatesTable).set(deletionData).where(eq(documentTemplatesTable.id, id));
+    
+    // Log to audit trail
+    await this.createAuditLog({
+      userId: deletedBy,
+      action: 'template_deleted',
+      entityType: 'document_template',
+      entityId: id,
+      details: JSON.stringify({ 
+        templateName: existing?.name || 'Unknown',
+        reason: reason 
+      }),
+    });
+    
+    return true;
   }
   
-  // Document Template Versions
+  // Document Template Versions (database-backed)
   async getDocumentTemplateVersions(templateId: string): Promise<DocumentTemplateVersion[]> {
-    try {
-      const versions = await db.select().from(documentTemplateVersionsTable)
-        .where(eq(documentTemplateVersionsTable.templateId, templateId));
-      return versions.sort((a, b) => b.version - a.version);
-    } catch (error) {
-      console.error("Error fetching document template versions from DB:", error);
-      return Array.from(this.documentTemplateVersions.values())
-        .filter(v => v.templateId === templateId)
-        .sort((a, b) => b.version - a.version);
-    }
+    const versions = await db.select().from(documentTemplateVersionsTable)
+      .where(eq(documentTemplateVersionsTable.templateId, templateId));
+    return versions.sort((a, b) => b.version - a.version);
   }
   
   async createDocumentTemplateVersion(version: InsertDocumentTemplateVersion): Promise<DocumentTemplateVersion> {
@@ -3109,15 +2850,8 @@ export class MemStorage implements IStorage {
     };
     
     // Persist to database
-    try {
-      const [inserted] = await db.insert(documentTemplateVersionsTable).values(newVersion).returning();
-      this.documentTemplateVersions.set(inserted.id, inserted);
-      return inserted;
-    } catch (error) {
-      console.error("Error inserting document template version to DB:", error);
-      this.documentTemplateVersions.set(id, newVersion);
-      return newVersion;
-    }
+    const [inserted] = await db.insert(documentTemplateVersionsTable).values(newVersion).returning();
+    return inserted;
   }
 
   // Provision folder structure from templates for a site
@@ -3226,89 +2960,44 @@ export class MemStorage implements IStorage {
       return results;
     } catch (error) {
       console.error("Database error in getTrainingModules:", error);
-      return Array.from(this.trainingModulesMap.values())
-        .filter(t => t.isActive && (!module || t.module === module))
-        .sort((a, b) => a.sortOrder - b.sortOrder);
+      return [];
     }
   }
 
   async getTrainingModule(id: string): Promise<TrainingModule | undefined> {
-    try {
-      const results = await db.select().from(trainingModulesTable)
-        .where(eq(trainingModulesTable.id, id));
-      return results[0];
-    } catch (error) {
-      console.error("Database error in getTrainingModule:", error);
-      return this.trainingModulesMap.get(id);
-    }
+    const results = await db.select().from(trainingModulesTable)
+      .where(eq(trainingModulesTable.id, id));
+    return results[0];
   }
 
   async createTrainingModule(trainingModule: InsertTrainingModule): Promise<TrainingModule> {
     const now = new Date();
-    try {
-      const results = await db.insert(trainingModulesTable)
-        .values({
-          ...trainingModule,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning();
-      return results[0];
-    } catch (error) {
-      console.error("Database error in createTrainingModule:", error);
-      const id = randomUUID();
-      const newModule: TrainingModule = {
-        id,
+    const results = await db.insert(trainingModulesTable)
+      .values({
         ...trainingModule,
-        description: trainingModule.description ?? null,
-        folderTemplateId: trainingModule.folderTemplateId ?? null,
-        provider: trainingModule.provider ?? null,
-        duration: trainingModule.duration ?? null,
-        isRequired: trainingModule.isRequired ?? false,
-        renewalPeriodMonths: trainingModule.renewalPeriodMonths ?? null,
-        sortOrder: trainingModule.sortOrder ?? 0,
-        isActive: trainingModule.isActive ?? true,
         createdAt: now,
         updatedAt: now,
-      };
-      this.trainingModulesMap.set(id, newModule);
-      return newModule;
-    }
+      })
+      .returning();
+    return results[0];
   }
 
   async updateTrainingModule(id: string, updates: Partial<TrainingModule>): Promise<TrainingModule | undefined> {
     const now = new Date();
-    try {
-      const results = await db.update(trainingModulesTable)
-        .set({ ...updates, updatedAt: now })
-        .where(eq(trainingModulesTable.id, id))
-        .returning();
-      return results[0];
-    } catch (error) {
-      console.error("Database error in updateTrainingModule:", error);
-      const existing = this.trainingModulesMap.get(id);
-      if (!existing) return undefined;
-      const updated = { ...existing, ...updates, updatedAt: now };
-      this.trainingModulesMap.set(id, updated);
-      return updated;
-    }
+    const results = await db.update(trainingModulesTable)
+      .set({ ...updates, updatedAt: now })
+      .where(eq(trainingModulesTable.id, id))
+      .returning();
+    return results[0];
   }
 
   async deleteTrainingModule(id: string): Promise<boolean> {
-    try {
-      // Soft delete - just mark as inactive
-      const results = await db.update(trainingModulesTable)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(trainingModulesTable.id, id))
-        .returning();
-      return results.length > 0;
-    } catch (error) {
-      console.error("Database error in deleteTrainingModule:", error);
-      const existing = this.trainingModulesMap.get(id);
-      if (!existing) return false;
-      this.trainingModulesMap.set(id, { ...existing, isActive: false });
-      return true;
-    }
+    // Soft delete - just mark as inactive
+    const results = await db.update(trainingModulesTable)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(trainingModulesTable.id, id))
+      .returning();
+    return results.length > 0;
   }
 
   // Training Folders
