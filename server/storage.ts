@@ -1574,8 +1574,10 @@ export class MemStorage implements IStorage {
     const doc = docs[0];
     if (!doc) return undefined;
     
-    const site = doc.siteId ? this.sites.get(doc.siteId) : undefined;
-    const company = site?.companyId ? this.companies.get(site.companyId) : undefined;
+    // Get site from database
+    const site = doc.siteId ? await this.getSite(doc.siteId) : undefined;
+    // Get company from database
+    const company = site?.companyId ? await this.getCompany(site.companyId) : undefined;
     const uploader = doc.uploadedBy ? await this.getUser(doc.uploadedBy) : undefined;
     const assignee = doc.assignedTo ? await this.getUser(doc.assignedTo) : undefined;
     const versions = await this.getDocumentVersions(id);
@@ -1597,7 +1599,7 @@ export class MemStorage implements IStorage {
     // Look up the site to get the company (entity) ID
     let entityId = insertDocument.entityId;
     if (!entityId && insertDocument.siteId) {
-      const site = this.sites.get(insertDocument.siteId);
+      const site = await this.getSite(insertDocument.siteId);
       if (site) {
         entityId = site.companyId;
       }
@@ -1822,8 +1824,8 @@ export class MemStorage implements IStorage {
     if (siteId) {
       docs = docs.filter(d => d.siteId === siteId);
     } else if (companyId) {
-      // Filter by company: get all sites for this company
-      const companySites = Array.from(this.sites.values()).filter(s => s.companyId === companyId);
+      // Filter by company: get all sites for this company from database
+      const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
       const companySiteIds = companySites.map(s => s.id);
       docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
     }
@@ -2423,8 +2425,8 @@ export class MemStorage implements IStorage {
   // Users by Company (get all users associated with a company)
   async getUsersBySite(siteId: string): Promise<User[]> {
     try {
-      // First get the site to find its company
-      const site = this.sites.get(siteId);
+      // First get the site from database to find its company
+      const site = await this.getSite(siteId);
       if (!site) return [];
       // Return users that have access to this company
       return await db.select().from(usersTable).where(eq(usersTable.companyId, site.companyId));
