@@ -65,6 +65,8 @@ import {
   cases as casesTable,
   caseMilestones as caseMilestonesTable,
   consultantAssignments as consultantAssignmentsTable,
+  moduleAccessRequests as moduleAccessRequestsTable,
+  siteDocumentTypeAccess as siteDocumentTypeAccessTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -306,747 +308,78 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  // Users, Companies, and Sites are now stored in the database, not in memory
-  private documents: Map<string, Document>;
-  private documentVersions: Map<string, DocumentVersion>;
-  private documentFolders: Map<string, DocumentFolder>;
-  private auditLogs: Map<string, AuditLog>;
-  private supportRequests: Map<string, SupportRequest>;
-  private supportMessages: Map<string, SupportMessage>;
-  private siteDocumentTypeAccess: Map<string, SiteDocumentTypeAccess>;
-  private cases: Map<string, Case>;
-  private caseMilestones: Map<string, CaseMilestone>;
-  private siteModuleAccess: Map<string, SiteModuleAccess>;
-  private moduleAccessRequests: Map<string, ModuleAccessRequest>;
-  private consultantAssignments: Map<string, ConsultantAssignment>;
-  private clientSiteAssignments: Map<string, ClientSiteAssignment>;
-  private documentTypesMap: Map<string, DocumentTypeRecord>;
-  private folderTemplates: Map<string, FolderTemplate>;
-  private folderDocumentTypeRules: Map<string, FolderDocumentTypeRule>;
-  private documentTemplates: Map<string, DocumentTemplate>;
-  private documentTemplateVersions: Map<string, DocumentTemplateVersion>;
-  private trainingModulesMap: Map<string, TrainingModule>;
-  private supportRequestReads: Map<string, { requestId: string; userId: string; lastReadAt: Date }>;
+  // All data is now stored in the PostgreSQL database
+  // Only loginAttempts is kept in-memory for rate limiting (intentionally non-persistent)
+  private loginAttempts: Map<string, LoginAttempt> = new Map();
   
   // Reference number counter for users only (companies/sites use DB-based counters)
   private userCounter: number = 0;
 
   constructor() {
-    // Users, Companies, and Sites are now stored in the database
-    this.documents = new Map();
-    this.documentVersions = new Map();
-    this.documentFolders = new Map();
-    this.auditLogs = new Map();
-    this.supportRequests = new Map();
-    this.supportMessages = new Map();
-    this.siteDocumentTypeAccess = new Map();
-    this.cases = new Map();
-    this.caseMilestones = new Map();
-    this.siteModuleAccess = new Map();
-    this.moduleAccessRequests = new Map();
-    this.consultantAssignments = new Map();
-    this.clientSiteAssignments = new Map();
-    this.documentTypesMap = new Map();
-    this.folderTemplates = new Map();
-    this.folderDocumentTypeRules = new Map();
-    this.documentTemplates = new Map();
-    this.documentTemplateVersions = new Map();
-    this.trainingModulesMap = new Map();
-    this.supportRequestReads = new Map();
-    
+    // Initialize sample data in the database
     this.initializeSampleData();
   }
 
   private initializeSampleData() {
+    // Initialize all sample data in database asynchronously
+    this.initializeAllSampleDataInDB().catch(err => {
+      console.error("Failed to initialize sample data:", err);
+    });
+  }
+
+  private async initializeAllSampleDataInDB() {
     const now = new Date();
     
-    // Initialize admin user and sample companies/sites in database asynchronously
-    this.initializeDefaultAdmin().catch(err => {
-      console.error("Failed to initialize default admin:", err);
-    });
+    // Initialize admin user and sample companies/sites in database
+    await this.initializeDefaultAdmin();
+    await this.initializeSampleCompaniesAndSites();
     
-    // Initialize sample companies and sites in database
-    this.initializeSampleCompaniesAndSites().catch(err => {
-      console.error("Failed to initialize sample companies and sites:", err);
-    });
+    // Seed document types, site module access, consultant assignments, and document type access
+    await this.seedDocumentTypesToDB(now);
+    await this.seedSiteModuleAccessToDB(now);
+    await this.seedConsultantAssignmentsToDB(now);
+    await this.seedSiteDocumentTypeAccessToDB(now);
+  }
 
-    // Health & Safety Documents
-    const hsDocs: Document[] = [
-      {
-        id: "doc-hs-1",
-        title: "Health & Safety Policy 2024",
-        description: "Company-wide health and safety policy document",
-        module: "health_safety",
-        type: "hs_policy",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "hs_policy_2024.pdf",
-        fileSize: 245760,
-        mimeType: "application/pdf",
-        version: 3,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
-        expiryDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hs-2",
-        title: "Fire Risk Assessment - Main Factory",
-        description: "Annual fire risk assessment for the main manufacturing facility",
-        module: "health_safety",
-        type: "fire_safety",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "fire_risk_main_factory.pdf",
-        fileSize: 512000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "review_required",
-        approvalStatus: "pending",
-        reviewDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hs-3",
-        title: "COSHH Assessment - Chemical Storage",
-        description: "Control of Substances Hazardous to Health assessment",
-        module: "health_safety",
-        type: "coshh_assessment",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "coshh_chemical_storage.pdf",
-        fileSize: 384000,
-        mimeType: "application/pdf",
-        version: 2,
-        status: "overdue",
-        approvalStatus: "changes_requested",
-        reviewDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hs-4",
-        title: "Risk Assessment - Office Workstation",
-        description: "DSE assessment for office workstations",
-        module: "health_safety",
-        type: "risk_assessment",
-        siteId: "site-3",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "dse_assessment.pdf",
-        fileSize: 256000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
-      },
-    ];
+  private async seedDocumentTypesToDB(now: Date) {
+    // Check if document types already exist
+    const existingTypes = await db.select().from(documentTypes);
+    if (existingTypes.length > 0) return;
 
-    // Human Resources Documents
-    const hrDocs: Document[] = [
-      {
-        id: "doc-hr-1",
-        title: "Employee Handbook 2024",
-        description: "Comprehensive employee handbook with policies and procedures",
-        module: "human_resources",
-        type: "employee_handbook",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "employee_handbook_2024.pdf",
-        fileSize: 1024000,
-        mimeType: "application/pdf",
-        version: 5,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-2",
-        title: "Disciplinary Procedure",
-        description: "Company disciplinary and grievance procedure",
-        module: "human_resources",
-        type: "disciplinary_procedure",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "disciplinary_procedure.pdf",
-        fileSize: 320000,
-        mimeType: "application/pdf",
-        version: 2,
-        status: "review_required",
-        approvalStatus: "pending",
-        reviewDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-3",
-        title: "Training Record - John Smith",
-        description: "Training history and certifications for John Smith",
-        module: "human_resources",
-        type: "training_record",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "training_john_smith.pdf",
-        fileSize: 128000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-4",
-        title: "HR Policy - Remote Working",
-        description: "Policy for remote and hybrid working arrangements",
-        module: "human_resources",
-        type: "hr_policy",
-        siteId: "site-3",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "remote_working_policy.pdf",
-        fileSize: 192000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "overdue",
-        approvalStatus: "changes_requested",
-        reviewDate: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-5",
-        title: "Employment Contract - Standard Template",
-        description: "Standard employment contract template for full-time employees",
-        module: "human_resources",
-        type: "employment_contract",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "employment_contract_template.pdf",
-        fileSize: 285000,
-        mimeType: "application/pdf",
-        version: 4,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-6",
-        title: "Grievance Procedure",
-        description: "Formal grievance handling and resolution process",
-        module: "human_resources",
-        type: "grievance_procedure",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "grievance_procedure.pdf",
-        fileSize: 198000,
-        mimeType: "application/pdf",
-        version: 2,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-7",
-        title: "Performance Review - Q4 2024",
-        description: "Quarterly performance review documentation",
-        module: "human_resources",
-        type: "performance_review",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "performance_review_q4_2024.pdf",
-        fileSize: 156000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "review_required",
-        approvalStatus: "pending",
-        reviewDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-client-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-8",
-        title: "Absence Management Policy",
-        description: "Policy for managing employee absences and leave",
-        module: "human_resources",
-        type: "hr_policy",
-        siteId: "site-3",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "absence_management_policy.pdf",
-        fileSize: 245000,
-        mimeType: "application/pdf",
-        version: 3,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 75 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-9",
-        title: "Training Record - Sarah Johnson",
-        description: "Training history and certifications for Sarah Johnson",
-        module: "human_resources",
-        type: "training_record",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "training_sarah_johnson.pdf",
-        fileSize: 142000,
-        mimeType: "application/pdf",
-        version: 2,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: new Date(now.getTime() + 270 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-10",
-        title: "Absence Record - January 2025",
-        description: "Monthly absence tracking report",
-        module: "human_resources",
-        type: "absence_record",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "absence_record_jan_2025.pdf",
-        fileSize: 98000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "compliant",
-        approvalStatus: "approved",
-        reviewDate: null,
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: null,
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-11",
-        title: "Employment Contract - Part-Time Template",
-        description: "Employment contract template for part-time employees",
-        module: "human_resources",
-        type: "employment_contract",
-        siteId: "site-3",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "employment_contract_parttime.pdf",
-        fileSize: 265000,
-        mimeType: "application/pdf",
-        version: 2,
-        status: "review_required",
-        approvalStatus: "pending",
-        reviewDate: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "doc-hr-12",
-        title: "HR Policy - Equal Opportunities",
-        description: "Equal opportunities and diversity policy statement",
-        module: "human_resources",
-        type: "hr_policy",
-        siteId: "site-1",
-        caseId: null,
-        documentTypeId: null,
-        folderId: null,
-        fileName: "equal_opportunities_policy.pdf",
-        fileSize: 178000,
-        mimeType: "application/pdf",
-        version: 1,
-        status: "overdue",
-        approvalStatus: "pending",
-        reviewDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        expiryDate: null,
-        uploadedBy: "user-1",
-        assignedTo: "user-1",
-        isArchived: false,
-        createdAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000),
-      },
-    ];
-
-    // Seed documents disabled for clean testing
-    // [...hsDocs, ...hrDocs].forEach(doc => this.documents.set(doc.id, doc));
-
-    // Create sample audit logs with all action types
-    const logs: AuditLog[] = [
-      // H&S Policy document - full lifecycle
-      {
-        id: "log-hs1-1",
-        action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Uploaded Health & Safety Policy 2024 v1",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-2",
-        action: "document_rejected",
-        userId: "user-consultant-1",
-        userName: "Sarah Mitchell",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Rejected - Missing fire safety procedures section",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 85 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-3",
-        action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Uploaded Health & Safety Policy 2024 v2",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-4",
-        action: "changes_requested",
-        userId: "user-consultant-1",
-        userName: "Sarah Mitchell",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Requested minor updates to PPE requirements",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-5",
-        action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Uploaded Health & Safety Policy 2024 v3",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-6",
-        action: "document_approved",
-        userId: "user-consultant-1",
-        userName: "Sarah Mitchell",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Approved Health & Safety Policy 2024 v3",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-7",
-        action: "document_downloaded",
-        userId: "user-client-1",
-        userName: "Mike Thompson",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Downloaded Health & Safety Policy 2024",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hs1-8",
-        action: "document_viewed",
-        userId: "user-client-2",
-        userName: "Emma Wilson",
-        siteId: "site-1",
-        documentId: "doc-hs-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Viewed Health & Safety Policy 2024",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      },
-      // Fire Risk Assessment
-      {
-        id: "log-hs2-1",
-        action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "site-1",
-        documentId: "doc-hs-2",
-        caseId: null,
-        supportRequestId: null,
-        module: "health_safety",
-        details: "Uploaded Fire Risk Assessment - Main Factory",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
-      },
-      // HR Documents
-      {
-        id: "log-hr1-1",
-        action: "document_uploaded",
-        userId: "user-1",
-        userName: "John Doe",
-        siteId: "site-1",
-        documentId: "doc-hr-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "human_resources",
-        details: "Uploaded Employee Handbook 2024",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hr1-2",
-        action: "document_approved",
-        userId: "user-consultant-2",
-        userName: "James Anderson",
-        siteId: "site-1",
-        documentId: "doc-hr-1",
-        caseId: null,
-        supportRequestId: null,
-        module: "human_resources",
-        details: "Approved Employee Handbook 2024",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "log-hr4-1",
-        action: "changes_requested",
-        userId: "user-consultant-2",
-        userName: "James Anderson",
-        siteId: "site-3",
-        documentId: "doc-hr-4",
-        caseId: null,
-        supportRequestId: null,
-        module: "human_resources",
-        details: "Requested updates to remote working policy",
-        metadata: null,
-        createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-      },
-    ];
-    // Seed audit logs disabled for clean testing
-    // logs.forEach(log => this.auditLogs.set(log.id, log));
-
-    // Create sample document versions (for documents with version > 1)
-    const docVersions: DocumentVersion[] = [
-      // doc-hs-1 has version 3, so we have versions 1 and 2 in history
-      {
-        id: "ver-hs1-1",
-        documentId: "doc-hs-1",
-        version: 1,
-        fileName: "hs_policy_2024_v1.pdf",
-        fileSize: 220000,
-        uploadedBy: "user-1",
-        changeNote: "Initial version of the H&S Policy",
-        createdAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "ver-hs1-2",
-        documentId: "doc-hs-1",
-        version: 2,
-        fileName: "hs_policy_2024_v2.pdf",
-        fileSize: 235000,
-        uploadedBy: "user-1",
-        changeNote: "Updated fire safety section and added PPE requirements",
-        createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-      },
-      // doc-hs-3 has version 2, so we have version 1 in history
-      {
-        id: "ver-hs3-1",
-        documentId: "doc-hs-3",
-        version: 1,
-        fileName: "coshh_chemical_storage_v1.pdf",
-        fileSize: 350000,
-        uploadedBy: "user-1",
-        changeNote: "Initial COSHH assessment for chemical storage area",
-        createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-      },
-      // doc-hr-1 has version 2, so we have version 1 in history
-      {
-        id: "ver-hr1-1",
-        documentId: "doc-hr-1",
-        version: 1,
-        fileName: "employee_handbook_2024_v1.pdf",
-        fileSize: 480000,
-        uploadedBy: "user-1",
-        changeNote: "Initial employee handbook for 2024",
-        createdAt: new Date(now.getTime() - 75 * 24 * 60 * 60 * 1000),
-      },
-    ];
-    // Seed document versions disabled for clean testing
-    // docVersions.forEach(ver => this.documentVersions.set(ver.id, ver));
-
-    // Support requests - no sample data (created by users as needed)
+    // Initialize document types from module config
+    let docTypeId = 1;
+    const modules = ["health_safety", "human_resources", "employment_law"] as ModuleType[];
     
-    // Create sample entity document type access - now linked to document type IDs from master list
-    // Entity 1 (Acme Manufacturing) - has access to most document types but not all
-    const entity1Access: SiteDocumentTypeAccess[] = [
-      // H&S document types (doctype-1 to doctype-8) - missing doctype-7 (method_statement) and doctype-8 (hs_checklist) for upsell
-      { id: "access-1", siteId: "site-1", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-2", siteId: "site-1", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-3", siteId: "site-1", documentTypeId: "doctype-3", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-4", siteId: "site-1", documentTypeId: "doctype-4", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-5", siteId: "site-1", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-6", siteId: "site-1", documentTypeId: "doctype-6", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      // HR document types (doctype-9 to doctype-16) - missing doctype-16 (absence_record) for upsell
-      { id: "access-7", siteId: "site-1", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-8", siteId: "site-1", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-9", siteId: "site-1", documentTypeId: "doctype-11", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-10", siteId: "site-1", documentTypeId: "doctype-12", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-11", siteId: "site-1", documentTypeId: "doctype-13", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-12", siteId: "site-1", documentTypeId: "doctype-14", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-13", siteId: "site-1", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-    ];
-    entity1Access.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
-    
-    // Entity 2 (TechStart Solutions) - smaller package, fewer document types
-    const entity2Access: SiteDocumentTypeAccess[] = [
-      // H&S - basic package only (doctype-1, doctype-2, doctype-5)
-      { id: "access-20", siteId: "site-3", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-21", siteId: "site-3", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-22", siteId: "site-3", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      // HR - basic package only (doctype-9, doctype-10, doctype-15)
-      { id: "access-23", siteId: "site-3", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-24", siteId: "site-3", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-25", siteId: "site-3", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-    ];
-    entity2Access.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
-    
-    // Employment Law document type access for Entity 1 (doctype-17 to doctype-26)
-    const entity1ELAccess: SiteDocumentTypeAccess[] = [
-      { id: "access-30", siteId: "site-1", documentTypeId: "doctype-17", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-31", siteId: "site-1", documentTypeId: "doctype-18", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-32", siteId: "site-1", documentTypeId: "doctype-19", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-33", siteId: "site-1", documentTypeId: "doctype-21", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-34", siteId: "site-1", documentTypeId: "doctype-22", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-35", siteId: "site-1", documentTypeId: "doctype-24", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-      { id: "access-36", siteId: "site-1", documentTypeId: "doctype-25", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
-    ];
-    entity1ELAccess.forEach(access => this.siteDocumentTypeAccess.set(access.id, access));
+    for (const module of modules) {
+      const config = moduleConfig[module];
+      for (let index = 0; index < config.documentTypes.length; index++) {
+        const dt = config.documentTypes[index];
+        const id = `doctype-${docTypeId++}`;
+        const docType: DocumentTypeRecord = {
+          id,
+          name: dt.label,
+          code: dt.value,
+          module,
+          description: null,
+          isRequired: index < 3,
+          renewalPeriodMonths: index < 2 ? 12 : null,
+          sortOrder: index,
+          isActive: true,
+          createdBy: "user-admin",
+          createdAt: now,
+          updatedAt: now,
+        };
+        await db.insert(documentTypes).values(docType).onConflictDoNothing();
+      }
+    }
+  }
 
-    // Employment law cases, folders, milestones, and documents are created through the UI
-    // No sample data is seeded - users create cases from scratch
-    
-    // Employment Law audit logs removed - will be created when cases are created through UI
-    
-    // Clean up employment law-related audit logs
-    
-    // Site Module Access - Site 1 has all modules active
+  private async seedSiteModuleAccessToDB(now: Date) {
+    // Check if site module access already exists
+    const existingAccess = await db.select().from(siteModuleAccessTable);
+    if (existingAccess.length > 0) return;
+
+    // Site 1 has all modules active
     const site1ModuleAccess: SiteModuleAccess[] = [
       {
         id: "sma-1",
@@ -1082,9 +415,8 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
       },
     ];
-    site1ModuleAccess.forEach(a => this.siteModuleAccess.set(a.id, a));
-    
-    // Site 3 has H&S active, HR visible (can request), EL hidden
+
+    // Site 3 has H&S active, HR visible, EL hidden
     const site3ModuleAccess: SiteModuleAccess[] = [
       {
         id: "sma-4",
@@ -1120,75 +452,17 @@ export class MemStorage implements IStorage {
         updatedAt: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
       },
     ];
-    site3ModuleAccess.forEach(a => this.siteModuleAccess.set(a.id, a));
-    
-    // Sample pending access request from sites for modules
-    const sampleAccessRequests: ModuleAccessRequest[] = [
-      {
-        id: "mar-1",
-        siteId: "site-3",
-        siteName: "London Office",
-        module: "human_resources",
-        requestedBy: "user-2",
-        requestedByName: "Client User",
-        reason: "We need to manage our HR documentation and employee contracts through the portal.",
-        status: "pending",
-        reviewedBy: null,
-        reviewedByName: null,
-        reviewNotes: null,
-        createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-        reviewedAt: null,
-      },
-      {
-        id: "mar-2",
-        siteId: "site-1",
-        siteName: "Main Factory",
-        module: "employment_law",
-        requestedBy: "user-3",
-        requestedByName: "Sarah Mitchell",
-        reason: "Required for upcoming tribunal case support.",
-        status: "pending",
-        reviewedBy: null,
-        reviewedByName: null,
-        reviewNotes: null,
-        createdAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
-        reviewedAt: null,
-      },
-      {
-        id: "mar-3",
-        siteId: "site-2",
-        siteName: "Warehouse North",
-        module: "health_safety",
-        requestedBy: "user-4",
-        requestedByName: "James Wilson",
-        reason: "New project requires full H&S compliance documentation.",
-        status: "pending",
-        reviewedBy: null,
-        reviewedByName: null,
-        reviewNotes: null,
-        createdAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-        reviewedAt: null,
-      },
-      {
-        id: "mar-4",
-        siteId: "site-3",
-        siteName: "London Office",
-        module: "health_safety",
-        requestedBy: "user-2",
-        requestedByName: "Client User",
-        reason: "Office expansion requires H&S review.",
-        status: "approved",
-        reviewedBy: "user-1",
-        reviewedByName: "Admin User",
-        reviewNotes: "Approved - standard H&S package activated.",
-        createdAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
-        reviewedAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
-      },
-    ];
-    // Cleared for testing - no sample module access requests
-    // sampleAccessRequests.forEach(req => this.moduleAccessRequests.set(req.id, req));
 
-    // Sample consultant assignments
+    for (const access of [...site1ModuleAccess, ...site3ModuleAccess]) {
+      await db.insert(siteModuleAccessTable).values(access).onConflictDoNothing();
+    }
+  }
+
+  private async seedConsultantAssignmentsToDB(now: Date) {
+    // Check if consultant assignments already exist
+    const existingAssignments = await db.select().from(consultantAssignmentsTable);
+    if (existingAssignments.length > 0) return;
+
     const consultantAssignments: ConsultantAssignment[] = [
       {
         id: "ca-1",
@@ -1212,32 +486,58 @@ export class MemStorage implements IStorage {
         assignedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
       },
     ];
-    consultantAssignments.forEach(ca => this.consultantAssignments.set(ca.id, ca));
 
-    // Initialize document types from module config
-    let docTypeId = 1;
-    const modules = ["health_safety", "human_resources", "employment_law"] as ModuleType[];
-    modules.forEach(module => {
-      const config = moduleConfig[module];
-      config.documentTypes.forEach((dt, index) => {
-        const id = `doctype-${docTypeId++}`;
-        const docType: DocumentTypeRecord = {
-          id,
-          name: dt.label,
-          code: dt.value,
-          module,
-          description: null,
-          isRequired: index < 3,
-          renewalPeriodMonths: index < 2 ? 12 : null,
-          sortOrder: index,
-          isActive: true,
-          createdBy: "user-admin",
-          createdAt: now,
-          updatedAt: now,
-        };
-        this.documentTypesMap.set(id, docType);
-      });
-    });
+    for (const assignment of consultantAssignments) {
+      await db.insert(consultantAssignmentsTable).values(assignment).onConflictDoNothing();
+    }
+  }
+
+  private async seedSiteDocumentTypeAccessToDB(now: Date) {
+    // Check if site document type access already exists
+    const existingAccess = await db.select().from(siteDocumentTypeAccessTable);
+    if (existingAccess.length > 0) return;
+
+    // Entity 1 (Acme Manufacturing) - full package
+    const entity1Access: SiteDocumentTypeAccess[] = [
+      { id: "access-1", siteId: "site-1", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-2", siteId: "site-1", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-3", siteId: "site-1", documentTypeId: "doctype-3", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-4", siteId: "site-1", documentTypeId: "doctype-4", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-5", siteId: "site-1", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-6", siteId: "site-1", documentTypeId: "doctype-6", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-7", siteId: "site-1", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-8", siteId: "site-1", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-9", siteId: "site-1", documentTypeId: "doctype-11", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-10", siteId: "site-1", documentTypeId: "doctype-12", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-11", siteId: "site-1", documentTypeId: "doctype-13", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-12", siteId: "site-1", documentTypeId: "doctype-14", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-13", siteId: "site-1", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+
+    // Entity 2 (TechStart Solutions) - smaller package
+    const entity2Access: SiteDocumentTypeAccess[] = [
+      { id: "access-20", siteId: "site-3", documentTypeId: "doctype-1", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-21", siteId: "site-3", documentTypeId: "doctype-2", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-22", siteId: "site-3", documentTypeId: "doctype-5", module: "health_safety" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-23", siteId: "site-3", documentTypeId: "doctype-9", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-24", siteId: "site-3", documentTypeId: "doctype-10", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-25", siteId: "site-3", documentTypeId: "doctype-15", module: "human_resources" as ModuleType, grantedAt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+
+    // Employment Law document type access for Entity 1
+    const entity1ELAccess: SiteDocumentTypeAccess[] = [
+      { id: "access-30", siteId: "site-1", documentTypeId: "doctype-17", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-31", siteId: "site-1", documentTypeId: "doctype-18", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-32", siteId: "site-1", documentTypeId: "doctype-19", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-33", siteId: "site-1", documentTypeId: "doctype-21", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-34", siteId: "site-1", documentTypeId: "doctype-22", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-35", siteId: "site-1", documentTypeId: "doctype-24", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+      { id: "access-36", siteId: "site-1", documentTypeId: "doctype-25", module: "employment_law" as ModuleType, grantedAt: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000), grantedBy: "user-admin" },
+    ];
+
+    for (const access of [...entity1Access, ...entity2Access, ...entity1ELAccess]) {
+      await db.insert(siteDocumentTypeAccessTable).values(access).onConflictDoNothing();
+    }
   }
 
   // Users
@@ -1909,14 +1209,13 @@ export class MemStorage implements IStorage {
     }));
   }
 
-  // Entity Document Type Access
+  // Entity Document Type Access (Database-backed)
   async getSiteDocumentTypeAccess(siteId: string, module?: ModuleType): Promise<SiteDocumentTypeAccess[]> {
-    let access = Array.from(this.siteDocumentTypeAccess.values())
-      .filter(a => a.siteId === siteId);
+    const conditions = [eq(siteDocumentTypeAccessTable.siteId, siteId)];
     if (module) {
-      access = access.filter(a => a.module === module);
+      conditions.push(eq(siteDocumentTypeAccessTable.module, module));
     }
-    return access;
+    return await db.select().from(siteDocumentTypeAccessTable).where(and(...conditions));
   }
 
   async getDocumentTypesWithAccess(siteId: string, module: ModuleType): Promise<DocumentTypeWithAccess[]> {
@@ -1955,18 +1254,17 @@ export class MemStorage implements IStorage {
       grantedAt: new Date(),
       grantedBy: insertAccess.grantedBy ?? null,
     };
-    this.siteDocumentTypeAccess.set(id, access);
+    await db.insert(siteDocumentTypeAccessTable).values(access);
     return access;
   }
 
   async revokeDocumentTypeAccess(siteId: string, documentTypeId: string): Promise<boolean> {
-    const toRemove = Array.from(this.siteDocumentTypeAccess.values())
-      .find(a => a.siteId === siteId && a.documentTypeId === documentTypeId);
-    if (toRemove) {
-      this.siteDocumentTypeAccess.delete(toRemove.id);
-      return true;
-    }
-    return false;
+    await db.delete(siteDocumentTypeAccessTable)
+      .where(and(
+        eq(siteDocumentTypeAccessTable.siteId, siteId),
+        eq(siteDocumentTypeAccessTable.documentTypeId, documentTypeId)
+      ));
+    return true;
   }
 
   // Cases (Employment Law) - Database backed
@@ -2215,16 +1513,21 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // Module Access Requests
+  // Module Access Requests (Database-backed)
   async getModuleAccessRequests(siteId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]> {
-    let requests = Array.from(this.moduleAccessRequests.values());
+    const conditions = [];
     if (siteId) {
-      requests = requests.filter(r => r.siteId === siteId);
+      conditions.push(eq(moduleAccessRequestsTable.siteId, siteId));
     }
     if (status) {
-      requests = requests.filter(r => r.status === status);
+      conditions.push(eq(moduleAccessRequestsTable.status, status));
     }
-    return requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    const query = conditions.length > 0 
+      ? db.select().from(moduleAccessRequestsTable).where(and(...conditions))
+      : db.select().from(moduleAccessRequestsTable);
+    
+    return await query.orderBy(desc(moduleAccessRequestsTable.createdAt));
   }
 
   async createModuleAccessRequest(insertRequest: InsertModuleAccessRequest): Promise<ModuleAccessRequest> {
@@ -2241,7 +1544,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       reviewedAt: null,
     };
-    this.moduleAccessRequests.set(id, request);
+    await db.insert(moduleAccessRequestsTable).values(request);
     return request;
   }
 
@@ -2252,18 +1555,20 @@ export class MemStorage implements IStorage {
     status: ModuleAccessRequestStatus, 
     notes?: string
   ): Promise<ModuleAccessRequest | undefined> {
-    const existing = this.moduleAccessRequests.get(id);
+    const [existing] = await db.select().from(moduleAccessRequestsTable)
+      .where(eq(moduleAccessRequestsTable.id, id));
     if (!existing) return undefined;
     
-    const updated: ModuleAccessRequest = {
-      ...existing,
-      status,
-      reviewedBy,
-      reviewedByName,
-      reviewNotes: notes ?? null,
-      reviewedAt: new Date(),
-    };
-    this.moduleAccessRequests.set(id, updated);
+    const [updated] = await db.update(moduleAccessRequestsTable)
+      .set({
+        status,
+        reviewedBy,
+        reviewedByName,
+        reviewNotes: notes ?? null,
+        reviewedAt: new Date(),
+      })
+      .where(eq(moduleAccessRequestsTable.id, id))
+      .returning();
     
     // If approved, grant module access
     if (status === "approved") {
@@ -2896,10 +2201,8 @@ export class MemStorage implements IStorage {
   }
   
   // ============================================
-  // SECURITY - LOGIN ATTEMPTS
+  // SECURITY - LOGIN ATTEMPTS (In-memory for rate limiting)
   // ============================================
-  
-  private loginAttempts: Map<string, LoginAttempt> = new Map();
   
   async recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
     const id = randomUUID();
