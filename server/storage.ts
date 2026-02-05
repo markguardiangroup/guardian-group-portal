@@ -2167,7 +2167,7 @@ export class MemStorage implements IStorage {
 
   // Company Module Access
   async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean; reports: boolean } | undefined> {
-    const company = this.companies.get(companyId);
+    const company = await this.getCompany(companyId);
     if (!company) return undefined;
     return {
       healthSafety: company.healthSafetyAccess,
@@ -2179,23 +2179,22 @@ export class MemStorage implements IStorage {
   }
 
   async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined> {
-    const company = this.companies.get(companyId);
+    const company = await this.getCompany(companyId);
     if (!company) return undefined;
     
-    const updated: Company = {
-      ...company,
-      healthSafetyAccess: modules.healthSafety ?? company.healthSafetyAccess,
-      humanResourcesAccess: modules.humanResources ?? company.humanResourcesAccess,
-      employmentLawAccess: modules.employmentLaw ?? company.employmentLawAccess,
-      supportAccess: modules.support ?? company.supportAccess,
-      reportsAccess: modules.reports ?? company.reportsAccess,
-    };
-    this.companies.set(companyId, updated);
+    const updateData: Partial<Company> = {};
+    if (modules.healthSafety !== undefined) updateData.healthSafetyAccess = modules.healthSafety;
+    if (modules.humanResources !== undefined) updateData.humanResourcesAccess = modules.humanResources;
+    if (modules.employmentLaw !== undefined) updateData.employmentLawAccess = modules.employmentLaw;
+    if (modules.support !== undefined) updateData.supportAccess = modules.support;
+    if (modules.reports !== undefined) updateData.reportsAccess = modules.reports;
+    
+    const [updated] = await db.update(companiesTable).set(updateData).where(eq(companiesTable.id, companyId)).returning();
     return updated;
   }
 
   async hasCompanyModuleAccess(companyId: string, module: ModuleType): Promise<boolean> {
-    const company = this.companies.get(companyId);
+    const company = await this.getCompany(companyId);
     if (!company) return false;
     
     switch (module) {
