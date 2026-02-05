@@ -65,9 +65,9 @@ Document templates have a `requiresApproval` setting (default: true) that contro
 The training library features a separate folder structure per module, containing Training Courses with detailed information (summary, overview, FAQs, method: online/in_person). Consultants can create Training Bookings for sites, including access credentials. Clients can view their booked and completed training, with functionality to view access credentials.
 
 ### Storage Pattern
-A hybrid storage model is used:
-- **Database-backed (PostgreSQL)**: Stores Users, Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, Consultant Assignments, and User Invitations. Users persist across server restarts.
-- **In-memory storage**: Used for Companies and Sites entities loaded at startup, with lookups referencing these in-memory maps for performance.
+A database-first storage model is used:
+- **Database-backed (PostgreSQL)**: Stores Users, Companies, Sites, Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, Consultant Assignments, and User Invitations. All core entities persist across server restarts.
+- **In-memory caching**: Some lookup maps are used for performance optimization, but source of truth is always the database.
 
 ### Build Process
 Development uses Vite for the frontend with HMR and `tsx` for the Express API. Production builds compile the static frontend with Vite and bundle the server with esbuild. Drizzle Kit manages database migrations.

@@ -306,9 +306,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  // Users are now stored in the database, not in memory
-  private companies: Map<string, Company>;
-  private sites: Map<string, Site>;
+  // Users, Companies, and Sites are now stored in the database, not in memory
   private documents: Map<string, Document>;
   private documentVersions: Map<string, DocumentVersion>;
   private documentFolders: Map<string, DocumentFolder>;
@@ -330,15 +328,11 @@ export class MemStorage implements IStorage {
   private trainingModulesMap: Map<string, TrainingModule>;
   private supportRequestReads: Map<string, { requestId: string; userId: string; lastReadAt: Date }>;
   
-  // Reference number counters
-  private companyCounter: number = 0;
-  private siteCounter: number = 0;
+  // Reference number counter for users only (companies/sites use DB-based counters)
   private userCounter: number = 0;
 
   constructor() {
-    // Users are now stored in the database
-    this.companies = new Map();
-    this.sites = new Map();
+    // Users, Companies, and Sites are now stored in the database
     this.documents = new Map();
     this.documentVersions = new Map();
     this.documentFolders = new Map();
@@ -366,119 +360,15 @@ export class MemStorage implements IStorage {
   private initializeSampleData() {
     const now = new Date();
     
-    // Users are now stored in the database (see initializeDefaultAdmin method)
-    // Initialize admin user in database asynchronously
+    // Initialize admin user and sample companies/sites in database asynchronously
     this.initializeDefaultAdmin().catch(err => {
       console.error("Failed to initialize default admin:", err);
     });
-
-    // Create sample companies
-    this.companyCounter = 2; // Start counter after sample data
-    const sampleCompanies: Company[] = [
-      {
-        id: "company-1",
-        referenceNumber: "CMP-00001",
-        name: "Acme Manufacturing Ltd",
-        companyNumber: "12345678",
-        website: "https://acme-mfg.com",
-        addressLine1: "123 Industrial Way",
-        addressLine2: null,
-        city: "Manchester",
-        county: "Greater Manchester",
-        postalCode: "M1 2AB",
-        country: "United Kingdom",
-        contactName: "Sarah Johnson",
-        contactPosition: "Health & Safety Manager",
-        contactEmail: "safety@acme-mfg.com",
-        contactPhone: "+44 161 123 4567",
-        status: "active",
-        healthSafetyAccess: true,
-        humanResourcesAccess: true,
-        employmentLawAccess: true,
-        supportAccess: true,
-        reportsAccess: true,
-        createdAt: now,
-      },
-      {
-        id: "company-2",
-        referenceNumber: "CMP-00002",
-        name: "TechCorp Solutions",
-        companyNumber: "87654321",
-        website: "https://techcorp.co.uk",
-        addressLine1: "456 Tech Park",
-        addressLine2: null,
-        city: "London",
-        county: null,
-        postalCode: "EC2A 4NE",
-        country: "United Kingdom",
-        contactName: "Emma Davis",
-        contactPosition: "Compliance Director",
-        contactEmail: "compliance@techcorp.co.uk",
-        contactPhone: "+44 20 7123 4567",
-        status: "active",
-        healthSafetyAccess: true,
-        humanResourcesAccess: false,
-        employmentLawAccess: false,
-        supportAccess: true,
-        reportsAccess: false,
-        createdAt: now,
-      },
-    ];
-    sampleCompanies.forEach(company => this.companies.set(company.id, company));
-
-    // Create sample sites (linked to companies via companyId)
-    this.siteCounter = 3; // Start counter after sample data
-    const sampleSites: Site[] = [
-      {
-        id: "site-1",
-        referenceNumber: "STE-00001",
-        companyId: "company-1",
-        name: "Main Factory",
-        addressLine1: "123 Industrial Way",
-        addressLine2: null,
-        city: "Manchester",
-        county: "Greater Manchester",
-        postalCode: "M1 2AB",
-        country: "United Kingdom",
-        contactName: "Sarah Johnson",
-        contactPosition: "Site Manager",
-        contactPhone: "+44 161 123 4567",
-        contactEmail: "sarah@acme-mfg.com",
-      },
-      {
-        id: "site-2",
-        referenceNumber: "STE-00002",
-        companyId: "company-1",
-        name: "Warehouse North",
-        addressLine1: "789 Logistics Road",
-        addressLine2: null,
-        city: "Manchester",
-        county: "Greater Manchester",
-        postalCode: "M3 4CD",
-        country: "United Kingdom",
-        contactName: "Mike Brown",
-        contactPosition: "Warehouse Manager",
-        contactPhone: "+44 161 123 4569",
-        contactEmail: "mike.brown@acme-mfg.com",
-      },
-      {
-        id: "site-3",
-        referenceNumber: "STE-00003",
-        companyId: "company-2",
-        name: "London Office",
-        addressLine1: "456 Tech Park",
-        addressLine2: null,
-        city: "London",
-        county: null,
-        postalCode: "EC2A 4NE",
-        country: "United Kingdom",
-        contactName: "Emma Davis",
-        contactPosition: "Office Manager",
-        contactPhone: "+44 20 7123 4567",
-        contactEmail: "emma@techcorp.co.uk",
-      },
-    ];
-    sampleSites.forEach(site => this.sites.set(site.id, site));
+    
+    // Initialize sample companies and sites in database
+    this.initializeSampleCompaniesAndSites().catch(err => {
+      console.error("Failed to initialize sample companies and sites:", err);
+    });
 
     // Health & Safety Documents
     const hsDocs: Document[] = [
@@ -1425,11 +1315,14 @@ export class MemStorage implements IStorage {
 
   // Sites
   async getSites(): Promise<Site[]> {
-    return Array.from(this.sites.values());
+    return await db.select().from(sitesTable);
   }
 
   async getSitesWithDetails(): Promise<SiteWithDetails[]> {
-    const sites = Array.from(this.sites.values());
+    const sites = await db.select().from(sitesTable);
+    const companies = await db.select().from(companiesTable);
+    const companiesMap = new Map(companies.map(c => [c.id, c]));
+    
     return Promise.all(sites.map(async (site) => {
       const summary = await this.getSiteComplianceSummary(site.id);
       const moduleAccessList = await this.getSiteModuleAccess(site.id);
@@ -1466,7 +1359,7 @@ export class MemStorage implements IStorage {
       );
       
       // Get company info
-      const company = this.companies.get(site.companyId);
+      const company = companiesMap.get(site.companyId);
       
       return { 
         ...site, 
@@ -1481,8 +1374,8 @@ export class MemStorage implements IStorage {
 
   async getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]> {
     // Filter sites first to avoid processing unrelated sites
-    const companySites = Array.from(this.sites.values()).filter(s => s.companyId === companyId);
-    const company = this.companies.get(companyId);
+    const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
+    const company = await this.getCompany(companyId);
     
     return Promise.all(companySites.map(async (site) => {
       const summary = await this.getSiteComplianceSummary(site.id);
@@ -1530,16 +1423,21 @@ export class MemStorage implements IStorage {
   }
 
   async getSite(id: string): Promise<Site | undefined> {
-    return this.sites.get(id);
+    const results = await db.select().from(sitesTable).where(eq(sitesTable.id, id));
+    return results[0];
   }
 
   async getSitesByCompanyId(companyId: string): Promise<Site[]> {
-    return Array.from(this.sites.values()).filter(site => site.companyId === companyId);
+    return await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
   }
 
   async getSitesWithCompany(): Promise<SiteWithCompany[]> {
-    return Array.from(this.sites.values()).map(site => {
-      const company = this.companies.get(site.companyId);
+    const sites = await db.select().from(sitesTable);
+    const companies = await db.select().from(companiesTable);
+    const companiesMap = new Map(companies.map(c => [c.id, c]));
+    
+    return sites.map(site => {
+      const company = companiesMap.get(site.companyId);
       return {
         ...site,
         companyName: company?.name,
@@ -1549,49 +1447,40 @@ export class MemStorage implements IStorage {
   }
 
   async createSite(insertSite: InsertSite): Promise<Site> {
-    const id = randomUUID();
-    this.siteCounter++;
-    const referenceNumber = formatReferenceNumber('STE', this.siteCounter);
-    const site: Site = { 
-      ...insertSite, 
-      id,
+    // Get next reference number
+    const existingSites = await db.select().from(sitesTable);
+    const maxRef = existingSites.reduce((max, s) => {
+      if (s.referenceNumber) {
+        const num = parseInt(s.referenceNumber.replace('STE-', ''));
+        return num > max ? num : max;
+      }
+      return max;
+    }, 0);
+    const referenceNumber = formatReferenceNumber('STE', maxRef + 1);
+    
+    const [site] = await db.insert(sitesTable).values({
+      ...insertSite,
       referenceNumber,
-      addressLine1: insertSite.addressLine1 ?? null,
-      addressLine2: insertSite.addressLine2 ?? null,
-      city: insertSite.city ?? null,
-      county: insertSite.county ?? null,
-      postalCode: insertSite.postalCode ?? null,
-      country: insertSite.country ?? null,
-      contactName: insertSite.contactName ?? null,
-      contactPosition: insertSite.contactPosition ?? null,
-      contactPhone: insertSite.contactPhone ?? null,
-      contactEmail: insertSite.contactEmail ?? null,
-    };
-    this.sites.set(id, site);
+    }).returning();
     return site;
   }
 
   async updateSite(id: string, updates: Partial<Site>): Promise<Site | undefined> {
-    const site = this.sites.get(id);
-    if (!site) {
-      return undefined;
-    }
-    const updatedSite: Site = {
-      ...site,
-      ...updates,
-    };
-    this.sites.set(id, updatedSite);
+    const [updatedSite] = await db.update(sitesTable)
+      .set(updates)
+      .where(eq(sitesTable.id, id))
+      .returning();
     return updatedSite;
   }
 
   // Company CRUD
   async getCompanies(): Promise<Company[]> {
-    return Array.from(this.companies.values());
+    return await db.select().from(companiesTable);
   }
 
   async getCompaniesWithSiteCount(): Promise<CompanyWithSiteCount[]> {
-    const companies = Array.from(this.companies.values());
-    const sites = Array.from(this.sites.values());
+    const companies = await db.select().from(companiesTable);
+    const sites = await db.select().from(sitesTable);
     
     // Single pass to count sites per company - O(sites) instead of O(companies * sites)
     const siteCountByCompany = new Map<string, number>();
@@ -1606,52 +1495,40 @@ export class MemStorage implements IStorage {
   }
 
   async getCompany(id: string): Promise<Company | undefined> {
-    return this.companies.get(id);
+    const results = await db.select().from(companiesTable).where(eq(companiesTable.id, id));
+    return results[0];
   }
 
   async createCompany(insertCompany: InsertCompany): Promise<Company> {
-    const id = randomUUID();
-    this.companyCounter++;
-    const referenceNumber = formatReferenceNumber('CMP', this.companyCounter);
-    const company: Company = {
+    // Get next reference number
+    const existingCompanies = await db.select().from(companiesTable);
+    const maxRef = existingCompanies.reduce((max, c) => {
+      if (c.referenceNumber) {
+        const num = parseInt(c.referenceNumber.replace('CMP-', ''));
+        return num > max ? num : max;
+      }
+      return max;
+    }, 0);
+    const referenceNumber = formatReferenceNumber('CMP', maxRef + 1);
+    
+    const [company] = await db.insert(companiesTable).values({
       ...insertCompany,
-      id,
       referenceNumber,
-      companyNumber: insertCompany.companyNumber ?? null,
-      website: insertCompany.website ?? null,
-      addressLine1: insertCompany.addressLine1 ?? null,
-      addressLine2: insertCompany.addressLine2 ?? null,
-      city: insertCompany.city ?? null,
-      county: insertCompany.county ?? null,
-      postalCode: insertCompany.postalCode ?? null,
-      country: insertCompany.country ?? null,
-      contactName: insertCompany.contactName ?? null,
-      contactPosition: insertCompany.contactPosition ?? null,
-      contactEmail: insertCompany.contactEmail ?? null,
-      contactPhone: insertCompany.contactPhone ?? null,
-      status: (insertCompany.status ?? "active") as any,
+      status: insertCompany.status ?? "active",
       healthSafetyAccess: insertCompany.healthSafetyAccess ?? false,
+      humanResourcesAccess: insertCompany.humanResourcesAccess ?? false,
       employmentLawAccess: insertCompany.employmentLawAccess ?? false,
-      hrAccess: insertCompany.hrAccess ?? false,
       supportAccess: insertCompany.supportAccess ?? false,
-      trainingAccess: insertCompany.trainingAccess ?? false,
       reportsAccess: insertCompany.reportsAccess ?? false,
-      createdAt: new Date(),
-    };
-    this.companies.set(id, company);
+    }).returning();
     return company;
   }
 
   async updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined> {
-    const company = this.companies.get(id);
-    if (!company) {
-      return undefined;
-    }
-    const updatedCompany: Company = {
-      ...company,
-      ...updates,
-    };
-    this.companies.set(id, updatedCompany);
+    const [updatedCompany] = await db.update(companiesTable)
+      .set(updates)
+      .where(eq(companiesTable.id, id))
+      .returning();
     return updatedCompany;
   }
 
@@ -4012,6 +3889,128 @@ export class MemStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error initializing default admin:", error);
+    }
+  }
+
+  // Initialize sample companies and sites in database if not exists
+  async initializeSampleCompaniesAndSites(): Promise<void> {
+    try {
+      // Check if any companies exist
+      const existingCompanies = await db.select().from(companiesTable);
+      if (existingCompanies.length === 0) {
+        console.log("Creating sample companies in database...");
+        
+        const sampleCompanies = [
+          {
+            id: "company-1",
+            referenceNumber: "CMP-00001",
+            name: "Acme Manufacturing Ltd",
+            companyNumber: "12345678",
+            website: "https://acme-mfg.com",
+            addressLine1: "123 Industrial Way",
+            city: "Manchester",
+            county: "Greater Manchester",
+            postalCode: "M1 2AB",
+            country: "United Kingdom",
+            contactName: "Sarah Johnson",
+            contactPosition: "Health & Safety Manager",
+            contactEmail: "safety@acme-mfg.com",
+            contactPhone: "+44 161 123 4567",
+            status: "active" as const,
+            healthSafetyAccess: true,
+            humanResourcesAccess: true,
+            employmentLawAccess: true,
+            supportAccess: true,
+            reportsAccess: true,
+          },
+          {
+            id: "company-2",
+            referenceNumber: "CMP-00002",
+            name: "TechCorp Solutions",
+            companyNumber: "87654321",
+            website: "https://techcorp.co.uk",
+            addressLine1: "456 Tech Park",
+            city: "London",
+            postalCode: "EC2A 4NE",
+            country: "United Kingdom",
+            contactName: "Emma Davis",
+            contactPosition: "Compliance Director",
+            contactEmail: "compliance@techcorp.co.uk",
+            contactPhone: "+44 20 7123 4567",
+            status: "active" as const,
+            healthSafetyAccess: true,
+            humanResourcesAccess: false,
+            employmentLawAccess: false,
+            supportAccess: true,
+            reportsAccess: false,
+          },
+        ];
+        
+        for (const company of sampleCompanies) {
+          await db.insert(companiesTable).values(company);
+        }
+        console.log("Sample companies created successfully.");
+      }
+      
+      // Check if any sites exist
+      const existingSites = await db.select().from(sitesTable);
+      if (existingSites.length === 0) {
+        console.log("Creating sample sites in database...");
+        
+        const sampleSites = [
+          {
+            id: "site-1",
+            referenceNumber: "STE-00001",
+            companyId: "company-1",
+            name: "Main Factory",
+            addressLine1: "123 Industrial Way",
+            city: "Manchester",
+            county: "Greater Manchester",
+            postalCode: "M1 2AB",
+            country: "United Kingdom",
+            contactName: "Sarah Johnson",
+            contactPosition: "Site Manager",
+            contactPhone: "+44 161 123 4567",
+            contactEmail: "sarah@acme-mfg.com",
+          },
+          {
+            id: "site-2",
+            referenceNumber: "STE-00002",
+            companyId: "company-1",
+            name: "Warehouse North",
+            addressLine1: "789 Logistics Road",
+            city: "Manchester",
+            county: "Greater Manchester",
+            postalCode: "M3 4CD",
+            country: "United Kingdom",
+            contactName: "Mike Brown",
+            contactPosition: "Warehouse Manager",
+            contactPhone: "+44 161 123 4569",
+            contactEmail: "mike.brown@acme-mfg.com",
+          },
+          {
+            id: "site-3",
+            referenceNumber: "STE-00003",
+            companyId: "company-2",
+            name: "London Office",
+            addressLine1: "456 Tech Park",
+            city: "London",
+            postalCode: "EC2A 4NE",
+            country: "United Kingdom",
+            contactName: "Emma Davis",
+            contactPosition: "Office Manager",
+            contactPhone: "+44 20 7123 4567",
+            contactEmail: "emma@techcorp.co.uk",
+          },
+        ];
+        
+        for (const site of sampleSites) {
+          await db.insert(sitesTable).values(site);
+        }
+        console.log("Sample sites created successfully.");
+      }
+    } catch (error) {
+      console.error("Error initializing sample companies and sites:", error);
     }
   }
 }
