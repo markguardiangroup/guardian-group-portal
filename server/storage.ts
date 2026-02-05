@@ -1677,7 +1677,7 @@ export class MemStorage implements IStorage {
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
+      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
     };
   }
 
@@ -1964,7 +1964,7 @@ export class MemStorage implements IStorage {
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
+      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
     };
   }
 
@@ -2025,7 +2025,7 @@ export class MemStorage implements IStorage {
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
-        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 100,
+        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
       };
     }));
   }

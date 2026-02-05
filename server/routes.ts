@@ -679,7 +679,7 @@ export async function registerRoutes(
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
       const overdueDocuments = documents.filter(d => d.status === "overdue").length;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
       // Calculate split approval metrics based on user role
       let awaitingYourApproval = 0;
@@ -783,7 +783,7 @@ export async function registerRoutes(
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
       const overdueDocuments = documents.filter(d => d.status === "overdue").length;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 100;
+      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
       // Calculate split approval metrics based on user role
       let awaitingYourApproval = 0;
