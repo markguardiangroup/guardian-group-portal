@@ -35,8 +35,8 @@ export type ApprovalStatus = "pending" | "client_signed_off" | "approved" | "rej
 // Company status
 export type CompanyStatus = "active" | "inactive" | "pending";
 
-// Companies table (parent of sites) - uses "entities" table name for database compatibility
-export const companies = pgTable("entities", {
+// Companies table (parent of sites)
+export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   referenceNumber: text("reference_number").unique(),
   name: text("name").notNull(),

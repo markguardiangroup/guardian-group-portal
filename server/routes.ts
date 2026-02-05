@@ -3739,7 +3739,7 @@ export async function registerRoutes(
       res.json([]);
     } catch (error) {
       console.error("Entities error:", error);
-      res.status(500).json({ error: "Failed to fetch entities" });
+      res.status(500).json({ error: "Failed to fetch companies" });
     }
   });
 
@@ -3753,7 +3753,7 @@ export async function registerRoutes(
       
       // Only admin can create entities
       if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create entities" });
+        return res.status(403).json({ error: "Only admins can create companies" });
       }
       
       const { name, companyId, address, siteManager, contactPhone } = req.body;
@@ -3791,7 +3791,7 @@ export async function registerRoutes(
       
       // Only admin can update entities
       if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update entities" });
+        return res.status(403).json({ error: "Only admins can update companies" });
       }
       
       const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
