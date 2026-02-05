@@ -71,11 +71,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      // Clear all local storage auth data
       localStorage.removeItem("dev_user");
       setDevUser(null);
-      queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.invalidateQueries();
-      window.location.href = "/login";
+      
+      // Clear all React Query cache completely
+      queryClient.clear();
+      
+      // Force a hard redirect to clear any in-memory state
+      window.location.replace("/login");
+    },
+    onError: () => {
+      // Even on error, clear local state and redirect
+      localStorage.removeItem("dev_user");
+      setDevUser(null);
+      queryClient.clear();
+      window.location.replace("/login");
     },
   });
 

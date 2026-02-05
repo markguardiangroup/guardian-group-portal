@@ -281,11 +281,23 @@ export async function registerRoutes(
       });
     }
     
+    // Set headers to prevent caching of auth state
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    });
+    
     req.session.destroy((err) => {
       if (err) {
-        return res.status(500).json({ error: "Logout failed" });
+        console.error("Session destroy error:", err);
+        // Still try to clear cookie and respond
       }
-      res.clearCookie("guardian.sid"); // Match our custom session name
+      
+      // Clear the session cookie with all possible path/domain combinations
+      res.clearCookie("guardian.sid", { path: "/" });
+      res.clearCookie("guardian.sid");
+      
       res.json({ message: "Logged out successfully" });
     });
   });
