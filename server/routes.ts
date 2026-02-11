@@ -3660,10 +3660,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, site } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
+      }
+      
+      if (!site || !site.name || !site.name.trim()) {
+        return res.status(400).json({ error: "At least one site with a name is required when creating a company" });
       }
       
       const company = await storage.createCompany({
@@ -3672,6 +3676,21 @@ export async function registerRoutes(
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
+      });
+      
+      await storage.createSite({
+        name: site.name.trim(),
+        companyId: company.id,
+        addressLine1: site.addressLine1 || null,
+        addressLine2: site.addressLine2 || null,
+        city: site.city || null,
+        county: site.county || null,
+        postalCode: site.postalCode || null,
+        country: site.country || null,
+        contactName: site.contactName || null,
+        contactPosition: site.contactPosition || null,
+        contactPhone: site.contactPhone || null,
+        contactEmail: site.contactEmail || null,
       });
       
       res.status(201).json(company);

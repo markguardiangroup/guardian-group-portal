@@ -164,7 +164,7 @@ export default function Companies() {
     contactUserId: "",
   });
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
-  const [newCompanyId, setNewCompanyId] = useState<string | null>(null);
+  const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [siteData, setSiteData] = useState({
     name: "",
     addressLine1: "",
@@ -206,48 +206,21 @@ export default function Companies() {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const response = await apiRequest("POST", "/api/companies", data);
-      return response.json();
-    },
-    onSuccess: (company: { id: string }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      toast({ title: "Company created — now add the first site" });
-      setIsAddOpen(false);
-      resetForm();
-      setNewCompanyId(company.id);
-      setSiteData({
-        name: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        county: "",
-        postalCode: "",
-        country: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
+  const createCompanyWithSiteMutation = useMutation({
+    mutationFn: async (payload: { companyData: typeof formData; siteData: typeof siteData }) => {
+      const response = await apiRequest("POST", "/api/companies", {
+        ...payload.companyData,
+        site: payload.siteData,
       });
-      setIsSiteModalOpen(true);
-    },
-    onError: () => {
-      toast({ title: "Failed to create company", variant: "destructive" });
-    },
-  });
-
-  const createSiteMutation = useMutation({
-    mutationFn: async (data: typeof siteData & { companyId: string }) => {
-      const response = await apiRequest("POST", "/api/sites", data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Site created successfully" });
+      toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
-      setNewCompanyId(null);
+      setPendingCompanyData(null);
+      resetForm();
       setSiteData({
         name: "",
         addressLine1: "",
@@ -263,7 +236,7 @@ export default function Companies() {
       });
     },
     onError: () => {
-      toast({ title: "Failed to create site", variant: "destructive" });
+      toast({ title: "Failed to create company", variant: "destructive" });
     },
   });
 
@@ -387,7 +360,22 @@ export default function Companies() {
     if (editingCompany) {
       updateMutation.mutate({ id: editingCompany.id, data: formData });
     } else {
-      createMutation.mutate(formData);
+      setPendingCompanyData({ ...formData });
+      setIsAddOpen(false);
+      setSiteData({
+        name: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      setIsSiteModalOpen(true);
     }
   };
 
@@ -396,8 +384,17 @@ export default function Companies() {
       toast({ title: "Site name is required", variant: "destructive" });
       return;
     }
-    if (!newCompanyId) return;
-    createSiteMutation.mutate({ ...siteData, companyId: newCompanyId });
+    if (!pendingCompanyData) return;
+    createCompanyWithSiteMutation.mutate({
+      companyData: pendingCompanyData,
+      siteData: siteData,
+    });
+  };
+
+  const handleCancelSiteModal = () => {
+    setIsSiteModalOpen(false);
+    setPendingCompanyData(null);
+    setIsAddOpen(true);
   };
 
   const isAdmin = user?.role === "admin";
@@ -732,10 +729,10 @@ export default function Companies() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={updateMutation.isPending}
               data-testid="button-submit-company"
             >
-              {(createMutation.isPending || updateMutation.isPending) 
+              {updateMutation.isPending 
                 ? "Saving..." 
                 : editingCompany ? "Update Company" : "Next: Add Site"}
             </Button>
@@ -744,8 +741,8 @@ export default function Companies() {
       </Dialog>
 
       <Dialog open={isSiteModalOpen} onOpenChange={(open) => {
-        if (!open && newCompanyId) {
-          toast({ title: "A site is required for this company", description: "Please add at least one site before closing.", variant: "destructive" });
+        if (!open && pendingCompanyData) {
+          handleCancelSiteModal();
           return;
         }
         setIsSiteModalOpen(open);
@@ -895,13 +892,16 @@ export default function Companies() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleCancelSiteModal} data-testid="button-back-to-company">
+              Back
+            </Button>
             <Button
               onClick={handleCreateSite}
-              disabled={createSiteMutation.isPending}
+              disabled={createCompanyWithSiteMutation.isPending}
               data-testid="button-create-first-site"
             >
-              {createSiteMutation.isPending ? "Creating Site..." : "Create Site"}
+              {createCompanyWithSiteMutation.isPending ? "Creating..." : "Create Company & Site"}
             </Button>
           </DialogFooter>
         </DialogContent>
