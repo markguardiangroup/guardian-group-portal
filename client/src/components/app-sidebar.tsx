@@ -463,13 +463,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
       <SidebarFooter className="p-3">
         <div className="rounded-lg bg-sidebar-accent/50 p-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <Avatar className="h-12 w-12">
+              <AvatarFallback className="bg-primary text-primary-foreground text-base font-semibold">
                 {user ? getInitials(user.fullName) : "?"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex flex-col w-full overflow-hidden">
               <span className="truncate text-sm font-semibold" data-testid="text-user-name">
                 {user?.fullName || "Guest"}
               </span>
@@ -482,20 +482,21 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {user ? roleLabels[user.role] : "Not logged in"}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                console.log("Logout clicked");
-                logout();
-              }}
-              disabled={isLoggingOut}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover-elevate"
-              data-testid="button-logout"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4 text-muted-foreground" />
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Logout clicked");
+              logout();
+            }}
+            disabled={isLoggingOut}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-md p-1.5 text-xs text-muted-foreground transition-colors hover-elevate"
+            data-testid="button-logout"
+            title="Sign out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign out</span>
+          </button>
         </div>
       </SidebarFooter>
     </Sidebar>
