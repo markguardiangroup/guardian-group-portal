@@ -46,7 +46,7 @@ const documentUploadSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),
-  folderId: z.string().optional(),
+  folderId: z.string().min(1, "Please select a folder"),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
 }).refine((data) => {
@@ -58,15 +58,6 @@ const documentUploadSchema = z.object({
 }, {
   message: "Please select a site",
   path: ["siteId"],
-}).refine((data) => {
-  // If scope is "site", require folderId
-  if (data.uploadScope === "site" && !data.folderId) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Please select a folder",
-  path: ["folderId"],
 });
 
 type DocumentUploadForm = z.infer<typeof documentUploadSchema>;
@@ -560,7 +551,7 @@ export default function DocumentUpload() {
                     />
                   )}
 
-                  {uploadScope === "site" && selectedSiteId && (
+                  {((uploadScope === "site" && selectedSiteId) || (uploadScope === "company" && selectedCompany)) && (
                     <FormField
                       control={form.control}
                       name="folderId"
