@@ -3805,6 +3805,7 @@ export async function registerRoutes(
 
         await storage.createAuditLog({
           userId: user.id,
+          userName: user.fullName,
           action: "company_deleted",
           entityType: "company",
           entityId: companyId,
