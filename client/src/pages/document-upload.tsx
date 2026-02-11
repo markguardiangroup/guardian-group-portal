@@ -105,7 +105,7 @@ export default function DocumentUpload() {
   const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string>("all");
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -157,7 +157,7 @@ export default function DocumentUpload() {
 
   // Filter sites by selected company
   const filteredSites = sites?.filter(site => 
-    selectedCompany === "all" || site.companyName === selectedCompany
+    selectedCompany && site.companyName === selectedCompany
   );
 
   // Provision folders mutation
@@ -222,7 +222,7 @@ export default function DocumentUpload() {
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
       
-      if (data.uploadScope === "company" && selectedCompany !== "all") {
+      if (data.uploadScope === "company" && selectedCompany) {
         // Upload to all sites in the company
         const companySites = sites?.filter(s => s.companyName === selectedCompany) || [];
         const results = [];
@@ -266,7 +266,7 @@ export default function DocumentUpload() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      const siteCount = variables.uploadScope === "company" && selectedCompany !== "all"
+      const siteCount = variables.uploadScope === "company" && selectedCompany
         ? sites?.filter(s => s.companyName === selectedCompany).length || 0
         : 1;
       toast({
@@ -461,10 +461,7 @@ export default function DocumentUpload() {
                           setSelectedCompany(value);
                           form.setValue("siteId", "");
                           form.setValue("folderId", "");
-                          // Reset to site scope if "all" is selected
-                          if (value === "all") {
-                            form.setValue("uploadScope", "site");
-                          }
+                          form.setValue("uploadScope", "site");
                         }}
                       >
                         <FormControl>
@@ -473,7 +470,6 @@ export default function DocumentUpload() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="all">All Companies</SelectItem>
                           {companies.map((company) => (
                             <SelectItem key={company} value={company as string}>
                               {company}
@@ -482,7 +478,7 @@ export default function DocumentUpload() {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Select a company to filter sites or upload company-wide
+                        Select the company to upload documents for
                       </FormDescription>
                     </FormItem>
 
@@ -501,7 +497,7 @@ export default function DocumentUpload() {
                               }
                             }} 
                             value={field.value}
-                            disabled={selectedCompany === "all"}
+                            disabled={!selectedCompany}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-upload-scope">
@@ -510,13 +506,13 @@ export default function DocumentUpload() {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="site">Single Site</SelectItem>
-                              <SelectItem value="company" disabled={selectedCompany === "all"}>
-                                All Sites in Company {selectedCompany !== "all" ? `(${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites)` : ""}
+                              <SelectItem value="company">
+                                All Sites in Company {selectedCompany ? `(${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites)` : ""}
                               </SelectItem>
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            {uploadScope === "company" && selectedCompany !== "all"
+                            {uploadScope === "company" && selectedCompany
                               ? `Document will be uploaded to all ${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites in ${selectedCompany}`
                               : "Upload to a specific site"}
                           </FormDescription>
@@ -548,7 +544,7 @@ export default function DocumentUpload() {
                             <SelectContent>
                               {filteredSites?.map((site) => (
                                 <SelectItem key={site.id} value={site.id}>
-                                  {site.name} {selectedCompany === "all" && site.companyName ? `(${site.companyName})` : ""}
+                                  {site.name} {site.companyName ? `(${site.companyName})` : ""}
                                 </SelectItem>
                               ))}
                               {(!filteredSites || filteredSites.length === 0) && (
