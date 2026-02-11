@@ -3791,12 +3791,9 @@ export async function registerRoutes(
         if (userIds.length > 0) {
           const uph = userIds.map((_: string, i: number) => `$${i + 1}`).join(",");
           await client.query(`DELETE FROM user_invitations WHERE user_id IN (${uph})`, userIds);
-          await client.query(`DELETE FROM audit_logs WHERE user_id IN (${uph})`, userIds);
           await client.query(`DELETE FROM session WHERE sess::text LIKE ANY(ARRAY[${userIds.map((_: string, i: number) => `'%' || $${i + 1} || '%'`).join(",")}])`, userIds);
         }
         await client.query("DELETE FROM users WHERE entity_id = $1 AND role != 'admin'", [companyId]);
-
-        await client.query("DELETE FROM audit_logs WHERE entity_id = $1", [companyId]);
 
         await client.query("DELETE FROM sites WHERE entity_id = $1", [companyId]);
         await client.query("DELETE FROM companies WHERE id = $1", [companyId]);
