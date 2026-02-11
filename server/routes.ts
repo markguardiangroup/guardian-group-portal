@@ -48,6 +48,7 @@ const createDocumentSchema = z.object({
   trainingCourseTitle: z.string().optional(),
   trainingCourseCode: z.string().optional(),
   trainingDate: z.string().optional(),
+  requiresApproval: z.boolean().optional(),
 });
 
 const createCaseSchema = z.object({
