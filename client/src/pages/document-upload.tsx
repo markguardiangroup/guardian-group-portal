@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -47,6 +48,7 @@ const documentUploadSchema = z.object({
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),
   folderId: z.string().min(1, "Please select a folder"),
+  requiresApproval: z.boolean().default(true),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
 }).refine((data) => {
@@ -132,6 +134,7 @@ export default function DocumentUpload() {
       uploadScope: "site",
       siteId: "",
       folderId: "",
+      requiresApproval: true,
       reviewDate: "",
       expiryDate: "",
     },
@@ -262,6 +265,7 @@ export default function DocumentUpload() {
             module: data.module,
             siteId: site.id,
             folderId: siteFolderId,
+            requiresApproval: data.requiresApproval,
             reviewDate: data.reviewDate,
             expiryDate: data.expiryDate,
             type: "supporting_document",
@@ -281,6 +285,7 @@ export default function DocumentUpload() {
           module: data.module,
           siteId: data.siteId,
           folderId: data.folderId || undefined,
+          requiresApproval: data.requiresApproval,
           reviewDate: data.reviewDate,
           expiryDate: data.expiryDate,
           type: "supporting_document",
@@ -631,6 +636,28 @@ export default function DocumentUpload() {
                       )}
                     />
                   )}
+
+                  <FormField
+                    control={form.control}
+                    name="requiresApproval"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Requires Approval</FormLabel>
+                          <FormDescription>
+                            When enabled, this document will need to go through the approval workflow before being marked as compliant.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-requires-approval"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField

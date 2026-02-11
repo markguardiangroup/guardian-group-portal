@@ -1372,12 +1372,16 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to upload documents to this site" });
       }
       
-      // Check if template requires approval
+      // Check if approval is required
       let documentStatus: "review_required" | "compliant" = "review_required";
       let documentApprovalStatus: "pending" | null = "pending";
       
       // Training certificates are automatically compliant - they prove completion
       if (body.module === "training") {
+        documentStatus = "compliant";
+        documentApprovalStatus = null;
+      } else if (body.requiresApproval === false) {
+        // Uploader explicitly set no approval required
         documentStatus = "compliant";
         documentApprovalStatus = null;
       } else if (body.templateId) {
