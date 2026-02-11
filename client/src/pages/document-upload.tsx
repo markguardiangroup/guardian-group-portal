@@ -643,9 +643,13 @@ export default function DocumentUpload() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Requires Approval</FormLabel>
+                          <FormLabel className="text-base">
+                            {field.value ? "Approval Required" : "No Approval Required"}
+                          </FormLabel>
                           <FormDescription>
-                            When enabled, this document will need to go through the approval workflow before being marked as compliant.
+                            {field.value
+                              ? "This document must be reviewed and approved before it is marked as compliant."
+                              : "This document will be automatically marked as compliant — no approval needed."}
                           </FormDescription>
                         </div>
                         <FormControl>
