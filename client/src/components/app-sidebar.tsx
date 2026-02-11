@@ -462,41 +462,40 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <SidebarSeparator />
 
       <SidebarFooter className="p-3">
-        <div className="rounded-lg bg-sidebar-accent/50 p-3">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-primary text-primary-foreground text-base font-semibold">
+        <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 shrink-0">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                 {user ? getInitials(user.fullName) : "?"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col w-full overflow-hidden">
-              <span className="truncate text-sm font-semibold" data-testid="text-user-name">
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="truncate text-sm font-semibold leading-tight" data-testid="text-user-name">
                 {user?.fullName || "Guest"}
               </span>
               {user?.companyName && (
-                <span className="truncate text-xs font-medium" data-testid="text-user-company">
+                <span className="truncate text-xs font-medium leading-tight" data-testid="text-user-company">
                   {user.companyName}
                 </span>
               )}
-              <span className="truncate text-xs text-muted-foreground" data-testid="text-user-role">
+              <span className="truncate text-xs text-muted-foreground leading-tight" data-testid="text-user-role">
                 {user ? roleLabels[user.role] : "Not logged in"}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                console.log("Logout clicked");
+                logout();
+              }}
+              disabled={isLoggingOut}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover-elevate"
+              data-testid="button-logout"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              console.log("Logout clicked");
-              logout();
-            }}
-            disabled={isLoggingOut}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-md p-1.5 text-xs text-muted-foreground transition-colors hover-elevate"
-            data-testid="button-logout"
-            title="Sign out"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Sign out</span>
-          </button>
         </div>
       </SidebarFooter>
     </Sidebar>
