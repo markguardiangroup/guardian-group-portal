@@ -35,6 +35,7 @@ import {
   ChevronRight,
   Eye,
   User as UserIcon,
+  MapPinned,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -161,7 +162,21 @@ export default function Companies() {
     contactEmail: "",
     contactPhone: "",
     contactUserId: "",
-    siteName: "",
+  });
+  const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
+  const [newCompanyId, setNewCompanyId] = useState<string | null>(null);
+  const [siteData, setSiteData] = useState({
+    name: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    county: "",
+    postalCode: "",
+    country: "",
+    contactName: "",
+    contactPosition: "",
+    contactPhone: "",
+    contactEmail: "",
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -196,14 +211,59 @@ export default function Companies() {
       const response = await apiRequest("POST", "/api/companies", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (company: { id: string }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      toast({ title: "Company created successfully" });
+      toast({ title: "Company created — now add the first site" });
       setIsAddOpen(false);
       resetForm();
+      setNewCompanyId(company.id);
+      setSiteData({
+        name: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+      setIsSiteModalOpen(true);
     },
     onError: () => {
       toast({ title: "Failed to create company", variant: "destructive" });
+    },
+  });
+
+  const createSiteMutation = useMutation({
+    mutationFn: async (data: typeof siteData & { companyId: string }) => {
+      const response = await apiRequest("POST", "/api/sites", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      toast({ title: "Site created successfully" });
+      setIsSiteModalOpen(false);
+      setNewCompanyId(null);
+      setSiteData({
+        name: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        county: "",
+        postalCode: "",
+        country: "",
+        contactName: "",
+        contactPosition: "",
+        contactPhone: "",
+        contactEmail: "",
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to create site", variant: "destructive" });
     },
   });
 
@@ -238,7 +298,6 @@ export default function Companies() {
       contactEmail: "",
       contactPhone: "",
       contactUserId: "",
-      siteName: "",
     });
   };
 
@@ -297,7 +356,6 @@ export default function Companies() {
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
       contactUserId: "", // Will be matched when users data loads
-      siteName: "",
     });
     setEditingCompany(company);
   };
@@ -326,15 +384,20 @@ export default function Companies() {
       toast({ title: "Company name is required", variant: "destructive" });
       return;
     }
-    if (!editingCompany && !formData.siteName.trim()) {
-      toast({ title: "At least one site is required when creating a company", variant: "destructive" });
-      return;
-    }
     if (editingCompany) {
       updateMutation.mutate({ id: editingCompany.id, data: formData });
     } else {
       createMutation.mutate(formData);
     }
+  };
+
+  const handleCreateSite = () => {
+    if (!siteData.name.trim()) {
+      toast({ title: "Site name is required", variant: "destructive" });
+      return;
+    }
+    if (!newCompanyId) return;
+    createSiteMutation.mutate({ ...siteData, companyId: newCompanyId });
   };
 
   const isAdmin = user?.role === "admin";
@@ -501,23 +564,6 @@ export default function Companies() {
                 data-testid="input-company-number"
               />
             </div>
-
-            {!editingCompany && (
-              <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-1">First Site *</h4>
-                <p className="text-xs text-muted-foreground mb-3">Every company must have at least one site. You can add more sites later.</p>
-                <div className="grid gap-2">
-                  <Label htmlFor="site-name">Site Name *</Label>
-                  <Input
-                    id="site-name"
-                    placeholder="e.g., Head Office, Main Factory"
-                    value={formData.siteName}
-                    onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
-                    data-testid="input-site-name"
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-1">Company Address</h4>
@@ -691,7 +737,171 @@ export default function Companies() {
             >
               {(createMutation.isPending || updateMutation.isPending) 
                 ? "Saving..." 
-                : editingCompany ? "Update Company" : "Create Company"}
+                : editingCompany ? "Update Company" : "Next: Add Site"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSiteModalOpen} onOpenChange={(open) => {
+        if (!open && newCompanyId) {
+          toast({ title: "A site is required for this company", description: "Please add at least one site before closing.", variant: "destructive" });
+          return;
+        }
+        setIsSiteModalOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPinned className="h-5 w-5" />
+              Add First Site
+            </DialogTitle>
+            <DialogDescription>
+              Every company needs at least one site. Fill in the details for this company's first site — you can add more sites later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-site-name">Site Name *</Label>
+              <Input
+                id="new-site-name"
+                placeholder="e.g., Head Office, Main Factory"
+                value={siteData.name}
+                onChange={(e) => setSiteData({ ...siteData, name: e.target.value })}
+                data-testid="input-new-site-name"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-1">Site Address</h4>
+              <p className="text-xs text-muted-foreground mb-3">The physical location of this site.</p>
+              <div className="space-y-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="site-address-line1">Address Line 1</Label>
+                  <Input
+                    id="site-address-line1"
+                    value={siteData.addressLine1}
+                    onChange={(e) => setSiteData({ ...siteData, addressLine1: e.target.value })}
+                    placeholder="Street address"
+                    data-testid="input-site-address-line1"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="site-address-line2">Address Line 2</Label>
+                  <Input
+                    id="site-address-line2"
+                    value={siteData.addressLine2}
+                    onChange={(e) => setSiteData({ ...siteData, addressLine2: e.target.value })}
+                    placeholder="Suite, floor, building (optional)"
+                    data-testid="input-site-address-line2"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-city">City</Label>
+                    <Input
+                      id="site-city"
+                      value={siteData.city}
+                      onChange={(e) => setSiteData({ ...siteData, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-site-city"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-county">County</Label>
+                    <Input
+                      id="site-county"
+                      value={siteData.county}
+                      onChange={(e) => setSiteData({ ...siteData, county: e.target.value })}
+                      placeholder="County"
+                      data-testid="input-site-county"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-postal-code">Postal Code</Label>
+                    <Input
+                      id="site-postal-code"
+                      value={siteData.postalCode}
+                      onChange={(e) => setSiteData({ ...siteData, postalCode: e.target.value })}
+                      placeholder="Postal code"
+                      data-testid="input-site-postal-code"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-country">Country</Label>
+                    <Input
+                      id="site-country"
+                      value={siteData.country}
+                      onChange={(e) => setSiteData({ ...siteData, country: e.target.value })}
+                      placeholder="Country"
+                      data-testid="input-site-country"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-1">Site Contact (Optional)</h4>
+              <p className="text-xs text-muted-foreground mb-3">The primary point of contact at this site.</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-name">Contact Name</Label>
+                    <Input
+                      id="site-contact-name"
+                      value={siteData.contactName}
+                      onChange={(e) => setSiteData({ ...siteData, contactName: e.target.value })}
+                      placeholder="Full name"
+                      data-testid="input-site-contact-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-position">Position</Label>
+                    <Input
+                      id="site-contact-position"
+                      value={siteData.contactPosition}
+                      onChange={(e) => setSiteData({ ...siteData, contactPosition: e.target.value })}
+                      placeholder="Job title"
+                      data-testid="input-site-contact-position"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-email">Email</Label>
+                    <Input
+                      id="site-contact-email"
+                      type="email"
+                      value={siteData.contactEmail}
+                      onChange={(e) => setSiteData({ ...siteData, contactEmail: e.target.value })}
+                      placeholder="email@example.com"
+                      data-testid="input-site-contact-email"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-contact-phone">Phone</Label>
+                    <Input
+                      id="site-contact-phone"
+                      value={siteData.contactPhone}
+                      onChange={(e) => setSiteData({ ...siteData, contactPhone: e.target.value })}
+                      placeholder="Phone number"
+                      data-testid="input-site-contact-phone"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleCreateSite}
+              disabled={createSiteMutation.isPending}
+              data-testid="button-create-first-site"
+            >
+              {createSiteMutation.isPending ? "Creating Site..." : "Create Site"}
             </Button>
           </DialogFooter>
         </DialogContent>
