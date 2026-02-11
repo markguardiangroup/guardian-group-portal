@@ -168,12 +168,18 @@ export default function DocumentUpload() {
     },
   });
 
-  // Fetch folders for selected site
+  // For company scope, use the first site in the company to load folder structure
+  const firstCompanySiteId = uploadScope === "company" && selectedCompany
+    ? filteredSites?.[0]?.id || ""
+    : "";
+  const folderSiteId = uploadScope === "site" ? selectedSiteId : firstCompanySiteId;
+
+  // Fetch folders for selected site (or first site in company for company scope)
   const { data: siteFolders, refetch: refetchFolders } = useQuery<DocumentFolder[]>({
-    queryKey: ["/api/folders", selectedSiteId],
+    queryKey: ["/api/folders", folderSiteId],
     queryFn: async () => {
-      if (!selectedSiteId) return [];
-      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+      if (!folderSiteId) return [];
+      const res = await fetch(`/api/folders?siteId=${folderSiteId}`, {
         credentials: "include",
       });
       if (!res.ok) return [];
@@ -181,9 +187,9 @@ export default function DocumentUpload() {
       
       // Always call provision to sync any missing template folders
       try {
-        await provisionFoldersMutation.mutateAsync({ siteId: selectedSiteId, module: selectedModule });
+        await provisionFoldersMutation.mutateAsync({ siteId: folderSiteId, module: selectedModule });
         // Refetch after provisioning in case new folders were created
-        const newRes = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+        const newRes = await fetch(`/api/folders?siteId=${folderSiteId}`, {
           credentials: "include",
         });
         if (newRes.ok) return newRes.json();
@@ -193,7 +199,7 @@ export default function DocumentUpload() {
       
       return folders;
     },
-    enabled: !!selectedSiteId && uploadScope === "site",
+    enabled: !!folderSiteId,
   });
 
   // Filter and sort folders hierarchically by selected module
@@ -218,13 +224,39 @@ export default function DocumentUpload() {
         const companySites = sites?.filter(s => s.companyName === selectedCompany) || [];
         const results = [];
         
+        // Find the selected folder name from the reference site's folders
+        const selectedFolder = moduleFolders.find(f => f.id === data.folderId);
+        const selectedFolderName = selectedFolder?.name || "";
+        
         for (const site of companySites) {
+          // Provision folders for this site first
+          try {
+            await provisionFoldersMutation.mutateAsync({ siteId: site.id, module: data.module });
+          } catch (e) {
+            console.error(`Failed to provision folders for site ${site.id}:`, e);
+          }
+          
+          // Fetch this site's folders and find the matching one by name
+          let siteFolderId = data.folderId;
+          try {
+            const foldersRes = await fetch(`/api/folders?siteId=${site.id}`, { credentials: "include" });
+            if (foldersRes.ok) {
+              const siteFoldersList = await foldersRes.json();
+              const matchingFolder = siteFoldersList.find((f: DocumentFolder) => f.name === selectedFolderName && f.module === data.module);
+              if (matchingFolder) {
+                siteFolderId = matchingFolder.id;
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to fetch folders for site ${site.id}:`, e);
+          }
+          
           const formData = {
             title: data.title,
             description: data.description,
             module: data.module,
             siteId: site.id,
-            folderId: data.folderId || undefined,
+            folderId: siteFolderId,
             reviewDate: data.reviewDate,
             expiryDate: data.expiryDate,
             type: "supporting_document",
