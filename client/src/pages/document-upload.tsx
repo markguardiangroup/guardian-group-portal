@@ -229,9 +229,14 @@ export default function DocumentUpload() {
         const selectedFolderName = selectedFolder?.name || "";
         
         for (const site of companySites) {
-          // Provision folders for this site first
+          // Provision folders for this site using plain fetch (not React mutation)
           try {
-            await provisionFoldersMutation.mutateAsync({ siteId: site.id, module: data.module });
+            await fetch("/api/folders/provision", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ siteId: site.id, module: data.module }),
+              credentials: "include",
+            });
           } catch (e) {
             console.error(`Failed to provision folders for site ${site.id}:`, e);
           }
