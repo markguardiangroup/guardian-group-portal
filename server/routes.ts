@@ -1375,22 +1375,22 @@ export async function registerRoutes(
       
       // Check if approval is required
       let documentStatus: "review_required" | "compliant" = "review_required";
-      let documentApprovalStatus: "pending" | null = "pending";
+      let documentApprovalStatus: string = "pending";
       
       // Training certificates are automatically compliant - they prove completion
       if (body.module === "training") {
         documentStatus = "compliant";
-        documentApprovalStatus = null;
+        documentApprovalStatus = "approved";
       } else if (body.requiresApproval === false) {
         // Uploader explicitly set no approval required
         documentStatus = "compliant";
-        documentApprovalStatus = null;
+        documentApprovalStatus = "approved";
       } else if (body.templateId) {
         const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval - auto-mark as compliant
           documentStatus = "compliant";
-          documentApprovalStatus = null;
+          documentApprovalStatus = "approved";
         }
       }
       
