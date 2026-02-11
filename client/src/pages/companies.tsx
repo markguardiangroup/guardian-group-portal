@@ -34,7 +34,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  User as UserIcon,
   MapPinned,
 } from "lucide-react";
 import {
@@ -157,11 +156,6 @@ export default function Companies() {
     county: "",
     postalCode: "",
     country: "",
-    contactName: "",
-    contactPosition: "",
-    contactEmail: "",
-    contactPhone: "",
-    contactUserId: "",
   });
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
@@ -173,10 +167,6 @@ export default function Companies() {
     county: "",
     postalCode: "",
     country: "",
-    contactName: "",
-    contactPosition: "",
-    contactPhone: "",
-    contactEmail: "",
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -229,10 +219,6 @@ export default function Companies() {
         county: "",
         postalCode: "",
         country: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
       });
     },
     onError: () => {
@@ -266,52 +252,7 @@ export default function Companies() {
       county: "",
       postalCode: "",
       country: "",
-      contactName: "",
-      contactPosition: "",
-      contactEmail: "",
-      contactPhone: "",
-      contactUserId: "",
     });
-  };
-
-  // Fetch users for the company being edited (for contact selection)
-  const { data: usersData } = useQuery<User[]>({
-    queryKey: ["/api/users"],
-    enabled: !!editingCompany,
-  });
-
-  // Filter to only active client users from the editing company
-  const companyUsers = editingCompany 
-    ? (usersData || []).filter(
-        (u) => u.role === "client" && u.companyId === editingCompany.id && u.status !== "inactive"
-      )
-    : [];
-
-  // Handler to select a user as company contact
-  const handleSelectContactUser = (userId: string) => {
-    if (userId === "none") {
-      setFormData({
-        ...formData,
-        contactUserId: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
-      });
-      return;
-    }
-    
-    const selectedUser = companyUsers.find((u) => u.id === userId);
-    if (selectedUser) {
-      setFormData({
-        ...formData,
-        contactUserId: userId,
-        contactName: selectedUser.fullName || "",
-        contactPosition: selectedUser.jobTitle || "",
-        contactPhone: selectedUser.phone || selectedUser.mobile || "",
-        contactEmail: selectedUser.email || "",
-      });
-    }
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -324,29 +265,9 @@ export default function Companies() {
       county: company.county || "",
       postalCode: company.postalCode || "",
       country: company.country || "",
-      contactName: company.contactName || "",
-      contactPosition: company.contactPosition || "",
-      contactEmail: company.contactEmail || "",
-      contactPhone: company.contactPhone || "",
-      contactUserId: "", // Will be matched when users data loads
     });
     setEditingCompany(company);
   };
-
-  // Match existing contact to a user when users data loads for editing
-  useEffect(() => {
-    if (editingCompany && usersData && !formData.contactUserId) {
-      const matchingUser = companyUsers.find(
-        (u) => u.email === editingCompany.contactEmail || u.fullName === editingCompany.contactName
-      );
-      if (matchingUser) {
-        setFormData((prev) => ({
-          ...prev,
-          contactUserId: matchingUser.id,
-        }));
-      }
-    }
-  }, [editingCompany, usersData, companyUsers]);
 
   const handleView = useCallback((companyId: string) => {
     navigate(`/companies/${companyId}`);
@@ -370,10 +291,6 @@ export default function Companies() {
         county: "",
         postalCode: "",
         country: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
       });
       setIsSiteModalOpen(true);
     }
@@ -633,87 +550,6 @@ export default function Companies() {
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-1">Company Primary Contact (Optional)</h4>
-              
-              {editingCompany ? (
-                // EDITING: Show user dropdown
-                <>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Select a registered user from this company to be the primary contact.
-                  </p>
-                  
-                  {companyUsers.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="contact-user">Select Contact</Label>
-                        <Select
-                          value={formData.contactUserId || "none"}
-                          onValueChange={handleSelectContactUser}
-                        >
-                          <SelectTrigger id="contact-user" data-testid="select-company-contact-user">
-                            <SelectValue placeholder="Select a user..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No contact selected</SelectItem>
-                            {companyUsers.map((u) => (
-                              <SelectItem key={u.id} value={u.id}>
-                                {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {formData.contactUserId && (
-                        <div className="rounded-md border p-3 bg-muted/50">
-                          <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Name:</span>{" "}
-                              <span className="font-medium">{formData.contactName || "—"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Position:</span>{" "}
-                              <span className="font-medium">{formData.contactPosition || "—"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Phone:</span>{" "}
-                              <span className="font-medium">{formData.contactPhone || "—"}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Email:</span>{" "}
-                              <span className="font-medium">{formData.contactEmail || "—"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="rounded-md border border-dashed p-4 text-center">
-                      <UserIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground mb-2">
-                        No users available in this company yet.
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        You can add users in the <strong>Users</strong> section and then assign them as the primary contact.
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                // ADDING: Show message that contact can be set later
-                <div className="rounded-md border border-dashed p-4 text-center">
-                  <UserIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Contact details can be set after the company is created.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    First create the company, then add users and assign one as the primary contact.
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button 
@@ -840,57 +676,6 @@ export default function Companies() {
               </div>
             </div>
 
-            <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-1">Site Contact (Optional)</h4>
-              <p className="text-xs text-muted-foreground mb-3">The primary point of contact at this site.</p>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-name">Contact Name</Label>
-                    <Input
-                      id="site-contact-name"
-                      value={siteData.contactName}
-                      onChange={(e) => setSiteData({ ...siteData, contactName: e.target.value })}
-                      placeholder="Full name"
-                      data-testid="input-site-contact-name"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-position">Position</Label>
-                    <Input
-                      id="site-contact-position"
-                      value={siteData.contactPosition}
-                      onChange={(e) => setSiteData({ ...siteData, contactPosition: e.target.value })}
-                      placeholder="Job title"
-                      data-testid="input-site-contact-position"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-email">Email</Label>
-                    <Input
-                      id="site-contact-email"
-                      type="email"
-                      value={siteData.contactEmail}
-                      onChange={(e) => setSiteData({ ...siteData, contactEmail: e.target.value })}
-                      placeholder="email@example.com"
-                      data-testid="input-site-contact-email"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-contact-phone">Phone</Label>
-                    <Input
-                      id="site-contact-phone"
-                      value={siteData.contactPhone}
-                      onChange={(e) => setSiteData({ ...siteData, contactPhone: e.target.value })}
-                      placeholder="Phone number"
-                      data-testid="input-site-contact-phone"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={handleCancelSiteModal} data-testid="button-back-to-company">
