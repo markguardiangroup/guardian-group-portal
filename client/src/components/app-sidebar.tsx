@@ -464,8 +464,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <SidebarFooter className="p-3">
         <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                 {user ? getInitials(user.fullName) : "?"}
               </AvatarFallback>
             </Avatar>
