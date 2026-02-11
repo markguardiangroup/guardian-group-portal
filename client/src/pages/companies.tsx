@@ -161,6 +161,7 @@ export default function Companies() {
     contactEmail: "",
     contactPhone: "",
     contactUserId: "",
+    siteName: "",
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -237,6 +238,7 @@ export default function Companies() {
       contactEmail: "",
       contactPhone: "",
       contactUserId: "",
+      siteName: "",
     });
   };
 
@@ -295,6 +297,7 @@ export default function Companies() {
       contactEmail: company.contactEmail || "",
       contactPhone: company.contactPhone || "",
       contactUserId: "", // Will be matched when users data loads
+      siteName: "",
     });
     setEditingCompany(company);
   };
@@ -321,6 +324,10 @@ export default function Companies() {
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast({ title: "Company name is required", variant: "destructive" });
+      return;
+    }
+    if (!editingCompany && !formData.siteName.trim()) {
+      toast({ title: "At least one site is required when creating a company", variant: "destructive" });
       return;
     }
     if (editingCompany) {
@@ -494,6 +501,23 @@ export default function Companies() {
                 data-testid="input-company-number"
               />
             </div>
+
+            {!editingCompany && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-1">First Site *</h4>
+                <p className="text-xs text-muted-foreground mb-3">Every company must have at least one site. You can add more sites later.</p>
+                <div className="grid gap-2">
+                  <Label htmlFor="site-name">Site Name *</Label>
+                  <Input
+                    id="site-name"
+                    placeholder="e.g., Head Office, Main Factory"
+                    value={formData.siteName}
+                    onChange={(e) => setFormData({ ...formData, siteName: e.target.value })}
+                    data-testid="input-site-name"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Address</h4>

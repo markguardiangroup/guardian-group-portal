@@ -3660,10 +3660,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, siteName } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
+      }
+      
+      if (!siteName || !siteName.trim()) {
+        return res.status(400).json({ error: "At least one site name is required when creating a company" });
       }
       
       const company = await storage.createCompany({
@@ -3672,6 +3676,11 @@ export async function registerRoutes(
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
+      });
+      
+      await storage.createSite({
+        name: siteName.trim(),
+        companyId: company.id,
       });
       
       res.status(201).json(company);
