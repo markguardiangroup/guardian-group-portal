@@ -3768,7 +3768,6 @@ export async function registerRoutes(
 
           await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph}))`, siteIds);
           await client.query(`DELETE FROM documents WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM folder_document_type_rules WHERE folder_id IN (SELECT id FROM document_folders WHERE site_id IN (${ph}))`, siteIds);
           await client.query(`DELETE FROM document_folders WHERE site_id IN (${ph})`, siteIds);
           await client.query(`DELETE FROM site_document_type_access WHERE site_id IN (${ph})`, siteIds);
 
