@@ -35,6 +35,8 @@ import {
   ChevronRight,
   Eye,
   MapPinned,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -50,11 +52,15 @@ import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User } from "@sh
 function CompanyCard({ 
   company, 
   onEdit, 
-  onView 
+  onView,
+  onDelete,
+  isAdmin,
 }: { 
   company: CompanyWithSiteCount; 
   onEdit: (company: CompanyWithSiteCount) => void;
   onView: (companyId: string) => void;
+  onDelete: (company: CompanyWithSiteCount) => void;
+  isAdmin: boolean;
 }) {
   return (
     <Card className="hover-elevate cursor-pointer" onClick={() => onView(company.id)}>
@@ -108,6 +114,16 @@ function CompanyCard({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem 
+                        onClick={(e) => { e.stopPropagation(); onDelete(company); }} 
+                        className="text-destructive"
+                        data-testid={`button-delete-company-${company.id}`}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Company
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -159,6 +175,8 @@ export default function Companies() {
   });
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [siteData, setSiteData] = useState({
     name: "",
     addressLine1: "",
@@ -239,6 +257,24 @@ export default function Companies() {
     },
     onError: () => {
       toast({ title: "Failed to update company", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (companyId: string) => {
+      const response = await apiRequest("DELETE", `/api/companies/${companyId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Company and all associated data deleted successfully" });
+      setDeleteTarget(null);
+      setDeleteConfirmText("");
+    },
+    onError: () => {
+      toast({ title: "Failed to delete company", variant: "destructive" });
     },
   });
 
@@ -384,6 +420,8 @@ export default function Companies() {
                 company={company} 
                 onEdit={handleEdit}
                 onView={handleView}
+                onDelete={(c) => { setDeleteTarget(c); setDeleteConfirmText(""); }}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
@@ -687,6 +725,65 @@ export default function Companies() {
               data-testid="button-create-first-site"
             >
               {createCompanyWithSiteMutation.isPending ? "Creating..." : "Create Company & Site"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(""); } }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Company
+            </DialogTitle>
+            <DialogDescription>
+              This action is permanent and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteTarget && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-medium mb-2">
+                  You are about to permanently delete:
+                </p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Company: <strong>{deleteTarget.name}</strong></li>
+                  <li>{deleteTarget.siteCount} {deleteTarget.siteCount === 1 ? "site" : "sites"} and all site data</li>
+                  <li>All documents, cases, and document versions</li>
+                  <li>All user accounts belonging to this company</li>
+                  <li>All support requests, training bookings, and audit logs</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="delete-confirm">
+                  Type <strong className="text-destructive">DELETE</strong> to confirm
+                </Label>
+                <Input
+                  id="delete-confirm"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  data-testid="input-delete-confirm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteConfirmText !== "DELETE" || deleteMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Company"}
             </Button>
           </DialogFooter>
         </DialogContent>

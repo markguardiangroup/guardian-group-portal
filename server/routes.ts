@@ -5,6 +5,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import type { ModuleType, InvitationPurpose } from "@shared/schema";
+import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
@@ -3732,6 +3733,95 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update company error:", error);
       res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  app.delete("/api/companies/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete companies" });
+      }
+
+      const companyId = req.params.id;
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        const siteRows = await client.query("SELECT id FROM sites WHERE entity_id = $1", [companyId]);
+        const siteIds = siteRows.rows.map((r: any) => r.id);
+
+        if (siteIds.length > 0) {
+          const ph = siteIds.map((_: string, i: number) => `$${i + 1}`).join(",");
+
+          await client.query(`DELETE FROM support_request_reads WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
+          await client.query(`DELETE FROM support_messages WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
+          await client.query(`DELETE FROM support_requests WHERE site_id IN (${ph})`, siteIds);
+
+          await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph}))`, siteIds);
+          await client.query(`DELETE FROM documents WHERE site_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM folder_document_type_rules WHERE folder_id IN (SELECT id FROM document_folders WHERE site_id IN (${ph}))`, siteIds);
+          await client.query(`DELETE FROM document_folders WHERE site_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM site_document_type_access WHERE site_id IN (${ph})`, siteIds);
+
+          await client.query(`DELETE FROM case_milestones WHERE case_id IN (SELECT id FROM cases WHERE site_id IN (${ph}))`, siteIds);
+          await client.query(`DELETE FROM cases WHERE site_id IN (${ph})`, siteIds);
+
+          await client.query(`DELETE FROM training_bookings WHERE site_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM training_requests WHERE site_id IN (${ph})`, siteIds);
+
+          await client.query(`DELETE FROM consultant_assignments WHERE entity_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM client_site_assignments WHERE site_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM site_module_access WHERE site_id IN (${ph})`, siteIds);
+          await client.query(`DELETE FROM module_access_requests WHERE site_id IN (${ph})`, siteIds);
+        }
+
+        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE entity_id = $1)`, [companyId]);
+        await client.query(`DELETE FROM documents WHERE entity_id = $1`, [companyId]);
+
+        const userRows = await client.query("SELECT id FROM users WHERE entity_id = $1 AND role != 'admin'", [companyId]);
+        const userIds = userRows.rows.map((r: any) => r.id);
+        if (userIds.length > 0) {
+          const uph = userIds.map((_: string, i: number) => `$${i + 1}`).join(",");
+          await client.query(`DELETE FROM user_invitations WHERE user_id IN (${uph})`, userIds);
+          await client.query(`DELETE FROM audit_logs WHERE user_id IN (${uph})`, userIds);
+          await client.query(`DELETE FROM session WHERE sess::text LIKE ANY(ARRAY[${userIds.map((_: string, i: number) => `'%' || $${i + 1} || '%'`).join(",")}])`, userIds);
+        }
+        await client.query("DELETE FROM users WHERE entity_id = $1 AND role != 'admin'", [companyId]);
+
+        await client.query("DELETE FROM audit_logs WHERE entity_id = $1", [companyId]);
+
+        await client.query("DELETE FROM sites WHERE entity_id = $1", [companyId]);
+        await client.query("DELETE FROM companies WHERE id = $1", [companyId]);
+
+        await client.query("COMMIT");
+
+        await storage.createAuditLog({
+          userId: user.id,
+          action: "company_deleted",
+          entityType: "company",
+          entityId: companyId,
+          details: `Deleted company "${company.name}" and all associated data`,
+        });
+
+        res.json({ success: true, message: `Company "${company.name}" and all associated data deleted` });
+      } catch (txError) {
+        await client.query("ROLLBACK");
+        throw txError;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      console.error("Delete company error:", error);
+      res.status(500).json({ error: "Failed to delete company" });
     }
   });
 
