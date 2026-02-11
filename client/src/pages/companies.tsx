@@ -520,7 +520,8 @@ export default function Companies() {
             )}
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Address</h4>
+              <h4 className="text-sm font-medium mb-1">Company Address</h4>
+              <p className="text-xs text-muted-foreground mb-3">The registered or head office address for this company.</p>
               <div className="space-y-3">
                 <div className="grid gap-2">
                   <Label htmlFor="address-line1">Address Line 1</Label>
@@ -590,7 +591,7 @@ export default function Companies() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Contact (Optional)</h4>
+              <h4 className="text-sm font-medium mb-1">Company Primary Contact (Optional)</h4>
               
               {editingCompany ? (
                 // EDITING: Show user dropdown
