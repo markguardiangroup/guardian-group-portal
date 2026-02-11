@@ -314,6 +314,14 @@ export async function registerRoutes(
       return res.status(401).json({ error: "User not found" });
     }
 
+    let companyName: string | null = null;
+    if (user.companyId) {
+      const company = await storage.getCompany(user.companyId);
+      if (company) {
+        companyName = company.name;
+      }
+    }
+
     res.json({
       id: user.id,
       username: user.username,
@@ -321,6 +329,7 @@ export async function registerRoutes(
       fullName: user.fullName,
       role: user.role,
       companyId: user.companyId,
+      companyName,
       clientPermissionRole: user.clientPermissionRole,
       referenceNumber: user.referenceNumber,
       title: user.title,

@@ -10,6 +10,7 @@ interface AuthUser {
   fullName: string;
   role: UserRole;
   companyId: string | null;
+  companyName?: string | null;
   clientPermissionRole?: string | null;
   referenceNumber?: string | null;
   title?: string | null;
