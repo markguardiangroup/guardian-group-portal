@@ -436,7 +436,7 @@ function OverallComplianceCard({
   const pendingApprovals = siteComplianceSummary?.pendingApprovals ?? summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
   const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
   const awaitingOthersApproval = siteComplianceSummary?.awaitingOthersApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
-  const overallScore = siteComplianceSummary?.complianceScore ?? (totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 100);
+  const overallScore = siteComplianceSummary?.complianceScore ?? (totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 0);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -771,7 +771,7 @@ export default function Dashboard() {
     
     totals.complianceScore = totals.totalDocuments > 0 
       ? Math.round((totals.compliantDocuments / totals.totalDocuments) * 100) 
-      : 100;
+      : 0;
     
     return totals;
   }, [siteId, sites, selectedCompany]);

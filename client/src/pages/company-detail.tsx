@@ -544,7 +544,7 @@ export default function CompanyDetail() {
 
   const complianceScore = aggregatedCompliance.totalDocuments > 0
     ? Math.round((aggregatedCompliance.compliantDocuments / aggregatedCompliance.totalDocuments) * 100)
-    : 100;
+    : 0;
 
   return (
     <div className="space-y-6 p-8">
