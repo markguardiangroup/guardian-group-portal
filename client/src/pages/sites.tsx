@@ -276,6 +276,10 @@ export default function Sites() {
       toast({ title: "Country is required", variant: "destructive" });
       return;
     }
+    if (!newSite.county) {
+      toast({ title: "County is required", variant: "destructive" });
+      return;
+    }
     if (!newSite.postalCode.trim()) {
       toast({ title: "Postal Code is required", variant: "destructive" });
       return;
@@ -541,35 +545,6 @@ export default function Sites() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="county">County</Label>
-                    <Select
-                      value={newSite.county || ""}
-                      onValueChange={(value) => setNewSite({ ...newSite, county: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger id="county" data-testid="select-county">
-                        <SelectValue placeholder={newSite.country ? "Select county (optional)" : "Select country first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {(COUNTY_MAP[newSite.country] || []).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="postal-code">Postal Code <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="postal-code"
-                      value={newSite.postalCode}
-                      onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value })}
-                      placeholder={newSite.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
-                      data-testid="input-postal-code"
-                    />
-                  </div>
-                  <div className="grid gap-2">
                     <Label htmlFor="country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={newSite.country || ""}
@@ -584,6 +559,35 @@ export default function Sites() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="county">County <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={newSite.county || ""}
+                      onValueChange={(value) => setNewSite({ ...newSite, county: value })}
+                      disabled={!newSite.country}
+                    >
+                      <SelectTrigger id="county" data-testid="select-county">
+                        <SelectValue placeholder={newSite.country ? "Select county" : "Select country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(COUNTY_MAP[newSite.country] || []).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="postal-code">Postal Code <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="postal-code"
+                      value={newSite.postalCode}
+                      onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value })}
+                      placeholder={newSite.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
+                      data-testid="input-postal-code"
+                    />
                   </div>
                 </div>
               </div>

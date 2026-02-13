@@ -456,6 +456,10 @@ export default function CompanyDetail() {
       toast({ title: "Country is required", variant: "destructive" });
       return;
     }
+    if (!newSiteForm.county) {
+      toast({ title: "County is required", variant: "destructive" });
+      return;
+    }
     if (!newSiteForm.postalCode.trim()) {
       toast({ title: "Postal Code is required", variant: "destructive" });
       return;
@@ -583,6 +587,10 @@ export default function CompanyDetail() {
     }
     if (!editForm.country) {
       toast({ title: "Country is required", variant: "destructive" });
+      return;
+    }
+    if (!editForm.county) {
+      toast({ title: "County is required", variant: "destructive" });
       return;
     }
     if (!editForm.postalCode.trim()) {
@@ -919,35 +927,6 @@ export default function CompanyDetail() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-county">County</Label>
-                    <Select
-                      value={editForm.county || ""}
-                      onValueChange={(value) => setEditForm({ ...editForm, county: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger id="edit-county" data-testid="select-edit-company-county">
-                        <SelectValue placeholder={editForm.country ? "Select county (optional)" : "Select country first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {(COUNTY_MAP[editForm.country] || []).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-postal-code">Postal Code <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="edit-postal-code"
-                      value={editForm.postalCode}
-                      onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
-                      placeholder={editForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
-                      data-testid="input-edit-company-postal-code"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="edit-country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={editForm.country || ""}
@@ -962,6 +941,35 @@ export default function CompanyDetail() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-county">County <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={editForm.county || ""}
+                      onValueChange={(value) => setEditForm({ ...editForm, county: value })}
+                      disabled={!editForm.country}
+                    >
+                      <SelectTrigger id="edit-county" data-testid="select-edit-company-county">
+                        <SelectValue placeholder={editForm.country ? "Select county" : "Select country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(COUNTY_MAP[editForm.country] || []).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-postal-code">Postal Code <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="edit-postal-code"
+                      value={editForm.postalCode}
+                      onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
+                      placeholder={editForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
+                      data-testid="input-edit-company-postal-code"
+                    />
                   </div>
                 </div>
               </div>
@@ -1123,35 +1131,6 @@ export default function CompanyDetail() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="new-site-county">County</Label>
-                    <Select
-                      value={newSiteForm.county || ""}
-                      onValueChange={(value) => setNewSiteForm({ ...newSiteForm, county: value === "none" ? "" : value })}
-                    >
-                      <SelectTrigger id="new-site-county" data-testid="select-new-site-county">
-                        <SelectValue placeholder={newSiteForm.country ? "Select county (optional)" : "Select country first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {(COUNTY_MAP[newSiteForm.country] || []).map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-site-postalCode">Postal Code <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="new-site-postalCode"
-                      value={newSiteForm.postalCode}
-                      onChange={(e) => setNewSiteForm({ ...newSiteForm, postalCode: e.target.value })}
-                      placeholder={newSiteForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
-                      data-testid="input-new-site-postalCode"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="new-site-country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={newSiteForm.country || ""}
@@ -1166,6 +1145,35 @@ export default function CompanyDetail() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-county">County <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={newSiteForm.county || ""}
+                      onValueChange={(value) => setNewSiteForm({ ...newSiteForm, county: value })}
+                      disabled={!newSiteForm.country}
+                    >
+                      <SelectTrigger id="new-site-county" data-testid="select-new-site-county">
+                        <SelectValue placeholder={newSiteForm.country ? "Select county" : "Select country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(COUNTY_MAP[newSiteForm.country] || []).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-site-postalCode">Postal Code <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="new-site-postalCode"
+                      value={newSiteForm.postalCode}
+                      onChange={(e) => setNewSiteForm({ ...newSiteForm, postalCode: e.target.value })}
+                      placeholder={newSiteForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
+                      data-testid="input-new-site-postalCode"
+                    />
                   </div>
                 </div>
               </div>
