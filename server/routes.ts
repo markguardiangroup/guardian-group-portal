@@ -3661,7 +3661,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, site } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -3677,6 +3677,12 @@ export async function registerRoutes(
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        county: county || null,
+        postalCode: postalCode || null,
+        country: country || null,
       });
       
       await storage.createSite({
@@ -3713,7 +3719,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, status } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -3722,6 +3728,12 @@ export async function registerRoutes(
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
       if (status !== undefined) updates.status = status;
+      if (addressLine1 !== undefined) updates.addressLine1 = addressLine1 || null;
+      if (addressLine2 !== undefined) updates.addressLine2 = addressLine2 || null;
+      if (city !== undefined) updates.city = city || null;
+      if (county !== undefined) updates.county = county || null;
+      if (postalCode !== undefined) updates.postalCode = postalCode || null;
+      if (country !== undefined) updates.country = country || null;
       
       const company = await storage.updateCompany(req.params.id, updates);
       
