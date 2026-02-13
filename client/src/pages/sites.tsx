@@ -182,6 +182,40 @@ export default function Sites() {
     navigate(`/sites/${siteId}`);
   };
 
+  const validateUKPostcode = (postcode: string): boolean => {
+    const regex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i;
+    return regex.test(postcode.trim());
+  };
+
+  const validateEircode = (postcode: string): boolean => {
+    const regex = /^[A-Z]\d{2}\s?[A-Z0-9]{4}$/i;
+    return regex.test(postcode.trim());
+  };
+
+  const validatePostcode = (postcode: string, country: string): boolean => {
+    if (country === "United Kingdom") return validateUKPostcode(postcode);
+    if (country === "Republic of Ireland") return validateEircode(postcode);
+    return postcode.trim().length > 0;
+  };
+
+  const getPostcodeError = (country: string): string => {
+    if (country === "United Kingdom") return "Please enter a valid UK postcode (e.g., BT1 1AA, SW1A 1AA)";
+    if (country === "Republic of Ireland") return "Please enter a valid Eircode (e.g., D02 AF30)";
+    return "Please enter a valid postal code";
+  };
+
+  const COUNTRY_OPTIONS = [
+    "United Kingdom",
+    "Republic of Ireland",
+  ];
+
+  const COUNTY_OPTIONS = [
+    "England",
+    "Northern Ireland",
+    "Scotland",
+    "Wales",
+  ];
+
   const handleCreateSite = () => {
     if (!newSite.name.trim()) {
       toast({ title: "Site name is required", variant: "destructive" });
@@ -189,6 +223,26 @@ export default function Sites() {
     }
     if (!newSite.companyId) {
       toast({ title: "Please select a company", variant: "destructive" });
+      return;
+    }
+    if (!newSite.addressLine1.trim()) {
+      toast({ title: "Address Line 1 is required", variant: "destructive" });
+      return;
+    }
+    if (!newSite.city.trim()) {
+      toast({ title: "City is required", variant: "destructive" });
+      return;
+    }
+    if (!newSite.country) {
+      toast({ title: "Country is required", variant: "destructive" });
+      return;
+    }
+    if (!newSite.postalCode.trim()) {
+      toast({ title: "Postal Code is required", variant: "destructive" });
+      return;
+    }
+    if (!validatePostcode(newSite.postalCode, newSite.country)) {
+      toast({ title: getPostcodeError(newSite.country), variant: "destructive" });
       return;
     }
     createSiteMutation.mutate(newSite);
@@ -385,7 +439,7 @@ export default function Sites() {
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
-              <Label htmlFor="company">Company *</Label>
+              <Label htmlFor="company">Company <span className="text-destructive">*</span></Label>
               <Select
                 value={newSite.companyId}
                 onValueChange={(value) => setNewSite({ ...newSite, companyId: value })}
@@ -403,7 +457,7 @@ export default function Sites() {
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="site-name">Site Name *</Label>
+              <Label htmlFor="site-name">Site Name <span className="text-destructive">*</span></Label>
               <Input
                 id="site-name"
                 placeholder="e.g., Main Factory, Head Office"
@@ -417,7 +471,7 @@ export default function Sites() {
               <h4 className="text-sm font-medium mb-3">Address</h4>
               <div className="space-y-3">
                 <div className="grid gap-2">
-                  <Label htmlFor="address-line1">Address Line 1</Label>
+                  <Label htmlFor="address-line1">Address Line 1 <span className="text-destructive">*</span></Label>
                   <Input
                     id="address-line1"
                     value={newSite.addressLine1}
@@ -438,7 +492,7 @@ export default function Sites() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="city">City</Label>
+                    <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
                     <Input
                       id="city"
                       value={newSite.city}
@@ -449,35 +503,48 @@ export default function Sites() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="county">County</Label>
-                    <Input
-                      id="county"
-                      value={newSite.county}
-                      onChange={(e) => setNewSite({ ...newSite, county: e.target.value })}
-                      placeholder="County"
-                      data-testid="input-county"
-                    />
+                    <Select
+                      value={newSite.county || ""}
+                      onValueChange={(value) => setNewSite({ ...newSite, county: value === "none" ? "" : value })}
+                    >
+                      <SelectTrigger id="county" data-testid="select-county">
+                        <SelectValue placeholder="Select county (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {COUNTY_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="postal-code">Postal Code</Label>
+                    <Label htmlFor="postal-code">Postal Code <span className="text-destructive">*</span></Label>
                     <Input
                       id="postal-code"
                       value={newSite.postalCode}
                       onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value })}
-                      placeholder="Postal code"
+                      placeholder="e.g., BT1 1AA"
                       data-testid="input-postal-code"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      value={newSite.country}
-                      onChange={(e) => setNewSite({ ...newSite, country: e.target.value })}
-                      placeholder="Country"
-                      data-testid="input-country"
-                    />
+                    <Label htmlFor="country">Country <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={newSite.country || ""}
+                      onValueChange={(value) => setNewSite({ ...newSite, country: value })}
+                    >
+                      <SelectTrigger id="country" data-testid="select-country">
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
