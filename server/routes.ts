@@ -1742,6 +1742,76 @@ export async function registerRoutes(
     }
   });
 
+  // Resend or change approver for a document approval notification
+  app.post("/api/documents/:id/approval-notify", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can manage approval notifications" });
+      }
+
+      const documentId = req.params.id;
+      const { userId: targetUserId } = req.body;
+
+      if (!targetUserId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (existingDoc.approvalStatus !== "pending" && existingDoc.approvalStatus !== "review_required") {
+        return res.status(400).json({ error: "Document is not awaiting client approval" });
+      }
+
+      const targetUser = await storage.getUser(targetUserId);
+      if (!targetUser || !targetUser.email) {
+        return res.status(404).json({ error: "User not found or has no email" });
+      }
+
+      const site = await storage.getSite(existingDoc.siteId);
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const modulePath = existingDoc.module === "health_safety" ? "health-safety" 
+        : existingDoc.module === "human_resources" ? "human-resources" 
+        : existingDoc.module === "employment_law" ? "employment-law" 
+        : "documents";
+      const documentUrl = `${baseUrl}/${modulePath}/documents/${documentId}`;
+
+      await sendDocumentApprovalEmail({
+        to: targetUser.email,
+        fullName: targetUser.fullName,
+        documentTitle: existingDoc.title,
+        siteName: site?.name || "Unknown Site",
+        uploadedBy: user.fullName,
+        portalUrl: baseUrl,
+        documentUrl,
+      });
+
+      await storage.createAuditLog({
+        action: "email_sent",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingDoc.siteId,
+        documentId: documentId,
+        supportRequestId: null,
+        module: existingDoc.module,
+        details: `Approval notification email sent to ${targetUser.fullName} (${targetUser.email})`,
+        metadata: null,
+      });
+
+      res.json({ success: true, message: `Approval notification sent to ${targetUser.fullName}` });
+    } catch (error) {
+      console.error("Send approval notification error:", error);
+      res.status(500).json({ error: "Failed to send approval notification" });
+    }
+  });
+
   // Archive a document
   app.post("/api/documents/:id/archive", requireAuth, async (req, res) => {
     try {

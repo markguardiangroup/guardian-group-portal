@@ -30,7 +30,7 @@ export type DocumentStatus = "compliant" | "review_required" | "overdue";
 // - approved: Consultant has given final approval (triggers renewal date)
 // - rejected: Document was rejected
 // - changes_requested: Changes requested by reviewer
-export type ApprovalStatus = "pending" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
+export type ApprovalStatus = "pending" | "review_required" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
 
 // Company status
 export type CompanyStatus = "active" | "inactive" | "pending";
@@ -638,7 +638,8 @@ export type AuditAction =
   | "logout"
   | "login_failed"
   | "account_locked"
-  | "password_change";
+  | "password_change"
+  | "email_sent";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {

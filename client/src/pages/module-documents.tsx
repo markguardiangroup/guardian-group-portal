@@ -71,6 +71,9 @@ import {
   ChevronRight,
   Scale,
   Mail,
+  Send,
+  RefreshCw,
+  UserCheck,
 } from "lucide-react";
 import {
   Accordion,
@@ -1130,6 +1133,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [changeNote, setChangeNote] = useState("");
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
+  const [selectedNewApprover, setSelectedNewApprover] = useState("");
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
@@ -1140,6 +1144,52 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const { data: auditLogs } = useQuery<AuditLog[]>({
     queryKey: ["/api/documents", id, "audit"],
+  });
+
+  const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string }>>({
+    queryKey: ["/api/sites", document?.siteId, "users"],
+    enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
+  });
+
+  const siteClientUsers = useMemo(() => {
+    if (!siteUsers) return [];
+    return siteUsers.filter(u => u.role === "client");
+  }, [siteUsers]);
+
+  const approvalNotifications = useMemo(() => {
+    if (!auditLogs) return [];
+    return auditLogs
+      .filter(log => log.action === "email_sent" && log.details?.includes("Approval notification email sent to"))
+      .map(log => {
+        const match = log.details?.match(/sent to (.+?) \((.+?)\)/);
+        return {
+          id: log.id,
+          name: match?.[1] || "Unknown",
+          email: match?.[2] || "",
+          sentAt: log.createdAt,
+          sentBy: log.userName,
+        };
+      });
+  }, [auditLogs]);
+
+  const resendNotifyMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest("POST", `/api/documents/${id}/approval-notify`, { userId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
+      toast({
+        title: "Notification Sent",
+        description: "Approval notification email has been sent",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send notification",
+        variant: "destructive",
+      });
+    },
   });
 
   const approvalMutation = useMutation({
@@ -1497,7 +1547,85 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {isPrivilegedUser && isPending && (
+                    <div className="rounded-lg border p-4 space-y-3" data-testid="approval-notifications-section">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Approval Notifications</span>
+                      </div>
+
+                      {approvalNotifications.length > 0 ? (
+                        <div className="space-y-2">
+                          {approvalNotifications.map((notif) => (
+                            <div key={notif.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{notif.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{notif.email}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Sent {new Date(notif.sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {notif.sentBy}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={resendNotifyMutation.isPending}
+                                onClick={() => {
+                                  const matchingUser = siteClientUsers.find(u => u.email === notif.email);
+                                  if (matchingUser) {
+                                    resendNotifyMutation.mutate(matchingUser.id);
+                                  }
+                                }}
+                                data-testid={`button-resend-${notif.id}`}
+                              >
+                                <RefreshCw className="mr-1 h-3 w-3" />
+                                Resend
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No approval notifications have been sent yet.</p>
+                      )}
+
+                      <div className="border-t pt-3">
+                        <p className="text-xs text-muted-foreground mb-2">Send approval notification to a different client user:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Select value={selectedNewApprover} onValueChange={setSelectedNewApprover}>
+                            <SelectTrigger className="flex-1 min-w-[180px]" data-testid="select-new-approver">
+                              <SelectValue placeholder="Select client user..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {siteClientUsers.map((u) => (
+                                <SelectItem key={u.id} value={u.id} data-testid={`option-approver-${u.id}`}>
+                                  {u.fullName} ({u.email})
+                                </SelectItem>
+                              ))}
+                              {siteClientUsers.length === 0 && (
+                                <SelectItem value="__none" disabled>No client users assigned to this site</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="default"
+                            variant="outline"
+                            disabled={!selectedNewApprover || resendNotifyMutation.isPending}
+                            onClick={() => {
+                              if (selectedNewApprover) {
+                                resendNotifyMutation.mutate(selectedNewApprover);
+                                setSelectedNewApprover("");
+                              }
+                            }}
+                            data-testid="button-send-new-approver"
+                          >
+                            <Send className="mr-1 h-4 w-4" />
+                            Send Notification
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3">
                     <Button
                       onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
