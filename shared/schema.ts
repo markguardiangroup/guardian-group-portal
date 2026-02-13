@@ -55,6 +55,7 @@ export const companies = pgTable("companies", {
   contactPosition: text("contact_position"),
   contactPhone: text("contact_phone"),
   contactEmail: text("contact_email"),
+  searchTag: text("search_tag"),
   status: text("status").$type<CompanyStatus>().notNull().default("active"),
   // Module access - set at company level, applies to all sites and users
   healthSafetyAccess: boolean("health_safety_access").notNull().default(false),
@@ -796,6 +797,7 @@ export interface AssignedConsultantSummary {
 export interface SiteWithDetails extends Site {
   companyName?: string;
   companyNumber?: string;
+  companySearchTag?: string;
   complianceSummary?: ComplianceSummary;
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];

@@ -20,6 +20,7 @@ interface SiteWithCompany {
   id: string;
   name: string;
   companyName?: string | null;
+  companySearchTag?: string | null;
 }
 
 interface CompanyComboboxProps {
@@ -44,13 +45,15 @@ export function CompanyCombobox({
   const [open, setOpen] = useState(false);
 
   const companies = useMemo(() => {
-    const uniqueCompanies = new Set<string>();
+    const companyMap = new Map<string, string>();
     sites.forEach((site) => {
-      if (site.companyName) {
-        uniqueCompanies.add(site.companyName);
+      if (site.companyName && !companyMap.has(site.companyName)) {
+        companyMap.set(site.companyName, site.companySearchTag || "");
       }
     });
-    return Array.from(uniqueCompanies).sort();
+    return Array.from(companyMap.entries())
+      .map(([name, searchTag]) => ({ name, searchTag }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [sites]);
 
   const displayValue = !value || value === "all"
@@ -99,20 +102,20 @@ export function CompanyCombobox({
               )}
               {companies.map((company) => (
                 <CommandItem
-                  key={company}
-                  value={company}
+                  key={company.name}
+                  value={company.searchTag ? `${company.name} ${company.searchTag}` : company.name}
                   onSelect={() => {
-                    onValueChange(company);
+                    onValueChange(company.name);
                     setOpen(false);
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === company ? "opacity-100" : "opacity-0"
+                      value === company.name ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {company}
+                  {company.name}
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -446,6 +446,7 @@ export class MemStorage implements IStorage {
         ...site, 
         companyName: company?.name,
         companyNumber: company?.companyNumber ?? undefined,
+        companySearchTag: company?.searchTag ?? undefined,
         complianceSummary: summary, 
         moduleAccess, 
         assignedConsultants 
@@ -496,6 +497,7 @@ export class MemStorage implements IStorage {
         ...site, 
         companyName: company?.name,
         companyNumber: company?.companyNumber ?? undefined,
+        companySearchTag: company?.searchTag ?? undefined,
         complianceSummary: summary, 
         moduleAccess, 
         assignedConsultants 
@@ -523,6 +525,7 @@ export class MemStorage implements IStorage {
         ...site,
         companyName: company?.name,
         companyNumber: company?.companyNumber,
+        companySearchTag: company?.searchTag ?? undefined,
       };
     });
   }

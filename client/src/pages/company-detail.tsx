@@ -281,6 +281,7 @@ export default function CompanyDetail() {
     contactPhone: "",
     contactEmail: "",
     contactUserId: "",
+    searchTag: "",
     status: "active" as "active" | "inactive" | "pending",
   });
   const [newSiteForm, setNewSiteForm] = useState({
@@ -492,6 +493,7 @@ export default function CompanyDetail() {
         contactPhone: company.contactPhone || "",
         contactEmail: company.contactEmail || "",
         contactUserId: matchingUser?.id || "",
+        searchTag: company.searchTag || "",
         status: company.status || "active",
       });
       setEditDialogOpen(true);
@@ -890,6 +892,17 @@ export default function CompanyDetail() {
                 placeholder="https://www.example.com"
                 data-testid="input-edit-company-website"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-search-tag">Search Tag</Label>
+              <Input
+                id="edit-search-tag"
+                value={editForm.searchTag}
+                onChange={(e) => setEditForm({ ...editForm, searchTag: e.target.value })}
+                placeholder="e.g., site ID, keyword, or reference"
+                data-testid="input-edit-company-search-tag"
+              />
+              <p className="text-xs text-muted-foreground">Used to find this company in dashboard search</p>
             </div>
 
             <div className="border-t pt-4">
