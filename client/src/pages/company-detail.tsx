@@ -505,28 +505,67 @@ export default function CompanyDetail() {
   };
 
   const validatePostcode = (postcode: string, country: string): boolean => {
-    if (country === "United Kingdom") return validateUKPostcode(postcode);
-    if (country === "Republic of Ireland") return validateEircode(postcode);
+    if (["England", "Northern Ireland", "Scotland", "Wales"].includes(country)) return validateUKPostcode(postcode);
+    if (country === "Ireland") return validateEircode(postcode);
     return postcode.trim().length > 0;
   };
 
   const getPostcodeError = (country: string): string => {
-    if (country === "United Kingdom") return "Please enter a valid UK postcode (e.g., BT1 1AA, SW1A 1AA)";
-    if (country === "Republic of Ireland") return "Please enter a valid Eircode (e.g., D02 AF30)";
+    if (["England", "Northern Ireland", "Scotland", "Wales"].includes(country)) return "Please enter a valid UK postcode (e.g., BT1 1AA, SW1A 1AA)";
+    if (country === "Ireland") return "Please enter a valid Eircode (e.g., D02 AF30)";
     return "Please enter a valid postal code";
   };
 
   const COUNTRY_OPTIONS = [
-    "United Kingdom",
-    "Republic of Ireland",
-  ];
-
-  const COUNTY_OPTIONS = [
     "England",
+    "Ireland",
     "Northern Ireland",
     "Scotland",
     "Wales",
   ];
+
+  const COUNTY_MAP: Record<string, string[]> = {
+    "England": [
+      "Bedfordshire", "Berkshire", "Bristol", "Buckinghamshire", "Cambridgeshire",
+      "Cheshire", "City of London", "Cornwall", "County Durham", "Cumbria",
+      "Derbyshire", "Devon", "Dorset", "East Riding of Yorkshire", "East Sussex",
+      "Essex", "Gloucestershire", "Greater London", "Greater Manchester",
+      "Hampshire", "Herefordshire", "Hertfordshire", "Isle of Wight", "Kent",
+      "Lancashire", "Leicestershire", "Lincolnshire", "Merseyside", "Norfolk",
+      "North Yorkshire", "Northamptonshire", "Northumberland", "Nottinghamshire",
+      "Oxfordshire", "Rutland", "Shropshire", "Somerset", "South Yorkshire",
+      "Staffordshire", "Suffolk", "Surrey", "Tyne and Wear", "Warwickshire",
+      "West Midlands", "West Sussex", "West Yorkshire", "Wiltshire", "Worcestershire",
+    ],
+    "Ireland": [
+      "Carlow", "Cavan", "Clare", "Cork", "Donegal", "Dublin", "Galway",
+      "Kerry", "Kildare", "Kilkenny", "Laois", "Leitrim", "Limerick",
+      "Longford", "Louth", "Mayo", "Meath", "Monaghan", "Offaly",
+      "Roscommon", "Sligo", "Tipperary", "Waterford", "Westmeath",
+      "Wexford", "Wicklow",
+    ],
+    "Northern Ireland": [
+      "Antrim", "Armagh", "Down", "Fermanagh", "Londonderry", "Tyrone",
+    ],
+    "Scotland": [
+      "Aberdeen City", "Aberdeenshire", "Angus", "Argyll and Bute",
+      "Clackmannanshire", "Dumfries and Galloway", "Dundee City",
+      "East Ayrshire", "East Dunbartonshire", "East Lothian", "East Renfrewshire",
+      "Edinburgh", "Falkirk", "Fife", "Glasgow City", "Highland",
+      "Inverclyde", "Midlothian", "Moray", "North Ayrshire",
+      "North Lanarkshire", "Orkney Islands", "Perth and Kinross",
+      "Renfrewshire", "Scottish Borders", "Shetland Islands",
+      "South Ayrshire", "South Lanarkshire", "Stirling",
+      "West Dunbartonshire", "West Lothian", "Western Isles",
+    ],
+    "Wales": [
+      "Blaenau Gwent", "Bridgend", "Caerphilly", "Cardiff", "Carmarthenshire",
+      "Ceredigion", "Conwy", "Denbighshire", "Flintshire", "Gwynedd",
+      "Isle of Anglesey", "Merthyr Tydfil", "Monmouthshire", "Neath Port Talbot",
+      "Newport", "Pembrokeshire", "Powys", "Rhondda Cynon Taf", "Swansea",
+      "Torfaen", "Vale of Glamorgan", "Wrexham",
+    ],
+  };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -886,11 +925,11 @@ export default function CompanyDetail() {
                       onValueChange={(value) => setEditForm({ ...editForm, county: value === "none" ? "" : value })}
                     >
                       <SelectTrigger id="edit-county" data-testid="select-edit-company-county">
-                        <SelectValue placeholder="Select county (optional)" />
+                        <SelectValue placeholder={editForm.country ? "Select county (optional)" : "Select country first"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {COUNTY_OPTIONS.map((c) => (
+                        {(COUNTY_MAP[editForm.country] || []).map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
@@ -904,7 +943,7 @@ export default function CompanyDetail() {
                       id="edit-postal-code"
                       value={editForm.postalCode}
                       onChange={(e) => setEditForm({ ...editForm, postalCode: e.target.value })}
-                      placeholder="e.g., BT1 1AA"
+                      placeholder={editForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-edit-company-postal-code"
                     />
                   </div>
@@ -912,7 +951,7 @@ export default function CompanyDetail() {
                     <Label htmlFor="edit-country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={editForm.country || ""}
-                      onValueChange={(value) => setEditForm({ ...editForm, country: value })}
+                      onValueChange={(value) => setEditForm({ ...editForm, country: value, county: "" })}
                     >
                       <SelectTrigger id="edit-country" data-testid="select-edit-company-country">
                         <SelectValue placeholder="Select country" />
@@ -1090,11 +1129,11 @@ export default function CompanyDetail() {
                       onValueChange={(value) => setNewSiteForm({ ...newSiteForm, county: value === "none" ? "" : value })}
                     >
                       <SelectTrigger id="new-site-county" data-testid="select-new-site-county">
-                        <SelectValue placeholder="Select county (optional)" />
+                        <SelectValue placeholder={newSiteForm.country ? "Select county (optional)" : "Select country first"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {COUNTY_OPTIONS.map((c) => (
+                        {(COUNTY_MAP[newSiteForm.country] || []).map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
@@ -1108,7 +1147,7 @@ export default function CompanyDetail() {
                       id="new-site-postalCode"
                       value={newSiteForm.postalCode}
                       onChange={(e) => setNewSiteForm({ ...newSiteForm, postalCode: e.target.value })}
-                      placeholder="e.g., BT1 1AA"
+                      placeholder={newSiteForm.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-new-site-postalCode"
                     />
                   </div>
@@ -1116,7 +1155,7 @@ export default function CompanyDetail() {
                     <Label htmlFor="new-site-country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={newSiteForm.country || ""}
-                      onValueChange={(value) => setNewSiteForm({ ...newSiteForm, country: value })}
+                      onValueChange={(value) => setNewSiteForm({ ...newSiteForm, country: value, county: "" })}
                     >
                       <SelectTrigger id="new-site-country" data-testid="select-new-site-country">
                         <SelectValue placeholder="Select country" />
