@@ -184,6 +184,22 @@ export default function DocumentUpload() {
   const hasNoClients = selectedCompany && companyClientUsers.length === 0;
   const hasNoConsultants = selectedCompany && companyConsultantUsers.length === 0;
 
+  const sitesWithNoClients = selectedCompany && !hasNoClients
+    ? (filteredSites || []).filter(site => {
+        return !companyClientUsers.some(u =>
+          u.siteAssignments?.some(a => a.siteId === site.id)
+        );
+      })
+    : [];
+
+  const sitesWithNoConsultants = selectedCompany && !hasNoConsultants
+    ? (filteredSites || []).filter(site => {
+        return !companyConsultantUsers.some(u =>
+          u.siteAssignments?.some(a => a.siteId === site.id)
+        );
+      })
+    : [];
+
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({
     mutationFn: async ({ siteId, module }: { siteId: string; module: string }) => {
@@ -585,7 +601,7 @@ export default function DocumentUpload() {
                     />
                   </div>
 
-                  {isAdminOrConsultant && selectedCompany && (hasNoClients || hasNoConsultants) && (
+                  {isAdminOrConsultant && selectedCompany && (hasNoClients || hasNoConsultants || sitesWithNoClients.length > 0 || sitesWithNoConsultants.length > 0) && (
                     <div className="space-y-2">
                       {hasNoClients && (
                         <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-no-clients">
@@ -598,6 +614,17 @@ export default function DocumentUpload() {
                           </div>
                         </div>
                       )}
+                      {!hasNoClients && sitesWithNoClients.length > 0 && (
+                        <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-sites-no-clients">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Sites with no client users assigned</p>
+                            <p className="text-sm text-muted-foreground">
+                              The following sites have no client users assigned: {sitesWithNoClients.map(s => s.name).join(", ")}. Documents for these sites will not be visible to clients.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       {hasNoConsultants && (
                         <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-no-consultants">
                           <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
@@ -605,6 +632,17 @@ export default function DocumentUpload() {
                             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">No consultant users assigned</p>
                             <p className="text-sm text-muted-foreground">
                               There are no consultants assigned to sites in {selectedCompany}. Document approvals and reviews will not be possible until a consultant is assigned.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!hasNoConsultants && sitesWithNoConsultants.length > 0 && (
+                        <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-sites-no-consultants">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Sites with no consultant assigned</p>
+                            <p className="text-sm text-muted-foreground">
+                              The following sites have no consultant assigned: {sitesWithNoConsultants.map(s => s.name).join(", ")}. Approvals and reviews won't be possible for these sites.
                             </p>
                           </div>
                         </div>
