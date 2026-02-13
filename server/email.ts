@@ -247,3 +247,94 @@ export async function sendDocumentApprovalEmail({
   console.log(`Document approval email sent to ${to}, id: ${data?.id}`);
   return data;
 }
+
+export async function sendClientSignOffEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  clientName,
+  documentUrl,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  clientName: string;
+  documentUrl: string;
+}) {
+  const recipient = TEST_EMAIL_OVERRIDE || to;
+  if (TEST_EMAIL_OVERRIDE) {
+    console.log(`[TEST MODE] Redirecting client sign-off email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `Client Sign-Off Complete - ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
+          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+        
+        <div style="padding: 30px 0;">
+          <h2 style="color: #1e293b; font-size: 20px;">Client Sign-Off Complete</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName}, a document has been signed off by the client and is now awaiting your final approval.
+          </p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Signed off by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${clientName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
+                <td style="padding: 6px 0; color: #f59e0b; font-size: 14px; font-weight: 600;">Awaiting Final Approval</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${documentUrl}" 
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px; 
+                      text-decoration: none; border-radius: 6px; font-size: 16px; 
+                      font-weight: 600; display: inline-block;">
+              Review & Approve
+            </a>
+          </div>
+          
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Please log in to the portal to review and give your final approval on this document.
+          </p>
+        </div>
+        
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group. 
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send client sign-off email:", error);
+    throw new Error(`Failed to send client sign-off email: ${error.message}`);
+  }
+
+  console.log(`Client sign-off email sent to ${to}, id: ${data?.id}`);
+  return data;
+}

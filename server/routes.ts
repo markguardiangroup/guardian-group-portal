@@ -9,7 +9,7 @@ import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -1688,6 +1688,52 @@ export async function registerRoutes(
         details: feedback || (action === "approve" ? "Document approved" : action === "reject" ? "Document rejected" : "Changes requested"),
         metadata: null,
       });
+
+      if (isClientSignOff && document.siteId) {
+        try {
+          const assignments = await storage.getConsultantAssignments(document.siteId);
+          if (assignments.length > 0) {
+            const site = await storage.getSite(document.siteId);
+            const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+            const modulePath = existingDoc.module === "health_safety" ? "health-safety" 
+              : existingDoc.module === "human_resources" ? "human-resources" 
+              : existingDoc.module === "employment_law" ? "employment-law" 
+              : "documents";
+            const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+
+            for (const assignment of assignments) {
+              try {
+                const consultant = await storage.getUser(assignment.consultantId);
+                if (consultant && consultant.email) {
+                  await sendClientSignOffEmail({
+                    to: consultant.email,
+                    fullName: consultant.fullName,
+                    documentTitle: existingDoc.title,
+                    siteName: site?.name || "Unknown Site",
+                    clientName: user.fullName,
+                    documentUrl,
+                  });
+                  await storage.createAuditLog({
+                    action: "email_sent",
+                    userId: user.id,
+                    userName: user.fullName,
+                    entityId: document.siteId,
+                    documentId: document.id,
+                    supportRequestId: null,
+                    module: existingDoc.module,
+                    details: `Client sign-off notification email sent to ${consultant.fullName} (${consultant.email})`,
+                    metadata: null,
+                  });
+                }
+              } catch (emailError) {
+                console.error(`Failed to send sign-off notification to consultant ${assignment.consultantId}:`, emailError);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to send consultant sign-off notifications:", err);
+        }
+      }
 
       res.json(document);
     } catch (error) {
