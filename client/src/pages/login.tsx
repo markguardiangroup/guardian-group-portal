@@ -90,8 +90,10 @@ export default function Login() {
         title: "Welcome",
         description: "You have successfully logged in",
       });
-      // Force a full page reload to ensure session cookie is properly loaded
-      window.location.href = "/";
+      // Redirect to the page the user was trying to access, or home
+      const currentPath = window.location.pathname + window.location.search;
+      const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
+      window.location.href = redirectTo;
     },
     onError: (error: Error) => {
       toast({
