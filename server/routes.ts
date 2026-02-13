@@ -9,7 +9,7 @@ import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -51,6 +51,7 @@ const createDocumentSchema = z.object({
   trainingCourseCode: z.string().optional(),
   trainingDate: z.string().optional(),
   requiresApproval: z.boolean().optional(),
+  notifyUserIds: z.array(z.string()).optional(),
 });
 
 const createCaseSchema = z.object({
@@ -1465,6 +1466,30 @@ export async function registerRoutes(
         details: `Uploaded ${body.title}`,
         metadata: null,
       });
+
+      // Send approval notification emails if document requires approval
+      if (documentStatus === "review_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
+        const site = await storage.getSite(body.siteId);
+        const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        
+        for (const notifyUserId of body.notifyUserIds) {
+          try {
+            const notifyUser = await storage.getUser(notifyUserId);
+            if (notifyUser && notifyUser.email) {
+              await sendDocumentApprovalEmail({
+                to: notifyUser.email,
+                fullName: notifyUser.fullName,
+                documentTitle: body.title,
+                siteName: site?.name || "Unknown Site",
+                uploadedBy: user.fullName,
+                portalUrl: baseUrl,
+              });
+            }
+          } catch (emailError) {
+            console.error(`Failed to send approval notification to user ${notifyUserId}:`, emailError);
+          }
+        }
+      }
 
       res.status(201).json(document);
     } catch (error) {

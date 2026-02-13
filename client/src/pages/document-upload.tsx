@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -38,6 +39,8 @@ import {
   BookOpen,
   ArrowRight,
   AlertTriangle,
+  Mail,
+  Users,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Site, ModuleType } from "@shared/schema";
@@ -100,6 +103,7 @@ export default function DocumentUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
+  const [selectedNotifyUsers, setSelectedNotifyUsers] = useState<string[]>([]);
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -144,6 +148,11 @@ export default function DocumentUpload() {
   const selectedModule = form.watch("module");
   const selectedSiteId = form.watch("siteId");
   const uploadScope = form.watch("uploadScope");
+  const requiresApproval = form.watch("requiresApproval");
+
+  useEffect(() => {
+    setSelectedNotifyUsers([]);
+  }, [selectedSiteId]);
 
   // Get unique companies from sites
   const companies = sites 
@@ -199,6 +208,14 @@ export default function DocumentUpload() {
         );
       })
     : [];
+
+  const siteClientUsers = (() => {
+    if (!allUsers || !selectedSiteId) return [];
+    return allUsers.filter(
+      u => u.role === "client" && 
+        u.siteAssignments?.some(a => a.siteId === selectedSiteId)
+    );
+  })();
 
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({
@@ -338,6 +355,7 @@ export default function DocumentUpload() {
           fileName: selectedFile?.name || "document.pdf",
           fileSize: selectedFile?.size || 0,
           mimeType: selectedFile?.type || "application/pdf",
+          notifyUserIds: data.requiresApproval ? selectedNotifyUsers : [],
         };
         return apiRequest("POST", "/api/documents", formData);
       }
@@ -757,6 +775,46 @@ export default function DocumentUpload() {
                       </FormItem>
                     )}
                   />
+
+                  {requiresApproval && isAdminOrConsultant && selectedSiteId && (
+                    <div className="rounded-lg border p-4 space-y-3" data-testid="notify-users-section">
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-base font-medium">Notify Client Users for Approval</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Select client users assigned to this site who should receive an email notification to review and approve this document.
+                      </p>
+                      {siteClientUsers.length > 0 ? (
+                        <div className="space-y-2 pt-1">
+                          {siteClientUsers.map((clientUser) => (
+                            <div key={clientUser.id} className="flex items-center gap-3 rounded-md border p-3">
+                              <Checkbox
+                                id={`notify-${clientUser.id}`}
+                                checked={selectedNotifyUsers.includes(clientUser.id)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedNotifyUsers(prev =>
+                                    checked
+                                      ? [...prev, clientUser.id]
+                                      : prev.filter(id => id !== clientUser.id)
+                                  );
+                                }}
+                                data-testid={`checkbox-notify-${clientUser.id}`}
+                              />
+                              <label htmlFor={`notify-${clientUser.id}`} className="flex-1 cursor-pointer">
+                                <span className="font-medium">{clientUser.fullName}</span>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          No client users are assigned to this site. Assign users in User Management to enable email notifications.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField

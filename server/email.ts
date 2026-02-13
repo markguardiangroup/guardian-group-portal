@@ -158,3 +158,90 @@ export async function sendPasswordResetEmail({
   console.log(`Password reset email sent to ${to}, id: ${data?.id}`);
   return data;
 }
+
+export async function sendDocumentApprovalEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  uploadedBy,
+  portalUrl,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  uploadedBy: string;
+  portalUrl: string;
+}) {
+  const recipient = TEST_EMAIL_OVERRIDE || to;
+  if (TEST_EMAIL_OVERRIDE) {
+    console.log(`[TEST MODE] Redirecting approval email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `Document Requires Your Approval - ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
+          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+        
+        <div style="padding: 30px 0;">
+          <h2 style="color: #1e293b; font-size: 20px;">Document Approval Required</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName}, a new document has been uploaded that requires your review and approval.
+          </p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Uploaded by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${uploadedBy}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${portalUrl}" 
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px; 
+                      text-decoration: none; border-radius: 6px; font-size: 16px; 
+                      font-weight: 600; display: inline-block;">
+              Review Document
+            </a>
+          </div>
+          
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Please log in to the portal to review and approve this document.
+          </p>
+        </div>
+        
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group. 
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send document approval email:", error);
+    throw new Error(`Failed to send document approval email: ${error.message}`);
+  }
+
+  console.log(`Document approval email sent to ${to}, id: ${data?.id}`);
+  return data;
+}
