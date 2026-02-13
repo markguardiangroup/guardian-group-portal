@@ -5,6 +5,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = "onboarding@resend.dev";
 const FROM_NAME = "Guardian Group";
 
+const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
+
 export async function sendInvitationEmail({
   to,
   fullName,
@@ -18,9 +20,14 @@ export async function sendInvitationEmail({
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hours`;
 
+  const recipient = TEST_EMAIL_OVERRIDE || to;
+  if (TEST_EMAIL_OVERRIDE) {
+    console.log(`[TEST MODE] Redirecting email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
+  }
+
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
-    to: [to],
+    to: [recipient],
     subject: "You've been invited to Guardian Group Compliance Portal",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -86,9 +93,14 @@ export async function sendPasswordResetEmail({
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hour(s)`;
 
+  const recipient = TEST_EMAIL_OVERRIDE || to;
+  if (TEST_EMAIL_OVERRIDE) {
+    console.log(`[TEST MODE] Redirecting password reset email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
+  }
+
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
-    to: [to],
+    to: [recipient],
     subject: "Reset Your Password - Guardian Group Compliance Portal",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
