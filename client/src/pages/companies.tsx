@@ -479,7 +479,9 @@ export default function Companies() {
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
 
-  if (isLoading && page === 1) {
+  const isInitialLoad = isLoading && page === 1 && !debouncedSearch && statusFilter === "all";
+
+  if (isInitialLoad) {
     return (
       <div className="space-y-6 p-8">
         <div className="flex items-center justify-between gap-4">
