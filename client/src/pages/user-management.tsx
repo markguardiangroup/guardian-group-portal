@@ -549,8 +549,10 @@ export default function UserManagement() {
         setShowInviteDialog(true);
       }
       toast({
-        title: "Invitation Resent",
-        description: "A new invitation link has been generated.",
+        title: data.emailSent ? "Invitation Email Sent" : "Invitation Link Generated",
+        description: data.emailSent 
+          ? "An invitation email has been sent to the user."
+          : "Email could not be sent. You can copy the link below to share manually.",
       });
     },
     onError: () => {

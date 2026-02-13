@@ -9,6 +9,7 @@ import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+import { sendInvitationEmail, sendPasswordResetEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -506,11 +507,22 @@ export async function registerRoutes(
       const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const resetUrl = `${baseUrl}/set-password?token=${token}`;
       
-      // For now, we'll log the URL since email isn't set up yet
-      // When email is configured, this would send an email instead
-      console.log(`Password reset link for ${email}: ${resetUrl}`);
+      // Send the password reset email
+      let emailSent = false;
+      try {
+        await sendPasswordResetEmail({
+          to: user.email,
+          fullName: user.fullName,
+          resetUrl,
+          expiresAt,
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.error("Failed to send password reset email:", emailError);
+      }
       
-      // Only include resetUrl in development mode for testing
+      console.log(`Password reset requested for ${email}, email sent: ${emailSent}`);
+      
       const isDev = process.env.NODE_ENV !== 'production';
       res.json({ 
         success: true, 
@@ -611,11 +623,28 @@ export async function registerRoutes(
       const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const inviteUrl = `${baseUrl}/set-password?token=${token}`;
       
+      // Try to send the email
+      let emailSent = false;
+      try {
+        await sendInvitationEmail({
+          to: targetUser.email,
+          fullName: targetUser.fullName,
+          inviteUrl,
+          expiresAt,
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.error("Failed to send invitation email (link still generated):", emailError);
+      }
+      
       res.json({ 
         success: true, 
         inviteUrl,
         inviteExpiresAt: expiresAt.toISOString(),
-        message: "Invitation link regenerated successfully"
+        emailSent,
+        message: emailSent 
+          ? "Invitation email sent successfully" 
+          : "Invitation link regenerated (email sending failed - you can copy the link manually)"
       });
     } catch (error) {
       console.error("Resend invitation error:", error);
