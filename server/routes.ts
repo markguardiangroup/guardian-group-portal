@@ -6939,7 +6939,14 @@ export async function registerRoutes(
       if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
       if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
       if (parsed.data.category !== undefined) updateData.category = parsed.data.category;
-      if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
+      if (parsed.data.status !== undefined) {
+        updateData.status = parsed.data.status;
+        if (parsed.data.status === "completed") {
+          updateData.completedAt = new Date();
+        } else {
+          updateData.completedAt = null;
+        }
+      }
       if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority;
       if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
       

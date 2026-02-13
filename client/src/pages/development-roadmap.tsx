@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -49,7 +50,9 @@ import {
   ArrowRight,
   ArrowDown,
   Bot,
+  Calendar,
 } from "lucide-react";
+import { format } from "date-fns";
 
 const statusConfig: Record<RoadmapStatus, { label: string; color: string; icon: typeof Lightbulb }> = {
   idea: { label: "Idea", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300", icon: Lightbulb },
@@ -72,12 +75,35 @@ const categoryConfig: Record<string, { label: string; icon: typeof Rocket; badge
   ai: { label: "AI", icon: Bot, badgeColor: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" },
 };
 
+const priorityOrder: Record<RoadmapPriority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+function sortByPriority(items: RoadmapItem[]): RoadmapItem[] {
+  return [...items].sort((a, b) => {
+    const aPriority = priorityOrder[a.priority as RoadmapPriority] ?? 1;
+    const bPriority = priorityOrder[b.priority as RoadmapPriority] ?? 1;
+    return aPriority - bPriority;
+  });
+}
+
+function sortByCompletedDate(items: RoadmapItem[]): RoadmapItem[] {
+  return [...items].sort((a, b) => {
+    const aDate = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+    const bDate = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+    return bDate - aDate;
+  });
+}
+
 export default function DevelopmentRoadmap() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RoadmapItem | null>(null);
+  const [viewingItem, setViewingItem] = useState<RoadmapItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
@@ -102,9 +128,15 @@ export default function DevelopmentRoadmap() {
     mutationFn: async ({ id, ...data }: Partial<RoadmapItem> & { id: string }) => {
       return apiRequest("PATCH", `/api/roadmap/${id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: async (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       setEditingItem(null);
+      try {
+        const updated = await response.json();
+        setViewingItem(updated);
+      } catch {
+        setViewingItem(null);
+      }
       toast({ title: "Item updated", description: "Roadmap item has been updated." });
     },
     onError: () => {
@@ -118,6 +150,7 @@ export default function DevelopmentRoadmap() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
+      setViewingItem(null);
       toast({ title: "Item deleted", description: "Roadmap item has been removed." });
     },
     onError: () => {
@@ -135,10 +168,10 @@ export default function DevelopmentRoadmap() {
     : roadmapItems.filter(item => item.status === filterStatus);
 
   const groupedItems = {
-    idea: filteredItems.filter(i => i.status === "idea"),
-    planned: filteredItems.filter(i => i.status === "planned"),
-    in_progress: filteredItems.filter(i => i.status === "in_progress"),
-    completed: filteredItems.filter(i => i.status === "completed"),
+    idea: sortByPriority(filteredItems.filter(i => i.status === "idea")),
+    planned: sortByPriority(filteredItems.filter(i => i.status === "planned")),
+    in_progress: sortByPriority(filteredItems.filter(i => i.status === "in_progress")),
+    completed: sortByCompletedDate(filteredItems.filter(i => i.status === "completed")),
   };
 
   return (
@@ -219,9 +252,7 @@ export default function DevelopmentRoadmap() {
                       <RoadmapCard
                         key={item.id}
                         item={item}
-                        onEdit={() => setEditingItem(item)}
-                        onDelete={() => deleteMutation.mutate(item.id)}
-                        onStatusChange={(status) => updateMutation.mutate({ id: item.id, status })}
+                        onClick={() => setViewingItem(item)}
                       />
                     ))}
                     {items.length === 0 && (
@@ -236,18 +267,149 @@ export default function DevelopmentRoadmap() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredItems.map(item => (
+            {(filterStatus === "completed" ? sortByCompletedDate(filteredItems) : sortByPriority(filteredItems)).map(item => (
               <RoadmapCard
                 key={item.id}
                 item={item}
-                onEdit={() => setEditingItem(item)}
-                onDelete={() => deleteMutation.mutate(item.id)}
-                onStatusChange={(status) => updateMutation.mutate({ id: item.id, status })}
+                onClick={() => setViewingItem(item)}
               />
             ))}
           </div>
         )}
 
+        {/* Detail Dialog */}
+        <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {viewingItem && (() => {
+                  const cat = categoryConfig[viewingItem.category] || categoryConfig.feature;
+                  const CatIcon = cat.icon;
+                  return <CatIcon className="h-5 w-5 text-muted-foreground" />;
+                })()}
+                {viewingItem?.title}
+              </DialogTitle>
+              <DialogDescription>
+                {viewingItem && (
+                  <span className="flex items-center gap-2 mt-1">
+                    <Badge className={statusConfig[viewingItem.status as RoadmapStatus].color}>
+                      {statusConfig[viewingItem.status as RoadmapStatus].label}
+                    </Badge>
+                    <Badge className={(categoryConfig[viewingItem.category] || categoryConfig.feature).badgeColor || "bg-muted text-muted-foreground"}>
+                      {(categoryConfig[viewingItem.category] || categoryConfig.feature).label}
+                    </Badge>
+                    {(() => {
+                      const p = priorityConfig[viewingItem.priority as RoadmapPriority];
+                      const PIcon = p.icon;
+                      return (
+                        <span className={`flex items-center gap-1 text-xs ${p.color}`}>
+                          <PIcon className="h-3 w-3" />
+                          {p.label} Priority
+                        </span>
+                      );
+                    })()}
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            {viewingItem && (
+              <div className="space-y-4">
+                {viewingItem.description ? (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Description</Label>
+                    <p className="text-sm whitespace-pre-wrap">{viewingItem.description}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No description provided.</p>
+                )}
+
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Created {viewingItem.createdAt ? format(new Date(viewingItem.createdAt), "MMM d, yyyy") : "Unknown"}
+                  </span>
+                  {viewingItem.completedAt && (
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                      Completed {format(new Date(viewingItem.completedAt), "MMM d, yyyy")}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pb-2">
+                  {viewingItem.status !== "planned" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateMutation.mutate({ id: viewingItem.id, status: "planned" })}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-mark-planned"
+                    >
+                      <Target className="h-4 w-4 mr-1" />
+                      Planned
+                    </Button>
+                  )}
+                  {viewingItem.status !== "in_progress" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateMutation.mutate({ id: viewingItem.id, status: "in_progress" })}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-mark-in-progress"
+                    >
+                      <Loader2 className="h-4 w-4 mr-1" />
+                      In Progress
+                    </Button>
+                  )}
+                  {viewingItem.status !== "completed" && (
+                    <Button
+                      size="sm"
+                      onClick={() => updateMutation.mutate({ id: viewingItem.id, status: "completed" })}
+                      disabled={updateMutation.isPending}
+                      data-testid="button-mark-complete"
+                    >
+                      {updateMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                      )}
+                      Complete
+                    </Button>
+                  )}
+                </div>
+
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingItem(viewingItem);
+                      setViewingItem(null);
+                    }}
+                    data-testid="button-edit-from-detail"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this item?")) {
+                        deleteMutation.mutate(viewingItem.id);
+                      }
+                    }}
+                    data-testid="button-delete-from-detail"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
         <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
           <DialogContent>
             <DialogHeader>
@@ -269,14 +431,10 @@ export default function DevelopmentRoadmap() {
 
 function RoadmapCard({
   item,
-  onEdit,
-  onDelete,
-  onStatusChange,
+  onClick,
 }: {
   item: RoadmapItem;
-  onEdit: () => void;
-  onDelete: () => void;
-  onStatusChange: (status: RoadmapStatus) => void;
+  onClick: () => void;
 }) {
   const status = statusConfig[item.status as RoadmapStatus];
   const priority = priorityConfig[item.priority as RoadmapPriority];
@@ -285,48 +443,17 @@ function RoadmapCard({
   const PriorityIcon = priority.icon;
 
   return (
-    <Card className="hover-elevate" data-testid={`card-roadmap-${item.id}`}>
+    <Card
+      className="hover-elevate cursor-pointer"
+      onClick={onClick}
+      data-testid={`card-roadmap-${item.id}`}
+    >
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <CategoryIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             <h4 className="font-medium truncate">{item.title}</h4>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" data-testid={`button-menu-${item.id}`}>
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit} data-testid={`button-edit-${item.id}`}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              {item.status !== "planned" && (
-                <DropdownMenuItem onClick={() => onStatusChange("planned")}>
-                  <Target className="h-4 w-4 mr-2" />
-                  Mark as Planned
-                </DropdownMenuItem>
-              )}
-              {item.status !== "in_progress" && (
-                <DropdownMenuItem onClick={() => onStatusChange("in_progress")}>
-                  <Loader2 className="h-4 w-4 mr-2" />
-                  Mark In Progress
-                </DropdownMenuItem>
-              )}
-              {item.status !== "completed" && (
-                <DropdownMenuItem onClick={() => onStatusChange("completed")}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Mark Complete
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={onDelete} className="text-destructive" data-testid={`button-delete-${item.id}`}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
         
         {item.description && (
@@ -344,6 +471,13 @@ function RoadmapCard({
             {priority.label}
           </div>
         </div>
+
+        {item.status === "completed" && item.completedAt && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+            Completed {format(new Date(item.completedAt), "MMM d, yyyy")}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
