@@ -29,6 +29,7 @@ interface SiteWithCompany {
   name: string;
   companyId: string;
   companyName: string;
+  companySearchTag?: string | null;
   address: string | null;
   siteManager: string | null;
   contactPhone: string | null;

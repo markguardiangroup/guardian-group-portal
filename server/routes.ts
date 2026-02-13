@@ -3759,7 +3759,8 @@ export async function registerRoutes(
       if (search) {
         filteredCompanies = filteredCompanies.filter(c => 
           c.name.toLowerCase().includes(search) ||
-          c.companyNumber?.toLowerCase().includes(search)
+          c.companyNumber?.toLowerCase().includes(search) ||
+          c.searchTag?.toLowerCase().includes(search)
         );
       }
       
