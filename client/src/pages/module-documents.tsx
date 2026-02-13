@@ -70,6 +70,7 @@ import {
   FileWarning,
   ChevronRight,
   Scale,
+  Mail,
 } from "lucide-react";
 import {
   Accordion,
@@ -1530,7 +1531,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           {auditLogs && auditLogs.length > 0 && (() => {
             const INITIAL_DISPLAY_COUNT = 5;
             // Filter out "viewed" entries for initial display to show important actions
-            const importantActions = ['document_uploaded', 'document_approved', 'document_signed_off', 'document_rejected', 'changes_requested', 'document_archived', 'version_uploaded'];
+            const importantActions = ['document_uploaded', 'document_approved', 'document_signed_off', 'document_rejected', 'changes_requested', 'document_archived', 'version_uploaded', 'email_sent'];
             const importantLogs = auditLogs.filter(log => importantActions.includes(log.action));
             const viewedLogs = auditLogs.filter(log => log.action === 'document_viewed');
             
@@ -1551,6 +1552,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
                 case 'changes_requested':
                   return { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400' };
+                case 'email_sent':
+                  return { icon: Mail, bg: 'bg-indigo-100 dark:bg-indigo-900/40', color: 'text-indigo-600 dark:text-indigo-400' };
                 case 'document_viewed':
                   return { icon: Eye, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400' };
                 case 'document_downloaded':

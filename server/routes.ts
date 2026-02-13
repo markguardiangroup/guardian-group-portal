@@ -1494,6 +1494,17 @@ export async function registerRoutes(
                 portalUrl: baseUrl,
                 documentUrl,
               });
+              await storage.createAuditLog({
+                action: "email_sent",
+                userId: user.id,
+                userName: user.fullName,
+                entityId: body.siteId,
+                documentId: document.id,
+                supportRequestId: null,
+                module: body.module,
+                details: `Approval notification email sent to ${notifyUser.fullName} (${notifyUser.email})`,
+                metadata: null,
+              });
             }
           } catch (emailError) {
             console.error(`Failed to send approval notification to user ${notifyUserId}:`, emailError);
@@ -1674,7 +1685,7 @@ export async function registerRoutes(
         documentId: document.id,
         supportRequestId: null,
         module: existingDoc.module,
-        details: feedback || `Document ${action}ed`,
+        details: feedback || (action === "approve" ? "Document approved" : action === "reject" ? "Document rejected" : "Changes requested"),
         metadata: null,
       });
 
