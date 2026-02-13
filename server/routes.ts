@@ -145,15 +145,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid credentials format" });
       }
 
-      const { username, password } = parseResult.data;
+      const { username: loginIdentifier, password } = parseResult.data;
       const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
       const userAgent = req.get("User-Agent") || "unknown";
 
       // Check if account is locked due to too many failed attempts
-      const isLocked = await storage.isAccountLocked(username);
+      const isLocked = await storage.isAccountLocked(loginIdentifier);
       if (isLocked) {
         await storage.recordLoginAttempt({
-          username,
+          username: loginIdentifier,
           ipAddress,
           userAgent,
           success: false,
@@ -161,12 +161,14 @@ export async function registerRoutes(
         });
         
         // Create audit log for locked account attempt
-        const user = await storage.getUserByUsername(username);
-        if (user) {
+        const lockedUser = loginIdentifier.includes("@") 
+          ? await storage.getUserByEmail(loginIdentifier) 
+          : await storage.getUserByUsername(loginIdentifier);
+        if (lockedUser) {
           await storage.createAuditLog({
             action: "account_locked",
-            userId: user.id,
-            userName: user.fullName,
+            userId: lockedUser.id,
+            userName: lockedUser.fullName,
             details: `Login attempt while account locked from IP ${ipAddress}`,
           });
         }
@@ -176,12 +178,14 @@ export async function registerRoutes(
         });
       }
 
-      const user = await storage.getUserByUsername(username);
+      const user = loginIdentifier.includes("@") 
+        ? await storage.getUserByEmail(loginIdentifier) 
+        : await storage.getUserByUsername(loginIdentifier);
 
       // Check if user exists
       if (!user) {
         await storage.recordLoginAttempt({
-          username,
+          username: loginIdentifier,
           ipAddress,
           userAgent,
           success: false,
@@ -207,7 +211,7 @@ export async function registerRoutes(
 
       if (!passwordValid) {
         await storage.recordLoginAttempt({
-          username,
+          username: loginIdentifier,
           ipAddress,
           userAgent,
           success: false,
@@ -215,7 +219,7 @@ export async function registerRoutes(
         });
         
         // Check if this failure triggers a lockout
-        const nowLocked = await storage.isAccountLocked(username);
+        const nowLocked = await storage.isAccountLocked(loginIdentifier);
         if (nowLocked) {
           await storage.createAuditLog({
             action: "account_locked",
@@ -230,7 +234,7 @@ export async function registerRoutes(
 
       // Successful login - record attempt
       await storage.recordLoginAttempt({
-        username,
+        username: loginIdentifier,
         ipAddress,
         userAgent,
         success: true,
