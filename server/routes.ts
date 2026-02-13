@@ -1480,6 +1480,11 @@ export async function registerRoutes(
           try {
             const notifyUser = await storage.getUser(notifyUserId);
             if (notifyUser && notifyUser.email) {
+              const modulePath = body.module === "health_safety" ? "health-safety" 
+                : body.module === "human_resources" ? "human-resources" 
+                : body.module === "employment_law" ? "employment-law" 
+                : "documents";
+              const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
               await sendDocumentApprovalEmail({
                 to: notifyUser.email,
                 fullName: notifyUser.fullName,
@@ -1487,6 +1492,7 @@ export async function registerRoutes(
                 siteName: site?.name || "Unknown Site",
                 uploadedBy: user.fullName,
                 portalUrl: baseUrl,
+                documentUrl,
               });
             }
           } catch (emailError) {
