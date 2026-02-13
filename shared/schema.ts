@@ -1203,6 +1203,7 @@ export const roadmapItems = pgTable("roadmap_items", {
   status: text("status").$type<RoadmapStatus>().notNull().default("idea"),
   priority: text("priority").$type<RoadmapPriority>().notNull().default("medium"),
   sortOrder: integer("sort_order").notNull().default(0),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
