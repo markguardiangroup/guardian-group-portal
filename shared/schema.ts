@@ -50,6 +50,7 @@ export const companies = pgTable("companies", {
   postalCode: text("postal_code"),
   country: text("country"),
   // Primary contact details
+  contactUserId: text("contact_user_id"),
   contactName: text("contact_name"),
   contactPosition: text("contact_position"),
   contactPhone: text("contact_phone"),

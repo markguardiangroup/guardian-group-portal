@@ -33,8 +33,11 @@ Reference numbers are auto-generated on entity creation and displayed as badges 
 A role-based access control model with tenant isolation is enforced:
 - **Admin**: Full access across all companies and data.
 - **Consultant**: Access limited to explicitly assigned sites.
-- **Client**: Access depends on site assignments, either all sites within their company or specific assigned sites.
+- **Client**: Access limited to explicitly assigned sites only. Clients with no site assignments have NO site access (no fallback to all company sites).
 The `canUserAccessSite` helper function is critical for enforcing these rules.
+
+### Primary Company Contact Auto-Assignment
+When an admin sets a primary contact on a company, that client user is automatically assigned to all existing company sites. When a new site is created, the company's primary contact (stored as `contactUserId` on the company) is automatically assigned to the new site. These auto-assignments can be manually removed later by an admin.
 
 ### User Site Assignment Management
 Admins can assign consultants and clients to sites directly from User Management:

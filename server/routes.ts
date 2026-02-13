@@ -554,16 +554,9 @@ export async function registerRoutes(
       // First check: site must be in the client's company
       if (site.companyId !== user.companyId) return false;
       
-      // Check if client has specific site assignments
-      const hasAssignments = await storage.hasClientSiteAssignments(user.id);
-      if (hasAssignments) {
-        // Client has site assignments - check if this site is assigned
-        const clientSites = await storage.getClientSites(user.id);
-        return clientSites.some(a => a.siteId === siteId);
-      }
-      
-      // No site assignments - allow access to all sites in company (backward compatible)
-      return true;
+      // Client can only access sites they are explicitly assigned to
+      const clientSites = await storage.getClientSites(user.id);
+      return clientSites.some(a => a.siteId === siteId);
     }
     
     return false;
@@ -896,35 +889,32 @@ export async function registerRoutes(
       const requestedCompanyId = req.query.companyId as string | undefined;
       const requestedSiteIds = req.query.siteIds as string | undefined;
       
-      // Authorization: client users can only see their own company's data
+      // Authorization: client users can only see data for their explicitly assigned sites
       if (user.role === "client") {
-        // Client users can only access their own company's data
         if (!user.companyId) {
           return res.json([]);
         }
         
-        // Get all company sites for authorization check
-        const companySites = await storage.getSitesByCompanyId(user.companyId);
-        if (companySites.length === 0) {
-          res.json([]);
-          return;
+        // Get client's explicitly assigned sites
+        const clientSiteAssignments = await storage.getClientSites(user.id);
+        const assignedSiteIds = clientSiteAssignments.map(a => a.siteId);
+        
+        if (assignedSiteIds.length === 0) {
+          return res.json([]);
         }
         
-        // If client requests a specific site, validate they can access it
+        // If client requests a specific site, validate they have access
         if (siteId) {
-          const canAccess = companySites.some(s => s.id === siteId);
-          if (!canAccess) {
+          if (!assignedSiteIds.includes(siteId)) {
             return res.status(403).json({ error: "Not authorized to access this site" });
           }
-          // Return summary for just this site
           const summaries = await storage.getModuleSummariesForSites([siteId]);
           res.json(summaries);
           return;
         }
         
-        // No specific site requested - return data for all company sites
-        const siteIds = companySites.map(s => s.id);
-        const summaries = await storage.getModuleSummariesForSites(siteIds);
+        // Return data for all assigned sites
+        const summaries = await storage.getModuleSummariesForSites(assignedSiteIds);
         res.json(summaries);
         return;
       }
@@ -3719,7 +3709,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -3727,6 +3717,9 @@ export async function registerRoutes(
       if (address !== undefined) updates.address = address || null;
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
+      if (contactUserId !== undefined) updates.contactUserId = contactUserId || null;
+      if (contactName !== undefined) updates.contactName = contactName || null;
+      if (contactPosition !== undefined) updates.contactPosition = contactPosition || null;
       if (status !== undefined) updates.status = status;
       if (addressLine1 !== undefined) updates.addressLine1 = addressLine1 || null;
       if (addressLine2 !== undefined) updates.addressLine2 = addressLine2 || null;
@@ -3739,6 +3732,31 @@ export async function registerRoutes(
       
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Auto-assign primary contact user to all company sites
+      if (contactUserId) {
+        const contactUser = await storage.getUser(contactUserId);
+        if (contactUser && contactUser.role === "client" && contactUser.companyId === req.params.id) {
+          const companySites = await storage.getSitesByCompanyId(req.params.id);
+          for (const site of companySites) {
+            await storage.assignClientToSite({
+              clientId: contactUserId,
+              siteId: site.id,
+              assignedBy: user.id,
+            });
+          }
+          
+          await storage.createAuditLog({
+            action: "primary_contact_auto_assigned",
+            entityType: "company",
+            entityId: req.params.id,
+            userId: user.id,
+            userName: user.fullName,
+            details: `Primary contact ${contactUser.fullName} auto-assigned to all ${companySites.length} company sites`,
+            metadata: { contactUserId, siteCount: companySites.length },
+          });
+        }
       }
       
       res.json(company);
@@ -3859,22 +3877,13 @@ export async function registerRoutes(
         return;
       }
       
-      // Client sees only their assigned sites, or all company sites if no specific assignments
+      // Client sees only their explicitly assigned sites
       if (user.role === "client" && user.companyId) {
         const clientSiteAssignments = await storage.getClientSites(user.id);
-        
-        if (clientSiteAssignments.length > 0) {
-          // Client has specific site assignments - only show those sites
-          const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
-          const filteredSites = allSites.filter(site => 
-            site.companyId === user.companyId && assignedSiteIds.has(site.id)
-          );
-          res.json(filteredSites);
-          return;
-        }
-        
-        // No specific assignments - show all sites in company
-        const filteredSites = allSites.filter(site => site.companyId === user.companyId);
+        const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+        const filteredSites = allSites.filter(site => 
+          site.companyId === user.companyId && assignedSiteIds.has(site.id)
+        );
         res.json(filteredSites);
         return;
       }
@@ -3917,6 +3926,29 @@ export async function registerRoutes(
         siteManager: siteManager || null,
         contactPhone: contactPhone || null,
       });
+      
+      // Auto-assign the company's primary contact to the new site
+      const company = await storage.getCompany(companyId);
+      if (company && company.contactUserId) {
+        const primaryContact = await storage.getUser(company.contactUserId);
+        if (primaryContact && primaryContact.role === "client" && primaryContact.companyId === companyId) {
+          await storage.assignClientToSite({
+            clientId: primaryContact.id,
+            siteId: entity.id,
+            assignedBy: user.id,
+          });
+          
+          await storage.createAuditLog({
+            action: "primary_contact_auto_assigned",
+            entityType: "site",
+            entityId: entity.id,
+            userId: user.id,
+            userName: user.fullName,
+            details: `Primary contact ${primaryContact.fullName} auto-assigned to new site ${entity.name}`,
+            metadata: { contactUserId: primaryContact.id, siteId: entity.id },
+          });
+        }
+      }
       
       res.status(201).json(entity);
     } catch (error) {
@@ -4045,19 +4077,13 @@ export async function registerRoutes(
           requests = requests.filter(r => r.siteId === siteId);
         }
       } else {
-        // Clients see only their own requests from their accessible sites
+        // Clients see only their own requests from their explicitly assigned sites
         const clientSites = await storage.getClientSites(user.id);
-        if (clientSites.length > 0) {
-          // Client has specific site assignments
-          const assignedSiteIds = clientSites.map(a => a.siteId);
-          requests = requests.filter(r => r.createdBy === user.id && assignedSiteIds.includes(r.siteId));
-        } else if (user.companyId) {
-          // Client can access all sites in their company
-          const companySites = await storage.getSites();
-          const siteIds = companySites.filter(s => s.companyId === user.companyId).map(s => s.id);
-          requests = requests.filter(r => r.createdBy === user.id && siteIds.includes(r.siteId));
+        const assignedSiteIds = clientSites.map(a => a.siteId);
+        if (assignedSiteIds.length === 0) {
+          requests = [];
         } else {
-          requests = requests.filter(r => r.createdBy === user.id);
+          requests = requests.filter(r => r.createdBy === user.id && assignedSiteIds.includes(r.siteId));
         }
         // Apply site filter for clients
         if (siteId) {
