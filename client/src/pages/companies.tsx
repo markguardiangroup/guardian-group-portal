@@ -166,6 +166,7 @@ export default function Companies() {
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
+    website: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -282,6 +283,7 @@ export default function Companies() {
     setFormData({
       name: "",
       companyNumber: "",
+      website: "",
       addressLine1: "",
       addressLine2: "",
       city: "",
@@ -295,6 +297,7 @@ export default function Companies() {
     setFormData({
       name: company.name,
       companyNumber: company.companyNumber || "",
+      website: company.website || "",
       addressLine1: company.addressLine1 || "",
       addressLine2: company.addressLine2 || "",
       city: company.city || "",
@@ -635,6 +638,16 @@ export default function Companies() {
                 value={formData.companyNumber}
                 onChange={(e) => setFormData({ ...formData, companyNumber: e.target.value })}
                 data-testid="input-company-number"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="company-website">Website</Label>
+              <Input
+                id="company-website"
+                placeholder="e.g., https://www.example.com"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                data-testid="input-company-website"
               />
             </div>
 
