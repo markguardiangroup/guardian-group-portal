@@ -3651,7 +3651,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can create companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -3664,6 +3664,7 @@ export async function registerRoutes(
       const company = await storage.createCompany({
         name: name.trim(),
         companyNumber: companyNumber || null,
+        website: website || null,
         address: address || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
@@ -3709,11 +3710,12 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update companies" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
       if (companyNumber !== undefined) updates.companyNumber = companyNumber || null;
+      if (website !== undefined) updates.website = website || null;
       if (address !== undefined) updates.address = address || null;
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
