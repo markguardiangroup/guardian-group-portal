@@ -3901,7 +3901,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -3920,6 +3920,7 @@ export async function registerRoutes(
       if (county !== undefined) updates.county = county || null;
       if (postalCode !== undefined) updates.postalCode = postalCode || null;
       if (country !== undefined) updates.country = country || null;
+      if (searchTag !== undefined) updates.searchTag = searchTag || null;
       
       const company = await storage.updateCompany(req.params.id, updates);
       

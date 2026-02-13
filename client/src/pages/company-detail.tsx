@@ -684,6 +684,9 @@ export default function CompanyDetail() {
               {company.companyNumber && (
                 <p className="text-sm text-muted-foreground">Company No: {company.companyNumber}</p>
               )}
+              {company.searchTag && (isAdmin || user?.role === "consultant") && (
+                <p className="text-sm text-muted-foreground">Search Tag: {company.searchTag}</p>
+              )}
             </div>
           </div>
         </div>
