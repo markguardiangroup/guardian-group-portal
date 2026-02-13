@@ -140,7 +140,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   
   const config = moduleConfig[module];
-  const basePath = module === "health_safety" ? "/health-safety" : "/human-resources";
+  const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
@@ -532,10 +532,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             {data?.recentDocuments && data.recentDocuments.length > 0 ? (
               <div className="space-y-3">
                 {data.recentDocuments.map((doc) => (
-                  <div
+                  <Link
                     key={doc.id}
+                    href={`${basePath}/documents/${doc.id}`}
                     className="flex items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-                    data-testid={`card-document-${doc.id}`}
+                    data-testid={`link-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
@@ -552,7 +553,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ApprovalBadge status={doc.approvalStatus} />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
