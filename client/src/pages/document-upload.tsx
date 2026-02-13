@@ -37,6 +37,7 @@ import {
   Calendar,
   BookOpen,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "wouter";
 import type { Site, ModuleType } from "@shared/schema";
@@ -153,6 +154,35 @@ export default function DocumentUpload() {
   const filteredSites = sites?.filter(site => 
     selectedCompany && site.companyName === selectedCompany
   );
+
+  const selectedCompanyId = selectedCompany
+    ? sites?.find(s => s.companyName === selectedCompany)?.companyId || ""
+    : "";
+
+  interface UserWithAssignments {
+    id: string;
+    fullName: string;
+    role: string;
+    companyId?: string | null;
+    siteAssignments?: { siteId: string; siteName: string }[];
+  }
+
+  const { data: allUsers } = useQuery<UserWithAssignments[]>({
+    queryKey: ["/api/users"],
+    enabled: isAdminOrConsultant,
+  });
+
+  const companyClientUsers = allUsers?.filter(
+    u => u.role === "client" && u.companyId === selectedCompanyId
+  ) || [];
+
+  const companySiteIds = filteredSites?.map(s => s.id) || [];
+  const companyConsultantUsers = allUsers?.filter(
+    u => u.role === "consultant" && u.siteAssignments?.some(a => companySiteIds.includes(a.siteId))
+  ) || [];
+
+  const hasNoClients = selectedCompany && companyClientUsers.length === 0;
+  const hasNoConsultants = selectedCompany && companyConsultantUsers.length === 0;
 
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({
@@ -554,6 +584,33 @@ export default function DocumentUpload() {
                       )}
                     />
                   </div>
+
+                  {isAdminOrConsultant && selectedCompany && (hasNoClients || hasNoConsultants) && (
+                    <div className="space-y-2">
+                      {hasNoClients && (
+                        <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-no-clients">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">No client users assigned</p>
+                            <p className="text-sm text-muted-foreground">
+                              There are no client users assigned to {selectedCompany}. Documents uploaded will not be visible to any client users until they are assigned to this company.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {hasNoConsultants && (
+                        <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-no-consultants">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">No consultant users assigned</p>
+                            <p className="text-sm text-muted-foreground">
+                              There are no consultants assigned to sites in {selectedCompany}. Document approvals and reviews will not be possible until a consultant is assigned.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {uploadScope === "site" && (
                     <FormField
