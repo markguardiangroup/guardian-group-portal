@@ -1814,15 +1814,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <Download className="mr-2 h-4 w-4" />
                 Download Current (v{document.version})
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start" 
-                data-testid="button-upload-version"
-                onClick={() => setShowUploadVersionDialog(true)}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload New Version
-              </Button>
+              {!(user?.role === "client" && (document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off" || document.approvalStatus === "approved")) && (
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start" 
+                  data-testid="button-upload-version"
+                  onClick={() => setShowUploadVersionDialog(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload New Version
+                </Button>
+              )}
               {isPrivilegedUser && (
                 document.isArchived ? (
                   <Button 
