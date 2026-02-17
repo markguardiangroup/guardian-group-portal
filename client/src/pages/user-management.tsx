@@ -204,14 +204,23 @@ export default function UserManagement() {
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
     const cleanLast = lastName.toLowerCase().replace(/[^a-z]/g, '');
+    let base = '';
     if (cleanFirst && cleanLast) {
-      return `${cleanFirst}.${cleanLast}`;
+      base = `${cleanFirst}.${cleanLast}`;
     } else if (cleanFirst) {
-      return cleanFirst;
+      base = cleanFirst;
     } else if (cleanLast) {
-      return cleanLast;
+      base = cleanLast;
+    } else {
+      return '';
     }
-    return '';
+    const existingUsernames = new Set(allUsers.map(u => u.username?.toLowerCase()));
+    if (!existingUsernames.has(base)) return base;
+    let counter = 2;
+    while (existingUsernames.has(`${base}${counter}`)) {
+      counter++;
+    }
+    return `${base}${counter}`;
   };
 
   const isAdmin = user?.role === "admin";
