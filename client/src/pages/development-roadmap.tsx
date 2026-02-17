@@ -46,6 +46,7 @@ import {
   Sparkles,
   Target,
   Bug,
+  Search,
   ArrowUp,
   ArrowRight,
   ArrowDown,
@@ -105,6 +106,7 @@ export default function DevelopmentRoadmap() {
   const [editingItem, setEditingItem] = useState<RoadmapItem | null>(null);
   const [viewingItem, setViewingItem] = useState<RoadmapItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
     queryKey: ["/api/roadmap"],
@@ -163,9 +165,15 @@ export default function DevelopmentRoadmap() {
     return null;
   }
 
-  const filteredItems = filterStatus === "all" 
-    ? roadmapItems 
-    : roadmapItems.filter(item => item.status === filterStatus);
+  const filteredItems = roadmapItems.filter(item => {
+    const matchesStatus = filterStatus === "all" || item.status === filterStatus;
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = !query || 
+      item.title.toLowerCase().includes(query) || 
+      (item.description && item.description.toLowerCase().includes(query)) ||
+      (item.category && item.category.toLowerCase().includes(query));
+    return matchesStatus && matchesSearch;
+  });
 
   const groupedItems = {
     idea: sortByPriority(filteredItems.filter(i => i.status === "idea")),
@@ -184,7 +192,17 @@ export default function DevelopmentRoadmap() {
               Track and manage future development ideas and features
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search roadmap..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-[200px]"
+                data-testid="input-search-roadmap"
+              />
+            </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[160px]" data-testid="select-filter-status">
                 <SelectValue placeholder="Filter by status" />
