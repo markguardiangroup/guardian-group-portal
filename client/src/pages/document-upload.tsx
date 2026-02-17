@@ -284,18 +284,35 @@ export default function DocumentUpload() {
 
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
+      if (!selectedFile) {
+        throw new Error("No file selected");
+      }
+
+      const uploadResponse = await fetch("/api/uploads/file", {
+        method: "POST",
+        headers: {
+          "Content-Type": selectedFile.type || "application/octet-stream",
+          "x-file-name": encodeURIComponent(selectedFile.name),
+        },
+        body: selectedFile,
+        credentials: "include",
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file to storage");
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileUrl = uploadResult.objectPath;
       
       if (data.uploadScope === "company" && selectedCompany) {
-        // Upload to all sites in the company
         const companySites = sites?.filter(s => s.companyName === selectedCompany) || [];
         const results = [];
         
-        // Find the selected folder name from the reference site's folders
         const selectedFolder = moduleFolders.find(f => f.id === data.folderId);
         const selectedFolderName = selectedFolder?.name || "";
         
         for (const site of companySites) {
-          // Provision folders for this site using plain fetch (not React mutation)
           try {
             await fetch("/api/folders/provision", {
               method: "POST",
@@ -307,7 +324,6 @@ export default function DocumentUpload() {
             console.error(`Failed to provision folders for site ${site.id}:`, e);
           }
           
-          // Fetch this site's folders and find the matching one by name
           let siteFolderId = data.folderId;
           try {
             const foldersRes = await fetch(`/api/folders?siteId=${site.id}`, { credentials: "include" });
@@ -332,16 +348,16 @@ export default function DocumentUpload() {
             reviewDate: data.reviewDate,
             expiryDate: data.expiryDate,
             type: "supporting_document",
-            fileName: selectedFile?.name || "document.pdf",
-            fileSize: selectedFile?.size || 0,
-            mimeType: selectedFile?.type || "application/pdf",
+            fileName: selectedFile.name,
+            fileUrl,
+            fileSize: selectedFile.size,
+            mimeType: selectedFile.type || "application/pdf",
           };
           const result = await apiRequest("POST", "/api/documents", formData);
           results.push(result);
         }
         return results;
       } else {
-        // Upload to single site
         const formData = {
           title: data.title,
           description: data.description,
@@ -352,9 +368,10 @@ export default function DocumentUpload() {
           reviewDate: data.reviewDate,
           expiryDate: data.expiryDate,
           type: "supporting_document",
-          fileName: selectedFile?.name || "document.pdf",
-          fileSize: selectedFile?.size || 0,
-          mimeType: selectedFile?.type || "application/pdf",
+          fileName: selectedFile.name,
+          fileUrl,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type || "application/pdf",
           notifyUserIds: data.requiresApproval ? selectedNotifyUsers : [],
         };
         return apiRequest("POST", "/api/documents", formData);

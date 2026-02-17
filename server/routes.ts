@@ -1343,7 +1343,6 @@ export async function registerRoutes(
       let mimeType = document.mimeType;
 
       if (requestedVersion && requestedVersion !== document.version) {
-        // Get the specific version from history
         const versions = await storage.getDocumentVersions(req.params.id);
         const versionInfo = versions.find(v => v.version === requestedVersion);
         if (!versionInfo) {
@@ -1354,7 +1353,10 @@ export async function registerRoutes(
         mimeType = versionInfo.mimeType;
       }
 
-      // Log document download
+      if (!fileUrl) {
+        return res.status(404).json({ error: "File not available - this document was uploaded before file storage was enabled. Please re-upload the document." });
+      }
+
       await storage.createAuditLog({
         action: "document_downloaded",
         userId: user.id,
@@ -1367,13 +1369,10 @@ export async function registerRoutes(
         metadata: null,
       });
 
-      // Get the file from object storage using the ObjectStorageService
       const objectStorageService = new ObjectStorageService();
       
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
-        
-        // Download the file to the response with the proper filename
         await objectStorageService.downloadObject(objectFile, res, 0, fileName);
       } catch (storageError: any) {
         if (storageError.name === 'ObjectNotFoundError') {
@@ -1384,6 +1383,70 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Document download error:", error);
       res.status(500).json({ error: "Failed to download document" });
+    }
+  });
+
+  app.get("/api/documents/:id/preview", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      const canAccess = await canUserAccessSite(user, document.siteId);
+      if (!canAccess) {
+        return res.status(403).json({ error: "Access denied to this document" });
+      }
+
+      const requestedVersion = req.query.version ? parseInt(req.query.version as string) : null;
+      let fileUrl = document.fileUrl;
+      let fileName = document.fileName;
+      let mimeType = document.mimeType;
+
+      if (requestedVersion && requestedVersion !== document.version) {
+        const versions = await storage.getDocumentVersions(req.params.id);
+        const versionInfo = versions.find(v => v.version === requestedVersion);
+        if (!versionInfo) {
+          return res.status(404).json({ error: "Version not found" });
+        }
+        fileUrl = versionInfo.fileUrl;
+        fileName = versionInfo.fileName;
+        mimeType = versionInfo.mimeType;
+      }
+
+      if (!fileUrl) {
+        return res.status(404).json({ error: "File not available - this document was uploaded before file storage was enabled." });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      
+      try {
+        const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+        
+        res.setHeader("Content-Type", mimeType || "application/octet-stream");
+        res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
+        
+        const [metadata] = await objectFile.getMetadata();
+        if (metadata.size) {
+          res.setHeader("Content-Length", metadata.size.toString());
+        }
+        
+        const readStream = objectFile.createReadStream();
+        readStream.pipe(res);
+      } catch (storageError: any) {
+        if (storageError.name === 'ObjectNotFoundError') {
+          return res.status(404).json({ error: "File not found in storage" });
+        }
+        throw storageError;
+      }
+    } catch (error) {
+      console.error("Document preview error:", error);
+      res.status(500).json({ error: "Failed to preview document" });
     }
   });
 

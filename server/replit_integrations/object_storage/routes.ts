@@ -23,6 +23,11 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.post("/api/uploads/file", async (req, res) => {
     try {
+      const sessionUserId = (req.session as any)?.userId;
+      if (!sessionUserId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const rawFileName = req.headers["x-file-name"] as string;
       const contentType = req.headers["content-type"] || "application/octet-stream";
       

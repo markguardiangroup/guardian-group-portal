@@ -1060,7 +1060,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               View Details
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => downloadDocument(doc.id, doc.fileName)}>
+                          <DropdownMenuItem onClick={() => {
+                            if (!doc.fileUrl) {
+                              toast({ title: "File not available", description: "This document needs to be re-uploaded.", variant: "destructive" });
+                              return;
+                            }
+                            downloadDocument(doc.id, doc.fileName);
+                          }}>
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
@@ -1134,6 +1140,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState<number | null>(null);
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
@@ -1785,11 +1793,31 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              {document.fileUrl && (
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start" 
+                  data-testid="button-preview"
+                  onClick={() => {
+                    setPreviewVersion(null);
+                    setShowPreviewDialog(true);
+                  }}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Document (v{document.version})
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 className="w-full justify-start" 
                 data-testid="button-download"
-                onClick={() => downloadDocument(id, document.fileName)}
+                onClick={() => {
+                  if (!document.fileUrl) {
+                    toast({ title: "File not available", description: "This document was uploaded before file storage was enabled. Please re-upload the document.", variant: "destructive" });
+                    return;
+                  }
+                  downloadDocument(id, document.fileName);
+                }}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download Current (v{document.version})
@@ -2017,6 +2045,78 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               {archiveMutation.isPending ? "Archiving..." : "Archive Document"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              {document?.title}
+              {previewVersion ? ` (v${previewVersion})` : ` (v${document?.version})`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {document && (
+              (() => {
+                const mimeType = document.mimeType || "";
+                const previewUrl = previewVersion
+                  ? `/api/documents/${id}/preview?version=${previewVersion}`
+                  : `/api/documents/${id}/preview`;
+                
+                if (mimeType === "application/pdf") {
+                  return (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full rounded-md border"
+                      title={document.title}
+                      data-testid="preview-iframe"
+                    />
+                  );
+                }
+                
+                if (mimeType.startsWith("image/")) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center overflow-auto">
+                      <img
+                        src={previewUrl}
+                        alt={document.title}
+                        className="max-w-full max-h-full object-contain"
+                        data-testid="preview-image"
+                      />
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center gap-4">
+                    <FileText className="h-16 w-16 text-muted-foreground" />
+                    <div>
+                      <p className="text-lg font-medium">Preview not available for this file type</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {document.fileName} ({mimeType || "unknown type"})
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Please download the file to view it.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        downloadDocument(id, document.fileName, previewVersion || undefined);
+                        setShowPreviewDialog(false);
+                      }}
+                      data-testid="button-download-from-preview"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                );
+              })()
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
