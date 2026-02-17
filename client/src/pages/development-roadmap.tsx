@@ -135,7 +135,11 @@ export default function DevelopmentRoadmap() {
       setEditingItem(null);
       try {
         const updated = await response.json();
-        setViewingItem(updated);
+        if (updated.status === "completed") {
+          setViewingItem(null);
+        } else {
+          setViewingItem(updated);
+        }
       } catch {
         setViewingItem(null);
       }
