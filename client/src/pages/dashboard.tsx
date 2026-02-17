@@ -28,7 +28,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { format } from "date-fns";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
@@ -596,7 +596,8 @@ function LockedModuleCard({ moduleName, module }: {
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const [, navigate] = useLocation();
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -920,10 +921,17 @@ export default function Dashboard() {
                     : "Support";
                   
                   return (
-                    <Link 
+                    <div 
                       key={doc.id} 
-                      href={`${modulePath}/documents/${doc.id}`}
-                      className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
+                      onClick={() => {
+                        const docSite = sites?.find(s => s.id === doc.siteId);
+                        if (docSite) {
+                          setSelectedCompany(docSite.companyName || null);
+                          setSelectedSiteId(docSite.id);
+                        }
+                        navigate(`${modulePath}/documents/${doc.id}`);
+                      }}
+                      className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2 cursor-pointer"
                       data-testid={`link-overview-renewal-doc-${doc.id}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -949,7 +957,7 @@ export default function Dashboard() {
                           ? `${Math.abs(daysUntilRenewal)}d overdue` 
                           : `${daysUntilRenewal}d remaining`}
                       </span>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>
