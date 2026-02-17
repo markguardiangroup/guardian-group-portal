@@ -2214,7 +2214,10 @@ function EmploymentLawDashboardView() {
                         <div>
                           <p className="text-sm font-medium" data-testid={`text-document-title-${doc.id}`}>{doc.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {sites?.find(s => s.id === doc.siteId)?.name || "Site"} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                            {(() => {
+                              const docSite = sites?.find(s => s.id === doc.siteId);
+                              return docSite ? `${docSite.companyName} - ${docSite.name}` : "Site";
+                            })()} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>

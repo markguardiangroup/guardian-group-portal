@@ -941,6 +941,12 @@ export default function Dashboard() {
                             <p className="truncate text-sm font-medium">{doc.title}</p>
                             <Badge variant="secondary" className={`text-xs shrink-0 ${moduleBadgeClass}`}>{moduleLabel}</Badge>
                           </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(() => {
+                              const docSite = sites?.find(s => s.id === doc.siteId);
+                              return docSite ? `${docSite.companyName} - ${docSite.name}` : null;
+                            })()}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
                           </p>

@@ -541,6 +541,12 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {(() => {
+                            const docSite = sites?.find(s => s.id === doc.siteId);
+                            return docSite ? `${docSite.companyName} - ${docSite.name}` : null;
+                          })()}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           v{doc.version} - {getDocTypeLabel(doc.type)}
                         </p>
