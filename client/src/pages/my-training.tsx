@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -56,8 +57,7 @@ export default function MyTraining() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
   const [viewDialog, setViewDialog] = useState<TrainingBookingWithDetails | null>(null);
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
@@ -84,16 +84,6 @@ export default function MyTraining() {
     }
     return sites;
   }, [sites, selectedCompany]);
-
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
 
   const bookingsWithDetails: TrainingBookingWithDetails[] = useMemo(() => {
     return trainingBookings.map(booking => ({

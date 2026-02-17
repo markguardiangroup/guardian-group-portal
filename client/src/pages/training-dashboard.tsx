@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,10 +90,13 @@ export default function TrainingDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const companyFilter = selectedCompany || "all";
+  const siteFilter = selectedSiteId || "all";
+  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
   
   const [bookingDialog, setBookingDialog] = useState(false);
@@ -137,10 +141,8 @@ export default function TrainingDashboard() {
     return sites.filter(s => s.companyId === companyFilter);
   }, [sites, companyFilter]);
 
-  // Reset site filter when company changes
   const handleCompanyFilterChange = (value: string) => {
     setCompanyFilter(value);
-    setSiteFilter("all");
   };
 
   const bookingsWithDetails: TrainingBookingWithDetails[] = useMemo(() => {
@@ -432,7 +434,6 @@ export default function TrainingDashboard() {
             size="sm"
             onClick={() => {
               setCompanyFilter("all");
-              setSiteFilter("all");
             }}
             data-testid="button-clear-filters"
           >

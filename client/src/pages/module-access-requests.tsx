@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, Fragment } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow, format, differenceInDays } from "date-fns";
@@ -172,10 +173,13 @@ export default function ModuleAccessRequests() {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const companyFilter = selectedCompany || "all";
+  const siteFilter = selectedSiteId || "all";
+  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
@@ -553,7 +557,6 @@ export default function ModuleAccessRequests() {
           value={companyFilter} 
           onValueChange={(v) => { 
             setCompanyFilter(v); 
-            setSiteFilter("all"); 
             setCurrentPage(1); 
           }}
         >

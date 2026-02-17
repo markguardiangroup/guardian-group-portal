@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -697,10 +698,13 @@ function SupportRequestCard({ request, sites, canRespond }: { request: SupportRe
 
 export default function Support() {
   const { user } = useAuth();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const companyFilter = selectedCompany || "all";
+  const siteFilter = selectedSiteId || "all";
+  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [siteFilter, setSiteFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
@@ -785,7 +789,7 @@ export default function Support() {
             <span className="text-sm font-medium">Filters:</span>
           </div>
           {user?.role === "admin" && companies.length > 0 && (
-            <Select value={companyFilter} onValueChange={(val) => { setCompanyFilter(val); setSiteFilter("all"); }}>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="w-48" data-testid="filter-company">
                 <Building2 className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="All Companies" />

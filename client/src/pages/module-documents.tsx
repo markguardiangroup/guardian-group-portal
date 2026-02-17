@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -222,8 +223,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  useEffect(() => {
+    if (urlCompany) handleCompanyChange(urlCompany);
+    if (urlSiteId) setSelectedSiteId(urlSiteId);
+  }, [urlSiteId, urlCompany]);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
   const [showArchived, setShowArchived] = useState(false);
   
@@ -308,18 +312,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return clientSites.filter(s => s.companyName === selectedCompany);
   }, [clientSites, selectedCompany]);
   
-  // Handle company selection - only clear site if not in new company
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    // Only clear site if the current site is not in the new company
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites?.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
-
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: showArchived 
       ? [`/api/documents/module/${module}?includeArchived=true`]

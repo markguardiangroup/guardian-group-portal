@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -137,10 +138,12 @@ const roleLabels: Record<UserRole, string> = {
 export default function UserManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { selectedCompany, handleCompanyChange } = useSiteFilter();
+  const companyFilter = selectedCompany || "all";
+  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);

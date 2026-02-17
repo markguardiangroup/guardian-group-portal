@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -194,8 +195,11 @@ function TrendChart({ data }: { data: { month: string; score: number }[] }) {
 }
 
 export default function Reports() {
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [siteFilter, setSiteFilter] = useState<string>("all");
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const companyFilter = selectedCompany || "all";
+  const siteFilter = selectedSiteId || "all";
+  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
   const [periodFilter, setPeriodFilter] = useState<string>("all");
 
   // Build query params for filtering
@@ -226,11 +230,6 @@ export default function Reports() {
   const filteredSites = companyFilter === "all" 
     ? allSites 
     : allSites.filter(site => site.companyId === companyFilter);
-
-  const handleCompanyChange = (value: string) => {
-    setCompanyFilter(value);
-    setSiteFilter("all");
-  };
 
   if (isLoading) {
     return (
@@ -282,7 +281,7 @@ export default function Reports() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Select value={companyFilter} onValueChange={handleCompanyChange}>
+        <Select value={companyFilter} onValueChange={setCompanyFilter}>
           <SelectTrigger className="w-48" data-testid="select-company-filter">
             <Building2 className="mr-2 h-4 w-4" />
             <SelectValue placeholder="All Companies" />

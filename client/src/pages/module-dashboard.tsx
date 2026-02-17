@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import type { ComplianceSummary, Document, AuditLog, ModuleType } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 
@@ -137,8 +138,7 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
   
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
@@ -162,18 +162,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     if (!selectedCompany || selectedCompany === "all") return sites;
     return sites.filter(s => s.companyName === selectedCompany);
   }, [sites, selectedCompany]);
-  
-  // Handle company selection - only clear site if not in new company
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    // Only clear site if the current site is not in the new company
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites?.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
   
   // Determine which site(s) to show data for
   // Clients can now filter by site if they have multiple sites

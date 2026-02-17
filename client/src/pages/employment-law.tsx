@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -147,8 +148,11 @@ function CasesList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(urlSiteId);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(urlCompany);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  useEffect(() => {
+    if (urlCompany) handleCompanyChange(urlCompany);
+    if (urlSiteId) setSelectedSiteId(urlSiteId);
+  }, [urlSiteId, urlCompany]);
   const [showArchived, setShowArchived] = useState(false);
   const [caseToArchive, setCaseToArchive] = useState<Case | null>(null);
   const { user } = useAuth();
@@ -183,17 +187,6 @@ function CasesList() {
     const companySite = sites.find(s => s.companyName === selectedCompany);
     return companySite?.companyId || null;
   }, [sites, selectedCompany]);
-  
-  // Handle company selection
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites?.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
   
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
@@ -1789,8 +1782,7 @@ function ELComplianceScoreCard({ score }: { score: number }) {
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -1822,17 +1814,6 @@ function EmploymentLawDashboardView() {
     const companySite = sites.find(s => s.companyName === selectedCompany);
     return companySite?.companyId || null;
   }, [sites, selectedCompany]);
-  
-  // Handle company selection
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites?.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
   
   // Build current context label
   const currentContextLabel = useMemo(() => {

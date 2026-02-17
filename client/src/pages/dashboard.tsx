@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import { Link } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking, Case } from "@shared/schema";
 
 interface DashboardData {
@@ -595,8 +596,7 @@ function LockedModuleCard({ moduleName, module }: {
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -624,17 +624,6 @@ export default function Dashboard() {
   
   // Create stable string key for company site IDs (avoid nested arrays in query keys)
   const companySiteIdsKey = companySiteIds?.join(",") || null;
-  
-  // Handle company selection - preserve site if it belongs to new company
-  const handleCompanyChange = (company: string | null) => {
-    setSelectedCompany(company);
-    if (selectedSiteId && company && company !== "all") {
-      const currentSite = sites?.find(s => s.id === selectedSiteId);
-      if (currentSite?.companyName !== company) {
-        setSelectedSiteId(null);
-      }
-    }
-  };
   
   // Determine which site to show data for
   // "all" or null means show data across all accessible sites
