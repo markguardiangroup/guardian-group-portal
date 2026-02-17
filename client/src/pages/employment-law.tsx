@@ -1782,7 +1782,8 @@ function ELComplianceScoreCard({ score }: { score: number }) {
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const [, navigate] = useLocation();
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -2195,10 +2196,17 @@ function EmploymentLawDashboardView() {
               ) : (
                 <div className="space-y-3">
                   {recentDocs.map((doc) => (
-                    <Link
+                    <div
                       key={doc.id}
-                      href={`/employment-law/documents/${doc.id}`}
-                      className="flex items-center justify-between rounded-lg border p-3 hover-elevate"
+                      onClick={() => {
+                        const docSite = sites?.find(s => s.id === doc.siteId);
+                        if (docSite) {
+                          setSelectedCompany(docSite.companyName || null);
+                          setSelectedSiteId(docSite.id);
+                        }
+                        navigate(`/employment-law/documents/${doc.id}`);
+                      }}
+                      className="flex items-center justify-between rounded-lg border p-3 hover-elevate cursor-pointer"
                       data-testid={`link-document-${doc.id}`}
                     >
                       <div className="flex items-center gap-3">
@@ -2217,7 +2225,7 @@ function EmploymentLawDashboardView() {
                       >
                         {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review" : "Overdue"}
                       </Badge>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}

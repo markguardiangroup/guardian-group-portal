@@ -18,7 +18,7 @@ import {
   Users,
   Building2,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
@@ -138,7 +138,8 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const [, navigate] = useLocation();
   
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
@@ -521,10 +522,17 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             {data?.recentDocuments && data.recentDocuments.length > 0 ? (
               <div className="space-y-3">
                 {data.recentDocuments.map((doc) => (
-                  <Link
+                  <div
                     key={doc.id}
-                    href={`${basePath}/documents/${doc.id}`}
-                    className="flex items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                    onClick={() => {
+                      const docSite = sites?.find(s => s.id === doc.siteId);
+                      if (docSite) {
+                        setSelectedCompany(docSite.companyName || null);
+                        setSelectedSiteId(docSite.id);
+                      }
+                      navigate(`${basePath}/documents/${doc.id}`);
+                    }}
+                    className="flex items-center justify-between gap-4 rounded-md border p-4 hover-elevate cursor-pointer"
                     data-testid={`link-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -542,7 +550,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ApprovalBadge status={doc.approvalStatus} />
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (
