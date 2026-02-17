@@ -707,11 +707,7 @@ export default function Dashboard() {
   // Build current context label
   const currentContextLabel = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
-      const site = sites?.find(s => s.id === selectedSiteId);
-      if (site) {
-        return `${site.companyName} - ${site.name}`;
-      }
-      return null;
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (isPrivilegedUser) {
       if (selectedCompany && selectedCompany !== "all") {
@@ -719,6 +715,7 @@ export default function Dashboard() {
       }
       return "All Clients";
     }
+    // For clients with multiple sites showing "all"
     if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }

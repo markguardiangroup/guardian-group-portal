@@ -255,11 +255,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // Build context description for display
   const currentContextName = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
-      const site = sites?.find((s) => s.id === selectedSiteId);
-      if (site) {
-        return `${site.companyName} - ${site.name}`;
-      }
-      return null;
+      return sites?.find((s) => s.id === selectedSiteId)?.name || null;
     }
     if (isPrivilegedUser) {
       if (selectedCompany && selectedCompany !== "all") {
@@ -267,6 +263,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       }
       return "All Clients";
     }
+    // For clients with multiple sites showing "all"
     if (clientHasSites && !selectedSiteId) {
       return "All Sites";
     }
@@ -544,16 +541,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium">{doc.title}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                          <p className="text-sm text-muted-foreground font-medium truncate">
-                            {(() => {
-                              const docSite = sites?.find(s => s.id === doc.siteId);
-                              return docSite ? `${docSite.companyName} - ${docSite.name}` : "";
-                            })()}
-                          </p>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           v{doc.version} - {getDocTypeLabel(doc.type)}
                         </p>
                       </div>

@@ -243,11 +243,7 @@ function CasesList() {
   // Build current context label
   const currentContextLabel = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
-      const site = sites?.find(s => s.id === selectedSiteId);
-      if (site) {
-        return `${site.companyName} - ${site.name}`;
-      }
-      return null;
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (isPrivilegedUser) {
       if (selectedCompany && selectedCompany !== "all") {
@@ -1823,11 +1819,7 @@ function EmploymentLawDashboardView() {
   // Build current context label
   const currentContextLabel = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
-      const site = sites?.find(s => s.id === selectedSiteId);
-      if (site) {
-        return `${site.companyName} - ${site.name}`;
-      }
-      return null;
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (isPrivilegedUser) {
       if (selectedCompany && selectedCompany !== "all") {
@@ -2221,17 +2213,8 @@ function EmploymentLawDashboardView() {
                         <FileText className="h-4 w-4 text-pink-600" />
                         <div>
                           <p className="text-sm font-medium" data-testid={`text-document-title-${doc.id}`}>{doc.title}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <p className="text-sm text-muted-foreground font-medium truncate">
-                              {(() => {
-                                const docSite = sites?.find(s => s.id === doc.siteId);
-                                return docSite ? `${docSite.companyName} - ${docSite.name}` : "Site";
-                              })()}
-                            </p>
-                          </div>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                            {sites?.find(s => s.id === doc.siteId)?.name || "Site"} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>
