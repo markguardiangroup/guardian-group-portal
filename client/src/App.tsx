@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ModuleDashboard from "@/pages/module-dashboard";
@@ -137,8 +138,11 @@ function AuthenticatedApp() {
       <div className="flex h-screen w-full">
         <AppSidebar user={user} />
         <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b px-4">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <BreadcrumbNav />
+            </div>
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-auto">
