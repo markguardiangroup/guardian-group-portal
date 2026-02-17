@@ -2213,8 +2213,11 @@ function EmploymentLawDashboardView() {
                         <FileText className="h-4 w-4 text-pink-600" />
                         <div>
                           <p className="text-sm font-medium" data-testid={`text-document-title-${doc.id}`}>{doc.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {sites?.find(s => s.id === doc.siteId)?.name || "Site"} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(() => {
+                              const docSite = sites?.find(s => s.id === doc.siteId);
+                              return docSite ? `${docSite.companyName} - ${docSite.name}` : "Site";
+                            })()} - {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>
