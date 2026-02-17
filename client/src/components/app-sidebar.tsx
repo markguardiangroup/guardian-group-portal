@@ -478,9 +478,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   {user.companyName}
                 </span>
               )}
-              <span className="truncate text-xs text-muted-foreground leading-tight" data-testid="text-user-role">
-                {user ? roleLabels[user.role] : "Not logged in"}
-              </span>
+              {user?.role !== "client" && (
+                <span className="truncate text-xs text-muted-foreground leading-tight" data-testid="text-user-role">
+                  {user ? roleLabels[user.role] : "Not logged in"}
+                </span>
+              )}
             </div>
             <button
               type="button"
