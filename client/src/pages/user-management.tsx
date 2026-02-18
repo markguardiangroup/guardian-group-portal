@@ -745,8 +745,8 @@ export default function UserManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead className="min-w-[160px]">Company</TableHead>
+                <TableHead className="w-24">Role</TableHead>
                 <TableHead>Sites Assigned</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-12"></TableHead>
@@ -848,8 +848,8 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Company</TableHead>
+              <TableHead className="w-24">Role</TableHead>
+              <TableHead className="min-w-[160px]">Company</TableHead>
               <TableHead>Sites Assigned</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12"></TableHead>
