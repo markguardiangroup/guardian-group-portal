@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -172,6 +173,7 @@ export default function DocumentUpload() {
     id: string;
     fullName: string;
     role: string;
+    status: string;
     companyId?: string | null;
     siteAssignments?: { siteId: string; siteName: string }[];
   }
@@ -804,25 +806,34 @@ export default function DocumentUpload() {
                       </p>
                       {siteClientUsers.length > 0 ? (
                         <div className="space-y-2 pt-1">
-                          {siteClientUsers.map((clientUser) => (
-                            <div key={clientUser.id} className="flex items-center gap-3 rounded-md border p-3">
-                              <Checkbox
-                                id={`notify-${clientUser.id}`}
-                                checked={selectedNotifyUsers.includes(clientUser.id)}
-                                onCheckedChange={(checked) => {
-                                  setSelectedNotifyUsers(prev =>
-                                    checked
-                                      ? [...prev, clientUser.id]
-                                      : prev.filter(id => id !== clientUser.id)
-                                  );
-                                }}
-                                data-testid={`checkbox-notify-${clientUser.id}`}
-                              />
-                              <label htmlFor={`notify-${clientUser.id}`} className="flex-1 cursor-pointer">
-                                <span className="font-medium">{clientUser.fullName}</span>
-                              </label>
-                            </div>
-                          ))}
+                          {siteClientUsers.map((clientUser) => {
+                            const isActive = clientUser.status === "active";
+                            return (
+                              <div key={clientUser.id} className={`flex items-center gap-3 rounded-md border p-3 ${!isActive ? "opacity-60" : ""}`}>
+                                <Checkbox
+                                  id={`notify-${clientUser.id}`}
+                                  checked={selectedNotifyUsers.includes(clientUser.id)}
+                                  disabled={!isActive}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedNotifyUsers(prev =>
+                                      checked
+                                        ? [...prev, clientUser.id]
+                                        : prev.filter(id => id !== clientUser.id)
+                                    );
+                                  }}
+                                  data-testid={`checkbox-notify-${clientUser.id}`}
+                                />
+                                <label htmlFor={`notify-${clientUser.id}`} className={`flex-1 ${isActive ? "cursor-pointer" : "cursor-default"}`}>
+                                  <span className="flex items-center gap-2">
+                                    <span className="font-medium">{clientUser.fullName}</span>
+                                    {!isActive && (
+                                      <Badge variant="outline" className="text-xs text-muted-foreground">Not Active</Badge>
+                                    )}
+                                  </span>
+                                </label>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
