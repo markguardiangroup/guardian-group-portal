@@ -407,6 +407,7 @@ export async function registerRoutes(
         purpose: invitation.purpose,
         email: user.email,
         fullName: user.fullName,
+        role: user.role,
         expiresAt: invitation.expiresAt,
       });
     } catch (error) {
@@ -443,8 +444,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
       }
 
-      // For new user invitations, enforce legal document acceptance server-side
-      if (invitation.purpose === "invite") {
+      // For new client user invitations, enforce legal document acceptance server-side
+      // Admin and consultant users are not required to accept legal documents
+      const invitedUser = await storage.getUser(invitation.userId);
+      if (invitation.purpose === "invite" && invitedUser?.role === "client") {
         const objectStorageService = new ObjectStorageService();
         const privateObjectDir = objectStorageService.getPrivateObjectDir();
 
