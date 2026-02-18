@@ -7186,6 +7186,7 @@ export async function registerRoutes(
     status: z.enum(["idea", "planned", "in_progress", "completed"]).optional(),
     priority: z.enum(["low", "medium", "high"]).optional(),
     sortOrder: z.number().optional(),
+    developerNotes: z.string().optional().nullable(),
   });
 
   // Get all roadmap items
@@ -7261,6 +7262,7 @@ export async function registerRoutes(
       }
       if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority;
       if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
+      if (parsed.data.developerNotes !== undefined) updateData.developerNotes = parsed.data.developerNotes;
       
       const updated = await storage.updateRoadmapItem(req.params.id, updateData);
       

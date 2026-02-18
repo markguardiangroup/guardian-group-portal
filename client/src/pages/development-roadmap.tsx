@@ -105,6 +105,8 @@ export default function DevelopmentRoadmap() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RoadmapItem | null>(null);
   const [viewingItem, setViewingItem] = useState<RoadmapItem | null>(null);
+  const [completingItem, setCompletingItem] = useState<RoadmapItem | null>(null);
+  const [completionNotes, setCompletionNotes] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -345,6 +347,13 @@ export default function DevelopmentRoadmap() {
                   <p className="text-sm text-muted-foreground italic">No description provided.</p>
                 )}
 
+                {viewingItem.developerNotes && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Developer Notes</Label>
+                    <p className="text-sm whitespace-pre-wrap">{viewingItem.developerNotes}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -386,15 +395,14 @@ export default function DevelopmentRoadmap() {
                   {viewingItem.status !== "completed" && (
                     <Button
                       size="sm"
-                      onClick={() => updateMutation.mutate({ id: viewingItem.id, status: "completed" })}
+                      onClick={() => {
+                        setCompletingItem(viewingItem);
+                        setCompletionNotes("");
+                      }}
                       disabled={updateMutation.isPending}
                       data-testid="button-mark-complete"
                     >
-                      {updateMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                      )}
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
                       Complete
                     </Button>
                   )}
@@ -428,6 +436,62 @@ export default function DevelopmentRoadmap() {
                 </DialogFooter>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Complete Dialog */}
+        <Dialog open={!!completingItem} onOpenChange={(open) => { if (!open) setCompletingItem(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Roadmap Item</DialogTitle>
+              <DialogDescription>
+                Add any developer notes about what was completed for "{completingItem?.title}".
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="completion-notes">Developer Notes</Label>
+                <Textarea
+                  id="completion-notes"
+                  placeholder="Details of what was completed, changes made, etc."
+                  value={completionNotes}
+                  onChange={(e) => setCompletionNotes(e.target.value)}
+                  className="min-h-[120px]"
+                  data-testid="input-developer-notes"
+                />
+              </div>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCompletingItem(null)}
+                  data-testid="button-cancel-complete"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (completingItem) {
+                      updateMutation.mutate({
+                        id: completingItem.id,
+                        status: "completed",
+                        developerNotes: completionNotes || null,
+                      });
+                      setCompletingItem(null);
+                      setViewingItem(null);
+                    }
+                  }}
+                  disabled={updateMutation.isPending}
+                  data-testid="button-confirm-complete"
+                >
+                  {updateMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                  )}
+                  Mark as Complete
+                </Button>
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 
