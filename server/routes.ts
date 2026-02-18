@@ -6275,28 +6275,29 @@ export async function registerRoutes(
       
       const allUsers = await storage.getAllUsers();
       const allSites = await storage.getSites();
+      const allCompanies = await storage.getCompanies();
       
       // Enrich users with site assignments
       const usersWithAssignments = await Promise.all(allUsers.map(async (u) => {
         const { password, ...safeUser } = u;
         
         if (u.role === "consultant") {
-          // Get consultant site assignments
-          const assignments: { siteId: string; siteName: string }[] = [];
+          const assignments: { siteId: string; siteName: string; companyName: string; isPrimary: boolean }[] = [];
           for (const site of allSites) {
             const siteAssignments = await storage.getConsultantAssignments(site.id);
             const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
             if (userAssignment) {
-              assignments.push({ siteId: site.id, siteName: site.name });
+              const company = allCompanies.find(c => c.id === site.companyId);
+              assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
             }
           }
           return { ...safeUser, siteAssignments: assignments };
         } else if (u.role === "client") {
-          // Get client site assignments - use getClientSites which queries by clientId
           const clientAssignments = await storage.getClientSites(u.id);
           const assignments = clientAssignments.map(a => {
             const site = allSites.find(s => s.id === a.siteId);
-            return { siteId: a.siteId, siteName: site?.name || "Unknown" };
+            const company = site ? allCompanies.find(c => c.id === site.companyId) : null;
+            return { siteId: a.siteId, siteName: site?.name || "Unknown", companyName: company?.name || "Unknown", isPrimary: false };
           });
           return { ...safeUser, siteAssignments: assignments };
         }
