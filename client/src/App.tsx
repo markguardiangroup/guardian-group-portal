@@ -196,11 +196,6 @@ function LegalAcceptanceScreen() {
                     >
                       Terms & Conditions
                     </button>
-                    {termsInfo?.revisionDate && (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        (revised {new Date(termsInfo.revisionDate).toLocaleDateString("en-GB")})
-                      </span>
-                    )}
                   </label>
                 </div>
               )}
@@ -222,11 +217,6 @@ function LegalAcceptanceScreen() {
                     >
                       Privacy Policy
                     </button>
-                    {privacyInfo?.revisionDate && (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        (revised {new Date(privacyInfo.revisionDate).toLocaleDateString("en-GB")})
-                      </span>
-                    )}
                   </label>
                 </div>
               )}
