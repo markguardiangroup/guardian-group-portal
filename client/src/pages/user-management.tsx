@@ -53,6 +53,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import {
   Users,
@@ -653,102 +654,81 @@ export default function UserManagement() {
   });
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
-    // For consultants with site assignments
-    if (u.role === "consultant" && u.siteAssignments && u.siteAssignments.length > 0) {
-      const displayCount = 6;
-      const visibleAssignments = u.siteAssignments.slice(0, displayCount);
-      const remainingCount = u.siteAssignments.length - displayCount;
-
-      return (
-        <div className="flex flex-wrap items-center gap-1">
-          {visibleAssignments.map((a) => (
-            <Badge
-              key={a.siteId}
-              variant="outline"
-              className="text-xs"
-              data-testid={`badge-site-${a.siteId}`}
-            >
-              {a.isPrimary && <Shield className="h-3 w-3 mr-1" />}
-              {a.siteName}
-            </Badge>
-          ))}
-          {remainingCount > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="text-xs cursor-default">
-                  +{remainingCount} more
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-1">
-                  {u.siteAssignments.slice(displayCount).map((a) => (
-                    <div key={a.siteId} className="text-xs">
-                      {a.isPrimary && "(Primary) "}
-                      {a.siteName}
-                    </div>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      );
-    }
-
-    if (u.role === "consultant") {
-      return <span className="text-sm text-muted-foreground">No assignments</span>;
-    }
-
-    // For clients - show assigned sites from siteAssignments
-    if (u.role === "client" && u.siteAssignments && u.siteAssignments.length > 0) {
-      const displayCount = 6;
-      const visibleAssignments = u.siteAssignments.slice(0, displayCount);
-      const remainingCount = u.siteAssignments.length - displayCount;
-      
-      return (
-        <div className="flex flex-wrap items-center gap-1">
-          {visibleAssignments.map((a) => (
-            <Badge
-              key={a.siteId}
-              variant="outline"
-              className="text-xs"
-              data-testid={`badge-site-${a.siteId}`}
-            >
-              {a.siteName}
-            </Badge>
-          ))}
-          {remainingCount > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="text-xs cursor-default">
-                  +{remainingCount} more
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-1">
-                  {u.siteAssignments.slice(displayCount).map((a) => (
-                    <div key={a.siteId} className="text-xs">
-                      {a.siteName}
-                    </div>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      );
-    }
-    
-    if (u.role === "client") {
-      return <span className="text-sm text-muted-foreground">No assignments</span>;
-    }
-
-    // For admins - show "All Sites"
     if (u.role === "admin") {
       return <span className="text-sm text-muted-foreground">All Sites</span>;
     }
 
-    return <span className="text-sm text-muted-foreground">-</span>;
+    if (!u.siteAssignments || u.siteAssignments.length === 0) {
+      return <span className="text-sm text-muted-foreground">No assignments</span>;
+    }
+
+    const count = u.siteAssignments.length;
+
+    if (u.role === "consultant") {
+      const grouped: Record<string, SiteAssignment[]> = {};
+      u.siteAssignments.forEach((a) => {
+        const company = a.companyName || "Unassigned";
+        if (!grouped[company]) grouped[company] = [];
+        grouped[company].push(a);
+      });
+      const sortedCompanies = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Badge
+              variant="outline"
+              className="cursor-pointer text-xs"
+              data-testid={`badge-sites-count-${u.id}`}
+            >
+              <MapPin className="h-3 w-3 mr-1" />
+              {count} {count === 1 ? "site" : "sites"}
+            </Badge>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-72 overflow-y-auto p-3" align="start">
+            <p className="text-sm font-medium mb-2">Assigned Sites</p>
+            <div className="space-y-3">
+              {sortedCompanies.map((company) => (
+                <div key={company}>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">{company}</p>
+                  <div className="space-y-0.5 pl-2">
+                    {grouped[company].sort((a, b) => a.siteName.localeCompare(b.siteName)).map((a) => (
+                      <div key={a.siteId} className="flex items-center gap-1 text-xs">
+                        {a.isPrimary && <Shield className="h-3 w-3 text-amber-500 shrink-0" />}
+                        <span>{a.siteName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      );
+    }
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Badge
+            variant="outline"
+            className="cursor-pointer text-xs"
+            data-testid={`badge-sites-count-${u.id}`}
+          >
+            <MapPin className="h-3 w-3 mr-1" />
+            {count} {count === 1 ? "site" : "sites"}
+          </Badge>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 max-h-72 overflow-y-auto p-3" align="start">
+          <p className="text-sm font-medium mb-2">Assigned Sites</p>
+          <div className="space-y-0.5">
+            {u.siteAssignments.sort((a, b) => a.siteName.localeCompare(b.siteName)).map((a) => (
+              <div key={a.siteId} className="text-xs">{a.siteName}</div>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
   };
 
   if (isLoadingUsers) {
