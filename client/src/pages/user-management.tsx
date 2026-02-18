@@ -886,7 +886,11 @@ export default function UserManagement() {
               </TableRow>
             ) : (
               paginatedUsers.map((u) => (
-                <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
+                <TableRow 
+                  key={u.id} 
+                  data-testid={`row-user-${u.id}`}
+                  className={u.role !== "admin" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium">
