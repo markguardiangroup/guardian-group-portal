@@ -287,6 +287,8 @@ export default function UserManagement() {
     return [];
   };
 
+  const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
+
   const filteredUsers = getVisibleUsers().filter((u) => {
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
@@ -297,6 +299,16 @@ export default function UserManagement() {
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
     const matchesCompany = companyFilter === "all" || u.companyId === companyFilter;
     return matchesSearch && matchesRole && matchesStatus && matchesCompany;
+  }).sort((a, b) => {
+    const roleA = roleOrder[a.role] ?? 3;
+    const roleB = roleOrder[b.role] ?? 3;
+    if (roleA !== roleB) return roleA - roleB;
+    if (a.role === "client" && b.role === "client") {
+      const compA = (a.companyName || "").toLowerCase();
+      const compB = (b.companyName || "").toLowerCase();
+      if (compA !== compB) return compA.localeCompare(compB);
+    }
+    return a.fullName.toLowerCase().localeCompare(b.fullName.toLowerCase());
   });
 
   const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
