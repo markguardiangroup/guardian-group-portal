@@ -676,14 +676,14 @@ export default function UserManagement() {
       return (
         <Popover>
           <PopoverTrigger asChild>
-            <Badge
-              variant="outline"
-              className="cursor-pointer text-xs"
+            <button
+              type="button"
+              className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold cursor-pointer hover-elevate"
               data-testid={`badge-sites-count-${u.id}`}
             >
               <MapPin className="h-3 w-3 mr-1" />
               {count} {count === 1 ? "site" : "sites"}
-            </Badge>
+            </button>
           </PopoverTrigger>
           <PopoverContent className="w-80 max-h-72 overflow-y-auto p-3" align="start">
             <p className="text-sm font-medium mb-2">Assigned Sites</p>
@@ -710,14 +710,14 @@ export default function UserManagement() {
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <Badge
-            variant="outline"
-            className="cursor-pointer text-xs"
+          <button
+            type="button"
+            className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold cursor-pointer hover-elevate"
             data-testid={`badge-sites-count-${u.id}`}
           >
             <MapPin className="h-3 w-3 mr-1" />
             {count} {count === 1 ? "site" : "sites"}
-          </Badge>
+          </button>
         </PopoverTrigger>
         <PopoverContent className="w-72 max-h-72 overflow-y-auto p-3" align="start">
           <p className="text-sm font-medium mb-2">Assigned Sites</p>
