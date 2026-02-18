@@ -7468,7 +7468,7 @@ export async function registerRoutes(
         mimeType: metadata.contentType || "application/pdf",
         uploadedAt: metadata.metadata?.uploadedAt || null,
         uploadedBy: metadata.metadata?.uploadedBy || null,
-        revisionDate: metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt || null,
+        revisionDate: metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt || metadata.timeCreated || null,
       });
     } catch (error) {
       console.error("Error getting legal document info:", error);
