@@ -248,6 +248,9 @@ export async function registerRoutes(
         details: `Successful login from IP ${ipAddress}`,
       });
 
+      // Update last login timestamp
+      await storage.updateUser(user.id, { lastLoginAt: new Date() });
+
       // Set user in session
       (req.session as any).userId = user.id;
       (req.session as any).user = {
