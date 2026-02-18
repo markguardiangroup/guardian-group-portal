@@ -67,9 +67,7 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
-  Copy,
   RefreshCw,
-  Link,
   Clock,
   MapPin,
   X,
@@ -183,8 +181,7 @@ export default function UserManagement() {
     consultantTier: "senior" as "" | "standard" | "senior" | "principal",
     clientPermissionRole: "owner" as "viewer" | "contributor" | "manager" | "owner",
   });
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
   
   // Site assignment state
@@ -521,16 +518,14 @@ export default function UserManagement() {
         consultantTier: "senior",
         clientPermissionRole: "owner",
       });
-      // Show invite URL dialog if returned (for non-client users)
-      if (data.inviteUrl) {
-        setInviteUrl(data.inviteUrl);
-        setShowInviteDialog(true);
-      } else if (data.requiresSiteAssignment) {
+      if (data.requiresSiteAssignment) {
         setShowSiteAssignmentMessage(true);
       } else {
         toast({
           title: "User Created",
-          description: "New user has been created successfully.",
+          description: data.emailSent 
+            ? "User created and invitation email sent successfully."
+            : "New user has been created successfully.",
         });
       }
     },
@@ -562,19 +557,27 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.inviteUrl) {
-        setInviteUrl(data.inviteUrl);
-        setShowInviteDialog(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      if (data.emailSent) {
+        toast({
+          title: "Invitation Email Sent",
+          description: "An invitation email has been sent to the user.",
+        });
+      } else {
+        toast({
+          title: "Email Failed",
+          description: data.error || "The invitation email could not be sent. Please try again later.",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: data.emailSent ? "Invitation Email Sent" : "Invitation Link Generated",
-        description: data.emailSent 
-          ? "An invitation email has been sent to the user."
-          : "Email could not be sent. You can copy the link below to share manually.",
-      });
     },
-    onError: () => {
-      toast({ title: "Failed to resend invitation", variant: "destructive" });
+    onError: (error: Error) => {
+      const description = error.message.includes(":")
+        ? error.message.split(":").slice(1).join(":").trim()
+        : error.message;
+      let parsed = description;
+      try { parsed = JSON.parse(description).error || description; } catch {}
+      toast({ title: "Failed to send invitation", description: parsed, variant: "destructive" });
     },
   });
 
@@ -610,23 +613,6 @@ export default function UserManagement() {
     }
   };
 
-  const handleCopyInviteLink = async () => {
-    if (inviteUrl) {
-      try {
-        await navigator.clipboard.writeText(inviteUrl);
-        toast({
-          title: "Link Copied",
-          description: "The invitation link has been copied to your clipboard.",
-        });
-      } catch (err) {
-        toast({
-          title: "Copy Failed",
-          description: "Please copy the link manually.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
     // For consultants with site assignments
@@ -1692,46 +1678,6 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link className="h-5 w-5" />
-              Invitation Link
-            </DialogTitle>
-            <DialogDescription>
-              Share this link with the user so they can set up their password and activate their account. 
-              The link expires in 48 hours.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="flex items-center gap-2">
-              <Input
-                value={inviteUrl || ""}
-                readOnly
-                className="flex-1 font-mono text-sm"
-                data-testid="input-invite-url"
-              />
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={handleCopyInviteLink}
-                data-testid="button-copy-invite"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              Copy this link and share it securely with the new user. They will be prompted to create a password when they click the link.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowInviteDialog(false)} data-testid="button-close-invite-dialog">
-              Done
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Client Site Assignment Required Message Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={setShowSiteAssignmentMessage}>
