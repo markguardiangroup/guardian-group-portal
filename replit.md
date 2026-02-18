@@ -46,6 +46,14 @@ Admins can assign consultants and clients to sites directly from User Management
 - Confirmation dialogs are required before adding or removing site assignments
 - All assignment changes are logged in the audit trail
 
+### Client User Status Workflow
+Client users follow a four-stage status progression:
+- **site_required**: Initial state when a client user is created. They have no site assignments yet.
+- **invite_required**: Client has at least one site assignment (via direct assignment or primary contact auto-assignment). Ready to receive an invitation.
+- **invited**: An invitation email has been sent to the client. They can now set their password and activate their account.
+- **active**: Client has logged in and is fully active.
+Status transitions are automatic: creating a client sets `site_required`, assigning them to a site (or making them primary contact) transitions to `invite_required`, sending an invitation transitions to `invited`, and first login transitions to `active`. The UI shows color-coded status badges and context-appropriate invitation buttons (Send/Resend).
+
 ### Admin Reports
 A separate Admin Reports section provides controlled access to sensitive reports for administrators and consultants only:
 - **Access Control**: Server-side role checks ensure clients cannot access sensitive user data (emails, roles, site assignments)

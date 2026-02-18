@@ -98,7 +98,7 @@ interface UserWithAssignments {
   fullName: string;
   role: UserRole;
   companyId: string | null;
-  status: "active" | "inactive" | "invited";
+  status: "active" | "inactive" | "invited" | "site_required" | "invite_required";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
@@ -143,7 +143,7 @@ export default function UserManagement() {
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "all">("all");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
@@ -809,13 +809,16 @@ export default function UserManagement() {
           </Select>
         )}
 
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as "active" | "inactive" | "all"); setPage(1); }}>
-          <SelectTrigger className="w-[130px]" data-testid="select-status-filter">
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}>
+          <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
             <SelectValue placeholder="All status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="site_required">Site Required</SelectItem>
+            <SelectItem value="invite_required">Invite Required</SelectItem>
+            <SelectItem value="invited">Invited</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
@@ -901,13 +904,21 @@ export default function UserManagement() {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={u.status === "active" ? "default" : u.status === "invited" ? "outline" : "secondary"}
-                      className={u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" : ""}
+                      variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" ? "outline" : u.status === "site_required" ? "outline" : "secondary"}
+                      className={
+                        u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                        u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                        u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" : ""
+                      }
                     >
                       {u.status === "active" ? (
                         <><UserCheck className="h-3 w-3 mr-1" />Active</>
                       ) : u.status === "invited" ? (
                         <><Clock className="h-3 w-3 mr-1" />Invited</>
+                      ) : u.status === "invite_required" ? (
+                        <><Mail className="h-3 w-3 mr-1" />Invite Required</>
+                      ) : u.status === "site_required" ? (
+                        <><MapPin className="h-3 w-3 mr-1" />Site Required</>
                       ) : (
                         <><UserX className="h-3 w-3 mr-1" />Inactive</>
                       )}
@@ -931,6 +942,16 @@ export default function UserManagement() {
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit User
                             </DropdownMenuItem>
+                            {u.status === "invite_required" && (
+                              <DropdownMenuItem 
+                                onClick={() => resendInviteMutation.mutate(u.id)}
+                                disabled={resendInviteMutation.isPending}
+                                data-testid={`button-send-invite-${u.id}`}
+                              >
+                                <Mail className={`h-4 w-4 mr-2 ${resendInviteMutation.isPending ? 'animate-spin' : ''}`} />
+                                Send Invitation
+                              </DropdownMenuItem>
+                            )}
                             {u.status === "invited" && (
                               <DropdownMenuItem 
                                 onClick={() => resendInviteMutation.mutate(u.id)}
@@ -941,7 +962,7 @@ export default function UserManagement() {
                                 Resend Invitation
                               </DropdownMenuItem>
                             )}
-                            {u.status !== "invited" && (
+                            {u.status !== "invited" && u.status !== "site_required" && u.status !== "invite_required" && (
                               <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
                                 {u.status === "active" ? (
                                   <><UserX className="h-4 w-4 mr-2" />Deactivate</>
@@ -1325,8 +1346,17 @@ export default function UserManagement() {
                         {viewingUser.referenceNumber}
                       </Badge>
                     )}
-                    <Badge variant={viewingUser.status === "active" ? "default" : "secondary"}>
-                      {viewingUser.status}
+                    <Badge 
+                      variant={viewingUser.status === "active" ? "default" : viewingUser.status === "invited" || viewingUser.status === "invite_required" || viewingUser.status === "site_required" ? "outline" : "secondary"}
+                      className={
+                        viewingUser.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                        viewingUser.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                        viewingUser.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" : ""
+                      }
+                    >
+                      {viewingUser.status === "site_required" ? "Site Required" : 
+                       viewingUser.status === "invite_required" ? "Invite Required" : 
+                       viewingUser.status.charAt(0).toUpperCase() + viewingUser.status.slice(1)}
                     </Badge>
                   </div>
                 </div>

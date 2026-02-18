@@ -662,39 +662,15 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
       
-      if (targetUser.status !== "invited") {
-        return res.status(400).json({ error: "User has already activated their account" });
+      if (targetUser.status !== "invited" && targetUser.status !== "invite_required") {
+        return res.status(400).json({ error: "User has already activated their account or is not ready for an invitation" });
       }
       
-      // For client users, check they have site assignments or are a primary contact
-      if (targetUser.role === "client") {
-        let hasSiteAccess = false;
-        
-        // Check if user is a primary contact for their company
-        if (targetUser.companyId) {
-          const company = await storage.getCompany(targetUser.companyId);
-          if (company && company.contactUserId === targetUser.id) {
-            hasSiteAccess = true;
-          }
-        }
-        
-        // Check if user has any site assignments
-        if (!hasSiteAccess) {
-          const allSites = await storage.getAllSites();
-          for (const site of allSites) {
-            const assignments = await storage.getConsultantAssignments(site.id);
-            if (assignments.some(a => a.userId === targetUser.id)) {
-              hasSiteAccess = true;
-              break;
-            }
-          }
-        }
-        
-        if (!hasSiteAccess) {
-          return res.status(400).json({ 
-            error: "Client must be assigned to a site or set as a primary contact for a company before an invitation can be sent." 
-          });
-        }
+      // For client users with site_required status, block invitation
+      if (targetUser.role === "client" && targetUser.status === "site_required") {
+        return res.status(400).json({ 
+          error: "Client must be assigned to a site or set as a primary contact for a company before an invitation can be sent." 
+        });
       }
       
       // Invalidate any existing invitations for this user
@@ -730,6 +706,11 @@ export async function registerRoutes(
         emailSent = true;
       } catch (emailError) {
         console.error("Failed to send invitation email (link still generated):", emailError);
+      }
+      
+      // Transition status to 'invited' when invite is sent/generated
+      if (targetUser.status === "invite_required") {
+        await storage.updateUser(targetUser.id, { status: "invited" });
       }
       
       res.json({ 
@@ -4095,6 +4076,11 @@ export async function registerRoutes(
             });
           }
           
+          // Auto-transition client from site_required to invite_required
+          if (contactUser.status === "site_required") {
+            await storage.updateUser(contactUserId, { status: "invite_required" });
+          }
+          
           await storage.createAuditLog({
             action: "primary_contact_auto_assigned",
             entityType: "company",
@@ -4285,6 +4271,11 @@ export async function registerRoutes(
             siteId: entity.id,
             assignedBy: user.id,
           });
+          
+          // Auto-transition client from site_required to invite_required
+          if (primaryContact.status === "site_required") {
+            await storage.updateUser(primaryContact.id, { status: "invite_required" });
+          }
           
           await storage.createAuditLog({
             action: "primary_contact_auto_assigned",
@@ -6342,7 +6333,7 @@ export async function registerRoutes(
         password: placeholderPassword,
         role: userRole,
         companyId: companyId || null,
-        status: "invited",
+        status: userRole === "client" ? "site_required" : "invited",
         consultantTier: consultantTier || null,
         clientPermissionRole: clientPermissionRole || "viewer",
         title: title || null,
@@ -6834,6 +6825,11 @@ export async function registerRoutes(
         assignedBy: user.id,
       });
       
+      // Auto-transition client from site_required to invite_required
+      if (client.status === "site_required") {
+        await storage.updateUser(clientId, { status: "invite_required" });
+      }
+      
       res.status(201).json({
         ...assignment,
         clientName: client.fullName,
@@ -7039,6 +7035,11 @@ export async function registerRoutes(
           clientId: targetUser.id,
           siteId: site.id,
         });
+        
+        // Auto-transition client from site_required to invite_required
+        if (targetUser.status === "site_required") {
+          await storage.updateUser(targetUser.id, { status: "invite_required" });
+        }
         
         // Create audit log
         await storage.createAuditLog({
