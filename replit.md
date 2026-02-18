@@ -95,6 +95,13 @@ Development uses Vite for the frontend with HMR and `tsx` for the Express API. P
 ### Date Handling
 - **date-fns**: Library for date manipulation and formatting.
 
+### Legal Documents
+The system supports admin-managed legal documents (Terms & Conditions and Privacy Policy) stored separately in `/legal` directory within object storage:
+- **API Endpoints**: POST `/api/legal-documents/:type` (admin-only upload), GET `/api/legal-documents/:type/info` (public, returns existence/metadata), GET `/api/legal-documents/:type/view` (public, streams document)
+- **Settings Tab**: Admin-only "Legal Documents" tab in Settings page for uploading/replacing documents
+- **Invitation Flow**: New user invitations require acceptance of available legal documents before account activation; enforced both client-side (checkboxes) and server-side (acceptance flags validated in `/api/invitations/accept`)
+- **Audit Trail**: Legal acceptance is recorded in audit logs during user activation
+
 ### Development Tools
 - **Vite**: Frontend build tool and dev server.
 - **tsx**: TypeScript execution for Node.js.

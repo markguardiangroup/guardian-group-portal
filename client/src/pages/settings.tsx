@@ -37,7 +37,12 @@ import {
   Check,
   X,
   Loader2,
+  FileText,
+  Upload,
+  Eye,
+  Trash2,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import {
   clientPermissionCapabilities,
   consultantTierCapabilities,
@@ -165,6 +170,12 @@ export default function Settings() {
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
+          {user?.role === "admin" && (
+            <TabsTrigger value="legal" className="gap-2" data-testid="tab-legal">
+              <FileText className="h-4 w-4" />
+              Legal Documents
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -776,7 +787,198 @@ export default function Settings() {
             </Card>
           </div>
         </TabsContent>
+
+        {user?.role === "admin" && (
+          <TabsContent value="legal">
+            <LegalDocumentsTab />
+          </TabsContent>
+        )}
       </Tabs>
+    </div>
+  );
+}
+
+function LegalDocumentsTab() {
+  const { toast } = useToast();
+  const [termsUploading, setTermsUploading] = useState(false);
+  const [privacyUploading, setPrivacyUploading] = useState(false);
+
+  const { data: termsInfo, refetch: refetchTerms } = useQuery<{
+    exists: boolean;
+    type: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    uploadedAt?: string;
+    uploadedBy?: string;
+  }>({
+    queryKey: ["/api/legal-documents/terms/info"],
+  });
+
+  const { data: privacyInfo, refetch: refetchPrivacy } = useQuery<{
+    exists: boolean;
+    type: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    uploadedAt?: string;
+    uploadedBy?: string;
+  }>({
+    queryKey: ["/api/legal-documents/privacy/info"],
+  });
+
+  const handleUpload = async (type: "terms" | "privacy") => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.doc,.docx";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const setUploading = type === "terms" ? setTermsUploading : setPrivacyUploading;
+      setUploading(true);
+
+      try {
+        const response = await fetch(`/api/legal-documents/${type}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-file-name": encodeURIComponent(file.name),
+          },
+          body: file,
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Upload failed");
+        }
+
+        toast({
+          title: "Document uploaded",
+          description: `${type === "terms" ? "Terms & Conditions" : "Privacy Policy"} has been updated successfully.`,
+        });
+
+        if (type === "terms") {
+          refetchTerms();
+        } else {
+          refetchPrivacy();
+        }
+      } catch (error: any) {
+        toast({
+          title: "Upload failed",
+          description: error.message || "Failed to upload document",
+          variant: "destructive",
+        });
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const renderDocCard = (
+    type: "terms" | "privacy",
+    title: string,
+    description: string,
+    info: typeof termsInfo,
+    uploading: boolean
+  ) => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <CardTitle className="text-lg">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Badge variant={info?.exists ? "default" : "secondary"}>
+            {info?.exists ? "Uploaded" : "Not uploaded"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {info?.exists && (
+          <div className="rounded-md border p-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{info.fileName}</span>
+              <span className="text-muted-foreground">
+                ({formatFileSize(info.fileSize || 0)})
+              </span>
+            </div>
+            {info.uploadedAt && (
+              <p className="text-sm text-muted-foreground">
+                Uploaded {new Date(info.uploadedAt).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {info.uploadedBy ? ` by ${info.uploadedBy}` : ""}
+              </p>
+            )}
+          </div>
+        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            onClick={() => handleUpload(type)}
+            disabled={uploading}
+            data-testid={`button-upload-${type}`}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {info?.exists ? "Replace Document" : "Upload Document"}
+          </Button>
+          {info?.exists && (
+            <Button
+              variant="outline"
+              onClick={() => window.open(`/api/legal-documents/${type}/view`, "_blank")}
+              data-testid={`button-view-${type}`}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              View Document
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Legal Documents</CardTitle>
+          <CardDescription>
+            Manage Terms & Conditions and Privacy Policy documents. These documents will be presented to new users during account setup and must be accepted before they can use the portal.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {renderDocCard(
+        "terms",
+        "Terms & Conditions",
+        "The terms users must agree to when setting up their account.",
+        termsInfo,
+        termsUploading
+      )}
+
+      {renderDocCard(
+        "privacy",
+        "Privacy Policy",
+        "The privacy policy users must acknowledge during account setup.",
+        privacyInfo,
+        privacyUploading
+      )}
     </div>
   );
 }

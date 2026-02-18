@@ -8,7 +8,7 @@ import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
-import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
@@ -401,7 +401,7 @@ export async function registerRoutes(
   // Accept an invitation and set password (public - no auth required)
   app.post("/api/invitations/accept", async (req, res) => {
     try {
-      const { token, password } = req.body;
+      const { token, password, acceptedTerms, acceptedPrivacy } = req.body;
       
       if (!token || !password) {
         return res.status(400).json({ error: "Token and password are required" });
@@ -425,6 +425,39 @@ export async function registerRoutes(
       if (new Date() > new Date(invitation.expiresAt)) {
         return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
       }
+
+      // For new user invitations, enforce legal document acceptance server-side
+      if (invitation.purpose === "invite") {
+        const objectStorageService = new ObjectStorageService();
+        const privateObjectDir = objectStorageService.getPrivateObjectDir();
+
+        const checkDocExists = async (type: string) => {
+          try {
+            const fullPath = `${privateObjectDir}/legal/${type}`;
+            const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+            const bucketName = pathParts[0];
+            const objectName = pathParts.slice(1).join("/");
+            const bucket = objectStorageClient.bucket(bucketName);
+            const file = bucket.file(objectName);
+            const [exists] = await file.exists();
+            return exists;
+          } catch {
+            return false;
+          }
+        };
+
+        const [termsExists, privacyExists] = await Promise.all([
+          checkDocExists("terms"),
+          checkDocExists("privacy"),
+        ]);
+
+        if (termsExists && !acceptedTerms) {
+          return res.status(400).json({ error: "You must accept the Terms & Conditions to continue." });
+        }
+        if (privacyExists && !acceptedPrivacy) {
+          return res.status(400).json({ error: "You must accept the Privacy Policy to continue." });
+        }
+      }
       
       // Hash the new password
       const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -442,14 +475,18 @@ export async function registerRoutes(
       // Mark the invitation as used
       await storage.markInvitationUsed(invitation.id);
       
-      // Create audit log
+      // Create audit log with legal acceptance details
+      const legalDetails = invitation.purpose === "invite" 
+        ? ` (T&C accepted: ${!!req.body.acceptedTerms}, Privacy accepted: ${!!req.body.acceptedPrivacy})`
+        : "";
+      
       await storage.createAuditLog({
         action: invitation.purpose === "invite" ? "user_activated" : "password_reset",
         userId: updatedUser.id,
         userName: updatedUser.fullName,
-        details: invitation.purpose === "invite" 
+        details: (invitation.purpose === "invite" 
           ? "User accepted invitation and set their password" 
-          : "User reset their password",
+          : "User reset their password") + legalDetails,
       });
       
       res.json({ 
@@ -7239,6 +7276,151 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete roadmap item error:", error);
       res.status(500).json({ error: "Failed to delete roadmap item" });
+    }
+  });
+
+  // ==========================================
+  // Legal Documents (T&C and Privacy Policy)
+  // ==========================================
+
+  // Upload/replace a legal document (admin only)
+  app.post("/api/legal-documents/:type", async (req, res) => {
+    try {
+      const sessionUserId = (req.session as any)?.userId;
+      if (!sessionUserId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const currentUser = await storage.getUser(sessionUserId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can manage legal documents" });
+      }
+
+      const docType = req.params.type;
+      if (docType !== "terms" && docType !== "privacy") {
+        return res.status(400).json({ error: "Invalid document type. Must be 'terms' or 'privacy'" });
+      }
+
+      const rawFileName = req.headers["x-file-name"] as string;
+      const contentType = req.headers["content-type"] || "application/octet-stream";
+      if (!rawFileName) {
+        return res.status(400).json({ error: "Missing x-file-name header" });
+      }
+
+      const fileName = decodeURIComponent(rawFileName);
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/legal/${docType}`;
+
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+
+      await file.save(buffer, {
+        contentType: contentType,
+        metadata: {
+          originalName: fileName,
+          uploadedBy: currentUser.username,
+          uploadedAt: new Date().toISOString(),
+        },
+      });
+
+      res.json({
+        success: true,
+        type: docType,
+        fileName,
+        fileSize: buffer.length,
+        mimeType: contentType,
+      });
+    } catch (error) {
+      console.error("Error uploading legal document:", error);
+      res.status(500).json({ error: "Failed to upload legal document" });
+    }
+  });
+
+  // Get legal document info (public - no auth needed for invitation page)
+  app.get("/api/legal-documents/:type/info", async (req, res) => {
+    try {
+      const docType = req.params.type;
+      if (docType !== "terms" && docType !== "privacy") {
+        return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/legal/${docType}`;
+
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.json({ exists: false, type: docType });
+      }
+
+      const [metadata] = await file.getMetadata();
+      res.json({
+        exists: true,
+        type: docType,
+        fileName: metadata.metadata?.originalName || `${docType}.pdf`,
+        fileSize: parseInt(metadata.size as string) || 0,
+        mimeType: metadata.contentType || "application/pdf",
+        uploadedAt: metadata.metadata?.uploadedAt || null,
+        uploadedBy: metadata.metadata?.uploadedBy || null,
+      });
+    } catch (error) {
+      console.error("Error getting legal document info:", error);
+      res.status(500).json({ error: "Failed to get legal document info" });
+    }
+  });
+
+  // Serve legal document (public - no auth needed for invitation page)
+  app.get("/api/legal-documents/:type/view", async (req, res) => {
+    try {
+      const docType = req.params.type;
+      if (docType !== "terms" && docType !== "privacy") {
+        return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/legal/${docType}`;
+
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const [metadata] = await file.getMetadata();
+      const contentType = metadata.contentType || "application/pdf";
+      const fileName = metadata.metadata?.originalName || `${docType}.pdf`;
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+
+      const stream = file.createReadStream();
+      stream.pipe(res);
+    } catch (error) {
+      console.error("Error serving legal document:", error);
+      res.status(500).json({ error: "Failed to serve legal document" });
     }
   });
 

@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Shield, Lock, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
@@ -36,6 +37,8 @@ export default function SetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
@@ -55,8 +58,24 @@ export default function SetPassword() {
     retry: false,
   });
 
+  const { data: termsInfo } = useQuery<{ exists: boolean }>({
+    queryKey: ["/api/legal-documents/terms/info"],
+    enabled: !!validation?.valid && validation?.purpose === "invite",
+  });
+
+  const { data: privacyInfo } = useQuery<{ exists: boolean }>({
+    queryKey: ["/api/legal-documents/privacy/info"],
+    enabled: !!validation?.valid && validation?.purpose === "invite",
+  });
+
+  const isInvite = validation?.purpose === "invite";
+  const termsAvailable = termsInfo?.exists === true;
+  const privacyAvailable = privacyInfo?.exists === true;
+  const legalAcceptanceRequired = isInvite && (termsAvailable || privacyAvailable);
+  const legalAccepted = (!termsAvailable || acceptedTerms) && (!privacyAvailable || acceptedPrivacy);
+
   const acceptMutation = useMutation({
-    mutationFn: async (data: { token: string; password: string }) => {
+    mutationFn: async (data: { token: string; password: string; acceptedTerms?: boolean; acceptedPrivacy?: boolean }) => {
       const response = await apiRequest("POST", "/api/invitations/accept", data);
       return response.json();
     },
@@ -107,8 +126,21 @@ export default function SetPassword() {
       return;
     }
 
+    if (legalAcceptanceRequired && !legalAccepted) {
+      toast({
+        title: "Legal documents required",
+        description: "Please accept the Terms & Conditions and Privacy Policy to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!token) return;
-    acceptMutation.mutate({ token, password });
+    acceptMutation.mutate({ 
+      token, 
+      password,
+      ...(isInvite && { acceptedTerms, acceptedPrivacy }),
+    });
   };
 
   if (!token) {
@@ -298,10 +330,61 @@ export default function SetPassword() {
                 )}
               </div>
 
+              {legalAcceptanceRequired && (
+                <div className="space-y-3 rounded-md border p-4">
+                  <p className="text-sm font-medium">Legal Agreements</p>
+                  <p className="text-xs text-muted-foreground">
+                    Please review and accept the following documents to continue.
+                  </p>
+                  {termsAvailable && (
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="accept-terms"
+                        checked={acceptedTerms}
+                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                        data-testid="checkbox-accept-terms"
+                      />
+                      <label htmlFor="accept-terms" className="text-sm leading-relaxed cursor-pointer">
+                        I have read and agree to the{" "}
+                        <button
+                          type="button"
+                          className="text-primary underline underline-offset-2 font-medium"
+                          onClick={() => window.open("/api/legal-documents/terms/view", "_blank")}
+                          data-testid="link-terms"
+                        >
+                          Terms & Conditions
+                        </button>
+                      </label>
+                    </div>
+                  )}
+                  {privacyAvailable && (
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="accept-privacy"
+                        checked={acceptedPrivacy}
+                        onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
+                        data-testid="checkbox-accept-privacy"
+                      />
+                      <label htmlFor="accept-privacy" className="text-sm leading-relaxed cursor-pointer">
+                        I have read and acknowledge the{" "}
+                        <button
+                          type="button"
+                          className="text-primary underline underline-offset-2 font-medium"
+                          onClick={() => window.open("/api/legal-documents/privacy/view", "_blank")}
+                          data-testid="link-privacy"
+                        >
+                          Privacy Policy
+                        </button>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full"
-                disabled={acceptMutation.isPending || !allRequirementsMet || password !== confirmPassword}
+                disabled={acceptMutation.isPending || !allRequirementsMet || password !== confirmPassword || (legalAcceptanceRequired && !legalAccepted)}
                 data-testid="button-set-password"
               >
                 {acceptMutation.isPending ? (
