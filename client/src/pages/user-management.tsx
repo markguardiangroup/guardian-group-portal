@@ -68,6 +68,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Trash2,
   Clock,
   MapPin,
   X,
@@ -613,6 +614,31 @@ export default function UserManagement() {
     }
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<UserWithAssignments | null>(null);
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("DELETE", `/api/users/${userId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User Deleted",
+        description: "The user has been permanently deleted. All audit logs have been preserved.",
+      });
+      setDeleteConfirm(null);
+    },
+    onError: (error: Error) => {
+      const description = error.message.includes(":")
+        ? error.message.split(":").slice(1).join(":").trim()
+        : error.message;
+      let parsed = description;
+      try { parsed = JSON.parse(description).error || description; } catch {}
+      toast({ title: "Failed to delete user", description: parsed, variant: "destructive" });
+      setDeleteConfirm(null);
+    },
+  });
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
     // For consultants with site assignments
@@ -963,6 +989,16 @@ export default function UserManagement() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
+                            {u.role !== "admin" && (
+                              <DropdownMenuItem 
+                                onClick={() => setDeleteConfirm(u)}
+                                className="text-destructive focus:text-destructive"
+                                data-testid={`button-delete-user-${u.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                         <DropdownMenuItem>
@@ -1799,6 +1835,32 @@ export default function UserManagement() {
                 ? "Processing..." 
                 : statusConfirm?.newStatus === "inactive" ? "Yes, Deactivate" : "Yes, Activate"
               }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete <strong>{deleteConfirm?.fullName}</strong> ({deleteConfirm?.username})?
+              <span className="block mt-2 text-foreground">
+                This action cannot be undone. The user will be removed from all site assignments and will no longer be able to access the portal. All audit logs will be preserved.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-user">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteConfirm && deleteUserMutation.mutate(deleteConfirm.id)}
+              disabled={deleteUserMutation.isPending}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-delete-user"
+            >
+              {deleteUserMutation.isPending ? "Deleting..." : "Yes, Delete User"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

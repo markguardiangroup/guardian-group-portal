@@ -7141,6 +7141,80 @@ export async function registerRoutes(
     }
   });
 
+  // Delete user (admin only) - keeps audit logs
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete users" });
+      }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (targetUser.id === currentUser.id) {
+        return res.status(400).json({ error: "You cannot delete your own account" });
+      }
+
+      if (targetUser.role === "admin") {
+        return res.status(400).json({ error: "Admin users cannot be deleted" });
+      }
+
+      // Remove related records but keep audit logs
+      // Remove consultant assignments
+      if (targetUser.role === "consultant") {
+        const assignments = await storage.getConsultantSites(targetUser.id);
+        for (const assignment of assignments) {
+          await storage.removeConsultantAssignment(targetUser.id, assignment.siteId);
+        }
+      }
+
+      // Remove client site assignments
+      if (targetUser.role === "client") {
+        const assignments = await storage.getClientSites(targetUser.id);
+        for (const assignment of assignments) {
+          await storage.removeClientSiteAssignment(targetUser.id, assignment.siteId);
+        }
+      }
+
+      // Remove user invitations
+      const invitations = await storage.getUserInvitationsByUser(targetUser.id);
+      for (const invitation of invitations) {
+        await storage.deleteUserInvitation(invitation.id);
+      }
+
+      // Remove sessions for this user
+      await pool.query(`DELETE FROM session WHERE sess::text LIKE '%' || $1 || '%'`, [targetUser.id]);
+
+      // Delete the user
+      await pool.query(`DELETE FROM users WHERE id = $1`, [targetUser.id]);
+
+      // Log the deletion
+      await storage.createAuditLog({
+        action: "user_deleted",
+        entityType: "user",
+        entityId: targetUser.id,
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        details: `Deleted user ${targetUser.fullName} (${targetUser.username}, ${targetUser.role}, ref: ${targetUser.referenceNumber || 'N/A'})`,
+        metadata: {
+          deletedUserId: targetUser.id,
+          deletedUsername: targetUser.username,
+          deletedUserRole: targetUser.role,
+          deletedUserEmail: targetUser.email,
+          deletedUserRef: targetUser.referenceNumber,
+        },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Update user
   app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
