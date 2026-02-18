@@ -7313,7 +7313,7 @@ export async function registerRoutes(
           const [exists] = await file.exists();
           if (!exists) return null;
           const [metadata] = await file.getMetadata();
-          const revDate = metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt;
+          const revDate = metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt || metadata.timeCreated;
           return revDate ? new Date(revDate) : null;
         } catch {
           return null;
