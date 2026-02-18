@@ -868,8 +868,8 @@ export default function UserManagement() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead>Company</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Company</TableHead>
               <TableHead>Sites Assigned</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -904,6 +904,11 @@ export default function UserManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <Badge variant="outline" className={roleColors[u.role]}>
+                      {roleLabels[u.role]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     {u.companyId ? (
                       <div className="flex flex-col gap-1">
                         <span className="text-sm">
@@ -918,11 +923,6 @@ export default function UserManagement() {
                     ) : (
                       <span className="text-sm text-muted-foreground">-</span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={roleColors[u.role]}>
-                      {roleLabels[u.role]}
-                    </Badge>
                   </TableCell>
                   <TableCell>
                     {renderSiteAssignments(u)}
