@@ -329,14 +329,16 @@ export async function registerRoutes(
       }
     }
 
-    // Check if user needs to re-accept legal documents
+    // Check if client user needs to re-accept legal documents
     let legalAcceptanceRequired = false;
-    const latestRevision = await getLatestLegalRevisionDate();
-    if (latestRevision) {
-      if (!user.legalAcceptedAt) {
-        legalAcceptanceRequired = true;
-      } else {
-        legalAcceptanceRequired = new Date(user.legalAcceptedAt) < latestRevision;
+    if (user.role === "client") {
+      const latestRevision = await getLatestLegalRevisionDate();
+      if (latestRevision) {
+        if (!user.legalAcceptedAt) {
+          legalAcceptanceRequired = true;
+        } else {
+          legalAcceptanceRequired = new Date(user.legalAcceptedAt) < latestRevision;
+        }
       }
     }
 
