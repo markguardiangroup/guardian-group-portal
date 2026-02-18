@@ -655,11 +655,11 @@ export default function UserManagement() {
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
     if (u.role === "admin") {
-      return <span className="text-sm text-muted-foreground">All Sites</span>;
+      return <span className="text-xs text-muted-foreground leading-[22px]">All Sites</span>;
     }
 
     if (!u.siteAssignments || u.siteAssignments.length === 0) {
-      return <span className="text-sm text-muted-foreground">No assignments</span>;
+      return <span className="text-xs text-muted-foreground leading-[22px]">No assignments</span>;
     }
 
     const count = u.siteAssignments.length;
