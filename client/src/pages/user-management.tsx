@@ -185,6 +185,7 @@ export default function UserManagement() {
   });
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
   
   // Site assignment state
   const [userSiteAssignments, setUserSiteAssignments] = useState<{
@@ -517,10 +518,12 @@ export default function UserManagement() {
         consultantTier: "senior",
         clientPermissionRole: "owner",
       });
-      // Show invite URL dialog if returned
+      // Show invite URL dialog if returned (for non-client users)
       if (data.inviteUrl) {
         setInviteUrl(data.inviteUrl);
         setShowInviteDialog(true);
+      } else if (data.requiresSiteAssignment) {
+        setShowSiteAssignmentMessage(true);
       } else {
         toast({
           title: "User Created",
@@ -1690,6 +1693,44 @@ export default function UserManagement() {
           <DialogFooter>
             <Button onClick={() => setShowInviteDialog(false)} data-testid="button-close-invite-dialog">
               Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Client Site Assignment Required Message Dialog */}
+      <Dialog open={showSiteAssignmentMessage} onOpenChange={setShowSiteAssignmentMessage}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Site Assignment Required
+            </DialogTitle>
+            <DialogDescription>
+              The client user has been created successfully, but an invitation cannot be sent yet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Before an invitation link can be sent, the client must be either:
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>Assigned to at least one site</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Building2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                <span>Added as the primary contact for a company</span>
+              </li>
+            </ul>
+            <p className="text-sm text-muted-foreground mt-4">
+              Once assigned, you can send the invitation from the Users page using the resend invite option.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowSiteAssignmentMessage(false)} data-testid="button-close-site-assignment-message">
+              Understood
             </Button>
           </DialogFooter>
         </DialogContent>

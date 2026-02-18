@@ -666,6 +666,37 @@ export async function registerRoutes(
         return res.status(400).json({ error: "User has already activated their account" });
       }
       
+      // For client users, check they have site assignments or are a primary contact
+      if (targetUser.role === "client") {
+        let hasSiteAccess = false;
+        
+        // Check if user is a primary contact for their company
+        if (targetUser.companyId) {
+          const company = await storage.getCompany(targetUser.companyId);
+          if (company && company.contactUserId === targetUser.id) {
+            hasSiteAccess = true;
+          }
+        }
+        
+        // Check if user has any site assignments
+        if (!hasSiteAccess) {
+          const allSites = await storage.getAllSites();
+          for (const site of allSites) {
+            const assignments = await storage.getConsultantAssignments(site.id);
+            if (assignments.some(a => a.userId === targetUser.id)) {
+              hasSiteAccess = true;
+              break;
+            }
+          }
+        }
+        
+        if (!hasSiteAccess) {
+          return res.status(400).json({ 
+            error: "Client must be assigned to a site or set as a primary contact for a company before an invitation can be sent." 
+          });
+        }
+      }
+      
       // Invalidate any existing invitations for this user
       await storage.invalidateUserInvitations(targetUser.id, "invite");
       
@@ -6303,12 +6334,13 @@ export async function registerRoutes(
       // The real password will be set when the user accepts the invitation
       const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), BCRYPT_SALT_ROUNDS);
       
+      const userRole = role || "client";
       const newUser = await storage.createUser({
         username,
         email,
         fullName: computedFullName,
         password: placeholderPassword,
-        role: role || "client",
+        role: userRole,
         companyId: companyId || null,
         status: "invited",
         consultantTier: consultantTier || null,
@@ -6324,30 +6356,38 @@ export async function registerRoutes(
         notes: notes || null,
       });
       
-      // Generate invitation token
-      const token = generateSecureToken();
-      const tokenHash = hashToken(token);
-      const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
-      
-      await storage.createUserInvitation({
-        userId: newUser.id,
-        email: newUser.email,
-        tokenHash,
-        purpose: "invite",
-        expiresAt,
-        createdBy: currentUser.id,
-      });
-      
-      // Build the invite URL
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const inviteUrl = `${baseUrl}/set-password?token=${token}`;
-      
       const { password: _, ...safeUser } = newUser;
-      res.status(201).json({ 
-        ...safeUser, 
-        inviteUrl,
-        inviteExpiresAt: expiresAt.toISOString()
-      });
+
+      // For client users, don't generate invite yet - they need site assignment or primary contact status first
+      if (userRole === "client") {
+        res.status(201).json({ 
+          ...safeUser, 
+          requiresSiteAssignment: true,
+        });
+      } else {
+        // For admin/consultant users, generate invitation token immediately
+        const token = generateSecureToken();
+        const tokenHash = hashToken(token);
+        const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+        
+        await storage.createUserInvitation({
+          userId: newUser.id,
+          email: newUser.email,
+          tokenHash,
+          purpose: "invite",
+          expiresAt,
+          createdBy: currentUser.id,
+        });
+        
+        const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const inviteUrl = `${baseUrl}/set-password?token=${token}`;
+        
+        res.status(201).json({ 
+          ...safeUser, 
+          inviteUrl,
+          inviteExpiresAt: expiresAt.toISOString()
+        });
+      }
     } catch (error) {
       console.error("Create user error:", error);
       res.status(500).json({ error: "Failed to create user" });
