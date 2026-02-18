@@ -897,15 +897,9 @@ export default function UserManagement() {
                         {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium">{u.fullName}</p>
-                          {u.referenceNumber && (
-                            <Badge variant="outline" className="font-mono text-xs">
-                              {u.referenceNumber}
-                            </Badge>
-                          )}
-                        </div>
+                        <p className="font-medium">{u.fullName}</p>
                         <p className="text-xs text-muted-foreground">{u.email}</p>
+                        <p className="text-xs text-muted-foreground">{u.username}</p>
                       </div>
                     </div>
                   </TableCell>
