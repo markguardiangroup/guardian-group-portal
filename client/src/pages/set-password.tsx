@@ -140,7 +140,7 @@ export default function SetPassword() {
     acceptMutation.mutate({ 
       token, 
       password,
-      ...(isInvite && { acceptedTerms, acceptedPrivacy }),
+      ...(legalAcceptanceRequired && { acceptedTerms, acceptedPrivacy }),
     });
   };
 
