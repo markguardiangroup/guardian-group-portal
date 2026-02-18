@@ -426,9 +426,12 @@ export default function UserManagement() {
       setSiteAssignmentConfirm(null);
     },
     onError: (error: Error) => {
+      const description = error.message.includes("Cannot remove the last site")
+        ? "Cannot remove the last site assignment from a client user. Assign another site first."
+        : error.message;
       toast({ 
         title: "Failed to remove site", 
-        description: error.message,
+        description,
         variant: "destructive" 
       });
       setSiteAssignmentConfirm(null);

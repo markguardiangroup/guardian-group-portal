@@ -6854,6 +6854,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and consultants can remove client site assignments" });
       }
       
+      const clientUser = await storage.getUser(req.params.clientId);
+      if (clientUser && clientUser.role === "client") {
+        const allAssignments = await storage.getClientSites(req.params.clientId);
+        if (allAssignments.length <= 1) {
+          return res.status(400).json({ error: "Cannot remove the last site assignment from a client user. Assign another site first." });
+        }
+      }
+
       const removed = await storage.removeClientSiteAssignment(
         req.params.clientId,
         req.params.siteId
@@ -7102,6 +7110,11 @@ export async function registerRoutes(
           });
         }
       } else if (targetUser.role === "client") {
+        const allAssignments = await storage.getClientSites(targetUser.id);
+        if (allAssignments.length <= 1) {
+          return res.status(400).json({ error: "Cannot remove the last site assignment from a client user. Assign another site first." });
+        }
+
         removed = await storage.removeClientSiteAssignment(targetUser.id, site.id);
         
         if (removed) {

@@ -466,8 +466,11 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
       toast({ title: "Client site assignment removed" });
     },
-    onError: () => {
-      toast({ title: "Failed to remove assignment", variant: "destructive" });
+    onError: (error: Error) => {
+      const message = error.message.includes("Cannot remove the last site")
+        ? "Cannot remove the last site assignment from a client user. Assign another site first."
+        : "Failed to remove assignment";
+      toast({ title: message, variant: "destructive" });
     },
   });
 
