@@ -6385,7 +6385,7 @@ export async function registerRoutes(
           requiresSiteAssignment: true,
         });
       } else {
-        // For admin/consultant users, generate invitation token immediately
+        // For admin/consultant users, generate invitation token and send email immediately
         const token = generateSecureToken();
         const tokenHash = hashToken(token);
         const expiresAt = new Date(Date.now() + INVITE_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
@@ -6402,10 +6402,32 @@ export async function registerRoutes(
         const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
         const inviteUrl = `${baseUrl}/set-password?token=${token}`;
         
+        let emailSent = false;
+        try {
+          await sendInvitationEmail({
+            to: newUser.email,
+            fullName: newUser.fullName,
+            inviteUrl,
+            expiresAt,
+          });
+          emailSent = true;
+          await storage.createAuditLog({
+            action: "email_sent",
+            userId: currentUser.id,
+            userName: currentUser.fullName,
+            entityId: newUser.id,
+            details: `Invitation email sent to new ${userRole} user ${newUser.fullName} (${newUser.email})`,
+            metadata: null,
+          });
+        } catch (emailError) {
+          console.error("Failed to send invitation email for new user:", emailError);
+        }
+        
         res.status(201).json({ 
           ...safeUser, 
           inviteUrl,
-          inviteExpiresAt: expiresAt.toISOString()
+          inviteExpiresAt: expiresAt.toISOString(),
+          emailSent,
         });
       }
     } catch (error) {
