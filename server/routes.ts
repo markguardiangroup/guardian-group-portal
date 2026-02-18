@@ -1826,15 +1826,15 @@ export async function registerRoutes(
       if (isClientSignOff && document.siteId) {
         try {
           const assignments = await storage.getConsultantAssignments(document.siteId);
-          if (assignments.length > 0) {
-            const site = await storage.getSite(document.siteId);
-            const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-            const modulePath = existingDoc.module === "health_safety" ? "health-safety" 
-              : existingDoc.module === "human_resources" ? "human-resources" 
-              : existingDoc.module === "employment_law" ? "employment-law" 
-              : "documents";
-            const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+          const site = await storage.getSite(document.siteId);
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+          const modulePath = existingDoc.module === "health_safety" ? "health-safety" 
+            : existingDoc.module === "human_resources" ? "human-resources" 
+            : existingDoc.module === "employment_law" ? "employment-law" 
+            : "documents";
+          const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
 
+          if (assignments.length > 0) {
             for (const assignment of assignments) {
               try {
                 const consultant = await storage.getUser(assignment.consultantId);
@@ -1855,7 +1855,7 @@ export async function registerRoutes(
                     documentId: document.id,
                     supportRequestId: null,
                     module: existingDoc.module,
-                    details: `Client sign-off notification email sent to ${consultant.fullName} (${consultant.email})`,
+                    details: `Client sign-off notification email sent to consultant ${consultant.fullName} (${consultant.email})`,
                     metadata: null,
                   });
                 }
@@ -1863,9 +1863,38 @@ export async function registerRoutes(
                 console.error(`Failed to send sign-off notification to consultant ${assignment.consultantId}:`, emailError);
               }
             }
+          } else {
+            const allUsers = await storage.getAllUsers();
+            const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
+            for (const admin of admins) {
+              try {
+                await sendClientSignOffEmail({
+                  to: admin.email!,
+                  fullName: admin.fullName,
+                  documentTitle: existingDoc.title,
+                  siteName: site?.name || "Unknown Site",
+                  clientName: user.fullName,
+                  documentUrl,
+                  noConsultantAssigned: true,
+                });
+                await storage.createAuditLog({
+                  action: "email_sent",
+                  userId: user.id,
+                  userName: user.fullName,
+                  entityId: document.siteId,
+                  documentId: document.id,
+                  supportRequestId: null,
+                  module: existingDoc.module,
+                  details: `Client sign-off notification email sent to admin ${admin.fullName} (${admin.email}) - no consultant assigned to site`,
+                  metadata: null,
+                });
+              } catch (emailError) {
+                console.error(`Failed to send sign-off notification to admin ${admin.id}:`, emailError);
+              }
+            }
           }
         } catch (err) {
-          console.error("Failed to send consultant sign-off notifications:", err);
+          console.error("Failed to send client sign-off notifications:", err);
         }
       }
 

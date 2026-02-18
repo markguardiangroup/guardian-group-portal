@@ -255,6 +255,7 @@ export async function sendClientSignOffEmail({
   siteName,
   clientName,
   documentUrl,
+  noConsultantAssigned,
 }: {
   to: string;
   fullName: string;
@@ -262,16 +263,29 @@ export async function sendClientSignOffEmail({
   siteName: string;
   clientName: string;
   documentUrl: string;
+  noConsultantAssigned?: boolean;
 }) {
   const recipient = TEST_EMAIL_OVERRIDE || to;
   if (TEST_EMAIL_OVERRIDE) {
     console.log(`[TEST MODE] Redirecting client sign-off email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
   }
 
+  const noConsultantWarning = noConsultantAssigned ? `
+          <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="color: #991b1b; font-size: 14px; margin: 0; font-weight: 600;">
+              No Consultant Assigned
+            </p>
+            <p style="color: #b91c1c; font-size: 13px; margin: 8px 0 0 0; line-height: 1.5;">
+              There is currently no consultant assigned to this site. Please assign a consultant to the site or action this document directly.
+            </p>
+          </div>` : '';
+
+  const subjectPrefix = noConsultantAssigned ? 'Action Required: ' : '';
+
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to: [recipient],
-    subject: `Client Sign-Off Complete - ${documentTitle}`,
+    subject: `${subjectPrefix}Client Sign-Off Complete - ${documentTitle}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
@@ -282,9 +296,9 @@ export async function sendClientSignOffEmail({
         <div style="padding: 30px 0;">
           <h2 style="color: #1e293b; font-size: 20px;">Client Sign-Off Complete</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, a document has been signed off by the client and is now awaiting your final approval.
+            Hello ${fullName}, a document has been signed off by the client and is now awaiting final approval.
           </p>
-          
+          ${noConsultantWarning}
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
