@@ -906,12 +906,21 @@ function LegalDocumentsTab() {
       <CardContent className="space-y-4">
         {info?.exists && (
           <div className="rounded-md border p-4 space-y-2">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">{info.fileName}</span>
               <span className="text-muted-foreground">
                 ({formatFileSize(info.fileSize || 0)})
               </span>
+              {info.revisionDate && (
+                <Badge variant="outline" className="text-xs">
+                  Revision: {new Date(info.revisionDate).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </Badge>
+              )}
             </div>
             {info.uploadedAt && (
               <p className="text-sm text-muted-foreground">
@@ -923,15 +932,6 @@ function LegalDocumentsTab() {
                   minute: "2-digit",
                 })}
                 {info.uploadedBy ? ` by ${info.uploadedBy}` : ""}
-              </p>
-            )}
-            {info.revisionDate && (
-              <p className="text-sm text-muted-foreground">
-                Revision date: {new Date(info.revisionDate).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
               </p>
             )}
           </div>
