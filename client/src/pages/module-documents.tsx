@@ -1146,7 +1146,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryKey: ["/api/documents", id, "audit"],
   });
 
-  const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string }>>({
+  const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
     enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
   });
@@ -1597,8 +1597,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             </SelectTrigger>
                             <SelectContent>
                               {siteClientUsers.map((u) => (
-                                <SelectItem key={u.id} value={u.id} data-testid={`option-approver-${u.id}`}>
-                                  {u.fullName} ({u.email})
+                                <SelectItem
+                                  key={u.id}
+                                  value={u.id}
+                                  disabled={u.status !== "active"}
+                                  data-testid={`option-approver-${u.id}`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span>{u.fullName} ({u.email})</span>
+                                    {u.status !== "active" && (
+                                      <span className="text-xs text-muted-foreground">Not Active</span>
+                                    )}
+                                  </span>
                                 </SelectItem>
                               ))}
                               {siteClientUsers.length === 0 && (
