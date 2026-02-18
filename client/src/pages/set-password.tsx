@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Lock, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X, FileText } from "lucide-react";
+import { Shield, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
@@ -268,14 +268,13 @@ export default function SetPassword() {
               <div className="grid gap-2">
                 <Label htmlFor="password">New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="pl-10 pr-10"
+                    className="pr-10"
                     required
                     data-testid="input-password"
                   />
@@ -283,7 +282,7 @@ export default function SetPassword() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    className="absolute right-0 top-1/2 -translate-y-1/2"
                     onClick={() => setShowPassword(!showPassword)}
                     data-testid="button-toggle-password"
                   >
@@ -303,14 +302,13 @@ export default function SetPassword() {
               <div className="grid gap-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm your password"
-                    className="pl-10 pr-10"
+                    className="pr-10"
                     required
                     data-testid="input-confirm-password"
                   />
@@ -318,7 +316,7 @@ export default function SetPassword() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    className="absolute right-0 top-1/2 -translate-y-1/2"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     data-testid="button-toggle-confirm-password"
                   >

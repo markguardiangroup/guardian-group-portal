@@ -153,7 +153,8 @@ export default function Login() {
                       <div className="relative">
                         <Input 
                           type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password" 
+                          placeholder="Enter your password"
+                          className="pr-10"
                           data-testid="input-password"
                           {...field} 
                         />
@@ -161,7 +162,7 @@ export default function Login() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="absolute right-0 top-0"
+                          className="absolute right-0 top-1/2 -translate-y-1/2"
                           onClick={() => setShowPassword(!showPassword)}
                           data-testid="button-toggle-password"
                         >
