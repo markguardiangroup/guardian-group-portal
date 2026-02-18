@@ -1814,7 +1814,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <Download className="mr-2 h-4 w-4" />
                 Download Current (v{document.version})
               </Button>
-              {!(user?.role === "client" && (document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off" || document.approvalStatus === "approved")) && (
+              {user?.role !== "client" && (
                 <Button 
                   variant="outline" 
                   className="w-full justify-start" 
