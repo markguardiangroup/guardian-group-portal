@@ -111,10 +111,11 @@ export const users = pgTable("users", {
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
   status: text("status").$type<"active" | "inactive" | "invited">().notNull().default("invited"),
   lastLoginAt: timestamp("last_login_at"),
+  legalAcceptedAt: timestamp("legal_accepted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true, legalAcceptedAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 

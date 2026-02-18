@@ -811,6 +811,7 @@ function LegalDocumentsTab() {
     mimeType?: string;
     uploadedAt?: string;
     uploadedBy?: string;
+    revisionDate?: string;
   }>({
     queryKey: ["/api/legal-documents/terms/info"],
   });
@@ -823,6 +824,7 @@ function LegalDocumentsTab() {
     mimeType?: string;
     uploadedAt?: string;
     uploadedBy?: string;
+    revisionDate?: string;
   }>({
     queryKey: ["/api/legal-documents/privacy/info"],
   });
@@ -923,6 +925,15 @@ function LegalDocumentsTab() {
                 {info.uploadedBy ? ` by ${info.uploadedBy}` : ""}
               </p>
             )}
+            {info.revisionDate && (
+              <p className="text-sm text-muted-foreground">
+                Revision date: {new Date(info.revisionDate).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
           </div>
         )}
         <div className="flex items-center gap-3 flex-wrap">
@@ -959,7 +970,7 @@ function LegalDocumentsTab() {
         <CardHeader>
           <CardTitle>Legal Documents</CardTitle>
           <CardDescription>
-            Manage Terms & Conditions and Privacy Policy documents. These documents will be presented to new users during account setup and must be accepted before they can use the portal.
+            Manage Terms & Conditions and Privacy Policy documents. These documents are presented to new users during account setup and must be accepted before they can use the portal. When a document is replaced, all users will be required to re-accept the updated documents on their next login.
           </CardDescription>
         </CardHeader>
       </Card>

@@ -101,6 +101,8 @@ The system supports admin-managed legal documents (Terms & Conditions and Privac
 - **Settings Tab**: Admin-only "Legal Documents" tab in Settings page for uploading/replacing documents
 - **Invitation Flow**: New user invitations require acceptance of available legal documents before account activation; enforced both client-side (checkboxes) and server-side (acceptance flags validated in `/api/invitations/accept`)
 - **Audit Trail**: Legal acceptance is recorded in audit logs during user activation
+- **Revision Tracking**: Each legal document upload stores a `revisionDate` in metadata. Users have a `legalAcceptedAt` timestamp on their profile.
+- **Re-acceptance Flow**: When a legal document is re-uploaded (new revision), the `/api/auth/me` endpoint returns `legalAcceptanceRequired: true` for users whose `legalAcceptedAt` is before the latest revision date. The app blocks access with a `LegalAcceptanceScreen` until the user reviews and accepts the updated documents via `POST /api/legal-documents/accept`.
 
 ### Development Tools
 - **Vite**: Frontend build tool and dev server.

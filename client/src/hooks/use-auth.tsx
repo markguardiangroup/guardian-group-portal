@@ -22,6 +22,7 @@ interface AuthUser {
   mobile?: string | null;
   preferredContactMethod?: "email" | "phone" | "mobile" | null;
   notes?: string | null;
+  legalAcceptanceRequired?: boolean;
 }
 
 interface AuthContextType {

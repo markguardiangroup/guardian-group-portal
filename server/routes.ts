@@ -329,6 +329,17 @@ export async function registerRoutes(
       }
     }
 
+    // Check if user needs to re-accept legal documents
+    let legalAcceptanceRequired = false;
+    const latestRevision = await getLatestLegalRevisionDate();
+    if (latestRevision) {
+      if (!user.legalAcceptedAt) {
+        legalAcceptanceRequired = true;
+      } else {
+        legalAcceptanceRequired = new Date(user.legalAcceptedAt) < latestRevision;
+      }
+    }
+
     res.json({
       id: user.id,
       username: user.username,
@@ -348,6 +359,7 @@ export async function registerRoutes(
       mobile: user.mobile,
       preferredContactMethod: user.preferredContactMethod,
       notes: user.notes,
+      legalAcceptanceRequired,
     });
   });
 
@@ -463,10 +475,15 @@ export async function registerRoutes(
       const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
       
       // Update user with the new password and set status to active
-      const updatedUser = await storage.updateUser(invitation.userId, {
+      // Also set legalAcceptedAt if this is a new invitation with legal documents accepted
+      const updateData: any = {
         password: hashedPassword,
         status: "active",
-      });
+      };
+      if (invitation.purpose === "invite" && (acceptedTerms || acceptedPrivacy)) {
+        updateData.legalAcceptedAt = new Date();
+      }
+      const updatedUser = await storage.updateUser(invitation.userId, updateData);
       
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
@@ -7279,6 +7296,74 @@ export async function registerRoutes(
     }
   });
 
+  // Helper: get the latest revision date of legal documents
+  async function getLatestLegalRevisionDate(): Promise<Date | null> {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+
+      const getRevDate = async (type: string): Promise<Date | null> => {
+        try {
+          const fullPath = `${privateObjectDir}/legal/${type}`;
+          const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+          const bucketName = pathParts[0];
+          const objectName = pathParts.slice(1).join("/");
+          const bucket = objectStorageClient.bucket(bucketName);
+          const file = bucket.file(objectName);
+          const [exists] = await file.exists();
+          if (!exists) return null;
+          const [metadata] = await file.getMetadata();
+          const revDate = metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt;
+          return revDate ? new Date(revDate) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      const [termsRev, privacyRev] = await Promise.all([
+        getRevDate("terms"),
+        getRevDate("privacy"),
+      ]);
+
+      if (!termsRev && !privacyRev) return null;
+      if (!termsRev) return privacyRev;
+      if (!privacyRev) return termsRev;
+      return termsRev > privacyRev ? termsRev : privacyRev;
+    } catch {
+      return null;
+    }
+  }
+
+  // Accept/re-accept legal documents (authenticated)
+  app.post("/api/legal-documents/accept", async (req, res) => {
+    try {
+      const sessionUserId = (req.session as any)?.userId;
+      if (!sessionUserId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const currentUser = await storage.getUser(sessionUserId);
+      if (!currentUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const now = new Date();
+      await storage.updateUser(sessionUserId, { legalAcceptedAt: now });
+
+      await storage.createAuditLog({
+        action: "legal_documents_accepted",
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        details: `User accepted legal documents (T&C and Privacy Policy)`,
+      });
+
+      res.json({ success: true, legalAcceptedAt: now.toISOString() });
+    } catch (error) {
+      console.error("Error accepting legal documents:", error);
+      res.status(500).json({ error: "Failed to accept legal documents" });
+    }
+  });
+
   // ==========================================
   // Legal Documents (T&C and Privacy Policy)
   // ==========================================
@@ -7324,12 +7409,15 @@ export async function registerRoutes(
       }
       const buffer = Buffer.concat(chunks);
 
+      const revisionDate = new Date().toISOString();
+
       await file.save(buffer, {
         contentType: contentType,
         metadata: {
           originalName: fileName,
           uploadedBy: currentUser.username,
-          uploadedAt: new Date().toISOString(),
+          uploadedAt: revisionDate,
+          revisionDate: revisionDate,
         },
       });
 
@@ -7339,6 +7427,7 @@ export async function registerRoutes(
         fileName,
         fileSize: buffer.length,
         mimeType: contentType,
+        revisionDate,
       });
     } catch (error) {
       console.error("Error uploading legal document:", error);
@@ -7379,6 +7468,7 @@ export async function registerRoutes(
         mimeType: metadata.contentType || "application/pdf",
         uploadedAt: metadata.metadata?.uploadedAt || null,
         uploadedBy: metadata.metadata?.uploadedBy || null,
+        revisionDate: metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt || null,
       });
     } catch (error) {
       console.error("Error getting legal document info:", error);
