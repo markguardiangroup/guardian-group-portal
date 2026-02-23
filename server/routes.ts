@@ -1403,6 +1403,14 @@ export async function registerRoutes(
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
       }
+
+      // If the URL has an 'email' query parameter, verify it matches the logged-in user
+      const targetEmail = req.query.email as string;
+      if (targetEmail && user.email.toLowerCase() !== targetEmail.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "This link was intended for a different user. Please ensure you are logged in with the correct account." 
+        });
+      }
       
       // Authorization: check if user can access this document's site
       const canAccess = await canUserAccessSite(user, document.siteId);
@@ -1470,6 +1478,14 @@ export async function registerRoutes(
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
+      }
+
+      // If the URL has an 'email' query parameter, verify it matches the logged-in user
+      const targetEmail = req.query.email as string;
+      if (targetEmail && user.email.toLowerCase() !== targetEmail.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "This link was intended for a different user. Please ensure you are logged in with the correct account." 
+        });
       }
       
       const canAccess = await canUserAccessSite(user, document.siteId);
