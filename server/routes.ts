@@ -6312,6 +6312,26 @@ export async function registerRoutes(
     }
   });
 
+  // Check if email is already in use
+  app.get("/api/users/check-email", requireAuth, async (req, res) => {
+    try {
+      const { email } = req.query;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (user) {
+        return res.status(400).json({ error: "This email address is already in use" });
+      }
+
+      res.json({ available: true });
+    } catch (error) {
+      console.error("Check email error:", error);
+      res.status(500).json({ error: "Failed to check email" });
+    }
+  });
+
   // Create user (admin only) - creates with invited status and generates invite token
   app.post("/api/users", requireAuth, async (req, res) => {
     try {

@@ -509,6 +509,10 @@ export default function UserManagement() {
         companyId: data.companyId || null,
       };
       const response = await apiRequest("POST", "/api/users", payload);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create user");
+      }
       return response.json();
     },
     onSuccess: (data) => {
@@ -543,8 +547,12 @@ export default function UserManagement() {
         });
       }
     },
-    onError: () => {
-      toast({ title: "Failed to create user", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to create user", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
@@ -1562,6 +1570,23 @@ export default function UserManagement() {
                       type="email"
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                      onBlur={async (e) => {
+                        const email = e.target.value.trim();
+                        if (!email || !email.includes("@")) return;
+                        try {
+                          const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(email)}`);
+                          if (!response.ok) {
+                            const data = await response.json();
+                            toast({
+                              title: "Email unavailable",
+                              description: data.error || "This email address is already in use.",
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error) {
+                          console.error("Email check failed:", error);
+                        }
+                      }}
                       placeholder="email@company.com"
                       data-testid="input-new-email"
                     />
