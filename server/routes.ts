@@ -6341,11 +6341,12 @@ export async function registerRoutes(
       }
       
       // Check if username or email already exists
-      const existingUsers = await storage.getAllUsers();
-      if (existingUsers.some(u => u.username === username)) {
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      if (existingUsers.some(u => u.email === email)) {
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
         return res.status(400).json({ error: "Email already exists" });
       }
       
@@ -6466,11 +6467,12 @@ export async function registerRoutes(
       }
       
       // Check if username or email already exists
-      const existingUsers = await storage.getAllUsers();
-      if (existingUsers.some(u => u.username === username)) {
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      if (existingUsers.some(u => u.email === email)) {
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
         return res.status(400).json({ error: "Email already exists" });
       }
       
