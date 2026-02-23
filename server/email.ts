@@ -8,7 +8,7 @@ const FROM_NAME = "Guardian Group";
 const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 
 // Use a high-quality logo URL for the email header
-const LOGO_URL = "https://images.replit.com/39318858-6c0b-426b-9c2f-870068596637/8777172579123891712/logo.png";
+const LOGO_URL = "https://i.imgur.com/K6V8f7x.png";
 
 export async function sendInvitationEmail({
   to,
