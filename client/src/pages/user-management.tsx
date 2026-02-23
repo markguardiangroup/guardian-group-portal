@@ -165,6 +165,7 @@ export default function UserManagement() {
     clientPermissionRole: string;
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -1565,31 +1566,43 @@ export default function UserManagement() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="new-email">Email *</Label>
-                    <Input
-                      id="new-email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      onBlur={async (e) => {
-                        const email = e.target.value.trim();
-                        if (!email || !email.includes("@")) return;
-                        try {
-                          const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(email)}`);
-                          if (!response.ok) {
-                            const data = await response.json();
-                            toast({
-                              title: "Email unavailable",
-                              description: data.error || "This email address is already in use.",
-                              variant: "destructive",
-                            });
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="new-email"
+                        type="email"
+                        value={newUser.email}
+                        className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => {
+                          setNewUser({ ...newUser, email: e.target.value });
+                          if (emailError) setEmailError(null);
+                        }}
+                        onBlur={async (e) => {
+                          const email = e.target.value.trim();
+                          if (!email || !email.includes("@")) {
+                            setEmailError(null);
+                            return;
                           }
-                        } catch (error) {
-                          console.error("Email check failed:", error);
-                        }
-                      }}
-                      placeholder="email@company.com"
-                      data-testid="input-new-email"
-                    />
+                          try {
+                            const response = await fetch(`/api/users/check-email?email=${encodeURIComponent(email)}`);
+                            if (!response.ok) {
+                              const data = await response.json();
+                              setEmailError(data.error || "This email address is already in use.");
+                            } else {
+                              setEmailError(null);
+                            }
+                          } catch (error) {
+                            console.error("Email check failed:", error);
+                          }
+                        }}
+                        placeholder="email@company.com"
+                        data-testid="input-new-email"
+                      />
+                      {emailError && (
+                        <p className="text-xs font-medium text-destructive">
+                          {emailError}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
