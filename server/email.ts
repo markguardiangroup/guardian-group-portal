@@ -7,6 +7,9 @@ const FROM_NAME = "Guardian Group";
 
 const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 
+// Use a high-quality logo URL for the email header
+const LOGO_URL = "https://images.replit.com/39318858-6c0b-426b-9c2f-870068596637/8777172579123891712/logo.png";
+
 export async function sendInvitationEmail({
   to,
   fullName,
@@ -32,8 +35,8 @@ export async function sendInvitationEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
-          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
         <div style="padding: 30px 0;">
@@ -105,8 +108,8 @@ export async function sendPasswordResetEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
-          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
         <div style="padding: 30px 0;">
@@ -188,8 +191,8 @@ export async function sendDocumentApprovalEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
-          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
         <div style="padding: 30px 0;">
@@ -289,8 +292,8 @@ export async function sendClientSignOffEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <h1 style="color: #1e40af; margin: 0; font-size: 24px;">Guardian Group</h1>
-          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
         <div style="padding: 30px 0;">
