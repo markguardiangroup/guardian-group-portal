@@ -171,11 +171,6 @@ const adminNavItems = [
     icon: HelpCircle,
   },
   {
-    title: "Roadmap",
-    url: "/roadmap",
-    icon: Lightbulb,
-  },
-  {
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,
