@@ -2608,10 +2608,7 @@ export class MemStorage implements IStorage {
 
   async updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined> {
     const [updated] = await db.update(feedbackTable)
-      .set({ 
-        ...updates, 
-        updatedAt: new Date() 
-      })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(feedbackTable.id, id))
       .returning();
     return updated;

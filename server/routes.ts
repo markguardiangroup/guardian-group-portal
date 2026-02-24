@@ -7752,12 +7752,12 @@ export async function registerRoutes(
 
   // ==================== FEEDBACK ENDPOINTS ====================
 
-  // Get all feedback (Consultants and Admins)
+  // Get all feedback (Admin only)
   app.get("/api/feedback", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      if (user.role === "client") {
-        return res.status(403).json({ error: "Clients cannot view feedback" });
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view feedback" });
       }
       const feedbackList = await storage.getFeedback();
       res.json(feedbackList);
@@ -7843,34 +7843,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting feedback:", error);
       res.status(500).json({ error: "Failed to delete feedback" });
-    }
-  });
-
-  // Like feedback (Consultants and Admins)
-  app.post("/api/feedback/:id/like", requireAuth, async (req, res) => {
-    try {
-      const user = (req.session as any).user;
-      const feedback = await storage.getFeedbackItem(req.params.id);
-
-      if (!feedback) {
-        return res.status(404).json({ error: "Feedback not found" });
-      }
-
-      const likes = feedback.likes || [];
-      const userIndex = likes.indexOf(user.id);
-
-      let newLikes;
-      if (userIndex === -1) {
-        newLikes = [...likes, user.id];
-      } else {
-        newLikes = likes.filter(id => id !== user.id);
-      }
-
-      const updated = await storage.updateFeedback(req.params.id, { likes: newLikes });
-      res.json(updated);
-    } catch (error) {
-      console.error("Like feedback error:", error);
-      res.status(500).json({ error: "Failed to update like" });
     }
   });
 

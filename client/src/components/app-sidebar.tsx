@@ -124,6 +124,16 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/reports" },
     ],
   },
+  {
+    title: "Feedback",
+    icon: MessageSquare,
+    url: "/feedback",
+    themeClass: "theme-support",
+    module: "support",
+    subItems: [
+      { title: "Feedback", url: "/feedback" },
+    ],
+  },
 ];
 
 const settingsNavItems = [
@@ -171,9 +181,9 @@ const adminNavItems = [
     icon: HelpCircle,
   },
   {
-    title: "Feedback",
-    url: "/feedback",
-    icon: MessageSquare,
+    title: "Roadmap",
+    url: "/roadmap",
+    icon: Lightbulb,
   },
 ];
 
