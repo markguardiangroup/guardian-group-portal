@@ -100,6 +100,14 @@ const updateSupportRequestSchema = z.object({
   response: z.string().optional(),
 });
 
+const createFeedbackSchema = z.object({
+  message: z.string().min(1),
+});
+
+const updateFeedbackSchema = z.object({
+  adminNotes: z.string().optional(),
+});
+
 const approvalSchema = z.object({
   action: z.enum(["approve", "reject", "changes"]),
   feedback: z.string().optional(),
@@ -7739,6 +7747,102 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error serving legal document:", error);
       res.status(500).json({ error: "Failed to serve legal document" });
+    }
+  });
+
+  // ==================== FEEDBACK ENDPOINTS ====================
+
+  // Get all feedback (Admin only)
+  app.get("/api/feedback", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can view feedback" });
+      }
+      const feedbackList = await storage.getFeedback();
+      res.json(feedbackList);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+
+  // Create feedback (Consultants and Admins)
+  app.post("/api/feedback", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot submit feedback" });
+      }
+
+      const parseResult = createFeedbackSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0].message });
+      }
+
+      const newFeedback = await storage.createFeedback({
+        userId: user.id,
+        userName: user.fullName,
+        message: parseResult.data.message,
+        adminNotes: null,
+      });
+
+      await storage.createAuditLog({
+        action: "comment_added",
+        userId: user.id,
+        userName: user.fullName,
+        details: `Submitted feedback: ${newFeedback.message.substring(0, 50)}...`,
+      });
+
+      res.json(newFeedback);
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ error: "Failed to create feedback" });
+    }
+  });
+
+  // Update feedback (Admin only - for notes)
+  app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update feedback" });
+      }
+
+      const parseResult = updateFeedbackSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: parseResult.error.errors[0].message });
+      }
+
+      const updated = await storage.updateFeedback(req.params.id, parseResult.data);
+      if (!updated) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+      res.status(500).json({ error: "Failed to update feedback" });
+    }
+  });
+
+  // Delete feedback (Admin only)
+  app.delete("/api/feedback/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete feedback" });
+      }
+
+      const success = await storage.deleteFeedback(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting feedback:", error);
+      res.status(500).json({ error: "Failed to delete feedback" });
     }
   });
 

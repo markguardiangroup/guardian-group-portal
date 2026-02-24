@@ -37,6 +37,7 @@ import {
   type TrainingRequest, type InsertTrainingRequest,
   type TrainingBooking, type InsertTrainingBooking,
   type RoadmapItem, type InsertRoadmapItem,
+  type Feedback, type InsertFeedback,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
   userInvitations as userInvitationsTable,
   trainingModules as trainingModulesTable,
@@ -66,6 +67,7 @@ import {
   consultantAssignments as consultantAssignmentsTable,
   moduleAccessRequests as moduleAccessRequestsTable,
   siteDocumentTypeAccess as siteDocumentTypeAccessTable,
+  feedback as feedbackTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -294,7 +296,14 @@ export interface IStorage {
   createRoadmapItem(item: InsertRoadmapItem): Promise<RoadmapItem>;
   updateRoadmapItem(id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | undefined>;
   deleteRoadmapItem(id: string): Promise<boolean>;
-  
+
+  // Feedback
+  getFeedback(): Promise<Feedback[]>;
+  getFeedbackItem(id: string): Promise<Feedback | undefined>;
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined>;
+  deleteFeedback(id: string): Promise<boolean>;
+
   // User Invitations (for secure password setup)
   getUserInvitation(id: string): Promise<UserInvitation | undefined>;
   getUserInvitationByToken(tokenHash: string): Promise<UserInvitation | undefined>;
@@ -2571,6 +2580,42 @@ export class MemStorage implements IStorage {
 
   async deleteRoadmapItem(id: string): Promise<boolean> {
     const result = await db.delete(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // ==================== FEEDBACK METHODS ====================
+
+  async getFeedback(): Promise<Feedback[]> {
+    return await db.select().from(feedbackTable).orderBy(desc(feedbackTable.createdAt));
+  }
+
+  async getFeedbackItem(id: string): Promise<Feedback | undefined> {
+    const [item] = await db.select().from(feedbackTable).where(eq(feedbackTable.id, id));
+    return item;
+  }
+
+  async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
+    const id = randomUUID();
+    const now = new Date();
+    const [created] = await db.insert(feedbackTable).values({
+      id,
+      ...feedback,
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
+    return created;
+  }
+
+  async updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined> {
+    const [updated] = await db.update(feedbackTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(feedbackTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFeedback(id: string): Promise<boolean> {
+    const result = await db.delete(feedbackTable).where(eq(feedbackTable.id, id)).returning();
     return result.length > 0;
   }
 
