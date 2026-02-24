@@ -7752,12 +7752,12 @@ export async function registerRoutes(
 
   // ==================== FEEDBACK ENDPOINTS ====================
 
-  // Get all feedback (Admin only)
+  // Get all feedback (Consultants and Admins)
   app.get("/api/feedback", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can view feedback" });
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot view feedback" });
       }
       const feedbackList = await storage.getFeedback();
       res.json(feedbackList);
