@@ -9,14 +9,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, Trash2, StickyNote } from "lucide-react";
+import { Loader2, MessageSquare, Trash2, StickyNote, ThumbsUp } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function AdminFeedback() {
   const { user } = useAuth();
@@ -26,7 +24,6 @@ export default function AdminFeedback() {
 
   const { data: feedbackList, isLoading } = useQuery<Feedback[]>({
     queryKey: ["/api/feedback"],
-    enabled: user?.role === "admin",
   });
 
   const createMutation = useMutation({
@@ -60,6 +57,16 @@ export default function AdminFeedback() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
       toast({ title: "Feedback deleted" });
+    },
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/feedback/${id}/like`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
     },
   });
 
@@ -106,107 +113,100 @@ export default function AdminFeedback() {
         </Card>
       )}
 
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>All Feedback</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Message</TableHead>
-                    <TableHead>Admin Notes</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {feedbackList?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="whitespace-nowrap">
-                        {format(new Date(item.createdAt), "dd MMM yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="font-medium">{item.userName}</TableCell>
-                      <TableCell className="max-w-md truncate" title={item.message}>
-                        {item.message}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate italic text-muted-foreground">
-                        {item.adminNotes || "No notes"}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Dialog open={editingNotes?.id === item.id} onOpenChange={(open) => !open && setEditingNotes(null)}>
-                          <DialogTrigger asChild>
+      {(isConsultant || isAdmin) && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {isLoading ? (
+            <div className="col-span-full flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : feedbackList?.map((item) => {
+            const hasLiked = item.likes?.includes(user?.id || "");
+            return (
+              <Card key={item.id} className="flex flex-col">
+                <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-sm font-medium">{item.userName}</CardTitle>
+                    <CardDescription className="text-xs">
+                      {format(new Date(item.createdAt), "dd MMM yyyy HH:mm")}
+                    </CardDescription>
+                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      <Dialog open={editingNotes?.id === item.id} onOpenChange={(open) => !open && setEditingNotes(null)}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => setEditingNotes({ id: item.id, notes: item.adminNotes || "" })}
+                          >
+                            <StickyNote className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Admin Notes</DialogTitle>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <Textarea 
+                              value={editingNotes?.notes}
+                              onChange={(e) => setEditingNotes(prev => prev ? { ...prev, notes: e.target.value } : null)}
+                              placeholder="Add notes here..."
+                              className="min-h-[100px]"
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setEditingNotes(null)}>Cancel</Button>
                             <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => setEditingNotes({ id: item.id, notes: item.adminNotes || "" })}
-                              data-testid={`button-edit-feedback-${item.id}`}
+                              onClick={() => updateMutation.mutate({ id: item.id, adminNotes: editingNotes?.notes || "" })}
+                              disabled={updateMutation.isPending}
                             >
-                              <StickyNote className="h-4 w-4" />
+                              Save Notes
                             </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Admin Notes</DialogTitle>
-                              <DialogDescription>
-                                Add internal notes for this feedback item.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4">
-                              <Textarea 
-                                value={editingNotes?.notes}
-                                onChange={(e) => setEditingNotes(prev => prev ? { ...prev, notes: e.target.value } : null)}
-                                placeholder="Add notes here..."
-                                className="min-h-[100px]"
-                              />
-                            </div>
-                            <DialogFooter>
-                              <Button variant="outline" onClick={() => setEditingNotes(null)}>Cancel</Button>
-                              <Button 
-                                onClick={() => updateMutation.mutate({ id: item.id, adminNotes: editingNotes?.notes || "" })}
-                                disabled={updateMutation.isPending}
-                              >
-                                {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Notes
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this feedback?")) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          data-testid={`button-delete-feedback-${item.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {feedbackList?.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No feedback found.
-                      </TableCell>
-                    </TableRow>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => confirm("Delete this feedback?") && deleteMutation.mutate(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-sm whitespace-pre-wrap">{item.message}</p>
+                  {item.adminNotes && (
+                    <div className="mt-4 p-2 bg-muted rounded text-xs italic">
+                      <span className="font-semibold block not-italic">Admin Note:</span>
+                      {item.adminNotes}
+                    </div>
+                  )}
+                </CardContent>
+                <div className="px-6 py-4 pt-0 border-t flex items-center justify-between mt-auto">
+                  <Button
+                    variant={hasLiked ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 gap-2"
+                    onClick={() => likeMutation.mutate(item.id)}
+                    disabled={likeMutation.isPending}
+                  >
+                    <ThumbsUp className={cn("h-4 w-4", hasLiked && "fill-current")} />
+                    <span>{item.likes?.length || 0}</span>
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+          {!isLoading && feedbackList?.length === 0 && (
+            <div className="col-span-full text-center py-8 text-muted-foreground">
+              No feedback found.
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

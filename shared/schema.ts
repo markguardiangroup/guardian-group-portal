@@ -1228,6 +1228,7 @@ export const feedback = pgTable("feedback", {
   userName: text("user_name").notNull(),
   message: text("message").notNull(),
   adminNotes: text("admin_notes"),
+  likes: text("likes").array().notNull().default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
