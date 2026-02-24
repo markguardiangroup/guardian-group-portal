@@ -18,6 +18,7 @@ import {
   Lightbulb,
   HelpCircle,
   ShieldAlert,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
