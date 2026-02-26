@@ -1200,12 +1200,16 @@ export async function registerRoutes(
       const module = req.query.module as ModuleType | undefined;
       const siteId = req.query.siteId as string | undefined;
       const siteIds = req.query.siteIds as string | undefined;
+      const includeArchived = req.query.includeArchived === "true";
       
       const allDocuments = await storage.getDocuments(module);
       
-      // Filter documents by sites the user can access
+      // Filter documents by sites the user can access and archived status
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
+          // Filter out archived documents unless includeArchived is true
+          if (!includeArchived && doc.isArchived) return null;
+
           const canAccess = await canUserAccessSite(user, doc.siteId);
           return canAccess ? doc : null;
         })
