@@ -368,13 +368,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Fetch document hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
-    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId, showArchived],
+    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId, { includeArchived: showArchived }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCompanyId) {
         params.set("companyId", selectedCompanyId);
       }
-      params.set("includeArchived", "true");
+      if (showArchived) {
+        params.set("includeArchived", "true");
+      }
       const queryString = params.toString();
       const url = `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`;
       const res = await fetch(url, {

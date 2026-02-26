@@ -6184,6 +6184,7 @@ export async function registerRoutes(
                   templateId: d.templateId,
                   expiryDate: d.expiryDate,
                   updatedAt: d.updatedAt,
+                  isArchived: d.isArchived,
                   isRequired: docTemplate?.isRequired || false,
                   renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
                 };
@@ -6229,6 +6230,7 @@ export async function registerRoutes(
                     templateId: d.templateId,
                     expiryDate: d.expiryDate,
                     updatedAt: d.updatedAt,
+                    isArchived: d.isArchived,
                     isRequired: docTemplate?.isRequired || false,
                     renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
                   };
@@ -6274,6 +6276,7 @@ export async function registerRoutes(
                 templateId: d.templateId,
                 expiryDate: d.expiryDate,
                 updatedAt: d.updatedAt,
+                isArchived: d.isArchived,
                 isRequired: docTemplate?.isRequired || false,
                 renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
               };
