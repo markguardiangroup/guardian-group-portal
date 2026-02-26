@@ -287,38 +287,45 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/logout", async (req, res) => {
-    const user = (req.session as any)?.user;
-    const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
-    
-    // Create audit log for logout before destroying session
-    if (user) {
-      await storage.createAuditLog({
-        action: "logout",
-        userId: user.id,
-        userName: user.fullName,
-        details: `User logged out from IP ${ipAddress}`,
-      });
-    }
-    
-    // Set headers to prevent caching of auth state
-    res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    });
-    
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Session destroy error:", err);
-        // Still try to clear cookie and respond
+    try {
+      const user = (req.session as any)?.user;
+      const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+      
+      // Create audit log for logout before destroying session
+      if (user) {
+        try {
+          await storage.createAuditLog({
+            action: "logout",
+            userId: user.id,
+            userName: user.fullName,
+            details: `User logged out from IP ${ipAddress}`,
+          });
+        } catch (auditErr) {
+          console.error("Failed to create logout audit log:", auditErr);
+        }
       }
       
-      // Clear the session cookie with all possible path/domain combinations
-      res.clearCookie("guardian.sid", { path: "/" });
-      res.clearCookie("guardian.sid");
+      // Set headers to prevent caching of auth state
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      });
       
-      res.json({ message: "Logged out successfully" });
-    });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+        }
+        
+        res.clearCookie("guardian.sid", { path: "/" });
+        res.clearCookie("guardian.sid");
+        
+        res.json({ message: "Logged out successfully" });
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+      res.status(500).json({ error: "Logout failed" });
+    }
   });
 
   app.get("/api/auth/me", async (req, res) => {
