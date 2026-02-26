@@ -230,7 +230,7 @@ function DocumentsListView() {
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents", { includeArchived: showArchived }],
     queryFn: async () => {
-      const res = await fetch(`/api/documents?includeArchived=${showArchived}`, {
+      const res = await fetch(`/api/documents?includeArchived=true`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch documents");
@@ -246,7 +246,7 @@ function DocumentsListView() {
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
     queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", showArchived],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=${showArchived}`, {
+      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=true`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch hierarchy");
