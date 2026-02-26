@@ -230,7 +230,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
-  const [showArchived, setShowArchived] = useState(false);
+  const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -249,7 +249,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
@@ -272,7 +272,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/archive`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
@@ -312,12 +312,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [clientSites, selectedCompany]);
   
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents/module", module, "includeArchived"],
+    queryKey: ["/api/documents/module", module],
+  });
+
+  // Archived documents — fetched fresh only when the dialog opens
+  const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
+    queryKey: ["/api/documents/module", module, "archived"],
     queryFn: async () => {
       const res = await fetch(`/api/documents/module/${module}?includeArchived=true`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch documents");
-      return res.json();
+      if (!res.ok) throw new Error("Failed to fetch archived documents");
+      const all = await res.json();
+      return all.filter((d: Document) => d.isArchived);
     },
+    enabled: archivedDialogOpen,
+    staleTime: 0,
   });
 
   const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
@@ -473,7 +481,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       matchesRenewal = !doc.renewalDate;
     }
     
-    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && (showArchived ? doc.isArchived : !doc.isArchived);
+    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
   });
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -588,14 +596,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </div>
           
           <Button
-            variant={showArchived ? "secondary" : "outline"}
+            variant="outline"
             size="sm"
-            onClick={() => setShowArchived(!showArchived)}
-            data-testid="button-toggle-archived"
+            onClick={() => setArchivedDialogOpen(true)}
+            data-testid="button-show-archived"
             className="gap-2"
           >
             <Archive className="h-4 w-4" />
-            {showArchived ? "Hide Archived" : "Show Archived"}
+            Archived Documents
           </Button>
           
           {/* Quick stats badge */}
@@ -719,8 +727,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="p-3 pl-10 space-y-2">
-                                          {childFolder.documents && childFolder.documents.filter((doc: any) => showArchived ? doc.isArchived : !doc.isArchived).length > 0 ? (
-                                            childFolder.documents.filter((doc: any) => showArchived ? doc.isArchived : !doc.isArchived).map((doc: any) => (
+                                          {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).length > 0 ? (
+                                            childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
                                               <Link
                                                 key={doc.id}
                                                 href={`${basePath}/documents/${doc.id}`}
@@ -766,9 +774,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
                             
                             {/* Parent Folder Documents */}
-                            {folder.documents.filter(doc => showArchived ? doc.isArchived : !doc.isArchived).length > 0 && (
+                            {folder.documents.filter(doc => !doc.isArchived).length > 0 && (
                               <div className="space-y-2">
-                                {folder.documents.filter(doc => showArchived ? doc.isArchived : !doc.isArchived).map((doc) => (
+                                {folder.documents.filter(doc => !doc.isArchived).map((doc) => (
                                   <Link
                                     key={doc.id}
                                     href={`${basePath}/documents/${doc.id}`}
@@ -1101,6 +1109,61 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       </Card>
       )}
       </div>
+
+      {/* Archived Documents Dialog */}
+      <Dialog open={archivedDialogOpen} onOpenChange={setArchivedDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Archive className="h-5 w-5 text-muted-foreground" />
+              Archived Documents
+            </DialogTitle>
+            <DialogDescription>
+              Documents that have been archived for this module. You can restore them at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 py-2">
+            {isLoadingArchived ? (
+              <div className="space-y-2">
+                {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : !archivedDocuments || archivedDocuments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <Archive className="h-10 w-10 mb-3 opacity-40" />
+                <p className="text-sm font-medium">No archived documents</p>
+                <p className="text-xs mt-1">Archived documents will appear here</p>
+              </div>
+            ) : (
+              archivedDocuments.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/30">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{doc.fileName} · v{doc.version}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <Link href={`${basePath}/documents/${doc.id}`} onClick={() => setArchivedDialogOpen(false)}>
+                      <Button variant="outline" size="sm">View</Button>
+                    </Link>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        restoreMutation.mutate(doc.id);
+                        setArchivedDialogOpen(false);
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1188,7 +1251,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
@@ -1239,7 +1302,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "versions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       setShowUploadVersionDialog(false);
@@ -1278,7 +1341,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
@@ -1316,7 +1379,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
