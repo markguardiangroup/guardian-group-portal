@@ -293,24 +293,13 @@ function LegalAcceptanceScreen() {
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const [showLoginOverlay, setShowLoginOverlay] = useState(
-    () => sessionStorage.getItem("loggingIn") === "true"
-  );
 
-  useEffect(() => {
-    if (!isLoading) {
-      sessionStorage.removeItem("loggingIn");
-      setShowLoginOverlay(false);
-    }
-  }, [isLoading]);
-
-  if (isLoading || showLoginOverlay) {
+  if (isLoading) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
-          <p className="text-lg font-semibold text-slate-800">Logging you in...</p>
-          <p className="text-sm text-slate-500">Please wait a moment</p>
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="space-y-4 text-center">
+          <Skeleton className="h-12 w-12 mx-auto rounded-full" />
+          <Skeleton className="h-4 w-32 mx-auto" />
         </div>
       </div>
     );
