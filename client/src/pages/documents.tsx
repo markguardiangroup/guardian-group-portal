@@ -228,7 +228,14 @@ function DocumentsListView() {
   const [showArchived, setShowArchived] = useState(false);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: showArchived ? ["/api/documents?includeArchived=true"] : ["/api/documents"],
+    queryKey: ["/api/documents", { includeArchived: showArchived }],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents?includeArchived=${showArchived}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
   });
 
   const { data: sites } = useQuery<Site[]>({
@@ -237,9 +244,9 @@ function DocumentsListView() {
 
   // Fetch documents hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
-    queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+    queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", showArchived],
     queryFn: async () => {
-      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy`, {
+      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=${showArchived}`, {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch hierarchy");
@@ -331,7 +338,10 @@ function DocumentsListView() {
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     const matchesSite = selectedSiteId === "all" || doc.siteId === selectedSiteId;
     const matchesFolder = selectedFolderId === null || doc.folderId === selectedFolderId;
-    return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && (showArchived ? doc.isArchived : !doc.isArchived);
+    // When showArchived is true, we only want to see archived documents.
+    // When showArchived is false, we only want to see non-archived documents.
+    const archiveFilter = showArchived ? doc.isArchived : !doc.isArchived;
+    return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && archiveFilter;
   });
 
   if (isLoading) {

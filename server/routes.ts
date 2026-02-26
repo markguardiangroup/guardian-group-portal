@@ -6067,7 +6067,11 @@ export async function registerRoutes(
       
       // Get all documents for target sites in this module
       const allDocuments = await storage.getDocuments(module as any);
-      const siteDocuments = allDocuments.filter(d => targetSiteIds.includes(d.siteId) && !d.isArchived);
+      const includeArchived = req.query.includeArchived === "true";
+      const siteDocuments = allDocuments.filter(d => 
+        targetSiteIds.includes(d.siteId) && 
+        (includeArchived ? true : !d.isArchived)
+      );
       
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
