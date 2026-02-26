@@ -791,7 +791,7 @@ export default function Settings() {
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
                           <th className="text-center py-3 px-2 font-medium">
                             <div className="flex flex-col items-center gap-1">
-                              <span className="capitalize">Owner</span>
+                              <span className="capitalize">Client</span>
                               <Badge variant="default" className="text-xs">Active</Badge>
                             </div>
                           </th>
