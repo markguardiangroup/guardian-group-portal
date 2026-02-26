@@ -316,6 +316,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: showArchived 
       ? [`/api/documents/module/${module}?includeArchived=true`]
       : [`/api/documents/module/${module}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/module/${module}?includeArchived=true`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
   });
 
   const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
@@ -363,16 +370,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Fetch document hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
-    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId],
+    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId, showArchived],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedCompanyId) {
         params.set("companyId", selectedCompanyId);
       }
+      params.set("includeArchived", "true");
       const queryString = params.toString();
-      const url = queryString 
-        ? `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`
-        : `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy`;
+      const url = `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`;
       const res = await fetch(url, {
         credentials: "include",
       });
@@ -595,6 +601,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {/* Quick stats badge */}
           {hierarchy?.summary && (
             <div className="flex items-center gap-4 text-sm">
+              <Button
+                variant={showArchived ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                data-testid="button-toggle-archived"
+              >
+                <Archive className="mr-2 h-4 w-4" />
+                {showArchived ? "Hide Archived" : "Show Archived"}
+              </Button>
               <div className="flex items-center gap-1.5">
                 <FileCheck className="h-4 w-4 text-green-600" />
                 <span className="text-muted-foreground">{hierarchy.summary.compliant}</span>
