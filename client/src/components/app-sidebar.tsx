@@ -124,16 +124,6 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/reports" },
     ],
   },
-  {
-    title: "Feedback",
-    icon: MessageSquare,
-    url: "/feedback",
-    themeClass: "theme-support",
-    module: "support",
-    subItems: [
-      { title: "Feedback", url: "/feedback" },
-    ],
-  },
 ];
 
 const settingsNavItems = [
@@ -176,6 +166,11 @@ const adminNavItems = [
     icon: ShieldAlert,
   },
   {
+    title: "Feedback",
+    url: "/feedback",
+    icon: MessageSquare,
+  },
+  {
     title: "Help & Training Guide",
     url: "/help",
     icon: HelpCircle,
@@ -197,6 +192,11 @@ const consultantNavItems = [
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
+  },
+  {
+    title: "Feedback",
+    url: "/feedback",
+    icon: MessageSquare,
   },
   {
     title: "Help & Training Guide",
