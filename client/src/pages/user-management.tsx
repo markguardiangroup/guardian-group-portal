@@ -140,6 +140,7 @@ export default function UserManagement() {
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
   const isAdmin = user?.role === "admin";
   const canAddUser = isAdmin || isPro;
+  const isConsultant = user?.role === "consultant";
   const { toast } = useToast();
   const { selectedCompany, handleCompanyChange } = useSiteFilter();
   const companyFilter = selectedCompany || "all";
@@ -226,8 +227,6 @@ export default function UserManagement() {
     }
     return `${base}${counter}`;
   };
-
-  const isConsultant = user?.role === "consultant";
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
@@ -1711,7 +1710,7 @@ export default function UserManagement() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Administrator</SelectItem>
+                        {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
                         <SelectItem value="consultant">Consultant</SelectItem>
                         <SelectItem value="client">Client</SelectItem>
                       </SelectContent>
