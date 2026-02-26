@@ -292,7 +292,19 @@ function LegalAcceptanceScreen() {
 }
 
 function AuthenticatedApp() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, isLoggingOut } = useAuth();
+
+  if (isLoggingOut) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="space-y-4 text-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-lg font-medium animate-pulse">Logging out...</p>
+          <p className="text-sm text-muted-foreground">Please wait while we secure your session</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
