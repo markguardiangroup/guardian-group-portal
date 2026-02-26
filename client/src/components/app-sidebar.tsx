@@ -18,6 +18,7 @@ import {
   Lightbulb,
   HelpCircle,
   ShieldAlert,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -165,6 +166,11 @@ const adminNavItems = [
     icon: ShieldAlert,
   },
   {
+    title: "Feedback",
+    url: "/feedback",
+    icon: MessageSquare,
+  },
+  {
     title: "Help & Training Guide",
     url: "/help",
     icon: HelpCircle,
@@ -186,6 +192,11 @@ const consultantNavItems = [
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
+  },
+  {
+    title: "Feedback",
+    url: "/feedback",
+    icon: MessageSquare,
   },
   {
     title: "Help & Training Guide",

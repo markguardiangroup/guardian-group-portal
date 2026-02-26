@@ -1220,3 +1220,55 @@ export const insertRoadmapItemSchema = createInsertSchema(roadmapItems).omit({
 });
 export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
 export type RoadmapItem = typeof roadmapItems.$inferSelect;
+
+// Feedback table for consultants to submit feedback during testing
+export const feedback = pgTable("feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  message: text("message").notNull(),
+  status: text("status").$type<"open" | "resolved">().notNull().default("open"),
+  upvotes: text("upvotes").array().notNull().default(sql`'{}'::text[]`), // Array of user IDs who upvoted
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true,
+  upvotes: true,
+});
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type Feedback = typeof feedback.$inferSelect;
+
+// Feedback Comments table
+export const feedbackComments = pgTable("feedback_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  feedbackId: varchar("feedback_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  content: text("content").notNull(),
+  likes: text("likes").array().notNull().default(sql`'{}'::text[]`), // Array of user IDs who liked
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFeedbackCommentSchema = createInsertSchema(feedbackComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  likes: true,
+});
+export type InsertFeedbackComment = z.infer<typeof insertFeedbackCommentSchema>;
+export type FeedbackComment = typeof feedbackComments.$inferSelect;
+
+// Track when users last viewed feedback comments
+export const feedbackReads = pgTable("feedback_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  feedbackId: varchar("feedback_id").notNull(),
+  lastViewedAt: timestamp("last_viewed_at").notNull().defaultNow(),
+});
+
+export type FeedbackRead = typeof feedbackReads.$inferSelect;

@@ -100,6 +100,14 @@ const updateSupportRequestSchema = z.object({
   response: z.string().optional(),
 });
 
+const createFeedbackSchema = z.object({
+  message: z.string().min(1),
+});
+
+const updateFeedbackSchema = z.object({
+  adminNotes: z.string().optional(),
+});
+
 const approvalSchema = z.object({
   action: z.enum(["approve", "reject", "changes"]),
   feedback: z.string().optional(),
@@ -279,38 +287,45 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/logout", async (req, res) => {
-    const user = (req.session as any)?.user;
-    const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
-    
-    // Create audit log for logout before destroying session
-    if (user) {
-      await storage.createAuditLog({
-        action: "logout",
-        userId: user.id,
-        userName: user.fullName,
-        details: `User logged out from IP ${ipAddress}`,
-      });
-    }
-    
-    // Set headers to prevent caching of auth state
-    res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    });
-    
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Session destroy error:", err);
-        // Still try to clear cookie and respond
+    try {
+      const user = (req.session as any)?.user;
+      const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+      
+      // Create audit log for logout before destroying session
+      if (user) {
+        try {
+          await storage.createAuditLog({
+            action: "logout",
+            userId: user.id,
+            userName: user.fullName,
+            details: `User logged out from IP ${ipAddress}`,
+          });
+        } catch (auditErr) {
+          console.error("Failed to create logout audit log:", auditErr);
+        }
       }
       
-      // Clear the session cookie with all possible path/domain combinations
-      res.clearCookie("guardian.sid", { path: "/" });
-      res.clearCookie("guardian.sid");
+      // Set headers to prevent caching of auth state
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      });
       
-      res.json({ message: "Logged out successfully" });
-    });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+        }
+        
+        res.clearCookie("guardian.sid", { path: "/" });
+        res.clearCookie("guardian.sid");
+        
+        res.json({ message: "Logged out successfully" });
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+      res.status(500).json({ error: "Logout failed" });
+    }
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -7739,6 +7754,175 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error serving legal document:", error);
       res.status(500).json({ error: "Failed to serve legal document" });
+    }
+  });
+
+  // ==================== FEEDBACK ENDPOINTS ====================
+  // All feedback endpoints are for admin/consultant only
+  const requirePrivileged = (req: any, res: any, next: any) => {
+    const user = (req.session as any)?.user;
+    if (user?.role !== "admin" && user?.role !== "consultant") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    next();
+  };
+
+  app.get("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const feedback = await storage.getFeedbackWithMetadata(user.id);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+
+  app.post("/api/feedback/:id/read", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      await storage.markFeedbackRead(req.params.id, user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking feedback as read:", error);
+      res.status(500).json({ error: "Failed to mark as read" });
+    }
+  });
+
+  app.post("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const parseResult = createFeedbackSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid feedback data" });
+      }
+
+      const feedback = await storage.createFeedback({
+        userId: user.id,
+        userName: user.fullName,
+        message: parseResult.data.message,
+      });
+
+      await storage.createAuditLog({
+        action: "create_feedback",
+        userId: user.id,
+        userName: user.fullName,
+        details: `Submitted feedback: ${feedback.message.substring(0, 50)}...`,
+      });
+
+      res.status(201).json(feedback);
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ error: "Failed to create feedback" });
+    }
+  });
+
+  const updateFeedbackSchema = z.object({
+    message: z.string().optional(),
+    status: z.enum(["open", "resolved"]).optional(),
+  });
+
+  app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      // Only admins can update feedback
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update feedback" });
+      }
+
+      const parseResult = updateFeedbackSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid update data" });
+      }
+
+      const updated = await storage.updateFeedback(req.params.id, parseResult.data);
+      if (!updated) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+      res.status(500).json({ error: "Failed to update feedback" });
+    }
+  });
+
+  app.post("/api/feedback/:id/upvote", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const updated = await storage.toggleFeedbackUpvote(req.params.id, user.id);
+      if (!updated) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling upvote:", error);
+      res.status(500).json({ error: "Failed to toggle upvote" });
+    }
+  });
+
+  app.get("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const comments = await storage.getFeedbackComments(req.params.id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { content } = req.body;
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      const comment = await storage.createFeedbackComment({
+        feedbackId: req.params.id,
+        userId: user.id,
+        userName: user.fullName,
+        content,
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.post("/api/feedback/comments/:id/like", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const updated = await storage.toggleCommentLike(req.params.id, user.id);
+      if (!updated) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      res.status(500).json({ error: "Failed to toggle like" });
+    }
+  });
+
+  app.delete("/api/feedback/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete feedback" });
+      }
+
+      const success = await storage.deleteFeedback(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting feedback:", error);
+      res.status(500).json({ error: "Failed to delete feedback" });
     }
   });
 
