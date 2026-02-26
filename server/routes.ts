@@ -633,9 +633,7 @@ export async function registerRoutes(
   };
 
   // Helper: check if a consultant user has the pro tier
-  const isProConsultant = (user: { role: string; consultantTier?: string | null }): boolean => {
-    return user.role === "consultant" && user.consultantTier === "pro";
-  };
+  // Function definition moved to before its first usage in Companies list route
 
   // Helper to check if a client user can access a site (based on companyId)
   const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null }, siteId: string): Promise<boolean> => {
@@ -4011,6 +4009,10 @@ export async function registerRoutes(
     }
   });
 
+    const isProConsultant = (user: { role: string; consultantTier?: string | null }): boolean => {
+    return user.role === "consultant" && user.consultantTier === "pro";
+  };
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
@@ -4100,15 +4102,19 @@ export async function registerRoutes(
       }
       
       // Check access
-      if (user.role === "consultant" && !isProConsultant(user)) {
-        const assignments = await storage.getConsultantSites(user.id);
-        const siteCompanyIds = new Set<string>();
-        for (const a of assignments) {
-          const site = await storage.getSite(a.siteId);
-          if (site) siteCompanyIds.add(site.companyId);
-        }
-        if (!siteCompanyIds.has(company.id)) {
-          return res.status(403).json({ error: "Access denied" });
+      if (user.role === "consultant") {
+        if (isProConsultant(user)) {
+          // Pro consultants have full access
+        } else {
+          const assignments = await storage.getConsultantSites(user.id);
+          const siteCompanyIds = new Set<string>();
+          for (const a of assignments) {
+            const site = await storage.getSite(a.siteId);
+            if (site) siteCompanyIds.add(site.companyId);
+          }
+          if (!siteCompanyIds.has(company.id)) {
+            return res.status(403).json({ error: "Access denied" });
+          }
         }
       } else if (user.role === "client") {
         if (user.companyId !== company.id) {
