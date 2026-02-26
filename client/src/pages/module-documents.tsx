@@ -232,6 +232,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [urlSiteId, urlCompany]);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1178,11 +1179,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to permanently delete \"${doc.title}\"? This action cannot be undone.`)) {
-                            deleteFromListMutation.mutate(doc.id);
-                          }
-                        }}
+                        onClick={() => setDocumentToDelete({id: doc.id, title: doc.title})}
                         disabled={deleteFromListMutation.isPending}
                         data-testid={`button-delete-archived-${doc.id}`}
                       >
@@ -1194,6 +1191,38 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Document
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete "{documentToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDocumentToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (documentToDelete) {
+                  deleteFromListMutation.mutate(documentToDelete.id);
+                  setDocumentToDelete(null);
+                }
+              }}
+              disabled={deleteFromListMutation.isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Permanently
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -2183,10 +2212,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             <Button
               variant="destructive"
               onClick={() => {
-                if (window.confirm(`Are you sure you want to permanently delete \"${document?.title}\"? This action cannot be undone and will remove all versions of this document.`)) {
-                  deleteMutation.mutate();
-                  setShowDeleteDialog(false);
-                }
+                deleteMutation.mutate();
+                setShowDeleteDialog(false);
               }}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
