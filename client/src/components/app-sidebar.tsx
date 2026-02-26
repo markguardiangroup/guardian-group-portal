@@ -194,6 +194,11 @@ const consultantNavItems = [
     icon: MapPin,
   },
   {
+    title: "Users",
+    url: "/users",
+    icon: Users,
+  },
+  {
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
@@ -270,7 +275,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const visibleModules = moduleNavItems;
 
   const consultantNavItemsWithPro = consultantNavItems.filter(item => {
-    if (item.title === "Companies" && !isProConsultant) return false;
+    if ((item.title === "Companies" || item.title === "Users") && !isProConsultant) return false;
     return true;
   });
 
