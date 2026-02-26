@@ -70,26 +70,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Add a 4 second delay as requested by the user
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      // Perform the cleanup during the 4-second delay
+      const cleanupPromise = (async () => {
+        // Clear all local storage auth data
+        localStorage.removeItem("dev_user");
+        setDevUser(null);
+        
+        // Clear all React Query cache completely
+        queryClient.clear();
+      })();
+
+      // Wait for at least 4 seconds as requested
+      await Promise.all([
+        new Promise(resolve => setTimeout(resolve, 4000)),
+        cleanupPromise
+      ]);
+
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Clear all local storage auth data
-      localStorage.removeItem("dev_user");
-      setDevUser(null);
-      
-      // Clear all React Query cache completely
-      queryClient.clear();
-      
       // Force a hard redirect to clear any in-memory state
       window.location.replace("/login");
     },
     onError: () => {
-      // Even on error, clear local state and redirect
-      localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
+      // Force a hard redirect even on error
       window.location.replace("/login");
     },
   });
