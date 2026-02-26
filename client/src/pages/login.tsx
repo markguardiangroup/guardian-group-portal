@@ -84,8 +84,6 @@ export default function Login() {
       return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: async () => {
-      // Set a temporary "logging in" state in session storage to show the loader immediately
-      sessionStorage.setItem("isLoggingIn", "true");
       // Clear all cached queries before redirecting
       queryClient.clear();
       toast({
@@ -295,7 +293,6 @@ export default function Login() {
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={async () => {
                     try {
-                      sessionStorage.setItem("isLoggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -323,7 +320,6 @@ export default function Login() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={async () => {
                     try {
-                      sessionStorage.setItem("isLoggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -351,7 +347,6 @@ export default function Login() {
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={async () => {
                     try {
-                      sessionStorage.setItem("isLoggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -379,7 +374,6 @@ export default function Login() {
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={async () => {
                     try {
-                      sessionStorage.setItem("isLoggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
