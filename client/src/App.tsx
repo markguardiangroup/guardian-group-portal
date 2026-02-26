@@ -294,6 +294,7 @@ function LegalAcceptanceScreen() {
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated, isLoggingOut } = useAuth();
 
+  // If we are logging out, show the logout screen and NOTHING else
   if (isLoggingOut) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[100]">
@@ -306,14 +307,13 @@ function AuthenticatedApp() {
     );
   }
 
-  // If we're not authenticated and not loading, we should show login
-  // But we add a tiny bit of protection against the flicker
+  // If we're definitely not authenticated, show login
   if (!isAuthenticated && !isLoading) {
     return <Login />;
   }
 
-  // Loading state (including the moment after logout but before redirect)
-  if (isLoading) {
+  // While loading or if we're in that "in-between" state after logout
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background fixed inset-0 z-[50]">
         <div className="space-y-4 text-center">
