@@ -184,6 +184,11 @@ const adminNavItems = [
 
 const consultantNavItems = [
   {
+    title: "Companies",
+    url: "/companies",
+    icon: Landmark,
+  },
+  {
     title: "Sites",
     url: "/sites",
     icon: MapPin,
@@ -212,6 +217,7 @@ interface AuthUser {
   fullName: string;
   role: UserRole;
   companyId: string | null;
+  consultantTier?: string | null;
   clientPermissionRole?: string | null;
   referenceNumber?: string | null;
   title?: string | null;
@@ -240,6 +246,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { logout, isLoggingOut } = useAuth();
   const { hasActiveAccess, hasVisibleAccess, isHidden } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
 
   // Fetch support request counts for notification badge
   const { data: supportCounts } = useQuery<{ openCount: number }>({
@@ -261,6 +268,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
   // Show all modules to clients so they can see what's locked
   // Previously filtered out hidden modules, now show all with locked indicator
   const visibleModules = moduleNavItems;
+
+  const consultantNavItemsWithPro = consultantNavItems.filter(item => {
+    if (item.title === "Companies" && !isProConsultant) return false;
+    return true;
+  });
 
   return (
     <Sidebar>
@@ -416,7 +428,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {(user?.role === "admin" ? adminNavItems : consultantNavItems).map((item) => {
+                {(user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro).map((item) => {
                   const isActive = location === item.url || 
                     (item.url !== "/" && location.startsWith(item.url));
                   return (
