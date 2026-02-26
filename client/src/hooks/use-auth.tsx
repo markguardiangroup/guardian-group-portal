@@ -73,23 +73,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Clear all React Query cache completely first
-      queryClient.clear();
-
       // Clear all local storage auth data
       localStorage.removeItem("dev_user");
-      setDevUser(null);
       
-      // Use window.location.href with a full URL to force a complete browser-level reload
-      // This bypasses any client-side routing logic that might be trying to re-render
-      const loginUrl = window.location.origin + "/login";
-      window.location.href = loginUrl;
+      // Clear all React Query cache completely
+      queryClient.clear();
+      
+      // Use replace to the root or login with a cache-buster/reload
+      // To ensure the app completely resets and doesn't try to re-render old state
+      window.location.replace("/login?logout=true");
     },
     onError: () => {
-      queryClient.clear();
       localStorage.removeItem("dev_user");
-      setDevUser(null);
-      window.location.href = window.location.origin + "/login";
+      queryClient.clear();
+      window.location.replace("/login?logout=true");
     },
   });
 

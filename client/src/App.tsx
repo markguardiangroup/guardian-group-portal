@@ -295,7 +295,6 @@ function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated, isLoggingOut } = useAuth();
 
   // If we are logging out, show the logout screen and NOTHING else
-  // This is a fixed, full-screen overlay that blocks everything
   if (isLoggingOut) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[9999]">
@@ -309,12 +308,13 @@ function AuthenticatedApp() {
   }
 
   // If we're definitely not authenticated, show login
+  // We use a simpler check here to avoid "in-between" flashes
   if (!isAuthenticated && !isLoading) {
     return <Login />;
   }
 
-  // While loading or if we're in that "in-between" state after logout
-  if (isLoading || !isAuthenticated) {
+  // While loading, show a neutral state
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background fixed inset-0 z-[50]">
         <div className="space-y-4 text-center">
@@ -323,6 +323,11 @@ function AuthenticatedApp() {
         </div>
       </div>
     );
+  }
+
+  // Final fallback if something is weird with the auth state
+  if (!isAuthenticated) {
+    return <Login />;
   }
 
   if (user?.legalAcceptanceRequired) {
