@@ -44,6 +44,15 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { format } from "date-fns";
+import {
   clientPermissionCapabilities,
   consultantTierCapabilities,
   type ClientCapabilities,
@@ -51,6 +60,128 @@ import {
   type ClientPermissionRole,
   type ConsultantTier,
 } from "@shared/schema";
+
+function LegalClientTab() {
+  const { user } = useAuth();
+  const [previewDoc, setPreviewDoc] = useState<"terms" | "privacy" | null>(null);
+
+  const { data: termsInfo } = useQuery<{ exists: boolean }>({
+    queryKey: ["/api/legal-documents/terms/info"],
+  });
+
+  const { data: privacyInfo } = useQuery<{ exists: boolean }>({
+    queryKey: ["/api/legal-documents/privacy/info"],
+  });
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Legal Documents</CardTitle>
+          <CardDescription>
+            Review the legal documents you have agreed to
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="rounded-md border">
+            <div className="p-4 border-b bg-muted/50">
+              <h3 className="text-sm font-medium">Your Acceptance Status</h3>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Documents Accepted</p>
+                  <p className="text-xs text-muted-foreground">
+                    Status of your latest legal agreement
+                  </p>
+                </div>
+                {user?.legalAcceptedAt ? (
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
+                    <Check className="h-3.5 w-3.5" />
+                    Accepted on {format(new Date(user.legalAcceptedAt), "dd MMM yyyy 'at' HH:mm")}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 py-1 px-3">
+                    Not yet accepted
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {termsInfo?.exists && (
+              <Card className="hover-elevate cursor-pointer overflow-hidden border-muted" onClick={() => setPreviewDoc("terms")}>
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">Terms & Conditions</p>
+                      <p className="text-xs text-muted-foreground truncate">Click to preview document</p>
+                    </div>
+                    <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {privacyInfo?.exists && (
+              <Card className="hover-elevate cursor-pointer overflow-hidden border-muted" onClick={() => setPreviewDoc("privacy")}>
+                <CardContent className="p-0">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">Privacy Policy</p>
+                      <p className="text-xs text-muted-foreground truncate">Click to preview document</p>
+                    </div>
+                    <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={previewDoc !== null} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>
+              {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+            </DialogTitle>
+            <DialogDescription>
+              Preview of the legal document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 w-full bg-white min-h-0 relative">
+            {previewDoc && (
+              <object
+                data={`/api/legal-documents/${previewDoc}/view#toolbar=0`}
+                type="application/pdf"
+                className="w-full h-full"
+              >
+                <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                  <p className="mb-4">Unable to display PDF directly in your browser.</p>
+                  <Button 
+                    onClick={() => window.open(`/api/legal-documents/${previewDoc}/view`, "_blank")}
+                  >
+                    Open in New Tab
+                  </Button>
+                </div>
+              </object>
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t">
+            <Button onClick={() => setPreviewDoc(null)}>Close Preview</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 export default function Settings() {
   const { theme, setTheme } = useTheme();
@@ -166,6 +297,12 @@ export default function Settings() {
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
+          {user?.role === "client" && (
+            <TabsTrigger value="legal-client" className="gap-2" data-testid="tab-legal-client">
+              <FileText className="h-4 w-4" />
+              Legal Documents
+            </TabsTrigger>
+          )}
           <TabsTrigger value="permissions" className="gap-2" data-testid="tab-permissions">
             <UserCog className="h-4 w-4" />
             Permissions
@@ -787,6 +924,12 @@ export default function Settings() {
             </Card>
           </div>
         </TabsContent>
+
+        {user?.role === "client" && (
+          <TabsContent value="legal-client">
+            <LegalClientTab />
+          </TabsContent>
+        )}
 
         {user?.role === "admin" && (
           <TabsContent value="legal">
