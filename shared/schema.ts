@@ -1227,6 +1227,7 @@ export const feedback = pgTable("feedback", {
   userId: varchar("user_id").notNull(),
   userName: text("user_name").notNull(),
   message: text("message").notNull(),
+  status: text("status").$type<"open" | "resolved">().notNull().default("open"),
   upvotes: text("upvotes").array().notNull().default(sql`'{}'::text[]`), // Array of user IDs who upvoted
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -12,9 +12,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle } from "lucide-react";
+import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type FeedbackWithMetadata = Feedback & { commentCount: number; hasUnreadComments: boolean };
 
@@ -24,6 +25,7 @@ export default function AdminFeedback() {
   const [message, setMessage] = useState("");
   const [activeFeedbackId, setActiveFeedbackId] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"open" | "resolved">("open");
 
   const { data: feedbackList, isLoading } = useQuery<FeedbackWithMetadata[]>({
     queryKey: ["/api/feedback"],
@@ -98,6 +100,20 @@ export default function AdminFeedback() {
     },
   });
 
+  const resolveMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "open" | "resolved" }) => {
+      const res = await apiRequest("PATCH", `/api/feedback/${id}`, { status });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      toast({ 
+        title: data.status === "resolved" ? "Feedback resolved" : "Feedback reopened",
+        description: data.status === "resolved" ? "The feedback has been marked as resolved." : "The feedback has been reopened."
+      });
+    },
+  });
+
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
 
@@ -158,8 +174,14 @@ export default function AdminFeedback() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Recent Feedback</CardTitle>
+          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "resolved")}>
+            <TabsList>
+              <TabsTrigger value="open">Open</TabsTrigger>
+              <TabsTrigger value="resolved">Resolved</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -168,7 +190,7 @@ export default function AdminFeedback() {
             </div>
           ) : (
             <div className="space-y-6">
-              {feedbackList?.map((item) => (
+              {feedbackList?.filter(item => item.status === statusFilter).map((item) => (
                 <Card key={item.id} className={cn("border-l-4", item.hasUnreadComments ? "border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10" : "border-l-primary")}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
@@ -264,17 +286,32 @@ export default function AdminFeedback() {
                         </Dialog>
 
                         {isAdmin && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (confirm("Are you sure?")) deleteMutation.mutate(item.id);
-                            }}
-                            data-testid={`button-delete-feedback-${item.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn(item.status === "resolved" ? "text-green-600" : "text-muted-foreground")}
+                              onClick={() => resolveMutation.mutate({ 
+                                id: item.id, 
+                                status: item.status === "resolved" ? "open" : "resolved" 
+                              })}
+                              title={item.status === "resolved" ? "Reopen feedback" : "Mark as resolved"}
+                              data-testid={`button-resolve-feedback-${item.id}`}
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => {
+                                if (confirm("Are you sure?")) deleteMutation.mutate(item.id);
+                              }}
+                              data-testid={`button-delete-feedback-${item.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>

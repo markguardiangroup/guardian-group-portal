@@ -7819,6 +7819,7 @@ export async function registerRoutes(
 
   const updateFeedbackSchema = z.object({
     message: z.string().optional(),
+    status: z.enum(["open", "resolved"]).optional(),
   });
 
   app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
