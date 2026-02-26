@@ -2611,6 +2611,7 @@ export class MemStorage implements IStorage {
       userId: feedback.userId,
       userName: feedback.userName,
       message: feedback.message,
+      status: "open",
       upvotes: [],
       createdAt: now,
       updatedAt: now,
