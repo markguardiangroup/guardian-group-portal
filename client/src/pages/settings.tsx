@@ -845,43 +845,32 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground mb-4">
                     These tiers determine what consultants can do across the platform.
                   </p>
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Note:</strong> Currently, all consultants are assigned the <strong>Pro</strong> tier with full capabilities. Additional tiers (Standard, Junior) are available for future use.
-                    </p>
-                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
-                          {(["pro", "standard", "junior"] as ConsultantTier[]).map(tier => (
-                            <th key={tier} className="text-center py-3 px-2 font-medium">
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="capitalize">{tier}</span>
-                                {tier === "pro" ? (
-                                  <Badge variant="default" className="text-xs">Active</Badge>
-                                ) : (
-                                  <Badge variant="secondary" className="text-xs opacity-60">Future</Badge>
-                                )}
-                              </div>
-                            </th>
+                          {(["pro", "standard"] as ConsultantTier[]).map(tier => (
+                            <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {[
-                          { key: "canAccessAllClients", label: "Access All Clients" },
-                          { key: "canRequestEntities", label: "Request New Entities" },
-                          { key: "canManageClientUsers", label: "Manage Client Users" },
-                          { key: "canEditDocuments", label: "Edit Documents" },
+                          { key: "canAccessAllClients", label: "See All Clients & Sites" },
+                          { key: "canCreateUsers", label: "Create Users" },
+                          { key: "canCreateCompanies", label: "Create Companies" },
+                          { key: "canCreateSites", label: "Create Sites" },
+                          { key: "canAssignConsultants", label: "Assign Consultants to Sites" },
+                          { key: "canDeleteCompanies", label: "Delete Companies" },
+                          { key: "canDeleteUsers", label: "Delete Users (non-admin)" },
+                          { key: "canDeleteDocuments", label: "Delete Documents" },
+                          { key: "canEditDocuments", label: "Edit & Upload Documents" },
                           { key: "canViewDocuments", label: "View Documents" },
-                          { key: "canManageChecklists", label: "Manage Checklists" },
-                          { key: "canManageIncidents", label: "Manage Incidents" },
                         ].map(({ key, label }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">{label}</td>
-                            {(["pro", "standard", "junior"] as ConsultantTier[]).map(tier => (
+                            {(["pro", "standard"] as ConsultantTier[]).map(tier => (
                               <td key={tier} className="text-center py-3 px-2">
                                 {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
                                   <Check className="h-4 w-4 text-emerald-600 mx-auto" />

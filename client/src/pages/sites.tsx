@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,13 +80,18 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 }
 
 export default function Sites() {
+  const { user } = useAuth();
   const { selectedCompany, handleCompanyChange } = useSiteFilter();
   const companyFilter = selectedCompany || "all";
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
+  const [myAssignedOnly, setMyAssignedOnly] = useState(false);
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
+  
+  const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
+  const canCreateSite = user?.role === "admin" || isProConsultant;
   const [newSite, setNewSite] = useState({
     name: "",
     companyId: "",
@@ -104,7 +110,13 @@ export default function Sites() {
   const { toast } = useToast();
 
   const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
+    queryKey: ["/api/sites", { myAssigned: isProConsultant && myAssignedOnly }],
+    queryFn: async () => {
+      const url = isProConsultant && myAssignedOnly ? "/api/sites?myAssigned=true" : "/api/sites";
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sites");
+      return response.json();
+    },
   });
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
@@ -337,13 +349,28 @@ export default function Sites() {
         <div>
           <h1 className="text-3xl font-semibold">Sites</h1>
           <p className="mt-1 text-muted-foreground">
-            {filteredSites?.length || 0} sites total
+            {filteredSites?.length || 0} site{filteredSites?.length !== 1 ? "s" : ""} {isProConsultant && myAssignedOnly ? "(my assigned)" : "total"}
           </p>
         </div>
-        <Button onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Site
-        </Button>
+        <div className="flex items-center gap-2">
+          {isProConsultant && (
+            <Button
+              variant={myAssignedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMyAssignedOnly(!myAssignedOnly)}
+              data-testid="button-my-assigned-filter"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              My Sites
+            </Button>
+          )}
+          {canCreateSite && (
+            <Button onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Site
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4">

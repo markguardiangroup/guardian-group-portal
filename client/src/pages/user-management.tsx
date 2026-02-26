@@ -1211,6 +1211,20 @@ export default function UserManagement() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {editFormData.role === "consultant" && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-tier">Consultant Tier</Label>
+                        <Select value={editFormData.consultantTier} onValueChange={(v) => setEditFormData({ ...editFormData, consultantTier: v })}>
+                          <SelectTrigger id="edit-tier" data-testid="select-edit-tier">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pro">Pro</SelectItem>
+                            <SelectItem value="standard">Standard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     {editFormData.role === "client" && (
                       <div className="grid gap-2">
                         <Label htmlFor="edit-company">Company</Label>
@@ -1694,6 +1708,23 @@ export default function UserManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {newUser.role === "consultant" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-tier">Consultant Tier *</Label>
+                      <Select
+                        value={newUser.consultantTier}
+                        onValueChange={(value) => setNewUser({ ...newUser, consultantTier: value })}
+                      >
+                        <SelectTrigger id="new-tier" data-testid="select-new-tier">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
                       <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>

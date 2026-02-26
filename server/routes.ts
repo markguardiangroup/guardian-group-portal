@@ -632,12 +632,20 @@ export async function registerRoutes(
     next();
   };
 
+  // Helper: check if a consultant user has the pro tier
+  const isProConsultant = (user: { role: string; consultantTier?: string | null }): boolean => {
+    return user.role === "consultant" && user.consultantTier === "pro";
+  };
+
   // Helper to check if a client user can access a site (based on companyId)
-  const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null }, siteId: string): Promise<boolean> => {
+  const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null }, siteId: string): Promise<boolean> => {
     // Admins have unrestricted access to all sites
     if (user.role === "admin") return true;
     
-    // Consultants can only access sites they are assigned to
+    // Pro consultants have unrestricted access to all sites
+    if (isProConsultant(user)) return true;
+    
+    // Standard consultants can only access sites they are assigned to
     if (user.role === "consultant" && user.id) {
       const assignments = await storage.getConsultantSites(user.id);
       return assignments.some(a => a.siteId === siteId);
@@ -1124,7 +1132,14 @@ export async function registerRoutes(
           return;
         }
         
-        // Consultant without filters - show all their assigned sites
+        // Consultant without filters
+        if (isProConsultant(user)) {
+          // Pro consultants see all sites
+          const summaries = await storage.getModuleSummaries();
+          res.json(summaries);
+          return;
+        }
+        // Standard consultants see only their assigned sites
         const assignments = await storage.getConsultantSites(user.id);
         if (assignments.length === 0) {
           res.json([]);
@@ -2159,13 +2174,19 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete documents" });
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can delete documents" });
       }
 
       const documentId = req.params.id;
       const existingDoc = await storage.getDocument(documentId);
       if (!existingDoc) return res.status(404).json({ error: "Document not found" });
+
+      // Pro consultants must have access to the document's site
+      if (isProConsultant(user)) {
+        const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+        if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      }
 
       const success = await storage.deleteDocument(documentId);
       if (!success) return res.status(404).json({ error: "Document not found" });
@@ -3846,9 +3867,12 @@ export async function registerRoutes(
       // Filter by user access
       let filteredBookings = bookings;
       if (user.role === "consultant") {
-        const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        filteredBookings = bookings.filter(b => assignedSiteIds.has(b.siteId));
+        if (!isProConsultant(user)) {
+          const assignments = await storage.getConsultantSites(user.id);
+          const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+          filteredBookings = bookings.filter(b => assignedSiteIds.has(b.siteId));
+        }
+        // Pro consultants see all bookings
       } else if (user.role === "client" && user.companyId) {
         const sites = await storage.getSitesByCompanyId(user.companyId);
         const clientSiteIds = new Set(sites.map(s => s.id));
@@ -4006,14 +4030,20 @@ export async function registerRoutes(
       let filteredCompanies = allCompanies;
       
       // Role-based filtering
+      const myAssigned = req.query.myAssigned === "true";
       if (user.role === "consultant") {
-        const assignments = await storage.getConsultantSites(user.id);
-        const siteCompanyIds = new Set<string>();
-        for (const a of assignments) {
-          const site = await storage.getSite(a.siteId);
-          if (site) siteCompanyIds.add(site.companyId);
+        if (isProConsultant(user) && !myAssigned) {
+          // Pro consultants see all companies by default
+        } else {
+          // Standard consultants (or pro with myAssigned=true) see only their assigned
+          const assignments = await storage.getConsultantSites(user.id);
+          const siteCompanyIds = new Set<string>();
+          for (const a of assignments) {
+            const site = await storage.getSite(a.siteId);
+            if (site) siteCompanyIds.add(site.companyId);
+          }
+          filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
         }
-        filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
       } else if (user.role === "client" && user.companyId) {
         filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
       } else if (user.role !== "admin") {
@@ -4070,7 +4100,7 @@ export async function registerRoutes(
       }
       
       // Check access
-      if (user.role === "consultant") {
+      if (user.role === "consultant" && !isProConsultant(user)) {
         const assignments = await storage.getConsultantSites(user.id);
         const siteCompanyIds = new Set<string>();
         for (const a of assignments) {
@@ -4109,8 +4139,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create companies" });
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
       }
       
       const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
@@ -4168,8 +4198,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update companies" });
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can update companies" });
       }
       
       const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag } = req.body;
@@ -4242,8 +4272,8 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete companies" });
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can delete companies" });
       }
 
       const companyId = req.params.id;
@@ -4338,8 +4368,15 @@ export async function registerRoutes(
         return;
       }
       
-      // Consultant sees only assigned sites
+      // Consultant site visibility
       if (user.role === "consultant") {
+        const myAssigned = req.query.myAssigned === "true";
+        if (isProConsultant(user) && !myAssigned) {
+          // Pro consultants see all sites by default
+          res.json(allSites);
+          return;
+        }
+        // Standard consultants (or pro with myAssigned=true) see only their assigned
         const assignments = await storage.getConsultantSites(user.id);
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
         const filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
@@ -4374,9 +4411,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can create entities
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create companies" });
+      // Only admin or pro consultant can create sites
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can create sites" });
       }
       
       const { name, companyId, address, siteManager, contactPhone } = req.body;
@@ -4440,9 +4477,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can update entities
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update companies" });
+      // Only admin or pro consultant can update sites
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can update sites" });
       }
       
       const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
@@ -4544,12 +4581,15 @@ export async function registerRoutes(
           requests = requests.filter(r => siteIds.includes(r.siteId));
         }
       } else if (user.role === "consultant") {
-        // Consultants see requests from their assigned sites
-        const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = assignments.map((a: { siteId: string }) => a.siteId);
-        requests = requests.filter(r => assignedSiteIds.includes(r.siteId));
-        if (siteId) {
-          requests = requests.filter(r => r.siteId === siteId);
+        if (isProConsultant(user)) {
+          // Pro consultants see all requests, optionally filter by site
+          if (siteId) requests = requests.filter(r => r.siteId === siteId);
+        } else {
+          // Standard consultants see requests from their assigned sites only
+          const assignments = await storage.getConsultantSites(user.id);
+          const assignedSiteIds = assignments.map((a: { siteId: string }) => a.siteId);
+          requests = requests.filter(r => assignedSiteIds.includes(r.siteId));
+          if (siteId) requests = requests.filter(r => r.siteId === siteId);
         }
       } else {
         // Clients see only their own requests from their explicitly assigned sites
@@ -4606,7 +4646,7 @@ export async function registerRoutes(
       
       let relevantRequests: typeof allRequests = [];
       
-      if (user.role === "admin") {
+      if (user.role === "admin" || isProConsultant(user)) {
         relevantRequests = allRequests;
       } else if (user.role === "consultant") {
         const assignments = await storage.getConsultantSites(user.id);
@@ -6448,8 +6488,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create users" });
+      if (currentUser.role !== "admin" && !isProConsultant(currentUser)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can create users" });
       }
       
       const { 
@@ -6458,6 +6498,11 @@ export async function registerRoutes(
         title, firstName, lastName, jobTitle, department, phone, mobile,
         preferredContactMethod, notes
       } = req.body;
+      
+      // Pro consultants can only create consultant or client users (not admin)
+      if (isProConsultant(currentUser) && role === "admin") {
+        return res.status(403).json({ error: "Pro consultants cannot create admin users" });
+      }
       
       if (!username || !email) {
         return res.status(400).json({ error: "Username and email are required" });
@@ -6827,9 +6872,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can assign consultants
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can assign consultants" });
+      // Only admin or pro consultant can assign consultants
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can assign consultants" });
       }
       
       const { consultantId, isPrimary } = req.body;
@@ -6870,9 +6915,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can remove consultant assignments
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can remove consultant assignments" });
+      // Only admin or pro consultant can remove consultant assignments
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can remove consultant assignments" });
       }
       
       const removed = await storage.removeConsultantAssignment(
@@ -6899,9 +6944,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can update consultant assignments
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update consultant assignments" });
+      // Only admin or pro consultant can update consultant assignments
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can update consultant assignments" });
       }
       
       const { isPrimary, canManageModules } = req.body;
@@ -7330,8 +7375,8 @@ export async function registerRoutes(
   app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete users" });
+      if (!currentUser || (currentUser.role !== "admin" && !isProConsultant(currentUser))) {
+        return res.status(403).json({ error: "Only admins and pro consultants can delete users" });
       }
 
       const targetUser = await storage.getUser(req.params.id);
@@ -7345,6 +7390,11 @@ export async function registerRoutes(
 
       if (targetUser.role === "admin") {
         return res.status(400).json({ error: "Admin users cannot be deleted" });
+      }
+      
+      // Pro consultants cannot delete other consultants or admins
+      if (isProConsultant(currentUser) && targetUser.role === "consultant") {
+        return res.status(403).json({ error: "Pro consultants cannot delete other consultant accounts" });
       }
 
       // Remove related records but keep audit logs

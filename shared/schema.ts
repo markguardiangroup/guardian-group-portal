@@ -10,7 +10,7 @@ export type ModuleType = "health_safety" | "human_resources" | "employment_law" 
 export type UserRole = "admin" | "consultant" | "client";
 
 // Consultant tiers (for consultant users)
-export type ConsultantTier = "pro" | "standard" | "junior";
+export type ConsultantTier = "pro" | "standard";
 
 // Client permission roles (for client users within their entity)
 export type ClientPermissionRole = "owner" | "manager" | "approver" | "contributor" | "viewer";
@@ -915,41 +915,41 @@ export const clientPermissionCapabilities: Record<ClientPermissionRole, ClientCa
 // Consultant tier capabilities
 export interface ConsultantCapabilities {
   canAccessAllClients: boolean;
-  canRequestEntities: boolean;
-  canManageClientUsers: boolean;
+  canCreateUsers: boolean;
+  canCreateCompanies: boolean;
+  canCreateSites: boolean;
+  canAssignConsultants: boolean;
+  canDeleteCompanies: boolean;
+  canDeleteUsers: boolean;
+  canDeleteDocuments: boolean;
   canEditDocuments: boolean;
   canViewDocuments: boolean;
-  canManageChecklists: boolean;
-  canManageIncidents: boolean;
 }
 
 export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabilities> = {
   pro: {
     canAccessAllClients: true,
-    canRequestEntities: true,
-    canManageClientUsers: true,
+    canCreateUsers: true,
+    canCreateCompanies: true,
+    canCreateSites: true,
+    canAssignConsultants: true,
+    canDeleteCompanies: true,
+    canDeleteUsers: true,
+    canDeleteDocuments: true,
     canEditDocuments: true,
     canViewDocuments: true,
-    canManageChecklists: true,
-    canManageIncidents: true,
   },
   standard: {
     canAccessAllClients: false,
-    canRequestEntities: true,
-    canManageClientUsers: false,
+    canCreateUsers: false,
+    canCreateCompanies: false,
+    canCreateSites: false,
+    canAssignConsultants: false,
+    canDeleteCompanies: false,
+    canDeleteUsers: false,
+    canDeleteDocuments: false,
     canEditDocuments: true,
     canViewDocuments: true,
-    canManageChecklists: true,
-    canManageIncidents: true,
-  },
-  junior: {
-    canAccessAllClients: false,
-    canRequestEntities: false,
-    canManageClientUsers: false,
-    canEditDocuments: false,
-    canViewDocuments: true,
-    canManageChecklists: false,
-    canManageIncidents: false,
   },
 };
 

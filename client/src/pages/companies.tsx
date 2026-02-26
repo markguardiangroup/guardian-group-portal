@@ -178,6 +178,7 @@ export default function Companies() {
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [myAssignedOnly, setMyAssignedOnly] = useState(false);
   const [siteData, setSiteData] = useState({
     name: "",
     addressLine1: "",
@@ -200,14 +201,17 @@ export default function Companies() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
+
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter }],
+    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly }],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter !== "all" && { status: statusFilter }),
+        ...(isProConsultant && myAssignedOnly && { myAssigned: "true" }),
       });
       const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch companies");
@@ -475,6 +479,7 @@ export default function Companies() {
   };
 
   const isAdmin = user?.role === "admin";
+  const canCreateCompany = isAdmin || isProConsultant;
   const companies = data?.companies || [];
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
@@ -503,15 +508,28 @@ export default function Companies() {
         <div>
           <h1 className="text-3xl font-semibold">Companies</h1>
           <p className="mt-1 text-muted-foreground">
-            {total} {total === 1 ? "company" : "companies"} total
+            {total} {total === 1 ? "company" : "companies"} {isProConsultant && myAssignedOnly ? "(my assigned)" : "total"}
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Company
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isProConsultant && (
+            <Button
+              variant={myAssignedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setMyAssignedOnly(!myAssignedOnly); setPage(1); }}
+              data-testid="button-my-assigned-companies"
+            >
+              <Building2 className="mr-2 h-4 w-4" />
+              My Companies
+            </Button>
+          )}
+          {canCreateCompany && (
+            <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Company
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4">
