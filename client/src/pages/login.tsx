@@ -23,6 +23,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function Login() {
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -308,6 +309,35 @@ export default function Login() {
               </div>
               <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
                 <div className="text-slate-700">
+                  <span className="font-semibold">Consultant:</span> jane.smith
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={async () => {
+                    try {
+                      setIsLoggingIn(true);
+                      sessionStorage.setItem("loggingIn", "true");
+                      queryClient.clear();
+                      await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: "jane.smith", password: "admin123" }),
+                        credentials: "include"
+                      });
+                      window.location.href = "/";
+                    } catch (e) {
+                      console.error("Login failed", e);
+                    }
+                  }}
+                  data-testid="button-dev-login-consultant-jane"
+                >
+                  Login as Pro Consultant (Jane)
+                </Button>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
+                <div className="text-slate-700">
                   <span className="font-semibold">Consultant:</span> john.doe
                 </div>
                 <Button
@@ -332,7 +362,7 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-consultant"
                 >
-                  Login as Consultant
+                  Login as Consultant (John)
                 </Button>
               </div>
               <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
