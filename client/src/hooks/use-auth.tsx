@@ -70,25 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Wait for 4 seconds as requested, but do NOTHING else yet
-      // This keeps the app running as normal behind the preloader
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      return apiRequest("POST", "/api/auth/logout");
+      // Step 1: Immediately start the 4-second "preloader" wait
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // Step 2: Fire the logout API call in the background 
+      // without waiting for it yet, keeping the app state active
+      const logoutPromise = apiRequest("POST", "/api/auth/logout");
+
+      // Step 3: Wait for the 4 seconds to complete first
+      await delayPromise;
+      
+      // Step 4: Now wait for the logout API to finish
+      return logoutPromise;
     },
     onSuccess: () => {
-      // ONLY now that the 4s is over and the API call succeeded, 
-      // we clear the cache and redirect.
-      localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
-      window.location.replace("/login");
+      // Step 5: ONLY now, after 4s and a successful API response,
+      // do we trigger the redirect. The cache clearing happens
+      // naturally as the page unloads/redirects.
+      window.location.href = "/login";
     },
     onError: () => {
-      // Same for error cases
-      localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
-      window.location.replace("/login");
+      // Same for errors to ensure the user isn't stuck
+      window.location.href = "/login";
     },
   });
 
