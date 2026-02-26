@@ -26,6 +26,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -86,16 +87,13 @@ export default function Login() {
     onSuccess: async () => {
       // Clear all cached queries before redirecting
       queryClient.clear();
-      toast({
-        title: "Welcome",
-        description: "You have successfully logged in",
-      });
       // Redirect to the page the user was trying to access, or home
       const currentPath = window.location.pathname + window.location.search;
       const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
       window.location.href = redirectTo;
     },
     onError: (error: Error) => {
+      setIsLoggingIn(false);
       toast({
         title: "Login Failed",
         description: error.message || "Invalid username or password",
@@ -105,12 +103,13 @@ export default function Login() {
   });
 
   const onSubmit = (data: LoginForm) => {
+    setIsLoggingIn(true);
     loginMutation.mutate(data);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      {loginMutation.isPending && (
+      {isLoggingIn && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
@@ -302,6 +301,7 @@ export default function Login() {
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={async () => {
                     try {
+                      setIsLoggingIn(true);
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -329,6 +329,7 @@ export default function Login() {
                   className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={async () => {
                     try {
+                      setIsLoggingIn(true);
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -356,6 +357,7 @@ export default function Login() {
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={async () => {
                     try {
+                      setIsLoggingIn(true);
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -383,6 +385,7 @@ export default function Login() {
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                   onClick={async () => {
                     try {
+                      setIsLoggingIn(true);
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
