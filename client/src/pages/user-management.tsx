@@ -893,9 +893,16 @@ export default function UserManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={roleColors[u.role]}>
-                      {roleLabels[u.role]}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="outline" className={roleColors[u.role]}>
+                        {roleLabels[u.role]}
+                      </Badge>
+                      {u.role === "consultant" && u.consultantTier && (
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground ml-1">
+                          {u.consultantTier}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {u.companyId ? (
