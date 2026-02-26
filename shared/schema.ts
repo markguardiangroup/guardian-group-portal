@@ -10,7 +10,7 @@ export type ModuleType = "health_safety" | "human_resources" | "employment_law" 
 export type UserRole = "admin" | "consultant" | "client";
 
 // Consultant tiers (for consultant users)
-export type ConsultantTier = "senior" | "standard" | "junior";
+export type ConsultantTier = "pro" | "standard" | "junior";
 
 // Client permission roles (for client users within their entity)
 export type ClientPermissionRole = "owner" | "manager" | "approver" | "contributor" | "viewer";
@@ -924,7 +924,7 @@ export interface ConsultantCapabilities {
 }
 
 export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabilities> = {
-  senior: {
+  pro: {
     canAccessAllClients: true,
     canRequestEntities: true,
     canManageClientUsers: true,

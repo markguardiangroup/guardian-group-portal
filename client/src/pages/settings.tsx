@@ -847,7 +847,7 @@ export default function Settings() {
                   </p>
                   <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Note:</strong> Currently, all consultants are assigned the <strong>Senior</strong> tier with full capabilities. Additional tiers (Standard, Junior) are available for future use.
+                      <strong>Note:</strong> Currently, all consultants are assigned the <strong>Pro</strong> tier with full capabilities. Additional tiers (Standard, Junior) are available for future use.
                     </p>
                   </div>
                   <div className="overflow-x-auto">
@@ -855,11 +855,11 @@ export default function Settings() {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
-                          {(["senior", "standard", "junior"] as ConsultantTier[]).map(tier => (
+                          {(["pro", "standard", "junior"] as ConsultantTier[]).map(tier => (
                             <th key={tier} className="text-center py-3 px-2 font-medium">
                               <div className="flex flex-col items-center gap-1">
                                 <span className="capitalize">{tier}</span>
-                                {tier === "senior" ? (
+                                {tier === "pro" ? (
                                   <Badge variant="default" className="text-xs">Active</Badge>
                                 ) : (
                                   <Badge variant="secondary" className="text-xs opacity-60">Future</Badge>
@@ -881,7 +881,7 @@ export default function Settings() {
                         ].map(({ key, label }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">{label}</td>
-                            {(["senior", "standard", "junior"] as ConsultantTier[]).map(tier => (
+                            {(["pro", "standard", "junior"] as ConsultantTier[]).map(tier => (
                               <td key={tier} className="text-center py-3 px-2">
                                 {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
                                   <Check className="h-4 w-4 text-emerald-600 mx-auto" />

@@ -181,7 +181,7 @@ export default function UserManagement() {
     notes: "",
     role: "client" as "admin" | "consultant" | "client",
     companyId: "",
-    consultantTier: "senior" as "" | "standard" | "senior" | "principal",
+    consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "owner" as "viewer" | "contributor" | "manager" | "owner",
   });
   
@@ -334,7 +334,7 @@ export default function UserManagement() {
       notes: u.notes || "",
       role: u.role,
       companyId: u.companyId || "",
-      consultantTier: "senior",
+      consultantTier: "pro",
       clientPermissionRole: "owner",
     });
     // Fetch site assignments for consultants and clients
@@ -534,7 +534,7 @@ export default function UserManagement() {
         notes: "",
         role: "client",
         companyId: "",
-        consultantTier: "senior",
+        consultantTier: "pro",
         clientPermissionRole: "owner",
       });
       if (data.requiresSiteAssignment) {

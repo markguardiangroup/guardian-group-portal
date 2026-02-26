@@ -274,7 +274,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                   ) : (
                     availableConsultants.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.fullName} ({c.consultantTier || "Standard"})
+                        {c.fullName} ({c.consultantTier === 'pro' ? 'Pro' : c.consultantTier || "Standard"})
                       </SelectItem>
                     ))
                   )}
@@ -336,7 +336,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">
-                    {assignment.consultantTier || "Standard"}
+                    {assignment.consultantTier === 'pro' ? 'Pro' : assignment.consultantTier || "Standard"}
                   </Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
