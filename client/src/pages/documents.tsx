@@ -285,16 +285,49 @@ function DocumentsListView() {
     },
   });
 
-  const moveDocumentMutation = useMutation({
-    mutationFn: async ({ documentId, folderId }: { documentId: string; folderId: string | null }) => {
-      return apiRequest("POST", `/api/documents/${documentId}/move`, { folderId });
+  const archiveMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      return apiRequest("POST", `/api/documents/${id}/archive`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      toast({ title: "Document moved", description: "The document has been moved successfully" });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+      });
+      toast({
+        title: "Document archived",
+        description: "The document has been moved to the archive",
+      });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to move document", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to archive document",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("POST", `/api/documents/${id}/restore`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+      });
+      toast({
+        title: "Document restored",
+        description: "The document has been restored from the archive",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to restore document",
+        variant: "destructive",
+      });
     },
   });
 
@@ -1013,10 +1046,24 @@ function DocumentsListView() {
                           {isPrivilegedUser && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archive
-                              </DropdownMenuItem>
+                              {doc.isArchived ? (
+                                <DropdownMenuItem 
+                                  onClick={() => restoreMutation.mutate(doc.id)}
+                                  data-testid={`button-restore-${doc.id}`}
+                                >
+                                  <History className="mr-2 h-4 w-4" />
+                                  Restore from Archive
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => archiveMutation.mutate({ id: doc.id })}
+                                  data-testid={`button-archive-${doc.id}`}
+                                >
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive
+                                </DropdownMenuItem>
+                              )}
                             </>
                           )}
                         </DropdownMenuContent>
