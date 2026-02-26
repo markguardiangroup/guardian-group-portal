@@ -42,7 +42,6 @@ import TrainingCertificates from "@/pages/training-certificates";
 import MyTraining from "@/pages/my-training";
 import CreateFromTemplate from "@/pages/create-from-template";
 import DevelopmentRoadmap from "@/pages/development-roadmap";
-import AdminFeedback from "@/pages/admin-feedback";
 import SetPassword from "@/pages/set-password";
 import HelpGuide from "@/pages/help-guide";
 import NotFound from "@/pages/not-found";
@@ -112,7 +111,6 @@ function Router() {
       <Route path="/training/certificates/:id" component={TrainingCertificates} />
       <Route path="/create-from-template" component={CreateFromTemplate} />
       <Route path="/roadmap" component={DevelopmentRoadmap} />
-      <Route path="/feedback" component={AdminFeedback} />
       <Route path="/help" component={HelpGuide} />
       <Route component={NotFound} />
     </Switch>

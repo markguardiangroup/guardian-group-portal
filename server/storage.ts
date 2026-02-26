@@ -37,8 +37,6 @@ import {
   type TrainingRequest, type InsertTrainingRequest,
   type TrainingBooking, type InsertTrainingBooking,
   type RoadmapItem, type InsertRoadmapItem,
-  type Feedback, type InsertFeedback,
-  type FeedbackComment, type InsertFeedbackComment,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
   userInvitations as userInvitationsTable,
   trainingModules as trainingModulesTable,
@@ -68,9 +66,6 @@ import {
   consultantAssignments as consultantAssignmentsTable,
   moduleAccessRequests as moduleAccessRequestsTable,
   siteDocumentTypeAccess as siteDocumentTypeAccessTable,
-  feedback as feedbackTable,
-  feedbackComments as feedbackCommentsTable,
-  feedbackReads as feedbackReadsTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -299,20 +294,7 @@ export interface IStorage {
   createRoadmapItem(item: InsertRoadmapItem): Promise<RoadmapItem>;
   updateRoadmapItem(id: string, updates: Partial<RoadmapItem>): Promise<RoadmapItem | undefined>;
   deleteRoadmapItem(id: string): Promise<boolean>;
-
-  // Feedback
-  getFeedback(): Promise<Feedback[]>;
-  getFeedbackItem(id: string): Promise<Feedback | undefined>;
-  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
-  updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined>;
-  deleteFeedback(id: string): Promise<boolean>;
-  toggleFeedbackUpvote(id: string, userId: string): Promise<Feedback | undefined>;
-  getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]>;
-  createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment>;
-  toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined>;
-  markFeedbackRead(feedbackId: string, userId: string): Promise<void>;
-  getFeedbackWithMetadata(userId: string): Promise<(Feedback & { commentCount: number; hasUnreadComments: boolean })[]>;
-
+  
   // User Invitations (for secure password setup)
   getUserInvitation(id: string): Promise<UserInvitation | undefined>;
   getUserInvitationByToken(tokenHash: string): Promise<UserInvitation | undefined>;
@@ -2590,138 +2572,6 @@ export class MemStorage implements IStorage {
   async deleteRoadmapItem(id: string): Promise<boolean> {
     const result = await db.delete(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).returning();
     return result.length > 0;
-  }
-
-  // ==================== FEEDBACK METHODS ====================
-
-  async getFeedback(): Promise<Feedback[]> {
-    return await db.select().from(feedbackTable).orderBy(desc(feedbackTable.createdAt));
-  }
-
-  async getFeedbackItem(id: string): Promise<Feedback | undefined> {
-    const [item] = await db.select().from(feedbackTable).where(eq(feedbackTable.id, id));
-    return item;
-  }
-
-  async createFeedback(feedback: InsertFeedback): Promise<Feedback> {
-    const id = randomUUID();
-    const now = new Date();
-    const [created] = await db.insert(feedbackTable).values({
-      id,
-      userId: feedback.userId,
-      userName: feedback.userName,
-      message: feedback.message,
-      upvotes: [],
-      createdAt: now,
-      updatedAt: now,
-    }).returning();
-    return created;
-  }
-
-  async updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined> {
-    const [updated] = await db.update(feedbackTable)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(feedbackTable.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteFeedback(id: string): Promise<boolean> {
-    const result = await db.delete(feedbackTable).where(eq(feedbackTable.id, id)).returning();
-    return result.length > 0;
-  }
-
-  async toggleFeedbackUpvote(id: string, userId: string): Promise<Feedback | undefined> {
-    const item = await this.getFeedbackItem(id);
-    if (!item) return undefined;
-
-    const upvotes = item.upvotes || [];
-    const hasUpvoted = upvotes.includes(userId);
-    const newUpvotes = hasUpvoted 
-      ? upvotes.filter(id => id !== userId)
-      : [...upvotes, userId];
-
-    const [updated] = await db.update(feedbackTable)
-      .set({ upvotes: newUpvotes, updatedAt: new Date() })
-      .where(eq(feedbackTable.id, id))
-      .returning();
-    return updated;
-  }
-
-  async getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]> {
-    return await db.select().from(feedbackCommentsTable)
-      .where(eq(feedbackCommentsTable.feedbackId, feedbackId))
-      .orderBy(asc(feedbackCommentsTable.createdAt));
-  }
-
-  async createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment> {
-    const id = randomUUID();
-    const now = new Date();
-    const [created] = await db.insert(feedbackCommentsTable).values({
-      id,
-      ...comment,
-      likes: [],
-      createdAt: now,
-      updatedAt: now,
-    }).returning();
-    return created;
-  }
-
-  async toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined> {
-    const [comment] = await db.select().from(feedbackCommentsTable).where(eq(feedbackCommentsTable.id, commentId));
-    if (!comment) return undefined;
-
-    const likes = comment.likes || [];
-    const hasLiked = likes.includes(userId);
-    const newLikes = hasLiked 
-      ? likes.filter(id => id !== userId)
-      : [...likes, userId];
-
-    const [updated] = await db.update(feedbackCommentsTable)
-      .set({ likes: newLikes, updatedAt: new Date() })
-      .where(eq(feedbackCommentsTable.id, commentId))
-      .returning();
-    return updated;
-  }
-
-  async markFeedbackRead(feedbackId: string, userId: string): Promise<void> {
-    const existing = await db.select().from(feedbackReadsTable)
-      .where(and(eq(feedbackReadsTable.feedbackId, feedbackId), eq(feedbackReadsTable.userId, userId)));
-    
-    if (existing.length > 0) {
-      await db.update(feedbackReadsTable)
-        .set({ lastViewedAt: new Date() })
-        .where(eq(feedbackReadsTable.id, existing[0].id));
-    } else {
-      await db.insert(feedbackReadsTable).values({
-        id: randomUUID(),
-        userId,
-        feedbackId,
-        lastViewedAt: new Date(),
-      });
-    }
-  }
-
-  async getFeedbackWithMetadata(userId: string): Promise<(Feedback & { commentCount: number; hasUnreadComments: boolean })[]> {
-    const feedbackList = await this.getFeedback();
-    const result = [];
-
-    for (const item of feedbackList) {
-      const comments = await this.getFeedbackComments(item.id);
-      const [readRecord] = await db.select().from(feedbackReadsTable)
-        .where(and(eq(feedbackReadsTable.feedbackId, item.id), eq(feedbackReadsTable.userId, userId)));
-      
-      const lastViewedAt = readRecord?.lastViewedAt || new Date(0);
-      const hasUnreadComments = comments.some(c => new Date(c.createdAt) > lastViewedAt);
-
-      result.push({
-        ...item,
-        commentCount: comments.length,
-        hasUnreadComments,
-      });
-    }
-
-    return result;
   }
 
   // ==================== USER INVITATION METHODS ====================

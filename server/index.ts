@@ -9,7 +9,6 @@ import { createServer } from "http";
 import { pool } from "./db";
 
 const app = express();
-app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
 // Security headers with Helmet
@@ -126,22 +125,15 @@ app.use((req, res, next) => {
   next();
 });
 
-process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled promise rejection:", reason);
-});
-
-process.on("uncaughtException", (err) => {
-  console.error("Uncaught exception:", err);
-});
-
 (async () => {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    console.error("Express error handler:", err);
+
     res.status(status).json({ message });
+    throw err;
   });
 
   // importantly only setup vite in development and after
