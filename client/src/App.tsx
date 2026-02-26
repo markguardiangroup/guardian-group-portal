@@ -17,6 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, FileText, Loader2, Eye } from "lucide-react";
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
+} from "@/components/ui/dialog";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ModuleDashboard from "@/pages/module-dashboard";
@@ -124,6 +127,7 @@ function LegalAcceptanceScreen() {
   const { user } = useAuth();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<"terms" | "privacy" | null>(null);
 
   const { data: termsInfo } = useQuery<{ exists: boolean; revisionDate?: string }>({
     queryKey: ["/api/legal-documents/terms/info"],
@@ -188,17 +192,21 @@ function LegalAcceptanceScreen() {
                     onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
                     data-testid="checkbox-reaccept-terms"
                   />
-                  <label htmlFor="reaccept-terms" className="text-sm leading-relaxed cursor-pointer">
-                    I have read and agree to the{" "}
-                    <button
-                      type="button"
-                      className="text-primary underline underline-offset-2 font-medium"
-                      onClick={() => window.open("/api/legal-documents/terms/view", "_blank")}
-                      data-testid="link-reaccept-terms"
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="reaccept-terms" className="text-sm leading-relaxed cursor-pointer">
+                      I have read and agree to the Terms & Conditions
+                    </label>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-primary justify-start"
+                      onClick={() => setPreviewDoc("terms")}
+                      data-testid="button-preview-terms"
                     >
-                      Terms & Conditions
-                    </button>
-                  </label>
+                      <Eye className="h-3 w-3 mr-1" />
+                      View Terms & Conditions
+                    </Button>
+                  </div>
                 </div>
               )}
               {privacyAvailable && (
@@ -209,17 +217,21 @@ function LegalAcceptanceScreen() {
                     onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
                     data-testid="checkbox-reaccept-privacy"
                   />
-                  <label htmlFor="reaccept-privacy" className="text-sm leading-relaxed cursor-pointer">
-                    I have read and acknowledge the{" "}
-                    <button
-                      type="button"
-                      className="text-primary underline underline-offset-2 font-medium"
-                      onClick={() => window.open("/api/legal-documents/privacy/view", "_blank")}
-                      data-testid="link-reaccept-privacy"
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="reaccept-privacy" className="text-sm leading-relaxed cursor-pointer">
+                      I have read and acknowledge the Privacy Policy
+                    </label>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-primary justify-start"
+                      onClick={() => setPreviewDoc("privacy")}
+                      data-testid="button-preview-privacy"
                     >
-                      Privacy Policy
-                    </button>
-                  </label>
+                      <Eye className="h-3 w-3 mr-1" />
+                      View Privacy Policy
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -240,6 +252,28 @@ function LegalAcceptanceScreen() {
             </Button>
           </CardContent>
         </Card>
+
+        <Dialog open={previewDoc !== null} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle>
+                {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 w-full bg-muted min-h-0">
+              {previewDoc && (
+                <iframe
+                  src={`/api/legal-documents/${previewDoc}/view`}
+                  className="w-full h-full border-none"
+                  title={previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+                />
+              )}
+            </div>
+            <DialogFooter className="p-4 border-t">
+              <Button onClick={() => setPreviewDoc(null)}>Close Preview</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
