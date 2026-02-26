@@ -208,7 +208,7 @@ export default function AdminFeedback() {
                           data-testid={`button-upvote-${item.id}`}
                         >
                           <ThumbsUp className="h-4 w-4" />
-                          <span>+1 ({item.upvotes?.length || 0})</span>
+                          <span>({item.upvotes?.length || 0})</span>
                         </Button>
                         
                         <Dialog onOpenChange={(open) => !open && setActiveFeedbackId(null)}>
