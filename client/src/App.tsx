@@ -293,7 +293,14 @@ function LegalAcceptanceScreen() {
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
+
+  // Handle logging in state
   const isLoggingIn = sessionStorage.getItem("isLoggingIn") === "true";
+
+  // Clear the flag once we have a definitive authenticated state
+  if (!isLoading && isAuthenticated && isLoggingIn) {
+    sessionStorage.removeItem("isLoggingIn");
+  }
 
   if (isLoading || isLoggingIn) {
     return (
@@ -310,11 +317,6 @@ function AuthenticatedApp() {
         </div>
       </div>
     );
-  }
-
-  // Clear the flag once loaded
-  if (!isLoading && isAuthenticated) {
-    sessionStorage.removeItem("isLoggingIn");
   }
 
   if (!isAuthenticated) {
