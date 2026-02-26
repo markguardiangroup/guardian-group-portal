@@ -279,6 +279,8 @@ export async function registerRoutes(
         role: user.role,
         companyId: user.companyId,
         clientPermissionRole: user.clientPermissionRole,
+        consultantTier: user.consultantTier,
+        legalAcceptedAt: user.legalAcceptedAt,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -379,6 +381,8 @@ export async function registerRoutes(
       mobile: user.mobile,
       preferredContactMethod: user.preferredContactMethod,
       notes: user.notes,
+      legalAcceptedAt: user.legalAcceptedAt,
+      consultantTier: user.consultantTier,
       legalAcceptanceRequired,
     });
   });
