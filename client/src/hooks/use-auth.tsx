@@ -76,21 +76,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear all local storage auth data
       localStorage.removeItem("dev_user");
       
-      // Clear all React Query cache completely
-      queryClient.clear();
-      
-      // Delay redirect to ensure "Logging out..." screen stays visible
-      // during the transition and browser reload
+      // Delay to ensure the logout screen is firmly rendered
       setTimeout(() => {
-        window.location.replace("/login?logout=true");
-      }, 1500);
+        // Clear all React Query cache completely
+        queryClient.clear();
+        
+        // Delay redirect to ensure "Logging out..." screen stays visible
+        // during the transition and browser reload
+        setTimeout(() => {
+          window.location.replace("/login?logout=true");
+        }, 1000);
+      }, 500);
     },
     onError: () => {
       localStorage.removeItem("dev_user");
-      queryClient.clear();
       setTimeout(() => {
-        window.location.replace("/login?logout=true");
-      }, 1500);
+        queryClient.clear();
+        setTimeout(() => {
+          window.location.replace("/login?logout=true");
+        }, 1000);
+      }, 500);
     },
   });
 
