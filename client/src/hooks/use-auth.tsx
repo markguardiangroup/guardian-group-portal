@@ -70,26 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Step 1: Immediately clear the cache and local storage as soon as logout is pressed
-      localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
-      
-      // Force a re-render by clearing the query cache for the user specifically
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-      // Step 2: Wait for 4 seconds to show the preloader while the app is "empty" behind it
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      
-      // Step 3: Perform the server-side logout
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Step 4: Redirect to login
+      // Clear all local storage auth data
+      localStorage.removeItem("dev_user");
+      setDevUser(null);
+      
+      // Clear all React Query cache completely
+      queryClient.clear();
+      
+      // Force a hard redirect to clear any in-memory state
       window.location.replace("/login");
     },
     onError: () => {
-      // Step 5: Redirect to login even on error
+      // Even on error, clear local state and redirect
+      localStorage.removeItem("dev_user");
+      setDevUser(null);
+      queryClient.clear();
       window.location.replace("/login");
     },
   });
