@@ -306,17 +306,16 @@ function AuthenticatedApp() {
     );
   }
 
+  // If we're not authenticated and not loading, we should show login
+  // But we add a tiny bit of protection against the flicker
   if (!isAuthenticated && !isLoading) {
     return <Login />;
   }
 
-  if (isLoading || !isAuthenticated) {
-    if (user?.legalAcceptanceRequired) {
-      return <LegalAcceptanceScreen />;
-    }
-
+  // Loading state (including the moment after logout but before redirect)
+  if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-background fixed inset-0 z-[50]">
         <div className="space-y-4 text-center">
           <Skeleton className="h-12 w-12 mx-auto rounded-full" />
           <Skeleton className="h-4 w-32 mx-auto" />

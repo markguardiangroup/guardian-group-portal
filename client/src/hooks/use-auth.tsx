@@ -80,15 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear all React Query cache completely
       queryClient.clear();
       
-      // Force a hard redirect to clear any in-memory state
-      window.location.replace("/login");
+      // Delay redirect to allow state to settle
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 100);
     },
     onError: () => {
       // Even on error, clear local state and redirect
       localStorage.removeItem("dev_user");
       setDevUser(null);
       queryClient.clear();
-      window.location.replace("/login");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 100);
     },
   });
 
