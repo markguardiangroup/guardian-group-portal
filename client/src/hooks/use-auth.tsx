@@ -79,14 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear all React Query cache completely
       queryClient.clear();
       
-      // Use replace to the root or login with a cache-buster/reload
-      // To ensure the app completely resets and doesn't try to re-render old state
-      window.location.replace("/login?logout=true");
+      // Delay redirect to ensure "Logging out..." screen stays visible
+      // during the transition and browser reload
+      setTimeout(() => {
+        window.location.replace("/login?logout=true");
+      }, 1500);
     },
     onError: () => {
       localStorage.removeItem("dev_user");
       queryClient.clear();
-      window.location.replace("/login?logout=true");
+      setTimeout(() => {
+        window.location.replace("/login?logout=true");
+      }, 1500);
     },
   });
 
