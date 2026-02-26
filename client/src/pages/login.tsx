@@ -110,6 +110,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      {loginMutation.isPending && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
+            <p className="text-lg font-semibold text-slate-800">Logging you in...</p>
+            <p className="text-sm text-slate-500">Please wait a moment</p>
+          </div>
+        </div>
+      )}
       <Card className="w-full max-w-md border shadow-lg bg-white text-slate-900">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
