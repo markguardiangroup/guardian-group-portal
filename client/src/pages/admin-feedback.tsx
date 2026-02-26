@@ -177,7 +177,7 @@ export default function AdminFeedback() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>Recent Feedback</CardTitle>
           <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "resolved")}>
-            <TabsList>
+            <TabsList className="grid w-[200px] grid-cols-2">
               <TabsTrigger value="open">Open</TabsTrigger>
               <TabsTrigger value="resolved">Resolved</TabsTrigger>
             </TabsList>
@@ -190,7 +190,7 @@ export default function AdminFeedback() {
             </div>
           ) : (
             <div className="space-y-6">
-              {feedbackList?.filter(item => item.status === statusFilter).map((item) => (
+              {feedbackList?.filter(item => (item.status || "open") === statusFilter).map((item) => (
                 <Card key={item.id} className={cn("border-l-4", item.hasUnreadComments ? "border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10" : "border-l-primary")}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
@@ -290,12 +290,12 @@ export default function AdminFeedback() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={cn(item.status === "resolved" ? "text-green-600" : "text-muted-foreground")}
+                              className={cn((item.status || "open") === "resolved" ? "text-green-600" : "text-muted-foreground")}
                               onClick={() => resolveMutation.mutate({ 
                                 id: item.id, 
-                                status: item.status === "resolved" ? "open" : "resolved" 
+                                status: (item.status || "open") === "resolved" ? "open" : "resolved" 
                               })}
-                              title={item.status === "resolved" ? "Reopen feedback" : "Mark as resolved"}
+                              title={(item.status || "open") === "resolved" ? "Reopen feedback" : "Mark as resolved"}
                               data-testid={`button-resolve-feedback-${item.id}`}
                             >
                               <CheckCircle2 className="h-4 w-4" />
