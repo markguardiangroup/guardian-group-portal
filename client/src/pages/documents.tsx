@@ -225,8 +225,10 @@ function DocumentsListView() {
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
   const [selectedModule, setSelectedModule] = useState<string>("health_safety");
 
+  const [showArchived, setShowArchived] = useState(false);
+
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents"],
+    queryKey: showArchived ? ["/api/documents?includeArchived=true"] : ["/api/documents"],
   });
 
   const { data: sites } = useQuery<Site[]>({
@@ -329,7 +331,7 @@ function DocumentsListView() {
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     const matchesSite = selectedSiteId === "all" || doc.siteId === selectedSiteId;
     const matchesFolder = selectedFolderId === null || doc.folderId === selectedFolderId;
-    return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && !doc.isArchived;
+    return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && (showArchived ? doc.isArchived : !doc.isArchived);
   });
 
   if (isLoading) {
@@ -450,26 +452,38 @@ function DocumentsListView() {
           )}
         </div>
 
-        {/* View Toggle */}
-        <div className="flex items-center gap-1 rounded-md border p-1">
-          <Button
-            variant={viewMode === "folder" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("folder")}
-            data-testid="button-folder-view"
-          >
-            <LayoutGrid className="mr-2 h-4 w-4" />
-            Folder View
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            data-testid="button-table-view"
-          >
-            <LayoutList className="mr-2 h-4 w-4" />
-            Table View
-          </Button>
+          {/* View Toggle */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showArchived ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+              data-testid="button-toggle-archived"
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              {showArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
+            <div className="flex items-center gap-1 rounded-md border p-1">
+              <Button
+                variant={viewMode === "folder" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("folder")}
+                data-testid="button-folder-view"
+              >
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Folder View
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                data-testid="button-table-view"
+              >
+                <LayoutList className="mr-2 h-4 w-4" />
+                Table View
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

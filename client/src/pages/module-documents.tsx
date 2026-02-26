@@ -478,7 +478,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       matchesRenewal = !doc.renewalDate;
     }
     
-    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
+    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && (showArchived ? doc.isArchived : !doc.isArchived);
   });
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
