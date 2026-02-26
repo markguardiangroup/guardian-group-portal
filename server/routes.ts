@@ -2018,6 +2018,41 @@ export async function registerRoutes(
   });
 
   // Archive a document
+  app.patch("/api/documents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      const id = req.params.id;
+      const doc = await storage.getDocument(id);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const updated = await storage.updateDocument(id, req.body);
+      
+      // Log the change
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "update_document",
+        entityType: "document",
+        entityId: id,
+        details: { 
+          title: doc.title,
+          changes: Object.keys(req.body)
+        },
+        ipAddress: req.ip,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update document error:", error);
+      res.status(500).json({ error: "Failed to update document" });
+    }
+  });
+
   app.post("/api/documents/:id/archive", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);

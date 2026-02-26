@@ -601,42 +601,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             size="sm"
             onClick={() => setShowArchived(!showArchived)}
             data-testid="button-toggle-archived"
+            className="gap-2"
           >
-            <Archive className="mr-2 h-4 w-4" />
+            <Archive className="h-4 w-4" />
             {showArchived ? "Hide Archived" : "Show Archived"}
           </Button>
           
           {/* Quick stats badge */}
-          {hierarchy?.summary && (
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5">
-                <FileCheck className="h-4 w-4 text-green-600" />
-                <span className="text-muted-foreground">{hierarchy.summary.compliant}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <FileClock className="h-4 w-4 text-yellow-600" />
-                <span className="text-muted-foreground">{hierarchy.summary.reviewRequired}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <FileWarning className="h-4 w-4 text-red-600" />
-                <span className="text-muted-foreground">{hierarchy.summary.overdue}</span>
-              </div>
-            </div>
-          )}
-          
-          {/* Show/Hide Archived toggle for privileged users */}
-          {isPrivilegedUser && (
-            <Button
-              variant={showArchived ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowArchived(!showArchived)}
-              data-testid="button-toggle-archived-documents"
-              className="gap-2"
-            >
-              <Archive className="h-4 w-4" />
-              {showArchived ? "Hide Archived" : "Show Archived"}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -773,6 +744,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
+                                                  {doc.isArchived && (
+                                                    <Badge variant="secondary" className="gap-1 bg-muted text-[10px] h-5">
+                                                      <Archive className="h-3 w-3" />
+                                                      Archived
+                                                    </Badge>
+                                                  )}
                                                   <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                 </div>
@@ -812,6 +789,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       <div>
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <p className="font-medium text-sm">{doc.title}</p>
+                                          {doc.isArchived && (
+                                            <Badge variant="secondary" className="gap-1 bg-muted text-[10px] h-5">
+                                              <Archive className="h-3 w-3" />
+                                              Archived
+                                            </Badge>
+                                          )}
                                           {doc.isRequired && (
                                             <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
                                           )}
