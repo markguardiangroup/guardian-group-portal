@@ -1178,7 +1178,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => deleteFromListMutation.mutate(doc.id)}
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to permanently delete \"${doc.title}\"? This action cannot be undone.`)) {
+                            deleteFromListMutation.mutate(doc.id);
+                          }
+                        }}
                         disabled={deleteFromListMutation.isPending}
                         data-testid={`button-delete-archived-${doc.id}`}
                       >
@@ -2178,7 +2182,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Button>
             <Button
               variant="destructive"
-              onClick={() => { deleteMutation.mutate(); setShowDeleteDialog(false); }}
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to permanently delete \"${document?.title}\"? This action cannot be undone and will remove all versions of this document.`)) {
+                  deleteMutation.mutate();
+                  setShowDeleteDialog(false);
+                }
+              }}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete"
             >
