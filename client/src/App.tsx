@@ -292,31 +292,11 @@ function LegalAcceptanceScreen() {
 }
 
 function AuthenticatedApp() {
-  const { user, isLoading, isAuthenticated, isLoggingOut } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
-  // If we are logging out, show the logout screen and NOTHING else
-  if (isLoggingOut) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[9999]">
-        <div className="space-y-4 text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-lg font-medium animate-pulse">Logging out...</p>
-          <p className="text-sm text-muted-foreground">Please wait while we secure your session</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If we're definitely not authenticated, show login
-  // We use a simpler check here to avoid "in-between" flashes
-  if (!isAuthenticated && !isLoading) {
-    return <Login />;
-  }
-
-  // While loading, show a neutral state
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background fixed inset-0 z-[50]">
+      <div className="flex h-screen w-full items-center justify-center">
         <div className="space-y-4 text-center">
           <Skeleton className="h-12 w-12 mx-auto rounded-full" />
           <Skeleton className="h-4 w-32 mx-auto" />
@@ -325,7 +305,6 @@ function AuthenticatedApp() {
     );
   }
 
-  // Final fallback if something is weird with the auth state
   if (!isAuthenticated) {
     return <Login />;
   }

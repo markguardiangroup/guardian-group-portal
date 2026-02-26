@@ -75,21 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       // Clear all local storage auth data
       localStorage.removeItem("dev_user");
+      setDevUser(null);
       
       // Clear all React Query cache completely
       queryClient.clear();
       
-      // Much longer delay to ensure the logout screen covers the transition
-      setTimeout(() => {
-        window.location.replace("/login?logout=true");
-      }, 3000);
+      // Force a hard redirect to clear any in-memory state
+      window.location.replace("/login");
     },
     onError: () => {
+      // Even on error, clear local state and redirect
       localStorage.removeItem("dev_user");
+      setDevUser(null);
       queryClient.clear();
-      setTimeout(() => {
-        window.location.replace("/login?logout=true");
-      }, 3000);
+      window.location.replace("/login");
     },
   });
 
