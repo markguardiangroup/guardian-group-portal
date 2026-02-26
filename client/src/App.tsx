@@ -295,9 +295,10 @@ function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated, isLoggingOut } = useAuth();
 
   // If we are logging out, show the logout screen and NOTHING else
+  // This is a fixed, full-screen overlay that blocks everything
   if (isLoggingOut) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[100]">
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[9999]">
         <div className="space-y-4 text-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-lg font-medium animate-pulse">Logging out...</p>
