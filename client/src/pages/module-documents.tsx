@@ -313,14 +313,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [clientSites, selectedCompany]);
   
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents/module", module, { includeArchived: showArchived }],
-    queryFn: async () => {
-      const res = await fetch(`/api/documents/module/${module}?includeArchived=true`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch documents");
-      return res.json();
-    },
+    queryKey: [`/api/documents/module/${module}?includeArchived=true`],
   });
 
   const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
@@ -366,25 +359,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return siteInCompany?.companyId || null;
   }, [selectedCompany, sites]);
   
+  // Build hierarchy URL - always fetch with includeArchived=true, filter client-side
+  const hierarchyUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedCompanyId) params.set("companyId", selectedCompanyId);
+    params.set("includeArchived", "true");
+    return `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${params.toString()}`;
+  }, [hierarchySiteId, module, selectedCompanyId]);
+
   // Fetch document hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
-    queryKey: ["/api/sites", hierarchySiteId, "modules", module, "documents-hierarchy", selectedCompanyId, { includeArchived: showArchived }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedCompanyId) {
-        params.set("companyId", selectedCompanyId);
-      }
-      if (showArchived) {
-        params.set("includeArchived", "true");
-      }
-      const queryString = params.toString();
-      const url = `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${queryString}`;
-      const res = await fetch(url, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch hierarchy");
-      return res.json();
-    },
+    queryKey: [hierarchyUrl],
     enabled: !!hierarchySiteId && viewMode === "folder",
   });
   
@@ -730,8 +715,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="p-3 pl-10 space-y-2">
-                                          {childFolder.documents && childFolder.documents.length > 0 ? (
-                                            childFolder.documents.map((doc: any) => (
+                                          {childFolder.documents && childFolder.documents.filter((doc: any) => showArchived ? doc.isArchived : !doc.isArchived).length > 0 ? (
+                                            childFolder.documents.filter((doc: any) => showArchived ? doc.isArchived : !doc.isArchived).map((doc: any) => (
                                               <Link
                                                 key={doc.id}
                                                 href={`${basePath}/documents/${doc.id}`}
@@ -777,9 +762,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
                             
                             {/* Parent Folder Documents */}
-                            {folder.documents.length > 0 && (
+                            {folder.documents.filter(doc => showArchived ? doc.isArchived : !doc.isArchived).length > 0 && (
                               <div className="space-y-2">
-                                {folder.documents.map((doc) => (
+                                {folder.documents.filter(doc => showArchived ? doc.isArchived : !doc.isArchived).map((doc) => (
                                   <Link
                                     key={doc.id}
                                     href={`${basePath}/documents/${doc.id}`}

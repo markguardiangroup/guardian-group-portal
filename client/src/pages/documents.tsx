@@ -228,30 +228,17 @@ function DocumentsListView() {
   const [showArchived, setShowArchived] = useState(false);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents", { includeArchived: showArchived }],
-    queryFn: async () => {
-      const res = await fetch(`/api/documents?includeArchived=true`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch documents");
-      return res.json();
-    },
+    queryKey: ["/api/documents?includeArchived=true"],
   });
 
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
   });
 
-  // Fetch documents hierarchy for folder view
+  // Fetch documents hierarchy for folder view - always include archived, filter client-side
+  const hierarchyUrl = `/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=true`;
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
-    queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", showArchived],
-    queryFn: async () => {
-      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=true`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch hierarchy");
-      return res.json();
-    },
+    queryKey: [hierarchyUrl],
     enabled: selectedSiteId !== "all" && viewMode === "folder",
   });
 
