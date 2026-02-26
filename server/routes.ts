@@ -7760,13 +7760,25 @@ export async function registerRoutes(
     next();
   };
 
-  app.get("/api/feedback", requireAuth, requirePrivileged, async (_req, res) => {
+  app.get("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
     try {
-      const feedback = await storage.getFeedback();
+      const user = (req.session as any).user;
+      const feedback = await storage.getFeedbackWithMetadata(user.id);
       res.json(feedback);
     } catch (error) {
       console.error("Error fetching feedback:", error);
       res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+
+  app.post("/api/feedback/:id/read", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      await storage.markFeedbackRead(req.params.id, user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking feedback as read:", error);
+      res.status(500).json({ error: "Failed to mark as read" });
     }
   });
 

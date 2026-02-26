@@ -70,6 +70,7 @@ import {
   siteDocumentTypeAccess as siteDocumentTypeAccessTable,
   feedback as feedbackTable,
   feedbackComments as feedbackCommentsTable,
+  feedbackReads as feedbackReadsTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -309,6 +310,8 @@ export interface IStorage {
   getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]>;
   createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment>;
   toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined>;
+  markFeedbackRead(feedbackId: string, userId: string): Promise<void>;
+  getFeedbackWithMetadata(userId: string): Promise<(Feedback & { commentCount: number; hasUnreadComments: boolean })[]>;
 
   // User Invitations (for secure password setup)
   getUserInvitation(id: string): Promise<UserInvitation | undefined>;
@@ -2677,6 +2680,46 @@ export class MemStorage implements IStorage {
       .where(eq(feedbackCommentsTable.id, commentId))
       .returning();
     return updated;
+  }
+
+  async markFeedbackRead(feedbackId: string, userId: string): Promise<void> {
+    const existing = await db.select().from(feedbackReadsTable)
+      .where(and(eq(feedbackReadsTable.feedbackId, feedbackId), eq(feedbackReadsTable.userId, userId)));
+    
+    if (existing.length > 0) {
+      await db.update(feedbackReadsTable)
+        .set({ lastViewedAt: new Date() })
+        .where(eq(feedbackReadsTable.id, existing[0].id));
+    } else {
+      await db.insert(feedbackReadsTable).values({
+        id: randomUUID(),
+        userId,
+        feedbackId,
+        lastViewedAt: new Date(),
+      });
+    }
+  }
+
+  async getFeedbackWithMetadata(userId: string): Promise<(Feedback & { commentCount: number; hasUnreadComments: boolean })[]> {
+    const feedbackList = await this.getFeedback();
+    const result = [];
+
+    for (const item of feedbackList) {
+      const comments = await this.getFeedbackComments(item.id);
+      const [readRecord] = await db.select().from(feedbackReadsTable)
+        .where(and(eq(feedbackReadsTable.feedbackId, item.id), eq(feedbackReadsTable.userId, userId)));
+      
+      const lastViewedAt = readRecord?.lastViewedAt || new Date(0);
+      const hasUnreadComments = comments.some(c => new Date(c.createdAt) > lastViewedAt);
+
+      result.push({
+        ...item,
+        commentCount: comments.length,
+        hasUnreadComments,
+      });
+    }
+
+    return result;
   }
 
   // ==================== USER INVITATION METHODS ====================

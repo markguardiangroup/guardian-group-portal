@@ -9,15 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, Trash2, StickyNote, ThumbsUp, MessageCircle } from "lucide-react";
+import { Loader2, MessageSquare, Trash2, StickyNote, ThumbsUp, MessageCircle, Circle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+
+type FeedbackWithMetadata = Feedback & { commentCount: number; hasUnreadComments: boolean };
 
 export default function AdminFeedback() {
   const { user } = useAuth();
@@ -27,7 +26,7 @@ export default function AdminFeedback() {
   const [activeFeedbackId, setActiveFeedbackId] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
 
-  const { data: feedbackList, isLoading } = useQuery<Feedback[]>({
+  const { data: feedbackList, isLoading } = useQuery<FeedbackWithMetadata[]>({
     queryKey: ["/api/feedback"],
     enabled: !!user && (user.role === "admin" || user.role === "consultant"),
   });
@@ -59,6 +58,15 @@ export default function AdminFeedback() {
     },
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/feedback/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+    },
+  });
+
   const addCommentMutation = useMutation({
     mutationFn: async ({ id, content }: { id: string; content: string }) => {
       const res = await apiRequest("POST", `/api/feedback/${id}/comments`, { content });
@@ -66,6 +74,7 @@ export default function AdminFeedback() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/feedback", variables.id, "comments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
       setCommentContent("");
     },
   });
@@ -118,6 +127,11 @@ export default function AdminFeedback() {
     );
   }
 
+  const handleOpenComments = (id: string) => {
+    setActiveFeedbackId(id);
+    markReadMutation.mutate(id);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-8">
       <div>
@@ -168,46 +182,51 @@ export default function AdminFeedback() {
           ) : (
             <div className="space-y-6">
               {feedbackList?.map((item) => (
-                <Card key={item.id} className="border-l-4 border-l-primary">
+                <Card key={item.id} className={cn("border-l-4", item.hasUnreadComments ? "border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10" : "border-l-primary")}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold">{item.userName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(item.createdAt), "dd MMM yyyy HH:mm")}
-                        </p>
+                      <div className="flex items-start gap-2">
+                        {item.hasUnreadComments && (
+                          <Circle className="h-2 w-2 fill-blue-500 text-blue-500 mt-2 shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-semibold">{item.userName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(item.createdAt), "dd MMM yyyy HH:mm")}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "flex items-center gap-1.5",
+                            "flex items-center gap-1.5 h-8",
                             item.upvotes?.includes(user?.id || "") && "bg-primary/10 border-primary"
                           )}
                           onClick={() => upvoteMutation.mutate(item.id)}
                           data-testid={`button-upvote-${item.id}`}
                         >
                           <ThumbsUp className="h-4 w-4" />
-                          <span>{item.upvotes?.length || 0}</span>
+                          <span>+1 ({item.upvotes?.length || 0})</span>
                         </Button>
                         
-                        <Dialog>
+                        <Dialog onOpenChange={(open) => !open && setActiveFeedbackId(null)}>
                           <DialogTrigger asChild>
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="flex items-center gap-1.5"
-                              onClick={() => setActiveFeedbackId(item.id)}
+                              className={cn("flex items-center gap-1.5 h-8", item.hasUnreadComments && "border-blue-500 text-blue-600")}
+                              onClick={() => handleOpenComments(item.id)}
                               data-testid={`button-comments-${item.id}`}
                             >
                               <MessageCircle className="h-4 w-4" />
-                              <span>Comments</span>
+                              <span>Comments ({item.commentCount || 0})</span>
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-2xl">
                             <DialogHeader>
-                              <DialogTitle>Comments</DialogTitle>
+                              <DialogTitle>Comments ({item.commentCount || 0})</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                               {comments?.map((comment) => (

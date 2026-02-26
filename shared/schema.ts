@@ -1262,3 +1262,13 @@ export const insertFeedbackCommentSchema = createInsertSchema(feedbackComments).
 });
 export type InsertFeedbackComment = z.infer<typeof insertFeedbackCommentSchema>;
 export type FeedbackComment = typeof feedbackComments.$inferSelect;
+
+// Track when users last viewed feedback comments
+export const feedbackReads = pgTable("feedback_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  feedbackId: varchar("feedback_id").notNull(),
+  lastViewedAt: timestamp("last_viewed_at").notNull().defaultNow(),
+});
+
+export type FeedbackRead = typeof feedbackReads.$inferSelect;
