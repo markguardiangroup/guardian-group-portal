@@ -186,7 +186,7 @@ export default function UserManagement() {
     role: "client" as "admin" | "consultant" | "client",
     companyId: "",
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
-    clientPermissionRole: "owner" as "viewer" | "contributor" | "manager" | "owner",
+    clientPermissionRole: "owner" as "owner",
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -336,7 +336,7 @@ export default function UserManagement() {
       role: u.role,
       companyId: u.companyId || "",
       consultantTier: "pro",
-      clientPermissionRole: "owner",
+      clientPermissionRole: "owner" as "owner",
     });
     // Fetch site assignments for consultants and clients
     if (u.role !== "admin" && isAdmin) {
@@ -1734,24 +1734,40 @@ export default function UserManagement() {
                     </div>
                   )}
                   {newUser.role === "client" && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
-                      <Select
-                        value={newUser.companyId}
-                        onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
-                      >
-                        <SelectTrigger id="new-company" data-testid="select-new-company">
-                          <SelectValue placeholder="Select company (required)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company.id} value={company.id}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <>
+                      <div className="grid gap-2">
+                        <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
+                        <Select
+                          value={newUser.companyId}
+                          onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
+                        >
+                          <SelectTrigger id="new-company" data-testid="select-new-company">
+                            <SelectValue placeholder="Select company (required)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {companies.map((company) => (
+                              <SelectItem key={company.id} value={company.id}>
+                                {company.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="new-client-role">Permissions *</Label>
+                        <Select
+                          value={newUser.clientPermissionRole}
+                          onValueChange={(value: "owner") => setNewUser({ ...newUser, clientPermissionRole: value })}
+                        >
+                          <SelectTrigger id="new-client-role" data-testid="select-new-client-role">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="owner">Owner</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
