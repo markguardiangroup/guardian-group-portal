@@ -74,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("dev_user");
       setDevUser(null);
       queryClient.clear();
+      
+      // Force a re-render by clearing the query cache for the user specifically
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
       // Step 2: Wait for 4 seconds to show the preloader while the app is "empty" behind it
       await new Promise(resolve => setTimeout(resolve, 4000));
