@@ -70,30 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Perform the cleanup during the 4-second delay
-      const cleanupPromise = (async () => {
-        // Clear all local storage auth data
-        localStorage.removeItem("dev_user");
-        setDevUser(null);
-        
-        // Clear all React Query cache completely
-        queryClient.clear();
-      })();
-
-      // Wait for at least 4 seconds as requested
-      await Promise.all([
-        new Promise(resolve => setTimeout(resolve, 4000)),
-        cleanupPromise
-      ]);
-
+      // Wait for 4 seconds as requested, but do NOTHING else yet
+      // This keeps the app running as normal behind the preloader
+      await new Promise(resolve => setTimeout(resolve, 4000));
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Force a hard redirect to clear any in-memory state
+      // ONLY now that the 4s is over and the API call succeeded, 
+      // we clear the cache and redirect.
+      localStorage.removeItem("dev_user");
+      setDevUser(null);
+      queryClient.clear();
       window.location.replace("/login");
     },
     onError: () => {
-      // Force a hard redirect even on error
+      // Same for error cases
+      localStorage.removeItem("dev_user");
+      setDevUser(null);
+      queryClient.clear();
       window.location.replace("/login");
     },
   });
