@@ -70,6 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      // Add a 4 second delay as requested by the user
+      await new Promise(resolve => setTimeout(resolve, 4000));
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
