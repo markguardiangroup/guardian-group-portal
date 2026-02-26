@@ -7748,6 +7748,8 @@ export async function registerRoutes(
 
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
 
       const stream = file.createReadStream();
       stream.pipe(res);

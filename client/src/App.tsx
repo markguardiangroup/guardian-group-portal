@@ -259,14 +259,26 @@ function LegalAcceptanceScreen() {
               <DialogTitle>
                 {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
               </DialogTitle>
+              <DialogDescription>
+                Please review the {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"} below.
+              </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 w-full bg-muted min-h-0">
+            <div className="flex-1 w-full bg-white min-h-0 relative">
               {previewDoc && (
-                <iframe
-                  src={`/api/legal-documents/${previewDoc}/view`}
-                  className="w-full h-full border-none"
-                  title={previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
-                />
+                <object
+                  data={`/api/legal-documents/${previewDoc}/view#toolbar=0`}
+                  type="application/pdf"
+                  className="w-full h-full"
+                >
+                  <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                    <p className="mb-4">Unable to display PDF directly in your browser.</p>
+                    <Button 
+                      onClick={() => window.open(`/api/legal-documents/${previewDoc}/view`, "_blank")}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </div>
+                </object>
               )}
             </div>
             <DialogFooter className="p-4 border-t">
