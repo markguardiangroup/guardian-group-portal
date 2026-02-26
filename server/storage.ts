@@ -123,6 +123,7 @@ export interface IStorage {
   getDocument(id: string): Promise<DocumentWithDetails | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
+  deleteDocument(id: string): Promise<boolean>;
   
   // Document Versions
   getDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
@@ -746,6 +747,12 @@ export class MemStorage implements IStorage {
       .where(eq(documentsTable.id, id))
       .returning();
     return result[0];
+  }
+
+  async deleteDocument(id: string): Promise<boolean> {
+    await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
+    const result = await db.delete(documentsTable).where(eq(documentsTable.id, id)).returning();
+    return result.length > 0;
   }
 
   // Document Versions

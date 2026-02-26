@@ -2154,6 +2154,41 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      if (user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can delete documents" });
+      }
+
+      const documentId = req.params.id;
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) return res.status(404).json({ error: "Document not found" });
+
+      const success = await storage.deleteDocument(documentId);
+      if (!success) return res.status(404).json({ error: "Document not found" });
+
+      await storage.createAuditLog({
+        action: "document_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingDoc.siteId,
+        documentId: null,
+        supportRequestId: null,
+        module: existingDoc.module,
+        details: `Document permanently deleted: "${existingDoc.title}"`,
+        metadata: null,
+      });
+
+      res.json({ message: "Document deleted successfully" });
+    } catch (error) {
+      console.error("Document delete error:", error);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
   // Document Folders
   app.get("/api/folders", requireAuth, async (req, res) => {
     try {
