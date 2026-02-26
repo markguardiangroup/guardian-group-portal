@@ -2608,7 +2608,9 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const [created] = await db.insert(feedbackTable).values({
       id,
-      ...feedback,
+      userId: feedback.userId,
+      userName: feedback.userName,
+      message: feedback.message,
       upvotes: [],
       createdAt: now,
       updatedAt: now,

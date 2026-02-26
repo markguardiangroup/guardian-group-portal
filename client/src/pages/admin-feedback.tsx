@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, Trash2, StickyNote, ThumbsUp, MessageCircle, Circle } from "lucide-react";
+import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,6 @@ export default function AdminFeedback() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [message, setMessage] = useState("");
-  const [editingNotes, setEditingNotes] = useState<{ id: string; notes: string } | null>(null);
   const [activeFeedbackId, setActiveFeedbackId] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
 
@@ -86,18 +85,6 @@ export default function AdminFeedback() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/feedback", activeFeedbackId, "comments"] });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, adminNotes }: { id: string; adminNotes: string }) => {
-      const res = await apiRequest("PATCH", `/api/feedback/${id}`, { adminNotes });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
-      setEditingNotes(null);
-      toast({ title: "Notes updated" });
     },
   });
 
@@ -277,65 +264,23 @@ export default function AdminFeedback() {
                         </Dialog>
 
                         {isAdmin && (
-                          <>
-                            <Dialog open={editingNotes?.id === item.id} onOpenChange={(open) => !open && setEditingNotes(null)}>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => setEditingNotes({ id: item.id, notes: item.adminNotes || "" })}
-                                  data-testid={`button-edit-feedback-${item.id}`}
-                                >
-                                  <StickyNote className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Admin Notes</DialogTitle>
-                                </DialogHeader>
-                                <div className="py-4">
-                                  <Textarea 
-                                    value={editingNotes?.notes}
-                                    onChange={(e) => setEditingNotes(prev => prev ? { ...prev, notes: e.target.value } : null)}
-                                    placeholder="Add internal notes..."
-                                    className="min-h-[100px]"
-                                  />
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setEditingNotes(null)}>Cancel</Button>
-                                  <Button 
-                                    onClick={() => updateMutation.mutate({ id: item.id, adminNotes: editingNotes?.notes || "" })}
-                                    disabled={updateMutation.isPending}
-                                  >
-                                    Save Notes
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => {
-                                if (confirm("Are you sure?")) deleteMutation.mutate(item.id);
-                              }}
-                              data-testid={`button-delete-feedback-${item.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (confirm("Are you sure?")) deleteMutation.mutate(item.id);
+                            }}
+                            data-testid={`button-delete-feedback-${item.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm whitespace-pre-wrap">{item.message}</p>
-                    {item.adminNotes && (
-                      <div className="mt-4 p-3 bg-primary/5 border border-primary/10 rounded-md">
-                        <p className="text-xs font-semibold text-primary mb-1">Admin Response:</p>
-                        <p className="text-sm italic">{item.adminNotes}</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}

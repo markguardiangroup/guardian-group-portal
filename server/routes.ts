@@ -7817,12 +7817,16 @@ export async function registerRoutes(
     }
   });
 
+  const updateFeedbackSchema = z.object({
+    message: z.string().optional(),
+  });
+
   app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      // Only admins can update notes
+      // Only admins can update feedback
       if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update feedback notes" });
+        return res.status(403).json({ error: "Only admins can update feedback" });
       }
 
       const parseResult = updateFeedbackSchema.safeParse(req.body);
