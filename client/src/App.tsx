@@ -296,7 +296,7 @@ function AuthenticatedApp() {
 
   if (isLoggingOut) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background fixed inset-0 z-[100]">
         <div className="space-y-4 text-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-lg font-medium animate-pulse">Logging out...</p>
@@ -306,7 +306,15 @@ function AuthenticatedApp() {
     );
   }
 
-  if (isLoading) {
+  if (!isAuthenticated && !isLoading) {
+    return <Login />;
+  }
+
+  if (isLoading || !isAuthenticated) {
+    if (user?.legalAcceptanceRequired) {
+      return <LegalAcceptanceScreen />;
+    }
+
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="space-y-4 text-center">
@@ -315,10 +323,6 @@ function AuthenticatedApp() {
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <Login />;
   }
 
   if (user?.legalAcceptanceRequired) {
