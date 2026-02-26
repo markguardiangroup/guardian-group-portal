@@ -2600,6 +2600,7 @@ export class MemStorage implements IStorage {
     const [created] = await db.insert(feedbackTable).values({
       id,
       ...feedback,
+      upvotes: [],
       createdAt: now,
       updatedAt: now,
     }).returning();
@@ -2617,6 +2618,59 @@ export class MemStorage implements IStorage {
   async deleteFeedback(id: string): Promise<boolean> {
     const result = await db.delete(feedbackTable).where(eq(feedbackTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  async toggleFeedbackUpvote(id: string, userId: string): Promise<Feedback | undefined> {
+    const item = await this.getFeedbackItem(id);
+    if (!item) return undefined;
+
+    const upvotes = item.upvotes || [];
+    const hasUpvoted = upvotes.includes(userId);
+    const newUpvotes = hasUpvoted 
+      ? upvotes.filter(id => id !== userId)
+      : [...upvotes, userId];
+
+    const [updated] = await db.update(feedbackTable)
+      .set({ upvotes: newUpvotes, updatedAt: new Date() })
+      .where(eq(feedbackTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]> {
+    return await db.select().from(feedbackCommentsTable)
+      .where(eq(feedbackCommentsTable.feedbackId, feedbackId))
+      .orderBy(asc(feedbackCommentsTable.createdAt));
+  }
+
+  async createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment> {
+    const id = randomUUID();
+    const now = new Date();
+    const [created] = await db.insert(feedbackCommentsTable).values({
+      id,
+      ...comment,
+      likes: [],
+      createdAt: now,
+      updatedAt: now,
+    }).returning();
+    return created;
+  }
+
+  async toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined> {
+    const [comment] = await db.select().from(feedbackCommentsTable).where(eq(feedbackCommentsTable.id, commentId));
+    if (!comment) return undefined;
+
+    const likes = comment.likes || [];
+    const hasLiked = likes.includes(userId);
+    const newLikes = hasLiked 
+      ? likes.filter(id => id !== userId)
+      : [...likes, userId];
+
+    const [updated] = await db.update(feedbackCommentsTable)
+      .set({ likes: newLikes, updatedAt: new Date() })
+      .where(eq(feedbackCommentsTable.id, commentId))
+      .returning();
+    return updated;
   }
 
   // ==================== USER INVITATION METHODS ====================

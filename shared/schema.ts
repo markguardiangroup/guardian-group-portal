@@ -1228,6 +1228,7 @@ export const feedback = pgTable("feedback", {
   userName: text("user_name").notNull(),
   message: text("message").notNull(),
   adminNotes: text("admin_notes"),
+  upvotes: text("upvotes").array().notNull().default(sql`'{}'::text[]`), // Array of user IDs who upvoted
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1235,7 +1236,29 @@ export const feedback = pgTable("feedback", {
 export const insertFeedbackSchema = createInsertSchema(feedback).omit({ 
   id: true, 
   createdAt: true,
-  updatedAt: true 
+  updatedAt: true,
+  upvotes: true,
 });
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type Feedback = typeof feedback.$inferSelect;
+
+// Feedback Comments table
+export const feedbackComments = pgTable("feedback_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  feedbackId: varchar("feedback_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  content: text("content").notNull(),
+  likes: text("likes").array().notNull().default(sql`'{}'::text[]`), // Array of user IDs who liked
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFeedbackCommentSchema = createInsertSchema(feedbackComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  likes: true,
+});
+export type InsertFeedbackComment = z.infer<typeof insertFeedbackCommentSchema>;
+export type FeedbackComment = typeof feedbackComments.$inferSelect;

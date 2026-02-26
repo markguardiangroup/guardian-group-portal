@@ -7751,67 +7751,64 @@ export async function registerRoutes(
   });
 
   // ==================== FEEDBACK ENDPOINTS ====================
+  // All feedback endpoints are for admin/consultant only
+  const requirePrivileged = (req: any, res: any, next: any) => {
+    const user = (req.session as any)?.user;
+    if (user?.role !== "admin" && user?.role !== "consultant") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    next();
+  };
 
-  // Get all feedback (Admin only)
-  app.get("/api/feedback", requireAuth, async (req, res) => {
+  app.get("/api/feedback", requireAuth, requirePrivileged, async (_req, res) => {
     try {
-      const user = (req.session as any).user;
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can view feedback" });
-      }
-      const feedbackList = await storage.getFeedback();
-      res.json(feedbackList);
+      const feedback = await storage.getFeedback();
+      res.json(feedback);
     } catch (error) {
       console.error("Error fetching feedback:", error);
       res.status(500).json({ error: "Failed to fetch feedback" });
     }
   });
 
-  // Create feedback (Consultants and Admins)
-  app.post("/api/feedback", requireAuth, async (req, res) => {
+  app.post("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      if (user.role === "client") {
-        return res.status(403).json({ error: "Clients cannot submit feedback" });
-      }
-
       const parseResult = createFeedbackSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ error: parseResult.error.errors[0].message });
+        return res.status(400).json({ error: "Invalid feedback data" });
       }
 
-      const newFeedback = await storage.createFeedback({
+      const feedback = await storage.createFeedback({
         userId: user.id,
         userName: user.fullName,
         message: parseResult.data.message,
-        adminNotes: null,
       });
 
       await storage.createAuditLog({
-        action: "comment_added",
+        action: "create_feedback",
         userId: user.id,
         userName: user.fullName,
-        details: `Submitted feedback: ${newFeedback.message.substring(0, 50)}...`,
+        details: `Submitted feedback: ${feedback.message.substring(0, 50)}...`,
       });
 
-      res.json(newFeedback);
+      res.status(201).json(feedback);
     } catch (error) {
       console.error("Error creating feedback:", error);
       res.status(500).json({ error: "Failed to create feedback" });
     }
   });
 
-  // Update feedback (Admin only - for notes)
   app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
+      // Only admins can update notes
       if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update feedback" });
+        return res.status(403).json({ error: "Only admins can update feedback notes" });
       }
 
       const parseResult = updateFeedbackSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ error: parseResult.error.errors[0].message });
+        return res.status(400).json({ error: "Invalid update data" });
       }
 
       const updated = await storage.updateFeedback(req.params.id, parseResult.data);
@@ -7826,7 +7823,66 @@ export async function registerRoutes(
     }
   });
 
-  // Delete feedback (Admin only)
+  app.post("/api/feedback/:id/upvote", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const updated = await storage.toggleFeedbackUpvote(req.params.id, user.id);
+      if (!updated) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling upvote:", error);
+      res.status(500).json({ error: "Failed to toggle upvote" });
+    }
+  });
+
+  app.get("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const comments = await storage.getFeedbackComments(req.params.id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { content } = req.body;
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      const comment = await storage.createFeedbackComment({
+        feedbackId: req.params.id,
+        userId: user.id,
+        userName: user.fullName,
+        content,
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  app.post("/api/feedback/comments/:id/like", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const updated = await storage.toggleCommentLike(req.params.id, user.id);
+      if (!updated) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      res.status(500).json({ error: "Failed to toggle like" });
+    }
+  });
+
   app.delete("/api/feedback/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
@@ -7839,7 +7895,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Feedback not found" });
       }
 
-      res.json({ success: true });
+      res.status(204).end();
     } catch (error) {
       console.error("Error deleting feedback:", error);
       res.status(500).json({ error: "Failed to delete feedback" });
