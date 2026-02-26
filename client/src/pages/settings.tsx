@@ -784,14 +784,6 @@ export default function Settings() {
               <CardContent className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium mb-4">Client Permission Roles</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    These roles determine what client users can do within their organization.
-                  </p>
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 mb-4">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Note:</strong> Currently, all client users are assigned the <strong>Owner</strong> role with full permissions. Additional permission levels (Approver, Contributor, Viewer) are available for future use.
-                    </p>
-                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
