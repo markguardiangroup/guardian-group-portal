@@ -7471,9 +7471,10 @@ export async function registerRoutes(
       }
       
       if (currentUser.role !== "admin") {
-        // Consultants can only update users in their assigned companies
-        if (currentUser.role === "consultant" && targetUser.companyId) {
-          // Get all sites in the user's company and check if consultant is assigned to any
+        if (isProConsultant(currentUser)) {
+          // Pro consultants have full access to update users
+        } else if (currentUser.role === "consultant" && targetUser.companyId) {
+          // Standard consultants can only update users in their assigned companies
           const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
           let hasAccess = false;
           for (const site of companySites) {
@@ -7487,7 +7488,7 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Access denied" });
           }
         } else {
-          return res.status(403).json({ error: "Only admins can update users" });
+          return res.status(403).json({ error: "Only admins and pro consultants can update users" });
         }
       }
       

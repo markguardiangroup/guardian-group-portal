@@ -137,6 +137,9 @@ const roleLabels: Record<UserRole, string> = {
 
 export default function UserManagement() {
   const { user } = useAuth();
+  const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
+  const isAdmin = user?.role === "admin";
+  const canAddUser = isAdmin || isPro;
   const { toast } = useToast();
   const { selectedCompany, handleCompanyChange } = useSiteFilter();
   const companyFilter = selectedCompany || "all";
@@ -224,7 +227,6 @@ export default function UserManagement() {
     return `${base}${counter}`;
   };
 
-  const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
@@ -785,10 +787,10 @@ export default function UserManagement() {
         <div>
           <h1 className="text-3xl font-semibold">Users</h1>
           <p className="mt-1 text-muted-foreground">
-            {isAdmin ? "Manage all users across the platform" : "View client users"}
+            {canAddUser ? "Manage users across the platform" : "View client users"}
           </p>
         </div>
-        {isAdmin && (
+        {canAddUser && (
           <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
             <Plus className="h-4 w-4 mr-2" />
             Add User
@@ -811,7 +813,7 @@ export default function UserManagement() {
           />
         </div>
 
-        {isAdmin && (
+        {canAddUser && (
           <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all"); setPage(1); }}>
             <SelectTrigger className="w-[150px]" data-testid="select-role-filter">
               <SelectValue placeholder="All roles" />
