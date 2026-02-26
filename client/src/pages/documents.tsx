@@ -228,7 +228,12 @@ function DocumentsListView() {
   const [showArchived, setShowArchived] = useState(false);
 
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents?includeArchived=true"],
+    queryKey: ["/api/documents", "includeArchived"],
+    queryFn: async () => {
+      const res = await fetch("/api/documents?includeArchived=true", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
   });
 
   const { data: sites } = useQuery<Site[]>({
@@ -236,9 +241,13 @@ function DocumentsListView() {
   });
 
   // Fetch documents hierarchy for folder view - always include archived, filter client-side
-  const hierarchyUrl = `/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=true`;
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentsHierarchyResponse>({
-    queryKey: [hierarchyUrl],
+    queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", "includeArchived"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${selectedSiteId}/modules/${selectedModule}/documents-hierarchy?includeArchived=true`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch hierarchy");
+      return res.json();
+    },
     enabled: selectedSiteId !== "all" && viewMode === "folder",
   });
 
@@ -278,8 +287,9 @@ function DocumentsListView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", "includeArchived"] });
       queryClient.invalidateQueries({
-        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", "includeArchived"],
       });
       toast({
         title: "Document archived",
@@ -301,8 +311,9 @@ function DocumentsListView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", "includeArchived"] });
       queryClient.invalidateQueries({
-        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy"],
+        queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", "includeArchived"],
       });
       toast({
         title: "Document restored",

@@ -178,6 +178,7 @@ interface HierarchyDocument {
   updatedAt: string;
   documentTypeId?: string | null;
   isRequired?: boolean;
+  isArchived?: boolean;
   renewalPeriodMonths?: number | null;
   lastApprovedAt?: string | null;
   renewalDate?: string | null;
@@ -248,8 +249,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}?includeArchived=true`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
@@ -272,8 +272,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/archive`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/documents/module/${module}?includeArchived=true`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
@@ -313,7 +312,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [clientSites, selectedCompany]);
   
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: [`/api/documents/module/${module}?includeArchived=true`],
+    queryKey: ["/api/documents/module", module, "includeArchived"],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/module/${module}?includeArchived=true`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch documents");
+      return res.json();
+    },
   });
 
   const { data: allDocumentTypes } = useQuery<DocumentTypeRecord[]>({
@@ -1184,7 +1188,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
@@ -1235,7 +1239,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "versions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       setShowUploadVersionDialog(false);
@@ -1274,7 +1278,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
@@ -1312,7 +1316,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "includeArchived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
       toast({
