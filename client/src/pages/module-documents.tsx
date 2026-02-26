@@ -313,9 +313,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [clientSites, selectedCompany]);
   
   const { data: documents, isLoading } = useQuery<Document[]>({
-    queryKey: showArchived 
-      ? [`/api/documents/module/${module}?includeArchived=true`]
-      : [`/api/documents/module/${module}`],
+    queryKey: ["/api/documents/module", module, { includeArchived: showArchived }],
     queryFn: async () => {
       const res = await fetch(`/api/documents/module/${module}?includeArchived=true`, {
         credentials: "include",
@@ -598,18 +596,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
           
+          <Button
+            variant={showArchived ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+            data-testid="button-toggle-archived"
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showArchived ? "Hide Archived" : "Show Archived"}
+          </Button>
+          
           {/* Quick stats badge */}
           {hierarchy?.summary && (
             <div className="flex items-center gap-4 text-sm">
-              <Button
-                variant={showArchived ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setShowArchived(!showArchived)}
-                data-testid="button-toggle-archived"
-              >
-                <Archive className="mr-2 h-4 w-4" />
-                {showArchived ? "Hide Archived" : "Show Archived"}
-              </Button>
               <div className="flex items-center gap-1.5">
                 <FileCheck className="h-4 w-4 text-green-600" />
                 <span className="text-muted-foreground">{hierarchy.summary.compliant}</span>
