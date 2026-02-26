@@ -293,16 +293,28 @@ function LegalAcceptanceScreen() {
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  const isLoggingIn = sessionStorage.getItem("isLoggingIn") === "true";
 
-  if (isLoading) {
+  if (isLoading || isLoggingIn) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="space-y-4 text-center">
-          <Skeleton className="h-12 w-12 mx-auto rounded-full" />
-          <Skeleton className="h-4 w-32 mx-auto" />
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+            <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-foreground animate-pulse">Logging you in...</h2>
+            <p className="text-sm text-muted-foreground">Preparing your secure workspace</p>
+          </div>
         </div>
       </div>
     );
+  }
+
+  // Clear the flag once loaded
+  if (!isLoading && isAuthenticated) {
+    sessionStorage.removeItem("isLoggingIn");
   }
 
   if (!isAuthenticated) {
