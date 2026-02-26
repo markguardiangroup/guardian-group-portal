@@ -333,7 +333,7 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-consultant-jane"
                 >
-                  Login as Pro Consultant (Jane)
+                  Login as Consultant (Jane)
                 </Button>
               </div>
               <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
@@ -362,7 +362,7 @@ export default function Login() {
                   }}
                   data-testid="button-dev-login-consultant"
                 >
-                  Login as Consultant (John)
+                  Login as Pro Consultant (John)
                 </Button>
               </div>
               <div className="flex items-center justify-between p-3 rounded bg-white border border-blue-200">
