@@ -1158,16 +1158,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid module" });
       }
       const includeArchived = req.query.includeArchived === "true";
-      const allDocuments = await storage.getDocuments(module);
+      const allDocuments = await storage.getDocuments(module, includeArchived);
       
       // Get document templates to enrich documents with isRequired/renewalPeriodMonths
       const docTemplates = await storage.getDocumentTemplates(module);
       
-      // Filter documents by sites the user can access and archived status
+      // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
-          // Filter out archived documents unless includeArchived is true
-          if (!includeArchived && doc.isArchived) return null;
           
           const canAccess = await canUserAccessSite(user, doc.siteId);
           if (!canAccess) return null;
@@ -1202,14 +1200,11 @@ export async function registerRoutes(
       const siteIds = req.query.siteIds as string | undefined;
       const includeArchived = req.query.includeArchived === "true";
       
-      const allDocuments = await storage.getDocuments(module);
+      const allDocuments = await storage.getDocuments(module, includeArchived);
       
-      // Filter documents by sites the user can access and archived status
+      // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
-          // Filter out archived documents unless includeArchived is true
-          if (!includeArchived && doc.isArchived) return null;
-
           const canAccess = await canUserAccessSite(user, doc.siteId);
           return canAccess ? doc : null;
         })
@@ -6101,12 +6096,9 @@ export async function registerRoutes(
       }
       
       // Get all documents for target sites in this module
-      const allDocuments = await storage.getDocuments(module as any);
       const includeArchived = req.query.includeArchived === "true";
-      const siteDocuments = allDocuments.filter(d => 
-        targetSiteIds.includes(d.siteId) && 
-        (includeArchived ? true : !d.isArchived)
-      );
+      const allDocuments = await storage.getDocuments(module as any, includeArchived);
+      const siteDocuments = allDocuments.filter(d => targetSiteIds.includes(d.siteId));
       
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates

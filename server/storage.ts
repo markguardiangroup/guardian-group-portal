@@ -119,7 +119,7 @@ export interface IStorage {
   updateSite(id: string, updates: Partial<Site>): Promise<Site | undefined>;
   
   // Documents
-  getDocuments(module?: ModuleType): Promise<Document[]>;
+  getDocuments(module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   getDocument(id: string): Promise<DocumentWithDetails | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
@@ -661,9 +661,10 @@ export class MemStorage implements IStorage {
   }
 
   // Documents
-  async getDocuments(module?: ModuleType): Promise<Document[]> {
-    let query = db.select().from(documentsTable).where(eq(documentsTable.isArchived, false));
-    const docs = await query;
+  async getDocuments(module?: ModuleType, includeArchived = false): Promise<Document[]> {
+    const docs = includeArchived
+      ? await db.select().from(documentsTable)
+      : await db.select().from(documentsTable).where(eq(documentsTable.isArchived, false));
     let filtered = docs;
     if (module) {
       filtered = docs.filter(d => d.module === module);
