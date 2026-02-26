@@ -85,6 +85,8 @@ export default function Login() {
       return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: async () => {
+      // Keep the overlay visible across the page navigation
+      sessionStorage.setItem("loggingIn", "true");
       // Clear all cached queries before redirecting
       queryClient.clear();
       // Redirect to the page the user was trying to access, or home
@@ -302,6 +304,7 @@ export default function Login() {
                   onClick={async () => {
                     try {
                       setIsLoggingIn(true);
+                      sessionStorage.setItem("loggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -330,6 +333,7 @@ export default function Login() {
                   onClick={async () => {
                     try {
                       setIsLoggingIn(true);
+                      sessionStorage.setItem("loggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -358,6 +362,7 @@ export default function Login() {
                   onClick={async () => {
                     try {
                       setIsLoggingIn(true);
+                      sessionStorage.setItem("loggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",
@@ -386,6 +391,7 @@ export default function Login() {
                   onClick={async () => {
                     try {
                       setIsLoggingIn(true);
+                      sessionStorage.setItem("loggingIn", "true");
                       queryClient.clear();
                       await fetch("/api/auth/login", {
                         method: "POST",

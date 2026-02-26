@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
@@ -293,13 +293,24 @@ function LegalAcceptanceScreen() {
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  const [showLoginOverlay, setShowLoginOverlay] = useState(
+    () => sessionStorage.getItem("loggingIn") === "true"
+  );
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading) {
+      sessionStorage.removeItem("loggingIn");
+      setShowLoginOverlay(false);
+    }
+  }, [isLoading]);
+
+  if (isLoading || showLoginOverlay) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="h-14 w-14 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin" />
+          <p className="text-lg font-semibold text-slate-800">Logging you in...</p>
+          <p className="text-sm text-slate-500">Please wait a moment</p>
         </div>
       </div>
     );
