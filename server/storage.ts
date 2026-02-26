@@ -38,6 +38,7 @@ import {
   type TrainingBooking, type InsertTrainingBooking,
   type RoadmapItem, type InsertRoadmapItem,
   type Feedback, type InsertFeedback,
+  type FeedbackComment, type InsertFeedbackComment,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
   userInvitations as userInvitationsTable,
   trainingModules as trainingModulesTable,
@@ -68,6 +69,7 @@ import {
   moduleAccessRequests as moduleAccessRequestsTable,
   siteDocumentTypeAccess as siteDocumentTypeAccessTable,
   feedback as feedbackTable,
+  feedbackComments as feedbackCommentsTable,
   SECURITY_CONFIG,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -303,6 +305,10 @@ export interface IStorage {
   createFeedback(feedback: InsertFeedback): Promise<Feedback>;
   updateFeedback(id: string, updates: Partial<Feedback>): Promise<Feedback | undefined>;
   deleteFeedback(id: string): Promise<boolean>;
+  toggleFeedbackUpvote(id: string, userId: string): Promise<Feedback | undefined>;
+  getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]>;
+  createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment>;
+  toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined>;
 
   // User Invitations (for secure password setup)
   getUserInvitation(id: string): Promise<UserInvitation | undefined>;

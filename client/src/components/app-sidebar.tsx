@@ -203,11 +203,6 @@ const consultantNavItems = [
     url: "/help",
     icon: HelpCircle,
   },
-  {
-    title: "Feedback",
-    url: "/feedback",
-    icon: MessageSquare,
-  },
 ];
 
 interface AuthUser {
