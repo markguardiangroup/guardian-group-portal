@@ -2244,12 +2244,30 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 
                 if (mimeType === "application/pdf") {
                   return (
-                    <iframe
-                      src={previewUrl}
+                    <object
+                      data={`${previewUrl}#toolbar=0`}
+                      type="application/pdf"
                       className="w-full h-full rounded-md border"
-                      title={document.title}
-                      data-testid="preview-iframe"
-                    />
+                      data-testid="preview-object"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+                        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                        <p className="text-lg font-medium">Unable to display PDF directly in your browser.</p>
+                        <p className="text-sm text-muted-foreground mt-1 mb-4">
+                          {document.fileName}
+                        </p>
+                        <Button
+                          onClick={() => {
+                            downloadDocument(id, document.fileName, previewVersion || undefined);
+                            setShowPreviewDialog(false);
+                          }}
+                          data-testid="button-download-from-blocked-preview"
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download to View
+                        </Button>
+                      </div>
+                    </object>
                   );
                 }
                 
