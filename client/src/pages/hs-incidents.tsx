@@ -924,37 +924,47 @@ function IncidentDetailView({ id }: { id: string }) {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     {photos.map((photo: any) => (
-                      <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-lg border bg-muted" data-testid={`photo-thumb-${photo.id}`}>
-                        <button
-                          className="absolute inset-0 w-full h-full"
-                          onClick={() => setLightboxPhoto(photo)}
-                        >
-                          <img
-                            src={photo.fileUrl}
-                            alt={photo.title || photo.fileName}
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </button>
-                        {isPrivileged && (
+                      <div key={photo.id} className="group rounded-lg border bg-card overflow-hidden" data-testid={`photo-thumb-${photo.id}`}>
+                        {/* Image area */}
+                        <div className="relative aspect-video bg-muted overflow-hidden">
                           <button
-                            className="absolute top-1.5 right-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
-                            onClick={(e) => { e.stopPropagation(); openEditDialog(photo); }}
-                            title="Edit title & notes"
-                            data-testid={`button-edit-photo-${photo.id}`}
+                            className="absolute inset-0 w-full h-full"
+                            onClick={() => setLightboxPhoto(photo)}
                           >
-                            <Pencil className="h-3 w-3" />
+                            <img
+                              src={photo.fileUrl}
+                              alt={photo.title || photo.fileName}
+                              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
+                              <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                            </div>
                           </button>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-xs text-white font-medium truncate">{photo.title || photo.fileName}</p>
-                          {photo.description && (
-                            <p className="text-xs text-white/70 truncate mt-0.5">{photo.description}</p>
+                          {isPrivileged && (
+                            <button
+                              className="absolute top-1.5 right-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
+                              onClick={(e) => { e.stopPropagation(); openEditDialog(photo); }}
+                              title="Edit title & notes"
+                              data-testid={`button-edit-photo-${photo.id}`}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Caption */}
+                        <div className="px-3 py-2">
+                          <p className="text-sm font-medium leading-tight truncate text-foreground">
+                            {photo.title || photo.fileName}
+                          </p>
+                          {photo.description ? (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
+                              {photo.description}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground/50 mt-0.5 italic">No notes</p>
                           )}
                         </div>
                       </div>
