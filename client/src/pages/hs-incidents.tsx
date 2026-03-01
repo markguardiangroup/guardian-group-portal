@@ -67,6 +67,9 @@ import {
   Trash2,
   Flag,
   Activity,
+  Camera,
+  ZoomIn,
+  X,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -373,7 +376,10 @@ function IncidentDetailView({ id }: { id: string }) {
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<IncidentMilestone | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: incident, isLoading } = useQuery<Incident>({
     queryKey: ["/api/incidents", id],
@@ -485,6 +491,48 @@ function IncidentDetailView({ id }: { id: string }) {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsUploadingPhoto(true);
+    let successCount = 0;
+    for (const file of files) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const uploadRes = await fetch("/api/uploads/file", {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "image/jpeg",
+            "X-File-Name": encodeURIComponent(file.name),
+          },
+          body: buffer,
+        });
+
+        if (!uploadRes.ok) throw new Error("Upload failed");
+
+        const { objectPath } = await uploadRes.json();
+
+        await apiRequest("POST", `/api/incidents/${id}/documents`, {
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          fileName: file.name,
+          fileUrl: objectPath,
+          fileSize: file.size,
+          mimeType: file.type,
+        });
+        successCount++;
+      } catch {
+        toast({ title: "Photo upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+    if (successCount > 0) {
+      toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded` });
+    }
+    setIsUploadingPhoto(false);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6 p-8">
@@ -518,6 +566,9 @@ function IncidentDetailView({ id }: { id: string }) {
   const completedMilestones = milestones.filter(m => m.isCompleted).length;
   const totalMilestones = milestones.length;
   const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+
+  const photos = documents.filter(d => d.mimeType?.startsWith("image/"));
+  const files = documents.filter(d => !d.mimeType?.startsWith("image/"));
 
   return (
     <div className="theme-hs">
@@ -773,45 +824,136 @@ function IncidentDetailView({ id }: { id: string }) {
               </CardContent>
             </Card>
 
+            {/* Photos */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    Photos
+                  </CardTitle>
+                  <CardDescription>Incident scene photographs and visual evidence</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{photos.length}</Badge>
+                  {isPrivileged && (
+                    <>
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        accept="image/*"
+                        multiple
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                        data-testid="button-upload-photo"
+                      >
+                        {isUploadingPhoto ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Camera className="mr-2 h-4 w-4" />
+                        )}
+                        Add Photos
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-5">
+                {photos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-3">
+                      <Camera className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">No photos have been added yet.</p>
+                    {isPrivileged && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                      >
+                        <Camera className="mr-2 h-4 w-4" />
+                        Upload Photos
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {photos.map((photo: any) => (
+                      <button
+                        key={photo.id}
+                        className="group relative aspect-square overflow-hidden rounded-lg border bg-muted cursor-pointer hover:ring-2 hover:ring-module-accent transition-all"
+                        onClick={() => setLightboxPhoto(photo)}
+                        data-testid={`photo-thumb-${photo.id}`}
+                      >
+                        <img
+                          src={photo.fileUrl}
+                          alt={photo.title || photo.fileName}
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-xs text-white truncate">{photo.title || photo.fileName}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Documents */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
                 <div>
                   <CardTitle className="text-lg">Documents</CardTitle>
-                  <CardDescription>Files and reports attached to this incident</CardDescription>
+                  <CardDescription>Reports and files attached to this incident</CardDescription>
                 </div>
-                {isPrivileged && (
-                  <>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                      data-testid="button-upload-document"
-                    >
-                      {isUploading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="mr-2 h-4 w-4" />
-                      )}
-                      Upload
-                    </Button>
-                  </>
-                )}
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{files.length}</Badge>
+                  {isPrivileged && (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        data-testid="button-upload-document"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="mr-2 h-4 w-4" />
+                        )}
+                        Upload
+                      </Button>
+                    </>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="pt-5">
-                {documents.length === 0 ? (
+                {files.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">No documents attached yet.</p>
                 ) : (
                   <div className="space-y-2">
-                    {documents.map((doc: any) => (
+                    {files.map((doc: any) => (
                       <div key={doc.id} className="flex items-center gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors" data-testid={`doc-${doc.id}`}>
                         <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
@@ -927,6 +1069,39 @@ function IncidentDetailView({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* Photo Lightbox */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setLightboxPhoto(null)}
+          data-testid="lightbox-overlay"
+        >
+          <button
+            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+            onClick={() => setLightboxPhoto(null)}
+            data-testid="lightbox-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex flex-col items-center gap-3 max-h-[90vh] max-w-[90vw]" onClick={e => e.stopPropagation()}>
+            <img
+              src={lightboxPhoto.fileUrl}
+              alt={lightboxPhoto.title || lightboxPhoto.fileName}
+              className="max-h-[80vh] max-w-[85vw] rounded-lg object-contain shadow-2xl"
+            />
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-white/80">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
+              <Button size="sm" variant="secondary" asChild>
+                <a href={lightboxPhoto.fileUrl} download={lightboxPhoto.fileName} target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Download
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status Dialog */}
       <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
