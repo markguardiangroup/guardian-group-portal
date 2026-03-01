@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useState, useRef } from "react";
+import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormField,
@@ -48,16 +57,18 @@ import {
   ShieldAlert,
   MapPin,
   ClipboardList,
-  Flag,
-  Target,
-  FileText,
   Loader2,
-  Edit,
-  CheckSquare,
-  Square,
+  ArrowLeft,
+  MoreVertical,
+  RotateCcw,
+  FileText,
+  Upload,
+  Download,
   Trash2,
+  Flag,
+  Activity,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -112,6 +123,8 @@ const reportSchema = z.object({
 
 type ReportFormValues = z.infer<typeof reportSchema>;
 
+// ─── Report Incident Dialog ───────────────────────────────────────────────────
+
 function ReportIncidentDialog({
   open,
   onClose,
@@ -128,6 +141,7 @@ function ReportIncidentDialog({
   userCompanyId: string | null;
 }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
@@ -160,20 +174,20 @@ function ReportIncidentDialog({
       ...data,
       incidentDate: new Date(data.incidentDate).toISOString(),
     }),
-    onSuccess: () => {
+    onSuccess: async (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
       toast({ title: "Incident reported", description: "The incident has been recorded successfully." });
       form.reset();
       onClose();
+      // Navigate to the new incident detail page
+      if (res?.id) navigate(`/health-safety/incidents/${res.id}`);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to report incident.", variant: "destructive" });
     },
   });
 
-  const onSubmit = (values: ReportFormValues) => {
-    mutation.mutate(values);
-  };
+  const onSubmit = (values: ReportFormValues) => mutation.mutate(values);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -187,273 +201,156 @@ function ReportIncidentDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Incident Title *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Brief description of the incident" {...field} data-testid="input-incident-title" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="title" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Incident Title *</FormLabel>
+                <FormControl><Input placeholder="Brief description of the incident" {...field} data-testid="input-incident-title" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="incidentType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Incident Type *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-incident-type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {INCIDENT_TYPES.map(t => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="incidentType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Incident Type *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-incident-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {INCIDENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-              <FormField
-                control={form.control}
-                name="severity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Severity *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-severity">
-                          <SelectValue placeholder="Select severity" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="minor">Minor</SelectItem>
-                        <SelectItem value="moderate">Moderate</SelectItem>
-                        <SelectItem value="major">Major</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="severity" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Severity *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-severity"><SelectValue placeholder="Select severity" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="minor">Minor</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="major">Major</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               {userRole !== "client" && (
-                <FormField
-                  control={form.control}
-                  name="entityId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company *</FormLabel>
-                      <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.setValue("siteId", ""); }}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-company">
-                            <SelectValue placeholder="Select company" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {companies.map((c: any) => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              <FormField
-                control={form.control}
-                name="siteId"
-                render={({ field }) => (
+                <FormField control={form.control} name="entityId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Site *</FormLabel>
-                    <Select value={field.value} onValueChange={(v) => {
-                      field.onChange(v);
-                      const site = sites.find((s: any) => s.id === v);
-                      if (site) form.setValue("entityId", site.entityId || site.companyId || "");
-                    }}>
+                    <FormLabel>Company *</FormLabel>
+                    <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.setValue("siteId", ""); }}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-site">
-                          <SelectValue placeholder="Select site" />
-                        </SelectTrigger>
+                        <SelectTrigger data-testid="select-company"><SelectValue placeholder="Select company" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {filteredSites.map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
+                        {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
+                )} />
+              )}
 
-              <FormField
-                control={form.control}
-                name="incidentDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Incident Date *</FormLabel>
+              <FormField control={form.control} name="siteId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Site *</FormLabel>
+                  <Select value={field.value} onValueChange={(v) => {
+                    field.onChange(v);
+                    const site = sites.find((s: any) => s.id === v);
+                    if (site) form.setValue("entityId", site.entityId || site.companyId || "");
+                  }}>
                     <FormControl>
-                      <Input type="date" {...field} data-testid="input-incident-date" />
+                      <SelectTrigger data-testid="select-site"><SelectValue placeholder="Select site" /></SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {filteredSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="incidentDate" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Incident Date *</FormLabel>
+                  <FormControl><Input type="date" {...field} data-testid="input-incident-date" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe what happened in detail..."
-                      className="resize-none"
-                      rows={4}
-                      {...field}
-                      data-testid="textarea-description"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="description" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description *</FormLabel>
+                <FormControl><Textarea placeholder="Describe what happened in detail..." className="resize-none" rows={4} {...field} data-testid="textarea-description" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            <FormField
-              control={form.control}
-              name="locationDetails"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location Details</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Specific location within the site" {...field} data-testid="input-location" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="locationDetails" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location Details</FormLabel>
+                <FormControl><Input placeholder="Specific location within the site" {...field} data-testid="input-location" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            <FormField
-              control={form.control}
-              name="immediateActions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Immediate Actions Taken</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="What immediate steps were taken to address the incident?"
-                      className="resize-none"
-                      rows={3}
-                      {...field}
-                      data-testid="textarea-immediate-actions"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="immediateActions" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Immediate Actions Taken</FormLabel>
+                <FormControl><Textarea placeholder="What immediate steps were taken?" className="resize-none" rows={3} {...field} data-testid="textarea-immediate-actions" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-            <FormField
-              control={form.control}
-              name="witnesses"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Witnesses</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Names of any witnesses present" {...field} data-testid="input-witnesses" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="witnesses" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Witnesses</FormLabel>
+                <FormControl><Input placeholder="Names of any witnesses present" {...field} data-testid="input-witnesses" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <div className="space-y-3 rounded-md border p-4">
               <p className="text-sm font-medium">Safety Flags</p>
-              <FormField
-                control={form.control}
-                name="injuriesReported"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        data-testid="checkbox-injuries"
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal cursor-pointer">Injuries were sustained</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="riddorReportable"
-                render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        data-testid="checkbox-riddor"
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal cursor-pointer">RIDDOR reportable</FormLabel>
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="injuriesReported" render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-injuries" /></FormControl>
+                  <FormLabel className="font-normal cursor-pointer">Injuries were sustained</FormLabel>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="riddorReportable" render={({ field }) => (
+                <FormItem className="flex items-center gap-2 space-y-0">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-riddor" /></FormControl>
+                  <FormLabel className="font-normal cursor-pointer">RIDDOR reportable</FormLabel>
+                </FormItem>
+              )} />
             </div>
 
             {watchInjuries && (
-              <FormField
-                control={form.control}
-                name="injuryDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Injury Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the injuries sustained..."
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                        data-testid="textarea-injury-details"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="injuryDetails" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Injury Details</FormLabel>
+                  <FormControl><Textarea placeholder="Describe the injuries sustained..." className="resize-none" rows={3} {...field} data-testid="textarea-injury-details" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="bg-module-accent hover:bg-module-accent/90"
-                data-testid="button-submit-incident"
-              >
+              <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
+              <Button type="submit" disabled={mutation.isPending} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-submit-incident">
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Report Incident
               </Button>
@@ -465,420 +362,691 @@ function ReportIncidentDialog({
   );
 }
 
-function MilestoneItem({
-  milestone,
-  isPrivileged,
-  onToggle,
-  onDelete,
-}: {
-  milestone: IncidentMilestone;
-  isPrivileged: boolean;
-  onToggle: (id: string, completed: boolean) => void;
-  onDelete: (id: string) => void;
-}) {
-  return (
-    <div className="flex items-start gap-3 py-2">
-      <button
-        onClick={() => isPrivileged && onToggle(milestone.id, !milestone.isCompleted)}
-        className={`mt-0.5 shrink-0 ${isPrivileged ? "cursor-pointer" : "cursor-default"}`}
-        data-testid={`milestone-toggle-${milestone.id}`}
-      >
-        {milestone.isCompleted ? (
-          <CheckSquare className="h-4 w-4 text-emerald-500" />
-        ) : (
-          <Square className="h-4 w-4 text-muted-foreground" />
-        )}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
-          {milestone.title}
-        </p>
-        {milestone.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{milestone.description}</p>
-        )}
-        {milestone.dueDate && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Due: {format(new Date(milestone.dueDate), "d MMM yyyy")}
-          </p>
-        )}
-      </div>
-      {isPrivileged && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => onDelete(milestone.id)}
-          data-testid={`milestone-delete-${milestone.id}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      )}
-    </div>
-  );
-}
+// ─── Incident Detail View (Full Page) ────────────────────────────────────────
 
-function IncidentDetailDialog({
-  incidentId,
-  open,
-  onClose,
-  sites,
-  isPrivileged,
-}: {
-  incidentId: string | null;
-  open: boolean;
-  onClose: () => void;
-  sites: any[];
-  isPrivileged: boolean;
-}) {
+function IncidentDetailView({ id }: { id: string }) {
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
-  const [addingMilestone, setAddingMilestone] = useState(false);
-  const [editingStatus, setEditingStatus] = useState(false);
+  const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<IncidentMilestone | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: incident, isLoading } = useQuery<Incident>({
-    queryKey: ["/api/incidents", incidentId],
-    queryFn: () => fetch(`/api/incidents/${incidentId}`).then(r => r.json()),
-    enabled: !!incidentId,
+    queryKey: ["/api/incidents", id],
+    queryFn: () => fetch(`/api/incidents/${id}`).then(r => r.json()),
   });
 
   const { data: milestones = [] } = useQuery<IncidentMilestone[]>({
-    queryKey: ["/api/incidents", incidentId, "milestones"],
-    queryFn: () => fetch(`/api/incidents/${incidentId}/milestones`).then(r => r.json()),
-    enabled: !!incidentId,
+    queryKey: ["/api/incidents", id, "milestones"],
+    queryFn: () => fetch(`/api/incidents/${id}/milestones`).then(r => r.json()),
   });
 
   const { data: documents = [] } = useQuery<any[]>({
-    queryKey: ["/api/incidents", incidentId, "documents"],
-    queryFn: () => fetch(`/api/incidents/${incidentId}/documents`).then(r => r.json()),
-    enabled: !!incidentId,
+    queryKey: ["/api/incidents", id, "documents"],
+    queryFn: () => fetch(`/api/incidents/${id}/documents`).then(r => r.json()),
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: (status: string) => apiRequest("PATCH", `/api/incidents/${incidentId}`, { status }),
+  const { data: site } = useQuery<any>({
+    queryKey: ["/api/sites", incident?.siteId],
+    queryFn: () => fetch(`/api/sites/${incident?.siteId}`).then(r => r.json()),
+    enabled: !!incident?.siteId,
+  });
+
+  const { data: company } = useQuery<any>({
+    queryKey: ["/api/companies", incident?.entityId],
+    queryFn: () => fetch(`/api/companies/${incident?.entityId}`).then(r => r.json()),
+    enabled: !!incident?.entityId,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (updates: any) => apiRequest("PATCH", `/api/incidents/${id}`, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", incidentId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
-      setEditingStatus(false);
-      toast({ title: "Status updated" });
+      setShowStatusDialog(false);
+      toast({ title: "Incident updated" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to update status.", variant: "destructive" }),
+    onError: () => toast({ title: "Error", description: "Failed to update incident.", variant: "destructive" }),
   });
 
   const addMilestoneMutation = useMutation({
-    mutationFn: (title: string) => apiRequest("POST", `/api/incidents/${incidentId}/milestones`, { title }),
+    mutationFn: (data: any) => apiRequest("POST", `/api/incidents/${id}/milestones`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", incidentId, "milestones"] });
-      setNewMilestoneTitle("");
-      setAddingMilestone(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] });
+      setShowMilestoneDialog(false);
+      toast({ title: "Action item added" });
     },
-    onError: () => toast({ title: "Error", description: "Failed to add milestone.", variant: "destructive" }),
+    onError: () => toast({ title: "Error", description: "Failed to add action item.", variant: "destructive" }),
   });
 
-  const toggleMilestoneMutation = useMutation({
-    mutationFn: ({ id, isCompleted }: { id: string; isCompleted: boolean }) =>
-      apiRequest("PATCH", `/api/milestones/incident/${id}`, {
-        isCompleted,
-        completedDate: isCompleted ? new Date().toISOString() : null,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", incidentId, "milestones"] });
-    },
-    onError: () => toast({ title: "Error", description: "Failed to update milestone.", variant: "destructive" }),
+  const completeMilestoneMutation = useMutation({
+    mutationFn: (milestoneId: string) => apiRequest("PATCH", `/api/milestones/incident/${milestoneId}`, {
+      isCompleted: true,
+      completedDate: new Date().toISOString(),
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onError: () => toast({ title: "Error", description: "Failed to complete action item.", variant: "destructive" }),
+  });
+
+  const reopenMilestoneMutation = useMutation({
+    mutationFn: (milestoneId: string) => apiRequest("PATCH", `/api/milestones/incident/${milestoneId}`, {
+      isCompleted: false,
+      completedDate: null,
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onError: () => toast({ title: "Error", description: "Failed to reopen action item.", variant: "destructive" }),
   });
 
   const deleteMilestoneMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/milestones/incident/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", incidentId, "milestones"] });
-    },
-    onError: () => toast({ title: "Error", description: "Failed to delete milestone.", variant: "destructive" }),
+    mutationFn: (milestoneId: string) => apiRequest("DELETE", `/api/milestones/incident/${milestoneId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onError: () => toast({ title: "Error", description: "Failed to delete action item.", variant: "destructive" }),
   });
 
-  if (!incidentId) return null;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const siteName = incident ? sites.find(s => s.id === incident.siteId)?.name : null;
-  const severity = incident ? severityConfig[incident.severity as IncidentSeverity] : null;
-  const statusCfg = incident ? statusConfig[incident.status as IncidentStatus] : null;
-  const StatusIcon = statusCfg?.icon ?? AlertTriangle;
+    setIsUploading(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const uploadRes = await fetch("/api/uploads/file", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-File-Name": file.name,
+        },
+        body: buffer,
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+
+      const { objectPath } = await uploadRes.json();
+
+      await apiRequest("POST", `/api/incidents/${id}/documents`, {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        fileName: file.name,
+        fileUrl: objectPath,
+        fileSize: file.size,
+        mimeType: file.type,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      toast({ title: "Document uploaded successfully" });
+    } catch {
+      toast({ title: "Upload failed", description: "Could not upload the document.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-8">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-48" />
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!incident) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <AlertTriangle className="h-12 w-12 text-muted-foreground" />
+        <h2 className="mt-4 text-xl font-semibold">Incident not found</h2>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/health-safety/incidents")}>
+          Back to Incidents
+        </Button>
+      </div>
+    );
+  }
+
+  const severity = severityConfig[incident.severity as IncidentSeverity] ?? severityConfig.minor;
+  const statusCfg = statusConfig[incident.status as IncidentStatus] ?? statusConfig.reported;
+  const StatusIcon = statusCfg.icon;
+  const completedMilestones = milestones.filter(m => m.isCompleted).length;
+  const totalMilestones = milestones.length;
+  const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    <div className="theme-hs">
+      <div className="space-y-6 p-8">
+        {/* Header */}
+        <div className="flex items-start gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/health-safety/incidents")}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold">{incident.incidentReference}</h1>
+              <Badge variant="outline" className={severity.className}>{severity.label}</Badge>
+              <Badge variant="outline" className={statusCfg.className}>
+                <StatusIcon className="mr-1.5 h-3 w-3" />
+                {statusCfg.label}
+              </Badge>
+              {incident.injuriesReported && (
+                <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>
+              )}
+              {incident.riddorReportable && (
+                <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>
+              )}
+            </div>
+            <p className="mt-1 text-lg text-muted-foreground">{incident.title}</p>
           </div>
-        ) : !incident ? (
-          <div className="py-16 text-center text-muted-foreground">Incident not found</div>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-start gap-3 pr-6">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
-                  incident.severity === "critical" ? "bg-red-500/10" :
-                  incident.severity === "major" ? "bg-orange-500/10" :
-                  "bg-module-accent/10"
-                }`}>
-                  <AlertTriangle className={`h-5 w-5 ${
-                    incident.severity === "critical" ? "text-red-500" :
-                    incident.severity === "major" ? "text-orange-500" :
-                    "text-module-accent"
-                  }`} />
+          {isPrivileged && (
+            <Button
+              variant="outline"
+              onClick={() => setShowStatusDialog(true)}
+              data-testid="button-update-status"
+            >
+              Update Status
+            </Button>
+          )}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Incident Details */}
+            <Card>
+              <CardHeader className="border-b">
+                <CardTitle className="text-lg">Incident Details</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5 space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Incident Type</p>
+                    <p className="mt-1 flex items-center gap-2 font-medium">
+                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                      {incident.incidentType}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Incident Date</p>
+                    <p className="mt-1 flex items-center gap-2 font-medium">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(incident.incidentDate), "d MMMM yyyy")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Reported By</p>
+                    <p className="mt-1 flex items-center gap-2 font-medium">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {incident.reportedByName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Reported On</p>
+                    <p className="mt-1 flex items-center gap-2 font-medium">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      {format(new Date(incident.createdAt), "d MMM yyyy, HH:mm")}
+                    </p>
+                  </div>
+                  {incident.resolvedAt && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Resolved On</p>
+                      <p className="mt-1 flex items-center gap-2 font-medium text-emerald-600">
+                        <CheckCircle className="h-4 w-4" />
+                        {format(new Date(incident.resolvedAt), "d MMM yyyy")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Description</p>
+                  <p className="text-sm leading-relaxed">{incident.description}</p>
+                </div>
+
+                {incident.locationDetails && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Location</p>
+                    <p className="text-sm leading-relaxed">{incident.locationDetails}</p>
+                  </div>
+                )}
+
+                {incident.immediateActions && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Immediate Actions Taken</p>
+                    <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
+                  </div>
+                )}
+
+                {incident.witnesses && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Witnesses</p>
+                    <p className="text-sm leading-relaxed">{incident.witnesses}</p>
+                  </div>
+                )}
+
+                {incident.injuryDetails && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Injury Details</p>
+                    <p className="text-sm leading-relaxed">{incident.injuryDetails}</p>
+                  </div>
+                )}
+
+                {incident.rootCause && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Root Cause</p>
+                    <p className="text-sm leading-relaxed">{incident.rootCause}</p>
+                  </div>
+                )}
+
+                {incident.correctiveActions && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Corrective Actions</p>
+                    <p className="text-sm leading-relaxed">{incident.correctiveActions}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Action Items / Milestones */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+                <div>
+                  <CardTitle className="text-lg">Action Items</CardTitle>
+                  <CardDescription>Track follow-up tasks and corrective actions</CardDescription>
+                </div>
+                {isPrivileged && (
+                  <Button
+                    size="sm"
+                    onClick={() => setShowMilestoneDialog(true)}
+                    className="bg-module-accent hover:bg-module-accent/90"
+                    data-testid="button-add-milestone"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Action
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="pt-5">
+                {totalMilestones > 0 && (
+                  <div className="mb-5">
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">{completedMilestones} of {totalMilestones} completed</span>
+                    </div>
+                    <Progress value={milestoneProgress} className="h-2" />
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {milestones.map((milestone) => (
+                    <div
+                      key={milestone.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border ${
+                        milestone.isCompleted
+                          ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                          : "bg-card"
+                      }`}
+                      data-testid={`milestone-${milestone.id}`}
+                    >
+                      <div className={`mt-0.5 rounded-full p-1 ${
+                        milestone.isCompleted
+                          ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {milestone.isCompleted
+                          ? <CheckCircle className="h-4 w-4" />
+                          : <Clock className="h-4 w-4" />
+                        }
+                      </div>
+                      <div className="flex-1">
+                        <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                          {milestone.title}
+                        </p>
+                        {milestone.description && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{milestone.description}</p>
+                        )}
+                        {milestone.dueDate && (
+                          <p className={`text-xs mt-1 ${
+                            !milestone.isCompleted && isPast(new Date(milestone.dueDate))
+                              ? "text-red-600"
+                              : "text-muted-foreground"
+                          }`}>
+                            Due: {format(new Date(milestone.dueDate), "d MMM yyyy")}
+                          </p>
+                        )}
+                      </div>
+                      {isPrivileged && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" data-testid={`button-milestone-menu-${milestone.id}`}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!milestone.isCompleted ? (
+                              <DropdownMenuItem
+                                onClick={() => completeMilestoneMutation.mutate(milestone.id)}
+                                data-testid={`button-complete-milestone-${milestone.id}`}
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
+                                Mark Complete
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
+                                data-testid={`button-reopen-milestone-${milestone.id}`}
+                              >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Reopen
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-delete-milestone-${milestone.id}`}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  ))}
+                  {milestones.length === 0 && (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No action items yet.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Documents */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+                <div>
+                  <CardTitle className="text-lg">Documents</CardTitle>
+                  <CardDescription>Files and reports attached to this incident</CardDescription>
+                </div>
+                {isPrivileged && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      data-testid="button-upload-document"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="mr-2 h-4 w-4" />
+                      )}
+                      Upload
+                    </Button>
+                  </>
+                )}
+              </CardHeader>
+              <CardContent className="pt-5">
+                {documents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No documents attached yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors" data-testid={`doc-${doc.id}`}>
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{doc.title || doc.fileName}</p>
+                          <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                        </div>
+                        {doc.fileUrl && (
+                          <Button variant="ghost" size="icon" asChild className="shrink-0">
+                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-5">
+            <Card>
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base">Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Severity</p>
+                  <Badge variant="outline" className={severity.className}>{severity.label}</Badge>
                 </div>
                 <div>
-                  <span>{incident.title}</span>
-                  <p className="text-sm font-normal text-muted-foreground mt-0.5">{incident.incidentReference}</p>
-                </div>
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              <div className="flex flex-wrap gap-2">
-                {severity && (
-                  <Badge variant="outline" className={severity.className}>
-                    {severity.label}
-                  </Badge>
-                )}
-                {statusCfg && (
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Status</p>
                   <Badge variant="outline" className={statusCfg.className}>
                     <StatusIcon className="mr-1.5 h-3 w-3" />
                     {statusCfg.label}
                   </Badge>
+                </div>
+                <Separator />
+                {company && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Company</p>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {company.name}
+                    </p>
+                  </div>
                 )}
-                {incident.injuriesReported && (
-                  <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>
+                {site && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Site</p>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                      {site.name}
+                    </p>
+                  </div>
                 )}
-                {incident.riddorReportable && (
-                  <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>
-                )}
-              </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Reported By</p>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    {incident.reportedByName}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
 
-              {isPrivileged && (
-                <div className="flex items-center gap-2">
-                  {editingStatus ? (
-                    <>
-                      <Select onValueChange={(v) => updateStatusMutation.mutate(v)}>
-                        <SelectTrigger className="w-48" data-testid="select-update-status">
-                          <SelectValue placeholder="Change status..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="reported">Reported</SelectItem>
-                          <SelectItem value="under_review">Under Review</SelectItem>
-                          <SelectItem value="resolved">Resolved</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="outline" size="sm" onClick={() => setEditingStatus(false)}>Cancel</Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => setEditingStatus(true)} data-testid="button-change-status">
-                      <Edit className="mr-1.5 h-3.5 w-3.5" />
-                      Change Status
-                    </Button>
+            {(incident.injuriesReported || incident.riddorReportable) && (
+              <Card className="border-red-200 dark:border-red-900">
+                <CardHeader className="border-b border-red-200 dark:border-red-900 pb-3">
+                  <CardTitle className="text-base text-red-700 dark:text-red-400 flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    Safety Flags
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  {incident.injuriesReported && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="font-medium">Injuries reported</span>
+                    </div>
                   )}
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-2">
-                  <ClipboardList className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-muted-foreground">Incident Type</p>
-                    <p className="font-medium">{incident.incidentType}</p>
-                  </div>
-                </div>
-                {siteName && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-muted-foreground">Site</p>
-                      <p className="font-medium">{siteName}</p>
+                  {incident.riddorReportable && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="font-medium">RIDDOR reportable</span>
                     </div>
-                  </div>
-                )}
-                <div className="flex items-start gap-2">
-                  <User className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-muted-foreground">Reported By</p>
-                    <p className="font-medium">{incident.reportedByName}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-muted-foreground">Incident Date</p>
-                    <p className="font-medium">{format(new Date(incident.incidentDate), "d MMM yyyy")}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p className="text-muted-foreground">Reported On</p>
-                    <p className="font-medium">{format(new Date(incident.createdAt), "d MMM yyyy, HH:mm")}</p>
-                  </div>
-                </div>
-                {incident.resolvedAt && (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
-                    <div>
-                      <p className="text-muted-foreground">Resolved At</p>
-                      <p className="font-medium">{format(new Date(incident.resolvedAt), "d MMM yyyy")}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Description</p>
-                <p className="text-sm">{incident.description}</p>
-              </div>
-
-              {incident.locationDetails && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Location</p>
-                  <p className="text-sm">{incident.locationDetails}</p>
-                </div>
-              )}
-
-              {incident.immediateActions && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Immediate Actions Taken</p>
-                  <p className="text-sm">{incident.immediateActions}</p>
-                </div>
-              )}
-
-              {incident.witnesses && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Witnesses</p>
-                  <p className="text-sm">{incident.witnesses}</p>
-                </div>
-              )}
-
-              {incident.injuryDetails && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Injury Details</p>
-                  <p className="text-sm">{incident.injuryDetails}</p>
-                </div>
-              )}
-
-              {incident.rootCause && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Root Cause</p>
-                  <p className="text-sm">{incident.rootCause}</p>
-                </div>
-              )}
-
-              {incident.correctiveActions && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Corrective Actions</p>
-                  <p className="text-sm">{incident.correctiveActions}</p>
-                </div>
-              )}
-
-              <Separator />
-
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="font-medium">Action Items</h3>
-                    <Badge variant="secondary">{milestones.length}</Badge>
-                  </div>
-                  {isPrivileged && !addingMilestone && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAddingMilestone(true)}
-                      data-testid="button-add-milestone"
-                    >
-                      <Plus className="mr-1 h-3.5 w-3.5" />
-                      Add Action
-                    </Button>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="text-center mb-3">
+                  <p className="text-2xl font-bold">{completedMilestones}<span className="text-muted-foreground text-lg">/{totalMilestones}</span></p>
+                  <p className="text-xs text-muted-foreground">actions completed</p>
                 </div>
+                <Progress value={milestoneProgress} className="h-2" />
+                <div className="flex justify-between mt-1.5">
+                  <span className="text-xs text-muted-foreground">{Math.round(milestoneProgress)}% done</span>
+                  <span className="text-xs text-muted-foreground">{totalMilestones - completedMilestones} remaining</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
 
-                {addingMilestone && (
-                  <div className="flex gap-2 mb-3">
-                    <Input
-                      placeholder="Action item title..."
-                      value={newMilestoneTitle}
-                      onChange={(e) => setNewMilestoneTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newMilestoneTitle.trim()) {
-                          addMilestoneMutation.mutate(newMilestoneTitle.trim());
-                        }
-                        if (e.key === "Escape") { setAddingMilestone(false); setNewMilestoneTitle(""); }
-                      }}
-                      autoFocus
-                      data-testid="input-milestone-title"
-                    />
-                    <Button
-                      size="sm"
-                      disabled={!newMilestoneTitle.trim() || addMilestoneMutation.isPending}
-                      onClick={() => newMilestoneTitle.trim() && addMilestoneMutation.mutate(newMilestoneTitle.trim())}
-                      data-testid="button-save-milestone"
-                    >
-                      Add
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setAddingMilestone(false); setNewMilestoneTitle(""); }}>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
+      {/* Status Dialog */}
+      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Incident Status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Select
+              defaultValue={incident.status}
+              onValueChange={(v) => updateMutation.mutate({ status: v })}
+            >
+              <SelectTrigger data-testid="select-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="reported">Reported</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStatusDialog(false)}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-                {milestones.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No action items added yet.</p>
-                ) : (
-                  <div className="divide-y">
-                    {milestones.map(m => (
-                      <MilestoneItem
-                        key={m.id}
-                        milestone={m}
-                        isPrivileged={isPrivileged}
-                        onToggle={(id, completed) => toggleMilestoneMutation.mutate({ id, isCompleted: completed })}
-                        onDelete={(id) => deleteMilestoneMutation.mutate(id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+      {/* Add Milestone Dialog */}
+      <AddMilestoneDialog
+        open={showMilestoneDialog}
+        onClose={() => setShowMilestoneDialog(false)}
+        onAdd={(data) => addMilestoneMutation.mutate(data)}
+        isLoading={addMilestoneMutation.isPending}
+      />
+    </div>
+  );
+}
 
-              {documents.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="font-medium">Documents</h3>
-                      <Badge variant="secondary">{documents.length}</Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {documents.map((doc: any) => (
-                        <div key={doc.id} className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{doc.title || doc.fileName}</p>
-                            <p className="text-xs text-muted-foreground">{doc.mimeType}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
-        )}
+function AddMilestoneDialog({
+  open,
+  onClose,
+  onAdd,
+  isLoading,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (data: any) => void;
+  isLoading: boolean;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onAdd({
+      title: title.trim(),
+      description: description.trim() || undefined,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+    });
+    setTitle("");
+    setDescription("");
+    setDueDate("");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Action Item</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Title *</label>
+            <Input
+              placeholder="Action item title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              data-testid="input-milestone-title"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Description</label>
+            <Textarea
+              placeholder="Optional details..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="resize-none"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Due Date</label>
+            <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim() || isLoading}
+            className="bg-module-accent hover:bg-module-accent/90"
+            data-testid="button-save-milestone"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Add Action
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function IncidentCard({ incident, onViewDetails, sites }: { incident: Incident; onViewDetails: (id: string) => void; sites: any[] }) {
-  const severity = severityConfig[incident.severity as IncidentSeverity] || severityConfig.minor;
-  const statusCfg = statusConfig[incident.status as IncidentStatus] || statusConfig.reported;
+// ─── Incidents List View ──────────────────────────────────────────────────────
+
+function IncidentCard({ incident, sites }: { incident: Incident; sites: any[] }) {
+  const severity = severityConfig[incident.severity as IncidentSeverity] ?? severityConfig.minor;
+  const statusCfg = statusConfig[incident.status as IncidentStatus] ?? statusConfig.reported;
   const StatusIcon = statusCfg.icon;
   const siteName = sites.find(s => s.id === incident.siteId)?.name;
 
@@ -899,7 +1067,7 @@ function IncidentCard({ incident, onViewDetails, sites }: { incident: Incident; 
               }`} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold">{incident.title}</h3>
                 <Badge variant="outline" className="text-xs font-mono text-muted-foreground border-muted">
                   {incident.incidentReference}
@@ -921,9 +1089,7 @@ function IncidentCard({ incident, onViewDetails, sites }: { incident: Incident; 
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Badge variant="outline" className={severity.className}>
-              {severity.label}
-            </Badge>
+            <Badge variant="outline" className={severity.className}>{severity.label}</Badge>
             <Badge variant="outline" className={statusCfg.className}>
               <StatusIcon className="mr-1.5 h-3 w-3" />
               {statusCfg.label}
@@ -933,31 +1099,26 @@ function IncidentCard({ incident, onViewDetails, sites }: { incident: Incident; 
 
         {(incident.injuriesReported || incident.riddorReportable) && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {incident.injuriesReported && (
-              <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>
-            )}
-            {incident.riddorReportable && (
-              <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>
-            )}
+            {incident.injuriesReported && <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>}
+            {incident.riddorReportable && <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>}
           </div>
         )}
 
         <div className="mt-4 flex items-center justify-between border-t pt-4">
           <div className="flex items-center gap-1.5 text-sm">
             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground">
-              {format(new Date(incident.incidentDate), "MMM d, yyyy")}
-            </span>
+            <span className="text-muted-foreground">{format(new Date(incident.incidentDate), "MMM d, yyyy")}</span>
           </div>
           <Button
             variant="ghost"
             size="sm"
             className="text-module-accent hover:text-module-accent"
-            onClick={() => onViewDetails(incident.id)}
-            data-testid={`button-view-details-${incident.id}`}
+            asChild
           >
-            View Details
-            <ArrowRight className="ml-1 h-4 w-4" />
+            <Link href={`/health-safety/incidents/${incident.id}`} data-testid={`button-view-details-${incident.id}`}>
+              Open File
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </CardContent>
@@ -965,22 +1126,15 @@ function IncidentCard({ incident, onViewDetails, sites }: { incident: Incident; 
   );
 }
 
-export default function HSIncidents() {
+function IncidentsListView() {
   const { user } = useAuth();
-  const params = useParams<{ id?: string }>();
-  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
-  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(params.id || null);
-
-  useEffect(() => {
-    if (params.id) setSelectedIncidentId(params.id);
-  }, [params.id]);
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
-  const { data: incidents = [], isLoading: incidentsLoading } = useQuery<Incident[]>({
+  const { data: incidents = [], isLoading } = useQuery<Incident[]>({
     queryKey: ["/api/incidents"],
     queryFn: () => fetch("/api/incidents").then(r => r.json()),
   });
@@ -1006,19 +1160,9 @@ export default function HSIncidents() {
 
   const stats = {
     total: incidents.length,
-    reported: incidents.filter((i) => i.status === "reported").length,
-    underReview: incidents.filter((i) => i.status === "under_review").length,
-    resolved: incidents.filter((i) => i.status === "resolved" || i.status === "closed").length,
-  };
-
-  const handleViewDetails = (id: string) => {
-    setSelectedIncidentId(id);
-    setLocation(`/health-safety/incidents/${id}`);
-  };
-
-  const handleCloseDetail = () => {
-    setSelectedIncidentId(null);
-    setLocation("/health-safety/incidents");
+    reported: incidents.filter(i => i.status === "reported").length,
+    underReview: incidents.filter(i => i.status === "under_review").length,
+    resolved: incidents.filter(i => i.status === "resolved" || i.status === "closed").length,
   };
 
   return (
@@ -1032,9 +1176,7 @@ export default function HSIncidents() {
               </div>
               <div>
                 <h1 className="text-2xl font-semibold">Incidents</h1>
-                <p className="text-muted-foreground">
-                  Report, review, and record workplace incidents
-                </p>
+                <p className="text-muted-foreground">Report, review, and manage workplace incidents</p>
               </div>
             </div>
             <Button
@@ -1126,19 +1268,14 @@ export default function HSIncidents() {
           </div>
         </div>
 
-        {incidentsLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : filteredIncidents.length > 0 ? (
           <div className="space-y-4">
             {filteredIncidents.map((incident) => (
-              <IncidentCard
-                key={incident.id}
-                incident={incident}
-                sites={sites}
-                onViewDetails={handleViewDetails}
-              />
+              <IncidentCard key={incident.id} incident={incident} sites={sites} />
             ))}
           </div>
         ) : (
@@ -1174,14 +1311,19 @@ export default function HSIncidents() {
         userRole={user?.role || "client"}
         userCompanyId={user?.companyId || null}
       />
-
-      <IncidentDetailDialog
-        incidentId={selectedIncidentId}
-        open={!!selectedIncidentId}
-        onClose={handleCloseDetail}
-        sites={sites}
-        isPrivileged={isPrivileged}
-      />
     </div>
   );
+}
+
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
+export default function HSIncidents() {
+  const [matchDetail, paramsDetail] = useRoute("/health-safety/incidents/:id");
+  const [matchList] = useRoute("/health-safety/incidents");
+
+  if (matchDetail && paramsDetail?.id) {
+    return <IncidentDetailView id={paramsDetail.id} />;
+  }
+
+  return <IncidentsListView />;
 }

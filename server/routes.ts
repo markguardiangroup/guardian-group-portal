@@ -8230,5 +8230,50 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/incidents/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const { title, fileName, fileUrl, fileSize, mimeType } = req.body;
+      if (!title || !fileName || !fileUrl) {
+        return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
+      }
+
+      const document = await storage.createDocument({
+        title,
+        description: `Incident document for ${incident.incidentReference}`,
+        module: "health_safety",
+        type: "incident_report",
+        entityId: incident.entityId,
+        siteId: incident.siteId,
+        incidentId: incident.id,
+        folderId: incident.folderId,
+        fileName,
+        fileUrl,
+        fileSize: fileSize || 0,
+        mimeType: mimeType || "application/octet-stream",
+        uploadedBy: user.id,
+        status: "compliant",
+        approvalStatus: "approved",
+        source: "upload",
+      });
+
+      await storage.createAuditLog({
+        action: "document_uploaded",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: incident.entityId,
+        details: `Document "${title}" uploaded to incident ${incident.incidentReference}`,
+      });
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Error uploading incident document:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
   return httpServer;
 }
