@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -75,6 +75,8 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Shield,
   Eye,
 } from "lucide-react";
@@ -465,6 +467,29 @@ function IncidentDetailView({ id }: { id: string }) {
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+
+  const navigatePhoto = useCallback((direction: "prev" | "next", photoList: any[]) => {
+    setLightboxPhoto(current => {
+      if (!current || photoList.length < 2) return current;
+      const idx = photoList.findIndex(p => p.id === current.id);
+      if (idx === -1) return current;
+      return direction === "next"
+        ? photoList[(idx + 1) % photoList.length]
+        : photoList[(idx - 1 + photoList.length) % photoList.length];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!lightboxPhoto) return;
+    const photoList = documents.filter((d: any) => d.mimeType?.startsWith("image/"));
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") navigatePhoto("next", photoList);
+      else if (e.key === "ArrowLeft") navigatePhoto("prev", photoList);
+      else if (e.key === "Escape") setLightboxPhoto(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxPhoto, documents, navigatePhoto]);
 
   const toggleHistory = (docId: string) => {
     setExpandedHistory(prev => {
@@ -1407,52 +1432,89 @@ function IncidentDetailView({ id }: { id: string }) {
       </div>
 
       {/* Photo Lightbox */}
-      {lightboxPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setLightboxPhoto(null)}
-          data-testid="lightbox-overlay"
-        >
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            {isPrivileged && (
+      {lightboxPhoto && (() => {
+        const currentIdx = photos.findIndex(p => p.id === lightboxPhoto.id);
+        const hasMultiple = photos.length > 1;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setLightboxPhoto(null)}
+            data-testid="lightbox-overlay"
+          >
+            {/* Top-right controls */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              {hasMultiple && (
+                <span className="text-xs text-white/60 font-medium tabular-nums px-2">
+                  {currentIdx + 1} / {photos.length}
+                </span>
+              )}
+              {isPrivileged && (
+                <button
+                  className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); openEditDialog(lightboxPhoto); }}
+                  title="Edit title & notes"
+                  data-testid="lightbox-edit"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
               <button
                 className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-                onClick={(e) => { e.stopPropagation(); openEditDialog(lightboxPhoto); }}
-                title="Edit title & notes"
-                data-testid="lightbox-edit"
+                onClick={() => setLightboxPhoto(null)}
+                data-testid="lightbox-close"
               >
-                <Pencil className="h-4 w-4" />
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Prev arrow */}
+            {hasMultiple && (
+              <button
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); navigatePhoto("prev", photos); }}
+                data-testid="lightbox-prev"
+                title="Previous photo"
+              >
+                <ChevronLeft className="h-6 w-6" />
               </button>
             )}
-            <button
-              className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-              onClick={() => setLightboxPhoto(null)}
-              data-testid="lightbox-close"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex flex-col items-center gap-3 max-h-[90vh] max-w-[90vw]" onClick={e => e.stopPropagation()}>
-            <img
-              src={lightboxPhoto.fileUrl}
-              alt={lightboxPhoto.title || lightboxPhoto.fileName}
-              className="max-h-[75vh] max-w-[85vw] rounded-lg object-contain shadow-2xl"
-            />
-            <div className="text-center space-y-1">
-              <p className="text-sm font-medium text-white">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
-              {lightboxPhoto.description && (
-                <p className="text-xs text-white/60 max-w-md">{lightboxPhoto.description}</p>
-              )}
+
+            {/* Next arrow */}
+            {hasMultiple && (
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/25 transition-colors z-10"
+                onClick={(e) => { e.stopPropagation(); navigatePhoto("next", photos); }}
+                data-testid="lightbox-next"
+                title="Next photo"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Image + caption */}
+            <div className="flex flex-col items-center gap-3 max-h-[90vh] max-w-[80vw]" onClick={e => e.stopPropagation()}>
+              <img
+                key={lightboxPhoto.id}
+                src={lightboxPhoto.fileUrl}
+                alt={lightboxPhoto.title || lightboxPhoto.fileName}
+                className="max-h-[75vh] max-w-full rounded-lg object-contain shadow-2xl"
+              />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-white">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
+                {lightboxPhoto.description && (
+                  <p className="text-xs text-white/60 max-w-md">{lightboxPhoto.description}</p>
+                )}
+              </div>
+              <Button size="sm" variant="secondary" asChild>
+                <a href={lightboxPhoto.fileUrl} download={lightboxPhoto.fileName} target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-1.5 h-4 w-4" />
+                  Download
+                </a>
+              </Button>
             </div>
-            <Button size="sm" variant="secondary" asChild>
-              <a href={lightboxPhoto.fileUrl} download={lightboxPhoto.fileName} target="_blank" rel="noopener noreferrer">
-                <Download className="mr-1.5 h-4 w-4" />
-                Download
-              </a>
-            </Button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Document Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
