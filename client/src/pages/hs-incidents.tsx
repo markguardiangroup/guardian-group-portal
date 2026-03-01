@@ -72,6 +72,7 @@ import {
   X,
   Pencil,
   MessageSquare,
+  History,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -367,6 +368,64 @@ function ReportIncidentDialog({
   );
 }
 
+// ─── Doc History Panel ────────────────────────────────────────────────────────
+
+function DocHistoryPanel({ docId }: { docId: string }) {
+  const { data: logs = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/documents", docId, "audit"],
+    queryFn: () => fetch(`/api/documents/${docId}/audit`).then(r => r.json()),
+  });
+
+  const actionLabel: Record<string, string> = {
+    document_uploaded: "Uploaded",
+    update_document: "Details updated",
+  };
+  const actionIcon: Record<string, React.ReactNode> = {
+    document_uploaded: <Upload className="h-3.5 w-3.5" />,
+    update_document: <Pencil className="h-3.5 w-3.5" />,
+  };
+  const actionColor: Record<string, string> = {
+    document_uploaded: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    update_document: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-2 px-1">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Loading history…</span>
+      </div>
+    );
+  }
+
+  if (logs.length === 0) {
+    return <p className="text-xs text-muted-foreground py-2 px-1">No history recorded for this file.</p>;
+  }
+
+  return (
+    <div className="space-y-2 py-1">
+      {logs.map((log: any) => (
+        <div key={log.id} className="flex items-start gap-2.5">
+          <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${actionColor[log.action] ?? "bg-muted text-muted-foreground"}`}>
+            {actionIcon[log.action] ?? <Activity className="h-3 w-3" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium leading-tight">
+              {actionLabel[log.action] ?? log.action} <span className="font-normal text-muted-foreground">by {log.userName}</span>
+            </p>
+            {log.details && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{log.details}</p>
+            )}
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
+              {format(new Date(log.createdAt), "d MMM yyyy 'at' HH:mm")}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Incident Detail View (Full Page) ────────────────────────────────────────
 
 function IncidentDetailView({ id }: { id: string }) {
@@ -384,6 +443,15 @@ function IncidentDetailView({ id }: { id: string }) {
   const [editTitle, setEditTitle] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+
+  const toggleHistory = (docId: string) => {
+    setExpandedHistory(prev => {
+      const next = new Set(prev);
+      next.has(docId) ? next.delete(docId) : next.add(docId);
+      return next;
+    });
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -955,7 +1023,7 @@ function IncidentDetailView({ id }: { id: string }) {
                           )}
                         </div>
                         {/* Caption */}
-                        <div className="px-3 py-2">
+                        <div className="px-3 pt-2 pb-1">
                           <p className="text-sm font-medium leading-tight truncate text-foreground">
                             {photo.title || photo.fileName}
                           </p>
@@ -965,6 +1033,24 @@ function IncidentDetailView({ id }: { id: string }) {
                             </p>
                           ) : (
                             <p className="text-xs text-muted-foreground/50 mt-0.5 italic">No notes</p>
+                          )}
+                          <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-border/50">
+                            <span className="text-xs text-muted-foreground truncate">
+                              {photo.uploadedByName || "Unknown"} · {format(new Date(photo.createdAt), "d MMM yyyy")}
+                            </span>
+                            <button
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 shrink-0 ml-2"
+                              onClick={() => toggleHistory(photo.id)}
+                              data-testid={`button-history-photo-${photo.id}`}
+                            >
+                              <History className="h-3 w-3" />
+                              {expandedHistory.has(photo.id) ? "Hide" : "History"}
+                            </button>
+                          </div>
+                          {expandedHistory.has(photo.id) && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <DocHistoryPanel docId={photo.id} />
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1016,40 +1102,61 @@ function IncidentDetailView({ id }: { id: string }) {
                 ) : (
                   <div className="space-y-2">
                     {files.map((doc: any) => (
-                      <div key={doc.id} className="group flex items-start gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors" data-testid={`doc-${doc.id}`}>
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{doc.title || doc.fileName}</p>
-                          {doc.description ? (
-                            <p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1">
-                              <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
-                              <span className="line-clamp-2">{doc.description}</span>
+                      <div key={doc.id} className="rounded-md border overflow-hidden" data-testid={`doc-${doc.id}`}>
+                        <div className="group flex items-start gap-3 p-3 hover:bg-muted/30 transition-colors">
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground mt-1" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{doc.title || doc.fileName}</p>
+                            {doc.description ? (
+                              <p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1">
+                                <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
+                                <span className="line-clamp-2">{doc.description}</span>
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground/60 truncate">{doc.fileName}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {doc.uploadedByName || "Unknown"} · {format(new Date(doc.createdAt), "d MMM yyyy 'at' HH:mm")}
                             </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground/60 truncate">{doc.fileName}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {isPrivileged && (
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
-                              onClick={() => openEditDialog(doc)}
-                              data-testid={`button-edit-doc-${doc.id}`}
-                              title="Edit title & notes"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => toggleHistory(doc.id)}
+                              data-testid={`button-history-doc-${doc.id}`}
+                              title="View history"
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              <History className="h-3.5 w-3.5" />
                             </Button>
-                          )}
-                          {doc.fileUrl && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
-                                <Download className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                          )}
+                            {isPrivileged && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => openEditDialog(doc)}
+                                data-testid={`button-edit-doc-${doc.id}`}
+                                title="Edit title & notes"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {doc.fileUrl && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity" asChild>
+                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                                  <Download className="h-3.5 w-3.5" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
                         </div>
+                        {expandedHistory.has(doc.id) && (
+                          <div className="border-t bg-muted/20 px-4 py-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">File History</p>
+                            <DocHistoryPanel docId={doc.id} />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

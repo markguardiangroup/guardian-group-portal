@@ -2046,12 +2046,10 @@ export async function registerRoutes(
         userId: user.id,
         userName: user.fullName,
         action: "update_document",
-        entityType: "document",
-        entityId: id,
-        details: { 
-          title: doc.title,
-          changes: Object.keys(req.body)
-        },
+        entityId: doc.entityId,
+        documentId: id,
+        module: doc.module as any,
+        details: `Updated: ${Object.keys(req.body).join(", ")}`,
         ipAddress: req.ip,
       });
 
@@ -8224,7 +8222,11 @@ export async function registerRoutes(
   app.get("/api/incidents/:id/documents", requireAuth, async (req, res) => {
     try {
       const docs = await storage.getIncidentDocuments(req.params.id);
-      res.json(docs);
+      const enriched = await Promise.all(docs.map(async (doc) => {
+        const uploader = await storage.getUser(doc.uploadedBy);
+        return { ...doc, uploadedByName: uploader?.fullName || "Unknown" };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Error fetching incident documents:", error);
       res.status(500).json({ error: "Failed to fetch documents" });
@@ -8266,7 +8268,9 @@ export async function registerRoutes(
         userId: user.id,
         userName: user.fullName,
         entityId: incident.entityId,
-        details: `Document "${title}" uploaded to incident ${incident.incidentReference}`,
+        documentId: document.id,
+        module: "health_safety",
+        details: `Uploaded to incident ${incident.incidentReference}`,
       });
 
       res.status(201).json(document);
