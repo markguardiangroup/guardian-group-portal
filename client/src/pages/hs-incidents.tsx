@@ -70,6 +70,8 @@ import {
   Camera,
   ZoomIn,
   X,
+  Pencil,
+  MessageSquare,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -378,6 +380,10 @@ function IncidentDetailView({ id }: { id: string }) {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<any | null>(null);
+  const [editingDoc, setEditingDoc] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -453,6 +459,33 @@ function IncidentDetailView({ id }: { id: string }) {
     onError: () => toast({ title: "Error", description: "Failed to delete action item.", variant: "destructive" }),
   });
 
+  const openEditDialog = (doc: any) => {
+    setEditingDoc(doc);
+    setEditTitle(doc.title || "");
+    setEditNotes(doc.description || "");
+  };
+
+  const saveDocEdit = async () => {
+    if (!editingDoc) return;
+    setIsSavingEdit(true);
+    try {
+      await apiRequest("PATCH", `/api/documents/${editingDoc.id}`, {
+        title: editTitle.trim() || editingDoc.title,
+        description: editNotes,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      if (lightboxPhoto?.id === editingDoc.id) {
+        setLightboxPhoto({ ...lightboxPhoto, title: editTitle.trim() || editingDoc.title, description: editNotes });
+      }
+      toast({ title: "Saved" });
+      setEditingDoc(null);
+    } catch {
+      toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -464,7 +497,7 @@ function IncidentDetailView({ id }: { id: string }) {
         method: "POST",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
-          "X-File-Name": file.name,
+          "X-File-Name": encodeURIComponent(file.name),
         },
         body: buffer,
       });
@@ -473,7 +506,7 @@ function IncidentDetailView({ id }: { id: string }) {
 
       const { objectPath } = await uploadRes.json();
 
-      await apiRequest("POST", `/api/incidents/${id}/documents`, {
+      const created = await apiRequest("POST", `/api/incidents/${id}/documents`, {
         title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
         fileUrl: objectPath,
@@ -482,7 +515,8 @@ function IncidentDetailView({ id }: { id: string }) {
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
-      toast({ title: "Document uploaded successfully" });
+      toast({ title: "Document uploaded" });
+      if (created) openEditDialog({ ...created, description: "" });
     } catch {
       toast({ title: "Upload failed", description: "Could not upload the document.", variant: "destructive" });
     } finally {
@@ -496,6 +530,7 @@ function IncidentDetailView({ id }: { id: string }) {
     if (files.length === 0) return;
 
     setIsUploadingPhoto(true);
+    let lastDoc: any = null;
     let successCount = 0;
     for (const file of files) {
       try {
@@ -513,13 +548,14 @@ function IncidentDetailView({ id }: { id: string }) {
 
         const { objectPath } = await uploadRes.json();
 
-        await apiRequest("POST", `/api/incidents/${id}/documents`, {
+        const created = await apiRequest("POST", `/api/incidents/${id}/documents`, {
           title: file.name.replace(/\.[^/.]+$/, ""),
           fileName: file.name,
           fileUrl: objectPath,
           fileSize: file.size,
           mimeType: file.type,
         });
+        lastDoc = created;
         successCount++;
       } catch {
         toast({ title: "Photo upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
@@ -527,7 +563,10 @@ function IncidentDetailView({ id }: { id: string }) {
     }
     queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
     if (successCount > 0) {
-      toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded` });
+      toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded`, description: "You can add a title and notes by clicking the edit button." });
+      if (successCount === 1 && lastDoc) {
+        openEditDialog({ ...lastDoc, description: "" });
+      }
     }
     setIsUploadingPhoto(false);
     if (photoInputRef.current) photoInputRef.current.value = "";
@@ -887,25 +926,38 @@ function IncidentDetailView({ id }: { id: string }) {
                 ) : (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {photos.map((photo: any) => (
-                      <button
-                        key={photo.id}
-                        className="group relative aspect-square overflow-hidden rounded-lg border bg-muted cursor-pointer hover:ring-2 hover:ring-module-accent transition-all"
-                        onClick={() => setLightboxPhoto(photo)}
-                        data-testid={`photo-thumb-${photo.id}`}
-                      >
-                        <img
-                          src={photo.fileUrl}
-                          alt={photo.title || photo.fileName}
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                          <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-lg border bg-muted" data-testid={`photo-thumb-${photo.id}`}>
+                        <button
+                          className="absolute inset-0 w-full h-full"
+                          onClick={() => setLightboxPhoto(photo)}
+                        >
+                          <img
+                            src={photo.fileUrl}
+                            alt={photo.title || photo.fileName}
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                            <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </button>
+                        {isPrivileged && (
+                          <button
+                            className="absolute top-1.5 right-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(photo); }}
+                            title="Edit title & notes"
+                            data-testid={`button-edit-photo-${photo.id}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-xs text-white font-medium truncate">{photo.title || photo.fileName}</p>
+                          {photo.description && (
+                            <p className="text-xs text-white/70 truncate mt-0.5">{photo.description}</p>
+                          )}
                         </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-xs text-white truncate">{photo.title || photo.fileName}</p>
-                        </div>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -954,19 +1006,40 @@ function IncidentDetailView({ id }: { id: string }) {
                 ) : (
                   <div className="space-y-2">
                     {files.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors" data-testid={`doc-${doc.id}`}>
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div key={doc.id} className="group flex items-start gap-3 rounded-md border p-3 hover:bg-muted/50 transition-colors" data-testid={`doc-${doc.id}`}>
+                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{doc.title || doc.fileName}</p>
-                          <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                          {doc.description ? (
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1">
+                              <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
+                              <span className="line-clamp-2">{doc.description}</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground/60 truncate">{doc.fileName}</p>
+                          )}
                         </div>
-                        {doc.fileUrl && (
-                          <Button variant="ghost" size="icon" asChild className="shrink-0">
-                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
-                              <Download className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {isPrivileged && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => openEditDialog(doc)}
+                              data-testid={`button-edit-doc-${doc.id}`}
+                              title="Edit title & notes"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {doc.fileUrl && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
+                                <Download className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1077,31 +1150,98 @@ function IncidentDetailView({ id }: { id: string }) {
           onClick={() => setLightboxPhoto(null)}
           data-testid="lightbox-overlay"
         >
-          <button
-            className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-            onClick={() => setLightboxPhoto(null)}
-            data-testid="lightbox-close"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {isPrivileged && (
+              <button
+                className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+                onClick={(e) => { e.stopPropagation(); openEditDialog(lightboxPhoto); }}
+                title="Edit title & notes"
+                data-testid="lightbox-edit"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+              onClick={() => setLightboxPhoto(null)}
+              data-testid="lightbox-close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <div className="flex flex-col items-center gap-3 max-h-[90vh] max-w-[90vw]" onClick={e => e.stopPropagation()}>
             <img
               src={lightboxPhoto.fileUrl}
               alt={lightboxPhoto.title || lightboxPhoto.fileName}
-              className="max-h-[80vh] max-w-[85vw] rounded-lg object-contain shadow-2xl"
+              className="max-h-[75vh] max-w-[85vw] rounded-lg object-contain shadow-2xl"
             />
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-white/80">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
-              <Button size="sm" variant="secondary" asChild>
-                <a href={lightboxPhoto.fileUrl} download={lightboxPhoto.fileName} target="_blank" rel="noopener noreferrer">
-                  <Download className="mr-1.5 h-4 w-4" />
-                  Download
-                </a>
-              </Button>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium text-white">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
+              {lightboxPhoto.description && (
+                <p className="text-xs text-white/60 max-w-md">{lightboxPhoto.description}</p>
+              )}
             </div>
+            <Button size="sm" variant="secondary" asChild>
+              <a href={lightboxPhoto.fileUrl} download={lightboxPhoto.fileName} target="_blank" rel="noopener noreferrer">
+                <Download className="mr-1.5 h-4 w-4" />
+                Download
+              </a>
+            </Button>
           </div>
         </div>
       )}
+
+      {/* Edit Title & Notes Dialog */}
+      <Dialog open={!!editingDoc} onOpenChange={(open) => { if (!open) setEditingDoc(null); }}>
+        <DialogContent className="max-w-md" data-testid="dialog-edit-doc">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {editingDoc?.mimeType?.startsWith("image/") ? (
+                <><Camera className="h-4 w-4" /> Edit Photo Details</>
+              ) : (
+                <><FileText className="h-4 w-4" /> Edit Document Details</>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {editingDoc?.mimeType?.startsWith("image/") && editingDoc?.fileUrl && (
+              <div className="overflow-hidden rounded-md border bg-muted h-32">
+                <img src={editingDoc.fileUrl} alt="" className="h-full w-full object-cover" />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                placeholder="Enter a descriptive title..."
+                data-testid="input-edit-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Notes / Comments
+              </label>
+              <Textarea
+                value={editNotes}
+                onChange={e => setEditNotes(e.target.value)}
+                placeholder="Add context, observations, or notes about this file..."
+                className="resize-none"
+                rows={3}
+                data-testid="textarea-edit-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingDoc(null)} disabled={isSavingEdit}>Cancel</Button>
+            <Button onClick={saveDocEdit} disabled={isSavingEdit} data-testid="button-save-doc-edit">
+              {isSavingEdit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Status Dialog */}
       <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>

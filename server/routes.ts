@@ -2044,6 +2044,7 @@ export async function registerRoutes(
       // Log the change
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "update_document",
         entityType: "document",
         entityId: id,
@@ -8243,7 +8244,7 @@ export async function registerRoutes(
 
       const document = await storage.createDocument({
         title,
-        description: `Incident document for ${incident.incidentReference}`,
+        description: req.body.description ?? null,
         module: "health_safety",
         type: "incident_report",
         entityId: incident.entityId,
