@@ -1225,7 +1225,7 @@ function IncidentDetailView({ id }: { id: string }) {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                 onClick={() => openEditDialog(doc)}
                                 data-testid={`button-edit-doc-${doc.id}`}
                                 title="Edit title & notes"
@@ -1237,7 +1237,7 @@ function IncidentDetailView({ id }: { id: string }) {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                 onClick={() => downloadIncidentDocument(doc.id, doc.fileName)}
                                 data-testid={`button-download-doc-${doc.id}`}
                                 title="Download"
