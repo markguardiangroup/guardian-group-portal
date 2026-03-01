@@ -8254,8 +8254,11 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
+      const user = (req.session as any).user;
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
       res.json(incident);
     } catch (error) {
       console.error("Error fetching incident:", error);
@@ -8271,6 +8274,9 @@ export async function registerRoutes(
       if (!body.title || !body.description || !body.incidentType || !body.severity || !body.siteId || !body.entityId || !body.incidentDate) {
         return res.status(400).json({ error: "Missing required fields" });
       }
+
+      const canAccess = await canUserAccessSite(user, body.siteId);
+      if (!canAccess) return res.status(403).json({ error: "You do not have access to report incidents for this site" });
 
       const incident = await storage.createIncident({
         ...body,
