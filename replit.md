@@ -82,7 +82,8 @@ A full incident management system under the Health & Safety module:
 - **Document Linkage**: `documents.incidentId` links documents to specific incidents. Each incident auto-creates a document folder.
 - **Report Form**: All users can report incidents; admins/consultants can select any company/site; clients see only their assigned sites.
 - **Detail View**: Full incident details dialog with status management (admin/consultant only), action items CRUD, and linked documents.
-- **API Routes**: `GET/POST /api/incidents`, `GET/PATCH /api/incidents/:id`, `GET/POST /api/incidents/:id/milestones`, `PATCH/DELETE /api/milestones/incident/:id`, `GET /api/incidents/:id/documents`.
+- **API Routes**: `GET/POST /api/incidents`, `GET/PATCH /api/incidents/:id`, `GET/POST /api/incidents/:id/milestones`, `PATCH/DELETE /api/milestones/incident/:id`, `GET /api/incidents/:id/documents`, `GET /api/incidents/:id/audit`.
+- **Activity Log**: `audit_logs` table has an `incident_id` column (varchar) for incident-scoped filtering. Audit events are logged for: `incident_created`, `incident_updated`, `incident_status_changed`, `document_uploaded`, `milestone_added`, `milestone_completed`. The Activity Log card appears in the incident detail sidebar with colored icon badges, entry descriptions, and a "Show N more" toggle (initial display: 3).
 - **Role Filtering**: Clients see only incidents from their assigned sites; standard consultants see only their assigned sites; admins and pro consultants see all.
 
 ### Storage Pattern

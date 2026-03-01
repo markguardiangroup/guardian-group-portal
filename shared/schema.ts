@@ -717,6 +717,7 @@ export const auditLogs = pgTable("audit_logs", {
   entityId: varchar("entity_id"),
   documentId: varchar("document_id"),
   caseId: varchar("case_id"),
+  incidentId: varchar("incident_id"),
   supportRequestId: varchar("support_request_id"),
   module: text("module").$type<ModuleType>(),
   details: text("details"),

@@ -812,6 +812,7 @@ export class MemStorage implements IStorage {
       entityId: insertLog.entityId ?? null,
       documentId: insertLog.documentId ?? null,
       caseId: insertLog.caseId ?? null,
+      incidentId: (insertLog as any).incidentId ?? null,
       supportRequestId: insertLog.supportRequestId ?? null,
       details: insertLog.details ?? null,
       metadata: insertLog.metadata ?? null,

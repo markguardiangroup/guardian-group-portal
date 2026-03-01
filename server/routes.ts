@@ -8124,8 +8124,10 @@ export async function registerRoutes(
         userId: user.id,
         userName: user.fullName,
         entityId: body.entityId,
-        details: `Incident reported: ${incident.title} (${incident.incidentReference})`,
-      });
+        module: "health_safety",
+        details: `Incident ${incident.incidentReference} reported: ${incident.title}`,
+        incidentId: incident.id,
+      } as any);
 
       res.status(201).json(incident);
     } catch (error) {
@@ -8148,13 +8150,18 @@ export async function registerRoutes(
 
       const incident = await storage.updateIncident(id, updates);
 
+      const isStatusChange = updates.status && updates.status !== existing.status;
       await storage.createAuditLog({
-        action: "incident_updated",
+        action: isStatusChange ? "incident_status_changed" : "incident_updated",
         userId: user.id,
         userName: user.fullName,
         entityId: existing.entityId,
-        details: `Incident updated: ${existing.title}`,
-      });
+        module: "health_safety",
+        details: isStatusChange
+          ? `Status changed from "${existing.status}" to "${updates.status}" on ${existing.incidentReference}`
+          : `Details updated on ${existing.incidentReference}`,
+        incidentId: id,
+      } as any);
 
       res.json(incident);
     } catch (error) {
@@ -8179,6 +8186,8 @@ export async function registerRoutes(
       const { title, description, dueDate } = req.body;
       if (!title) return res.status(400).json({ error: "Title is required" });
 
+      const incident = await storage.getIncident(req.params.id);
+
       const milestone = await storage.createIncidentMilestone({
         incidentId: req.params.id,
         title,
@@ -8187,6 +8196,18 @@ export async function registerRoutes(
         isCompleted: false,
         createdBy: user.id,
       });
+
+      if (incident) {
+        await storage.createAuditLog({
+          action: "milestone_added",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: incident.entityId,
+          module: "health_safety",
+          details: `Action item "${title}" added to ${incident.incidentReference}`,
+          incidentId: incident.id,
+        } as any);
+      }
 
       res.status(201).json(milestone);
     } catch (error) {
@@ -8197,11 +8218,28 @@ export async function registerRoutes(
 
   app.patch("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
+      const user = (req.session as any).user;
       const updates = req.body;
       if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
       if (updates.completedDate) updates.completedDate = new Date(updates.completedDate);
       const milestone = await storage.updateIncidentMilestone(req.params.id, updates);
       if (!milestone) return res.status(404).json({ error: "Milestone not found" });
+
+      if (updates.isCompleted && milestone.incidentId) {
+        const incident = await storage.getIncident(milestone.incidentId);
+        if (incident) {
+          await storage.createAuditLog({
+            action: "milestone_completed",
+            userId: user.id,
+            userName: user.fullName,
+            entityId: incident.entityId,
+            module: "health_safety",
+            details: `Action item "${milestone.title}" marked as completed on ${incident.incidentReference}`,
+            incidentId: incident.id,
+          } as any);
+        }
+      }
+
       res.json(milestone);
     } catch (error) {
       console.error("Error updating milestone:", error);
@@ -8216,6 +8254,26 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting milestone:", error);
       res.status(500).json({ error: "Failed to delete milestone" });
+    }
+  });
+
+  app.get("/api/incidents/:id/audit", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const allLogs = await storage.getAuditLogs(undefined, "health_safety");
+      const logs = allLogs.filter((log: any) => log.incidentId === req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Get incident audit error:", error);
+      res.status(500).json({ error: "Failed to fetch audit logs" });
     }
   });
 
@@ -8270,8 +8328,9 @@ export async function registerRoutes(
         entityId: incident.entityId,
         documentId: document.id,
         module: "health_safety",
-        details: `Uploaded to incident ${incident.incidentReference}`,
-      });
+        details: `"${title}" uploaded to ${incident.incidentReference}`,
+        incidentId: incident.id,
+      } as any);
 
       res.status(201).json(document);
     } catch (error) {

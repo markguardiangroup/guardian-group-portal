@@ -73,6 +73,9 @@ import {
   Pencil,
   MessageSquare,
   History,
+  ChevronDown,
+  ChevronUp,
+  Shield,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -426,6 +429,21 @@ function DocHistoryPanel({ docId }: { docId: string }) {
   );
 }
 
+// ─── Audit Action Style Helper ────────────────────────────────────────────────
+
+function getAuditActionStyle(action: string): { icon: (props: any) => JSX.Element; bg: string; color: string } {
+  switch (action) {
+    case "incident_created":       return { icon: Plus,              bg: "bg-pink-50 dark:bg-pink-950",    color: "text-pink-600 dark:text-pink-400" };
+    case "incident_status_changed":return { icon: AlertTriangle,     bg: "bg-amber-50 dark:bg-amber-950",  color: "text-amber-600 dark:text-amber-400" };
+    case "incident_updated":       return { icon: FileText,          bg: "bg-muted",                        color: "text-muted-foreground" };
+    case "document_uploaded":      return { icon: Upload,            bg: "bg-blue-50 dark:bg-blue-950",    color: "text-blue-600 dark:text-blue-400" };
+    case "milestone_added":        return { icon: Calendar,          bg: "bg-purple-50 dark:bg-purple-950",color: "text-purple-600 dark:text-purple-400" };
+    case "milestone_completed":    return { icon: CheckCircle,       bg: "bg-green-50 dark:bg-green-950",  color: "text-green-600 dark:text-green-400" };
+    case "update_document":        return { icon: Pencil,            bg: "bg-blue-50 dark:bg-blue-950",    color: "text-blue-600 dark:text-blue-400" };
+    default:                       return { icon: Shield,            bg: "bg-muted",                        color: "text-muted-foreground" };
+  }
+}
+
 // ─── Incident Detail View (Full Page) ────────────────────────────────────────
 
 function IncidentDetailView({ id }: { id: string }) {
@@ -444,6 +462,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [editNotes, setEditNotes] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
+  const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
 
   const toggleHistory = (docId: string) => {
     setExpandedHistory(prev => {
@@ -470,6 +489,12 @@ function IncidentDetailView({ id }: { id: string }) {
     queryFn: () => fetch(`/api/incidents/${id}/documents`).then(r => r.json()),
   });
 
+  const { data: incidentAuditLogs = [] } = useQuery<any[]>({
+    queryKey: ["/api/incidents", id, "audit"],
+    queryFn: () => fetch(`/api/incidents/${id}/audit`).then(r => r.json()),
+    enabled: !!id,
+  });
+
   const { data: site } = useQuery<any>({
     queryKey: ["/api/sites", incident?.siteId],
     queryFn: () => fetch(`/api/sites/${incident?.siteId}`).then(r => r.json()),
@@ -482,11 +507,14 @@ function IncidentDetailView({ id }: { id: string }) {
     enabled: !!incident?.entityId,
   });
 
+  const invalidateAudit = () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "audit"] });
+
   const updateMutation = useMutation({
     mutationFn: (updates: any) => apiRequest("PATCH", `/api/incidents/${id}`, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      invalidateAudit();
       setShowStatusDialog(false);
       toast({ title: "Incident updated" });
     },
@@ -497,6 +525,7 @@ function IncidentDetailView({ id }: { id: string }) {
     mutationFn: (data: any) => apiRequest("POST", `/api/incidents/${id}/milestones`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] });
+      invalidateAudit();
       setShowMilestoneDialog(false);
       toast({ title: "Action item added" });
     },
@@ -508,7 +537,10 @@ function IncidentDetailView({ id }: { id: string }) {
       isCompleted: true,
       completedDate: new Date().toISOString(),
     }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] });
+      invalidateAudit();
+    },
     onError: () => toast({ title: "Error", description: "Failed to complete action item.", variant: "destructive" }),
   });
 
@@ -583,6 +615,7 @@ function IncidentDetailView({ id }: { id: string }) {
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      invalidateAudit();
       toast({ title: "Document uploaded" });
       if (created) openEditDialog({ ...created, description: "" });
     } catch {
@@ -630,6 +663,7 @@ function IncidentDetailView({ id }: { id: string }) {
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+    if (successCount > 0) invalidateAudit();
     if (successCount > 0) {
       toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded`, description: "You can add a title and notes by clicking the edit button." });
       if (successCount === 1 && lastDoc) {
@@ -1254,6 +1288,56 @@ function IncidentDetailView({ id }: { id: string }) {
                   <span className="text-xs text-muted-foreground">{Math.round(milestoneProgress)}% done</span>
                   <span className="text-xs text-muted-foreground">{totalMilestones - completedMilestones} remaining</span>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Audit Trail */}
+            <Card>
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Activity Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {incidentAuditLogs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">No activity yet</p>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {(showAllAuditLogs ? incidentAuditLogs : incidentAuditLogs.slice(0, 3)).map((log: any) => {
+                        const style = getAuditActionStyle(log.action);
+                        const Icon = style.icon;
+                        return (
+                          <div key={log.id} className="flex gap-3 items-start">
+                            <div className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full shrink-0 ${style.bg}`}>
+                              <Icon className={`h-3.5 w-3.5 ${style.color}`} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs leading-snug text-foreground">{log.details}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {log.userName} · {format(new Date(log.createdAt), "d MMM yyyy, HH:mm")}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {incidentAuditLogs.length > 3 && (
+                      <button
+                        className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setShowAllAuditLogs(v => !v)}
+                        data-testid="audit-toggle"
+                      >
+                        {showAllAuditLogs ? (
+                          <><ChevronUp className="h-3 w-3" /> Show less</>
+                        ) : (
+                          <><ChevronDown className="h-3 w-3" /> Show {incidentAuditLogs.length - 3} more</>
+                        )}
+                      </button>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
