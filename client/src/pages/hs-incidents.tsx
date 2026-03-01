@@ -76,6 +76,7 @@ import {
   ChevronDown,
   ChevronUp,
   Shield,
+  Eye,
 } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -463,6 +464,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
 
   const toggleHistory = (docId: string) => {
     setExpandedHistory(prev => {
@@ -508,6 +510,24 @@ function IncidentDetailView({ id }: { id: string }) {
   });
 
   const invalidateAudit = () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "audit"] });
+
+  const downloadIncidentDocument = async (docId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/documents/${docId}/download`, { credentials: "include" });
+      if (!response.ok) throw new Error("Download failed");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      toast({ title: "Download failed", variant: "destructive" });
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: (updates: any) => apiRequest("PATCH", `/api/incidents/${id}`, updates),
@@ -1179,6 +1199,18 @@ function IncidentDetailView({ id }: { id: string }) {
                             </p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
+                            {doc.fileUrl && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                onClick={() => setPreviewDoc(doc)}
+                                data-testid={`button-preview-doc-${doc.id}`}
+                                title="Preview document"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1202,10 +1234,15 @@ function IncidentDetailView({ id }: { id: string }) {
                               </Button>
                             )}
                             {doc.fileUrl && (
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity" asChild>
-                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" download>
-                                  <Download className="h-3.5 w-3.5" />
-                                </a>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => downloadIncidentDocument(doc.id, doc.fileName)}
+                                data-testid={`button-download-doc-${doc.id}`}
+                                title="Download"
+                              >
+                                <Download className="h-3.5 w-3.5" />
                               </Button>
                             )}
                           </div>
@@ -1416,6 +1453,91 @@ function IncidentDetailView({ id }: { id: string }) {
           </div>
         </div>
       )}
+
+      {/* Document Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
+        <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{previewDoc?.title || previewDoc?.fileName}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewDoc && (() => {
+              const mime = previewDoc.mimeType || "";
+              const previewUrl = `/api/documents/${previewDoc.id}/preview`;
+              if (mime === "text/html") {
+                return (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-full border-0"
+                    title={previewDoc.title || previewDoc.fileName}
+                    sandbox="allow-same-origin"
+                    data-testid="preview-iframe"
+                  />
+                );
+              }
+              if (mime === "application/pdf") {
+                return (
+                  <object
+                    data={`${previewUrl}#toolbar=0`}
+                    type="application/pdf"
+                    className="w-full h-full"
+                    data-testid="preview-pdf"
+                  >
+                    <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
+                      <FileText className="h-14 w-14 text-muted-foreground" />
+                      <p className="text-base font-medium">Unable to display PDF in your browser</p>
+                      <Button onClick={() => downloadIncidentDocument(previewDoc.id, previewDoc.fileName)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download to View
+                      </Button>
+                    </div>
+                  </object>
+                );
+              }
+              if (mime.startsWith("image/")) {
+                return (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto p-4 bg-muted/20">
+                    <img
+                      src={previewUrl}
+                      alt={previewDoc.title}
+                      className="max-w-full max-h-full object-contain rounded"
+                      data-testid="preview-image"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
+                  <FileText className="h-14 w-14 text-muted-foreground" />
+                  <div>
+                    <p className="text-base font-medium">Preview not available for this file type</p>
+                    <p className="text-sm text-muted-foreground mt-1">{previewDoc.fileName} ({mime || "unknown"})</p>
+                  </div>
+                  <Button variant="outline" onClick={() => downloadIncidentDocument(previewDoc.id, previewDoc.fileName)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </div>
+              );
+            })()}
+          </div>
+          <div className="px-5 py-3 border-t bg-muted/30 flex justify-between items-center shrink-0">
+            <span className="text-xs text-muted-foreground truncate">{previewDoc?.fileName}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => previewDoc && downloadIncidentDocument(previewDoc.id, previewDoc.fileName)}
+              data-testid="button-download-from-preview"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Title & Notes Dialog */}
       <Dialog open={!!editingDoc} onOpenChange={(open) => { if (!open) setEditingDoc(null); }}>
