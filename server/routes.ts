@@ -8092,6 +8092,166 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Incident Report HTML Generator ─────────────────────────────────────────
+
+  function generateIncidentReportHtml(incident: any, siteName: string, companyName: string): string {
+    const fmt = (d: string | Date | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
+    const bool = (v: boolean) => v ? "Yes" : "No";
+    const field = (label: string, value: string | null | undefined) =>
+      `<tr><td class="label">${label}</td><td class="value">${value && value.trim() ? value.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</td></tr>`;
+
+    const severityColour: Record<string, string> = { minor: "#22c55e", moderate: "#f59e0b", major: "#ef4444", critical: "#7f1d1d" };
+    const colour = severityColour[incident.severity] || "#374151";
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Report – ${incident.incidentReference}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:24px}
+  .page{max-width:820px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+  .header{background:#1e293b;color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.6}
+  .ref-badge{display:inline-block;background:#fff;color:#1e293b;font-weight:700;font-size:13px;padding:4px 12px;border-radius:4px;margin-top:6px}
+  .severity-banner{padding:10px 32px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${colour}}
+  .body{padding:24px 32px}
+  section{margin-bottom:24px}
+  section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:7px 0;vertical-align:top;border-bottom:1px solid #f3f4f6;font-size:13px}
+  td.label{width:200px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
+  td.value{color:#111827;line-height:1.5}
+  .empty{color:#9ca3af;font-style:italic}
+  .flag{display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;margin-right:6px;margin-top:2px}
+  .footer{border-top:1px solid #e5e7eb;padding:14px 32px;background:#f9fafb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+  @media print{body{background:#fff;padding:0}.page{border:none;border-radius:0}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Guardian Group</div>
+      <h1>Incident Report</h1>
+      <div class="ref-badge">${incident.incidentReference}</div>
+    </div>
+    <div class="meta">
+      <div>Reported by: <strong>${incident.reportedByName}</strong></div>
+      <div>Date reported: <strong>${fmt(incident.createdAt)}</strong></div>
+      <div>Company: <strong>${companyName}</strong></div>
+      <div>Site: <strong>${siteName}</strong></div>
+    </div>
+  </div>
+  <div class="severity-banner">Severity: ${incident.severity}&nbsp;&nbsp;|&nbsp;&nbsp;Status: ${incident.status.replace(/_/g, " ")}</div>
+  <div class="body">
+    <section>
+      <h2>Incident Overview</h2>
+      <table>
+        ${field("Reference", incident.incidentReference)}
+        ${field("Title", incident.title)}
+        ${field("Incident Date", fmt(incident.incidentDate))}
+        ${field("Incident Type", incident.incidentType?.replace(/_/g, " "))}
+        ${field("Severity", incident.severity)}
+        ${field("Location Details", incident.locationDetails)}
+      </table>
+    </section>
+    <section>
+      <h2>Description</h2>
+      <table>
+        ${field("What Happened", incident.description)}
+      </table>
+    </section>
+    ${(incident.injuriesReported || incident.riddorReportable) ? `
+    <section>
+      <h2>Safety Flags</h2>
+      <div style="margin-bottom:8px">
+        ${incident.injuriesReported ? '<span class="flag">⚠ Injuries Reported</span>' : ""}
+        ${incident.riddorReportable ? '<span class="flag">⚠ RIDDOR Reportable</span>' : ""}
+      </div>
+      <table>
+        ${field("Injuries Reported", bool(incident.injuriesReported))}
+        ${field("RIDDOR Reportable", bool(incident.riddorReportable))}
+        ${field("Injury Details", incident.injuryDetails)}
+      </table>
+    </section>` : ""}
+    <section>
+      <h2>Response &amp; Investigation</h2>
+      <table>
+        ${field("Immediate Actions Taken", incident.immediateActions)}
+        ${field("Witnesses", incident.witnesses)}
+        ${field("Root Cause", incident.rootCause)}
+        ${field("Corrective Actions", incident.correctiveActions)}
+      </table>
+    </section>
+  </div>
+  <div class="footer">
+    <span>This is the original incident report as submitted. Generated ${new Date().toLocaleString("en-GB")}.</span>
+    <span>${incident.incidentReference} &bull; Confidential</span>
+  </div>
+</div>
+</body>
+</html>`;
+  }
+
+  async function uploadIncidentReportDocument(incident: any, user: any, siteName: string, companyName: string): Promise<void> {
+    try {
+      const html = generateIncidentReportHtml(incident, siteName, companyName);
+      const buffer = Buffer.from(html, "utf-8");
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const objectId = crypto.randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(buffer, { contentType: "text/html", metadata: { originalName: `Incident_Report_${incident.incidentReference}.html` } });
+      const objectPath = `/objects/uploads/${objectId}`;
+
+      const existingDocs = await storage.getIncidentDocuments(incident.id);
+      const existingReport = existingDocs.find((d: any) => d.fileName === `Incident_Report_${incident.incidentReference}.html`);
+      if (existingReport) {
+        await storage.updateDocument(existingReport.id, { fileUrl: objectPath, fileName: `Incident_Report_${incident.incidentReference}.html`, fileSize: buffer.length });
+      } else {
+        const doc = await storage.createDocument({
+          title: `Original Incident Report – ${incident.incidentReference}`,
+          description: `Automatically generated incident report for ${incident.incidentReference}. Contains all details as submitted.`,
+          module: "health_safety",
+          type: "incident_report",
+          entityId: incident.entityId,
+          siteId: incident.siteId,
+          incidentId: incident.id,
+          folderId: incident.folderId,
+          fileName: `Incident_Report_${incident.incidentReference}.html`,
+          fileUrl: objectPath,
+          fileSize: buffer.length,
+          mimeType: "text/html",
+          uploadedBy: user.id,
+          status: "compliant",
+          approvalStatus: "approved",
+          source: "upload",
+        });
+        await storage.createAuditLog({
+          action: "document_uploaded",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: incident.entityId,
+          documentId: doc.id,
+          module: "health_safety",
+          details: `Original Incident Report generated for ${incident.incidentReference}`,
+          incidentId: incident.id,
+        } as any);
+      }
+    } catch (err) {
+      console.error("Failed to generate incident report document:", err);
+    }
+  }
+
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
       const incident = await storage.getIncident(req.params.id);
@@ -8129,10 +8289,46 @@ export async function registerRoutes(
         incidentId: incident.id,
       } as any);
 
+      // Auto-generate the original incident report document
+      const [site, company] = await Promise.all([
+        storage.getSite(incident.siteId).catch(() => null),
+        storage.getCompany(incident.entityId).catch(() => null),
+      ]);
+      uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
+
       res.status(201).json(incident);
     } catch (error) {
       console.error("Error creating incident:", error);
       res.status(500).json({ error: "Failed to create incident" });
+    }
+  });
+
+  app.post("/api/incidents/:id/regenerate-report", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const [site, company] = await Promise.all([
+        storage.getSite(incident.siteId).catch(() => null),
+        storage.getCompany(incident.entityId).catch(() => null),
+      ]);
+
+      await uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
+      await storage.createAuditLog({
+        action: "incident_updated",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: incident.entityId,
+        module: "health_safety",
+        details: `Incident Report document regenerated for ${incident.incidentReference}`,
+        incidentId: incident.id,
+      } as any);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error regenerating incident report:", error);
+      res.status(500).json({ error: "Failed to regenerate report" });
     }
   });
 
