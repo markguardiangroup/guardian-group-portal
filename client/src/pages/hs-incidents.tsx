@@ -1855,6 +1855,8 @@ function IncidentsListView() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [siteFilter, setSiteFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
@@ -1874,13 +1876,20 @@ function IncidentsListView() {
   });
   const companies = companiesData?.companies ?? [];
 
+  const filteredSitesForFilter = companyFilter === "all"
+    ? sites
+    : sites.filter((s: any) => s.companyId === companyFilter);
+
   const filteredIncidents = incidents.filter((incident) => {
     const matchesSearch =
       incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       incident.incidentReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
       incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesSite = siteFilter === "all" || incident.siteId === siteFilter;
+    const incidentSite = sites.find((s: any) => s.id === incident.siteId);
+    const matchesCompany = companyFilter === "all" || incidentSite?.companyId === companyFilter;
+    return matchesSearch && matchesStatus && matchesSite && matchesCompany;
   });
 
   const stats = {
@@ -1964,16 +1973,47 @@ function IncidentsListView() {
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search incidents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-incidents"
-            />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search incidents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-incidents"
+              />
+            </div>
+            {isPrivileged && (
+              <div className="flex gap-2">
+                <Select
+                  value={companyFilter}
+                  onValueChange={(v) => { setCompanyFilter(v); setSiteFilter("all"); }}
+                >
+                  <SelectTrigger className="w-[180px]" data-testid="filter-company">
+                    <SelectValue placeholder="All Companies" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Companies</SelectItem>
+                    {companies.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={siteFilter} onValueChange={setSiteFilter}>
+                  <SelectTrigger className="w-[180px]" data-testid="filter-site">
+                    <SelectValue placeholder="All Sites" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sites</SelectItem>
+                    {filteredSitesForFilter.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {["all", "reported", "under_review", "resolved", "closed"].map((status) => (
@@ -2011,7 +2051,7 @@ function IncidentsListView() {
               </div>
               <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || statusFilter !== "all"
+                {searchQuery || statusFilter !== "all" || companyFilter !== "all" || siteFilter !== "all"
                   ? "Try adjusting your filters"
                   : "No incidents have been reported yet"}
               </p>
