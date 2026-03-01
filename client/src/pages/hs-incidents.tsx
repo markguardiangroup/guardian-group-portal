@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import {
   AlertTriangle,
   Search,
   Plus,
@@ -14,11 +21,12 @@ import {
   Clock,
   XCircle,
   ArrowRight,
-  FileText,
   AlertOctagon,
   ShieldAlert,
+  MapPin,
+  ClipboardList,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 type IncidentSeverity = "minor" | "moderate" | "major" | "critical";
 type IncidentStatus = "reported" | "under_review" | "resolved" | "closed";
@@ -114,49 +122,21 @@ const mockIncidents: Incident[] = [
   },
 ];
 
-function IncidentCard({ incident }: { incident: Incident }) {
-  const severityConfig = {
-    minor: {
-      label: "Minor",
-      className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20",
-    },
-    moderate: {
-      label: "Moderate",
-      className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20",
-    },
-    major: {
-      label: "Major",
-      className: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20",
-    },
-    critical: {
-      label: "Critical",
-      className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20",
-    },
-  };
+const severityConfig: Record<IncidentSeverity, { label: string; className: string }> = {
+  minor: { label: "Minor", className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" },
+  moderate: { label: "Moderate", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
+  major: { label: "Major", className: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20" },
+  critical: { label: "Critical", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" },
+};
 
-  const statusConfig = {
-    reported: {
-      label: "Reported",
-      icon: AlertTriangle,
-      className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20",
-    },
-    under_review: {
-      label: "Under Review",
-      icon: Clock,
-      className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
-    },
-    resolved: {
-      label: "Resolved",
-      icon: CheckCircle,
-      className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-    },
-    closed: {
-      label: "Closed",
-      icon: XCircle,
-      className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20",
-    },
-  };
+const statusConfig: Record<IncidentStatus, { label: string; icon: typeof AlertTriangle; className: string }> = {
+  reported: { label: "Reported", icon: AlertTriangle, className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
+  under_review: { label: "Under Review", icon: Clock, className: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20" },
+  resolved: { label: "Resolved", icon: CheckCircle, className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+  closed: { label: "Closed", icon: XCircle, className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" },
+};
 
+function IncidentCard({ incident, onViewDetails }: { incident: Incident; onViewDetails: (incident: Incident) => void }) {
   const severity = severityConfig[incident.severity];
   const status = statusConfig[incident.status];
   const StatusIcon = status.icon;
@@ -226,7 +206,13 @@ function IncidentCard({ incident }: { incident: Incident }) {
               Incident: {format(new Date(incident.incidentDate), "MMM d, yyyy")}
             </span>
           </div>
-          <Button variant="ghost" size="sm" className="text-module-accent hover:text-module-accent">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-module-accent hover:text-module-accent"
+            onClick={() => onViewDetails(incident)}
+            data-testid={`button-view-details-${incident.id}`}
+          >
             View Details
             <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
@@ -236,9 +222,124 @@ function IncidentCard({ incident }: { incident: Incident }) {
   );
 }
 
+function IncidentDetailDialog({ incident, open, onClose }: { incident: Incident | null; open: boolean; onClose: () => void }) {
+  if (!incident) return null;
+
+  const severity = severityConfig[incident.severity];
+  const status = statusConfig[incident.status];
+  const StatusIcon = status.icon;
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-start gap-3 pr-6">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+              incident.severity === "critical" ? "bg-red-500/10" :
+              incident.severity === "major" ? "bg-orange-500/10" :
+              "bg-module-accent/10"
+            }`}>
+              <AlertTriangle className={`h-5 w-5 ${
+                incident.severity === "critical" ? "text-red-500" :
+                incident.severity === "major" ? "text-orange-500" :
+                "text-module-accent"
+              }`} />
+            </div>
+            <span>{incident.title}</span>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className={severity.className}>
+              {severity.label}
+            </Badge>
+            <Badge variant="outline" className={status.className}>
+              <StatusIcon className="mr-1.5 h-3 w-3" />
+              {status.label}
+            </Badge>
+            {incident.injuriesReported && (
+              <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>
+            )}
+            {incident.riddorReportable && (
+              <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-start gap-2">
+              <ClipboardList className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-muted-foreground">Incident Type</p>
+                <p className="font-medium">{incident.type}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-muted-foreground">Company</p>
+                <p className="font-medium">{incident.companyName}</p>
+              </div>
+            </div>
+            {incident.siteName && (
+              <div className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-muted-foreground">Site</p>
+                  <p className="font-medium">{incident.siteName}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-start gap-2">
+              <User className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-muted-foreground">Reported By</p>
+                <p className="font-medium">{incident.reportedByName}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-muted-foreground">Incident Date</p>
+                <p className="font-medium">{format(new Date(incident.incidentDate), "d MMM yyyy")}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-muted-foreground">Reported At</p>
+                <p className="font-medium">{format(new Date(incident.reportedAt), "d MMM yyyy, HH:mm")}</p>
+              </div>
+            </div>
+            {incident.resolvedAt && (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="h-4 w-4 mt-0.5 text-emerald-500 shrink-0" />
+                <div>
+                  <p className="text-muted-foreground">Resolved At</p>
+                  <p className="font-medium">{format(new Date(incident.resolvedAt), "d MMM yyyy, HH:mm")}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Description</p>
+            <p className="text-sm">{incident.description}</p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function HSIncidents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
   const incidents = mockIncidents;
 
@@ -349,8 +450,8 @@ export default function HSIncidents() {
                 className={statusFilter === status ? "bg-module-accent hover:bg-module-accent/90" : ""}
                 data-testid={`filter-${status}`}
               >
-                {status === "all" ? "All" : 
-                 status === "under_review" ? "Under Review" : 
+                {status === "all" ? "All" :
+                 status === "under_review" ? "Under Review" :
                  status.charAt(0).toUpperCase() + status.slice(1)}
               </Button>
             ))}
@@ -360,7 +461,11 @@ export default function HSIncidents() {
         {filteredIncidents && filteredIncidents.length > 0 ? (
           <div className="space-y-4">
             {filteredIncidents.map((incident) => (
-              <IncidentCard key={incident.id} incident={incident} />
+              <IncidentCard
+                key={incident.id}
+                incident={incident}
+                onViewDetails={setSelectedIncident}
+              />
             ))}
           </div>
         ) : (
@@ -379,6 +484,12 @@ export default function HSIncidents() {
           </Card>
         )}
       </div>
+
+      <IncidentDetailDialog
+        incident={selectedIncident}
+        open={selectedIncident !== null}
+        onClose={() => setSelectedIncident(null)}
+      />
     </div>
   );
 }
