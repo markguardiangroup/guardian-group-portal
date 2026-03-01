@@ -396,6 +396,67 @@ export const insertCaseMilestoneSchema = createInsertSchema(caseMilestones).omit
 export type InsertCaseMilestone = z.infer<typeof insertCaseMilestoneSchema>;
 export type CaseMilestone = typeof caseMilestones.$inferSelect;
 
+// Incident Management (Health & Safety)
+export type IncidentSeverity = "minor" | "moderate" | "major" | "critical";
+export type IncidentStatus = "reported" | "under_review" | "resolved" | "closed";
+
+export const incidents = pgTable("incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  incidentReference: text("incident_reference").notNull(),
+  siteId: varchar("site_id").notNull(),
+  entityId: varchar("entity_id").notNull(),
+  folderId: varchar("folder_id"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  incidentType: text("incident_type").notNull(),
+  severity: text("severity").$type<IncidentSeverity>().notNull(),
+  status: text("status").$type<IncidentStatus>().notNull().default("reported"),
+  incidentDate: timestamp("incident_date").notNull(),
+  injuriesReported: boolean("injuries_reported").notNull().default(false),
+  riddorReportable: boolean("riddor_reportable").notNull().default(false),
+  injuryDetails: text("injury_details"),
+  immediateActions: text("immediate_actions"),
+  rootCause: text("root_cause"),
+  correctiveActions: text("corrective_actions"),
+  witnesses: text("witnesses"),
+  locationDetails: text("location_details"),
+  reportedBy: varchar("reported_by").notNull(),
+  reportedByName: text("reported_by_name").notNull(),
+  assignedConsultant: varchar("assigned_consultant"),
+  resolvedAt: timestamp("resolved_at"),
+  isArchived: boolean("is_archived").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertIncidentSchema = createInsertSchema(incidents).omit({
+  id: true,
+  incidentReference: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertIncident = z.infer<typeof insertIncidentSchema>;
+export type Incident = typeof incidents.$inferSelect;
+
+export const incidentMilestones = pgTable("incident_milestones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  incidentId: varchar("incident_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  completedDate: timestamp("completed_date"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIncidentMilestoneSchema = createInsertSchema(incidentMilestones).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertIncidentMilestone = z.infer<typeof insertIncidentMilestoneSchema>;
+export type IncidentMilestone = typeof incidentMilestones.$inferSelect;
+
 // Document Types (Admin-managed master list)
 export const documentTypes = pgTable("document_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -561,6 +622,7 @@ export const documents = pgTable("documents", {
   folderId: varchar("folder_id"), // Reference to folder for organization
   siteId: varchar("site_id"), // Can be null for company-level documents
   caseId: varchar("case_id"),
+  incidentId: varchar("incident_id"),
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"), // URL/path to the uploaded file in object storage
   fileSize: integer("file_size").notNull(),
@@ -636,6 +698,9 @@ export type AuditAction =
   | "case_closed"
   | "milestone_added"
   | "milestone_completed"
+  | "incident_created"
+  | "incident_updated"
+  | "incident_status_changed"
   | "login"
   | "logout"
   | "login_failed"

@@ -82,6 +82,7 @@ function Router() {
       <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
       <Route path="/health-safety/incidents" component={HSIncidents} />
+      <Route path="/health-safety/incidents/:id" component={HSIncidents} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />

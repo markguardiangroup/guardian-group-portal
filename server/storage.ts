@@ -37,6 +37,8 @@ import {
   type TrainingRequest, type InsertTrainingRequest,
   type TrainingBooking, type InsertTrainingBooking,
   type RoadmapItem, type InsertRoadmapItem,
+  type Incident, type InsertIncident,
+  type IncidentMilestone, type InsertIncidentMilestone,
   type Feedback, type InsertFeedback,
   type FeedbackComment, type InsertFeedbackComment,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
@@ -65,6 +67,8 @@ import {
   supportRequestReads as supportRequestReadsTable,
   cases as casesTable,
   caseMilestones as caseMilestonesTable,
+  incidents as incidentsTable,
+  incidentMilestones as incidentMilestonesTable,
   consultantAssignments as consultantAssignmentsTable,
   moduleAccessRequests as moduleAccessRequestsTable,
   siteDocumentTypeAccess as siteDocumentTypeAccessTable,
@@ -175,6 +179,17 @@ export interface IStorage {
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
   deleteCaseMilestone(id: string): Promise<void>;
+
+  // Incidents
+  getIncidents(filters?: { siteId?: string; entityId?: string; status?: string; includeArchived?: boolean }): Promise<Incident[]>;
+  getIncident(id: string): Promise<Incident | undefined>;
+  createIncident(incident: InsertIncident): Promise<Incident>;
+  updateIncident(id: string, updates: Partial<Incident>): Promise<Incident | undefined>;
+  getIncidentDocuments(incidentId: string): Promise<Document[]>;
+  getIncidentMilestones(incidentId: string): Promise<IncidentMilestone[]>;
+  createIncidentMilestone(milestone: InsertIncidentMilestone): Promise<IncidentMilestone>;
+  updateIncidentMilestone(id: string, updates: Partial<IncidentMilestone>): Promise<IncidentMilestone | undefined>;
+  deleteIncidentMilestone(id: string): Promise<void>;
   
   // Site Module Access (deprecated - use company-level access)
   getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]>;
@@ -1222,6 +1237,111 @@ export class MemStorage implements IStorage {
 
   async deleteCaseMilestone(id: string): Promise<void> {
     await db.delete(caseMilestonesTable).where(eq(caseMilestonesTable.id, id));
+  }
+
+  // Incidents - Database backed
+  async getIncidents(filters?: { siteId?: string; entityId?: string; status?: string; includeArchived?: boolean }): Promise<Incident[]> {
+    let all = await db.select().from(incidentsTable);
+    if (!filters?.includeArchived) all = all.filter(i => !i.isArchived);
+    if (filters?.siteId) all = all.filter(i => i.siteId === filters.siteId);
+    if (filters?.entityId) all = all.filter(i => i.entityId === filters.entityId);
+    if (filters?.status) all = all.filter(i => i.status === filters.status);
+    return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getIncident(id: string): Promise<Incident | undefined> {
+    const [result] = await db.select().from(incidentsTable).where(eq(incidentsTable.id, id));
+    return result;
+  }
+
+  private async generateNextIncidentReference(): Promise<string> {
+    const all = await db.select({ incidentReference: incidentsTable.incidentReference }).from(incidentsTable);
+    const pattern = /^INC-(\d{5})$/;
+    let maxNum = 0;
+    for (const item of all) {
+      const match = item.incidentReference.match(pattern);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    return `INC-${(maxNum + 1).toString().padStart(5, '0')}`;
+  }
+
+  async createIncident(insertIncident: InsertIncident): Promise<Incident> {
+    const incidentReference = await this.generateNextIncidentReference();
+    const folder = await this.createDocumentFolder({
+      name: `${incidentReference} - ${insertIncident.title}`,
+      description: `Documents for incident ${incidentReference}`,
+      module: "health_safety",
+      siteId: insertIncident.siteId,
+      parentId: null,
+      templateId: null,
+      sortOrder: 0,
+      createdBy: insertIncident.reportedBy,
+    });
+    const [newIncident] = await db.insert(incidentsTable).values({
+      ...insertIncident,
+      incidentReference,
+      folderId: folder.id,
+      status: insertIncident.status ?? "reported",
+      injuryDetails: insertIncident.injuryDetails ?? null,
+      immediateActions: insertIncident.immediateActions ?? null,
+      rootCause: insertIncident.rootCause ?? null,
+      correctiveActions: insertIncident.correctiveActions ?? null,
+      witnesses: insertIncident.witnesses ?? null,
+      locationDetails: insertIncident.locationDetails ?? null,
+      assignedConsultant: insertIncident.assignedConsultant ?? null,
+      resolvedAt: insertIncident.resolvedAt ?? null,
+    }).returning();
+    return newIncident;
+  }
+
+  async updateIncident(id: string, updates: Partial<Incident>): Promise<Incident | undefined> {
+    const [updated] = await db.update(incidentsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(incidentsTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getIncidentDocuments(incidentId: string): Promise<Document[]> {
+    const docs = await db.select().from(documentsTable)
+      .where(and(eq(documentsTable.incidentId, incidentId), eq(documentsTable.isArchived, false)))
+      .orderBy(desc(documentsTable.createdAt));
+    return docs;
+  }
+
+  async getIncidentMilestones(incidentId: string): Promise<IncidentMilestone[]> {
+    const milestones = await db.select().from(incidentMilestonesTable)
+      .where(eq(incidentMilestonesTable.incidentId, incidentId));
+    return milestones.sort((a, b) => {
+      if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }
+
+  async createIncidentMilestone(insertMilestone: InsertIncidentMilestone): Promise<IncidentMilestone> {
+    const [milestone] = await db.insert(incidentMilestonesTable).values({
+      ...insertMilestone,
+      description: insertMilestone.description ?? null,
+      dueDate: insertMilestone.dueDate ?? null,
+      completedDate: insertMilestone.completedDate ?? null,
+      isCompleted: insertMilestone.isCompleted ?? false,
+    }).returning();
+    return milestone;
+  }
+
+  async updateIncidentMilestone(id: string, updates: Partial<IncidentMilestone>): Promise<IncidentMilestone | undefined> {
+    const [updated] = await db.update(incidentMilestonesTable)
+      .set(updates)
+      .where(eq(incidentMilestonesTable.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteIncidentMilestone(id: string): Promise<void> {
+    await db.delete(incidentMilestonesTable).where(eq(incidentMilestonesTable.id, id));
   }
 
   // Entity Module Access - Database backed

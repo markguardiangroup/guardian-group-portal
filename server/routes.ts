@@ -8062,5 +8062,173 @@ export async function registerRoutes(
     }
   });
 
+  // ===================== INCIDENTS =====================
+
+  app.get("/api/incidents", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { siteId, entityId, status, includeArchived } = req.query;
+      const filters: any = {};
+      if (siteId) filters.siteId = siteId as string;
+      if (entityId) filters.entityId = entityId as string;
+      if (status) filters.status = status as string;
+      if (includeArchived === "true") filters.includeArchived = true;
+
+      let incidents = await storage.getIncidents(filters);
+
+      if (user.role === "client") {
+        const userSites = await storage.getClientSites(user.id);
+        const siteIds = userSites.map((a: any) => a.siteId);
+        incidents = incidents.filter((i: any) => siteIds.includes(i.siteId));
+      } else if (user.role === "consultant" && user.consultantTier !== "pro") {
+        const assignments = await storage.getConsultantSites(user.id);
+        const siteIds = assignments.map((a: any) => a.siteId);
+        incidents = incidents.filter((i: any) => siteIds.includes(i.siteId));
+      }
+
+      res.json(incidents);
+    } catch (error) {
+      console.error("Error fetching incidents:", error);
+      res.status(500).json({ error: "Failed to fetch incidents" });
+    }
+  });
+
+  app.get("/api/incidents/:id", requireAuth, async (req, res) => {
+    try {
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      res.json(incident);
+    } catch (error) {
+      console.error("Error fetching incident:", error);
+      res.status(500).json({ error: "Failed to fetch incident" });
+    }
+  });
+
+  app.post("/api/incidents", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const body = req.body;
+
+      if (!body.title || !body.description || !body.incidentType || !body.severity || !body.siteId || !body.entityId || !body.incidentDate) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const incident = await storage.createIncident({
+        ...body,
+        reportedBy: user.id,
+        reportedByName: user.fullName,
+        incidentDate: new Date(body.incidentDate),
+      });
+
+      await storage.createAuditLog({
+        action: "incident_created",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: body.entityId,
+        details: `Incident reported: ${incident.title} (${incident.incidentReference})`,
+      });
+
+      res.status(201).json(incident);
+    } catch (error) {
+      console.error("Error creating incident:", error);
+      res.status(500).json({ error: "Failed to create incident" });
+    }
+  });
+
+  app.patch("/api/incidents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { id } = req.params;
+      const updates = req.body;
+
+      const existing = await storage.getIncident(id);
+      if (!existing) return res.status(404).json({ error: "Incident not found" });
+
+      if (updates.resolvedAt) updates.resolvedAt = new Date(updates.resolvedAt);
+      if (updates.incidentDate) updates.incidentDate = new Date(updates.incidentDate);
+
+      const incident = await storage.updateIncident(id, updates);
+
+      await storage.createAuditLog({
+        action: "incident_updated",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existing.entityId,
+        details: `Incident updated: ${existing.title}`,
+      });
+
+      res.json(incident);
+    } catch (error) {
+      console.error("Error updating incident:", error);
+      res.status(500).json({ error: "Failed to update incident" });
+    }
+  });
+
+  app.get("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
+    try {
+      const milestones = await storage.getIncidentMilestones(req.params.id);
+      res.json(milestones);
+    } catch (error) {
+      console.error("Error fetching incident milestones:", error);
+      res.status(500).json({ error: "Failed to fetch milestones" });
+    }
+  });
+
+  app.post("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { title, description, dueDate } = req.body;
+      if (!title) return res.status(400).json({ error: "Title is required" });
+
+      const milestone = await storage.createIncidentMilestone({
+        incidentId: req.params.id,
+        title,
+        description: description || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        isCompleted: false,
+        createdBy: user.id,
+      });
+
+      res.status(201).json(milestone);
+    } catch (error) {
+      console.error("Error creating milestone:", error);
+      res.status(500).json({ error: "Failed to create milestone" });
+    }
+  });
+
+  app.patch("/api/milestones/incident/:id", requireAuth, async (req, res) => {
+    try {
+      const updates = req.body;
+      if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
+      if (updates.completedDate) updates.completedDate = new Date(updates.completedDate);
+      const milestone = await storage.updateIncidentMilestone(req.params.id, updates);
+      if (!milestone) return res.status(404).json({ error: "Milestone not found" });
+      res.json(milestone);
+    } catch (error) {
+      console.error("Error updating milestone:", error);
+      res.status(500).json({ error: "Failed to update milestone" });
+    }
+  });
+
+  app.delete("/api/milestones/incident/:id", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      await storage.deleteIncidentMilestone(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting milestone:", error);
+      res.status(500).json({ error: "Failed to delete milestone" });
+    }
+  });
+
+  app.get("/api/incidents/:id/documents", requireAuth, async (req, res) => {
+    try {
+      const docs = await storage.getIncidentDocuments(req.params.id);
+      res.json(docs);
+    } catch (error) {
+      console.error("Error fetching incident documents:", error);
+      res.status(500).json({ error: "Failed to fetch documents" });
+    }
+  });
+
   return httpServer;
 }

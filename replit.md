@@ -75,6 +75,16 @@ Document templates have a `requiresApproval` setting (default: true) that contro
 ### Training Library
 The training library features a separate folder structure per module, containing Training Courses with detailed information (summary, overview, FAQs, method: online/in_person). Consultants can create Training Bookings for sites, including access credentials. Clients can view their booked and completed training, with functionality to view access credentials.
 
+### H&S Incidents
+A full incident management system under the Health & Safety module:
+- **Incidents Table**: `incidents` with auto-generated `INC-XXXXX` references, siteId, entityId, severity (minor/moderate/major/critical), status (reported/under_review/resolved/closed), incidentType, incidentDate, injuriesReported, riddorReportable, and rich details fields (immediateActions, rootCause, correctiveActions, witnesses, locationDetails, injuryDetails).
+- **Incident Milestones**: `incidentMilestones` table for action items per incident, with completion tracking.
+- **Document Linkage**: `documents.incidentId` links documents to specific incidents. Each incident auto-creates a document folder.
+- **Report Form**: All users can report incidents; admins/consultants can select any company/site; clients see only their assigned sites.
+- **Detail View**: Full incident details dialog with status management (admin/consultant only), action items CRUD, and linked documents.
+- **API Routes**: `GET/POST /api/incidents`, `GET/PATCH /api/incidents/:id`, `GET/POST /api/incidents/:id/milestones`, `PATCH/DELETE /api/milestones/incident/:id`, `GET /api/incidents/:id/documents`.
+- **Role Filtering**: Clients see only incidents from their assigned sites; standard consultants see only their assigned sites; admins and pro consultants see all.
+
 ### Storage Pattern
 A database-first storage model is used:
 - **Database-backed (PostgreSQL)**: Stores Users, Companies, Sites, Documents, Document Versions, Document Folders, Audit Logs, Sessions, Template data, Support Requests, Support Messages, Support Request Reads, Cases, Case Milestones, Site Module Access, Consultant Assignments, and User Invitations. All core entities persist across server restarts.
