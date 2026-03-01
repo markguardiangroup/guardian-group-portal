@@ -48,6 +48,7 @@ import DevelopmentRoadmap from "@/pages/development-roadmap";
 import AdminFeedback from "@/pages/admin-feedback";
 import SetPassword from "@/pages/set-password";
 import HelpGuide from "@/pages/help-guide";
+import HSIncidents from "@/pages/hs-incidents";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
       <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
+      <Route path="/health-safety/incidents" component={HSIncidents} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
