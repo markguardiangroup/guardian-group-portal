@@ -479,18 +479,6 @@ function IncidentDetailView({ id }: { id: string }) {
     });
   }, []);
 
-  useEffect(() => {
-    if (!lightboxPhoto) return;
-    const photoList = documents.filter((d: any) => d.mimeType?.startsWith("image/"));
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") navigatePhoto("next", photoList);
-      else if (e.key === "ArrowLeft") navigatePhoto("prev", photoList);
-      else if (e.key === "Escape") setLightboxPhoto(null);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [lightboxPhoto, documents, navigatePhoto]);
-
   const toggleHistory = (docId: string) => {
     setExpandedHistory(prev => {
       const next = new Set(prev);
@@ -515,6 +503,18 @@ function IncidentDetailView({ id }: { id: string }) {
     queryKey: ["/api/incidents", id, "documents"],
     queryFn: () => fetch(`/api/incidents/${id}/documents`).then(r => r.json()),
   });
+
+  useEffect(() => {
+    if (!lightboxPhoto) return;
+    const photoList = documents.filter((d: any) => d.mimeType?.startsWith("image/"));
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") navigatePhoto("next", photoList);
+      else if (e.key === "ArrowLeft") navigatePhoto("prev", photoList);
+      else if (e.key === "Escape") setLightboxPhoto(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxPhoto, documents, navigatePhoto]);
 
   const { data: incidentAuditLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/incidents", id, "audit"],
