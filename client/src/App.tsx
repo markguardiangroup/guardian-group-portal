@@ -49,6 +49,7 @@ import AdminFeedback from "@/pages/admin-feedback";
 import SetPassword from "@/pages/set-password";
 import HelpGuide from "@/pages/help-guide";
 import HSIncidents from "@/pages/hs-incidents";
+import CalendarPage from "@/pages/calendar";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -120,6 +121,7 @@ function Router() {
       <Route path="/roadmap" component={DevelopmentRoadmap} />
       <Route path="/feedback" component={AdminFeedback} />
       <Route path="/help" component={HelpGuide} />
+      <Route path="/calendar" component={CalendarPage} />
       <Route component={NotFound} />
     </Switch>
   );

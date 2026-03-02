@@ -19,6 +19,7 @@ import {
   HelpCircle,
   ShieldAlert,
   MessageSquare,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -126,6 +127,12 @@ const moduleNavItems: {
     ],
   },
 ];
+
+const calendarNavItem = {
+  title: "Calendar",
+  url: "/calendar",
+  icon: CalendarDays,
+};
 
 const settingsNavItems = [
   {
@@ -459,6 +466,30 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {[calendarNavItem].map((item) => {
+                const isActive = location === item.url || location.startsWith(item.url + "/");
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className={cn("transition-colors", isActive && "bg-sidebar-accent font-medium")}
+                    >
+                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>

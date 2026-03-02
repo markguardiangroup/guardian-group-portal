@@ -8541,5 +8541,123 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Calendar Events ──────────────────────────────────────────────────────────
+
+  app.get("/api/calendar/events", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { start, end, siteId: siteFilter, companyId: companyFilter, module: moduleFilter } = req.query as Record<string, string>;
+
+      const startDate = start ? new Date(start) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const endDate = end ? new Date(end) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+
+      // Determine allowed site IDs based on role
+      let allowedSiteIds: string[] | null = null;
+      if (user.role === "client") {
+        const clientSites = await storage.getClientSites(user.id);
+        allowedSiteIds = clientSites.map((a: any) => a.siteId);
+      } else if (user.role === "consultant" && user.consultantTier !== "pro") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        allowedSiteIds = consultantSites.map((a: any) => a.siteId);
+      }
+
+      const canAccess = (siteId: string | null | undefined): boolean => {
+        if (!siteId) return false;
+        if (allowedSiteIds !== null && !allowedSiteIds.includes(siteId)) return false;
+        if (siteFilter && siteId !== siteFilter) return false;
+        return true;
+      };
+
+      // Load company→site map for companyFilter
+      let companySiteIds: string[] | null = null;
+      if (companyFilter) {
+        const companySites = await storage.getSitesByCompanyId(companyFilter);
+        companySiteIds = companySites.map((s: any) => s.id);
+      }
+
+      const inDateRange = (d: Date | null | undefined): boolean => {
+        if (!d) return false;
+        return d >= startDate && d <= endDate;
+      };
+
+      const events: any[] = [];
+      const now = new Date();
+
+      // ── Documents ──────────────────────────────────────────────────────────
+      if (!moduleFilter || ["health_safety", "human_resources", "employment_law", "training"].includes(moduleFilter)) {
+        const allDocs = await storage.getDocuments(undefined, false);
+        for (const doc of allDocs) {
+          if (!canAccess(doc.siteId)) continue;
+          if (companySiteIds && (!doc.siteId || !companySiteIds.includes(doc.siteId))) continue;
+          if (moduleFilter && doc.module !== moduleFilter) continue;
+
+          const moduleUrl: Record<string, string> = {
+            health_safety: "/health-safety/documents",
+            human_resources: "/human-resources/documents",
+            employment_law: "/employment-law/documents",
+            training: "/training",
+          };
+
+          if (doc.reviewDate && inDateRange(new Date(doc.reviewDate))) {
+            events.push({ id: `doc-review-${doc.id}`, title: `Review: ${doc.title}`, date: doc.reviewDate, type: "review_due", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.reviewDate) < now });
+          }
+          if (doc.expiryDate && inDateRange(new Date(doc.expiryDate))) {
+            events.push({ id: `doc-expiry-${doc.id}`, title: `Expiry: ${doc.title}`, date: doc.expiryDate, type: "expiry", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.expiryDate) < now });
+          }
+          if (doc.renewalDate && inDateRange(new Date(doc.renewalDate))) {
+            events.push({ id: `doc-renewal-${doc.id}`, title: `Renewal: ${doc.title}`, date: doc.renewalDate, type: "renewal_due", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.renewalDate) < now });
+          }
+        }
+      }
+
+      // ── Case deadlines ─────────────────────────────────────────────────────
+      if (!moduleFilter || moduleFilter === "employment_law") {
+        const allCases = await storage.getCases({ includeArchived: false });
+        for (const c of allCases) {
+          if (!canAccess(c.siteId)) continue;
+          if (companySiteIds && (!c.siteId || !companySiteIds.includes(c.siteId))) continue;
+          if (c.responseDeadline && inDateRange(new Date(c.responseDeadline))) {
+            events.push({ id: `case-deadline-${c.id}`, title: `Deadline: ${c.caseReference} – ${c.employeeName}`, date: c.responseDeadline, type: "case_deadline", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(c.responseDeadline) < now });
+          }
+        }
+
+        // Case milestones — load all cases first, then their milestones
+        for (const c of allCases) {
+          if (!canAccess(c.siteId)) continue;
+          if (companySiteIds && (!c.siteId || !companySiteIds.includes(c.siteId))) continue;
+          const milestones = await storage.getCaseMilestones(c.id);
+          for (const m of milestones) {
+            if (m.isCompleted) continue;
+            if (m.dueDate && inDateRange(new Date(m.dueDate))) {
+              events.push({ id: `case-milestone-${m.id}`, title: `Milestone: ${m.title} (${c.caseReference})`, date: m.dueDate, type: "milestone_due", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(m.dueDate) < now });
+            }
+          }
+        }
+      }
+
+      // ── Incident action milestones ─────────────────────────────────────────
+      if (!moduleFilter || moduleFilter === "health_safety") {
+        const allIncidents = await storage.getIncidents({});
+        for (const inc of allIncidents) {
+          if (!canAccess(inc.siteId)) continue;
+          if (companySiteIds && !companySiteIds.includes(inc.siteId)) continue;
+          const milestones = await storage.getIncidentMilestones(inc.id);
+          for (const m of milestones) {
+            if (m.isCompleted) continue;
+            if (m.dueDate && inDateRange(new Date(m.dueDate))) {
+              events.push({ id: `incident-action-${m.id}`, title: `Action: ${m.title} (${inc.incidentReference})`, date: m.dueDate, type: "action_due", module: "health_safety", siteId: inc.siteId, url: `/health-safety/incidents/${inc.id}`, isOverdue: new Date(m.dueDate) < now });
+            }
+          }
+        }
+      }
+
+      events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching calendar events:", error);
+      res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  });
+
   return httpServer;
 }
