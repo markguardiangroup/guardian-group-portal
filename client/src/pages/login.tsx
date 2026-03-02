@@ -119,14 +119,14 @@ export default function Login() {
       {/* ── Left panel – brand ── */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(145deg, #1a2744 0%, #0f1a30 60%, #0a1220 100%)" }}
+        style={{ background: "linear-gradient(160deg, #1d3057 0%, #1a2a4a 50%, #172240 100%)" }}
       >
         {/* Subtle radial glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full opacity-10"
-            style={{ background: "radial-gradient(circle, #38bdf8 0%, transparent 70%)" }} />
-          <div className="absolute bottom-[-5%] right-[-5%] w-[400px] h-[400px] rounded-full opacity-10"
-            style={{ background: "radial-gradient(circle, #10b981 0%, transparent 70%)" }} />
+          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.07]"
+            style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
+          <div className="absolute bottom-[10%] right-[-5%] w-[350px] h-[350px] rounded-full opacity-[0.07]"
+            style={{ background: "radial-gradient(circle, #4ade80 0%, transparent 70%)" }} />
         </div>
 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
