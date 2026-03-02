@@ -16,17 +16,24 @@ import {
   Flag,
   RotateCcw,
   Loader2,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday, isPast } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
 
 type CalendarEvent = {
   id: string;
@@ -56,10 +63,9 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: typeof FileText }
   training_renewal: { label: "Training Renewal", icon: GraduationCap },
 };
 
-function EventPill({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
+function EventPill({ event }: { event: CalendarEvent }) {
   const mod = MODULE_CONFIG[event.module];
-  const isOverdue = event.isOverdue;
-  const pillColor = isOverdue ? "bg-red-500" : (mod?.color ?? "bg-gray-500");
+  const pillColor = event.isOverdue ? "bg-red-500" : (mod?.color ?? "bg-gray-500");
 
   return (
     <Popover>
@@ -84,15 +90,11 @@ function EventPill({ event, compact = false }: { event: CalendarEvent; compact?:
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {mod && (
-              <Badge className={`text-xs ${mod.badgeClass}`}>{mod.label}</Badge>
-            )}
+            {mod && <Badge className={`text-xs ${mod.badgeClass}`}>{mod.label}</Badge>}
             {EVENT_TYPE_CONFIG[event.type] && (
-              <Badge variant="outline" className="text-xs">
-                {EVENT_TYPE_CONFIG[event.type].label}
-              </Badge>
+              <Badge variant="outline" className="text-xs">{EVENT_TYPE_CONFIG[event.type].label}</Badge>
             )}
-            {isOverdue && (
+            {event.isOverdue && (
               <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Overdue</Badge>
             )}
           </div>
@@ -157,9 +159,7 @@ function CalendarGrid({ events, currentMonth }: { events: CalendarEvent[]; curre
                 {format(d, "d")}
               </div>
               <div className="space-y-0.5">
-                {visible.map(ev => (
-                  <EventPill key={ev.id} event={ev} />
-                ))}
+                {visible.map(ev => <EventPill key={ev.id} event={ev} />)}
                 {overflow > 0 && (
                   <p className="px-1 text-[11px] text-muted-foreground font-medium">+{overflow} more</p>
                 )}
@@ -172,64 +172,216 @@ function CalendarGrid({ events, currentMonth }: { events: CalendarEvent[]; curre
   );
 }
 
-function UpcomingList({ events }: { events: CalendarEvent[] }) {
-  const now = new Date();
-  const upcoming = events
-    .filter(e => new Date(e.date) >= now || isSameDay(new Date(e.date), now))
-    .slice(0, 20);
+type SortField = "date" | "title" | "module" | "type";
+type SortDir = "asc" | "desc";
 
-  const overdue = events.filter(e => e.isOverdue);
+function SortIcon({ field, current, dir }: { field: SortField; current: SortField; dir: SortDir }) {
+  if (current !== field) return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground/50 inline" />;
+  return dir === "asc"
+    ? <ArrowUp className="ml-1 h-3 w-3 text-foreground inline" />
+    : <ArrowDown className="ml-1 h-3 w-3 text-foreground inline" />;
+}
 
-  if (upcoming.length === 0 && overdue.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <CalendarDays className="h-10 w-10 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground">No upcoming events this month</p>
-      </div>
-    );
-  }
+function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }) {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const siteMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of sites) m[s.id] = s.name;
+    return m;
+  }, [sites]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+  };
+
+  const filtered = useMemo(() => {
+    let rows = [...events];
+
+    if (statusFilter === "overdue") rows = rows.filter(e => e.isOverdue);
+    else if (statusFilter === "upcoming") rows = rows.filter(e => !e.isOverdue);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter(e =>
+        e.title.toLowerCase().includes(q) ||
+        (MODULE_CONFIG[e.module]?.label ?? e.module).toLowerCase().includes(q) ||
+        (EVENT_TYPE_CONFIG[e.type]?.label ?? e.type).toLowerCase().includes(q) ||
+        (siteMap[e.siteId] ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "date") cmp = new Date(a.date).getTime() - new Date(b.date).getTime();
+      else if (sortField === "title") cmp = a.title.localeCompare(b.title);
+      else if (sortField === "module") cmp = (MODULE_CONFIG[a.module]?.label ?? a.module).localeCompare(MODULE_CONFIG[b.module]?.label ?? b.module);
+      else if (sortField === "type") cmp = (EVENT_TYPE_CONFIG[a.type]?.label ?? a.type).localeCompare(EVENT_TYPE_CONFIG[b.type]?.label ?? b.type);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return rows;
+  }, [events, statusFilter, search, sortField, sortDir, siteMap]);
 
   return (
-    <div className="space-y-2">
-      {overdue.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1.5 uppercase tracking-wide">Overdue</p>
-          {overdue.map(ev => <UpcomingRow key={ev.id} event={ev} />)}
+    <div className="space-y-4">
+      {/* Table filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-8"
+            data-testid="input-event-search"
+          />
         </div>
-      )}
-      {upcoming.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Upcoming</p>
-          {upcoming.map(ev => <UpcomingRow key={ev.id} event={ev} />)}
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+            <SelectItem value="upcoming">Upcoming</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground shrink-0">
+          {filtered.length} event{filtered.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <CalendarDays className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-sm text-muted-foreground">No events match your filters</p>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40%]">
+                  <button
+                    className="flex items-center font-medium hover:text-foreground transition-colors"
+                    onClick={() => handleSort("title")}
+                    data-testid="sort-title"
+                  >
+                    Event
+                    <SortIcon field="title" current={sortField} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center font-medium hover:text-foreground transition-colors"
+                    onClick={() => handleSort("date")}
+                    data-testid="sort-date"
+                  >
+                    Date
+                    <SortIcon field="date" current={sortField} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center font-medium hover:text-foreground transition-colors"
+                    onClick={() => handleSort("module")}
+                    data-testid="sort-module"
+                  >
+                    Module
+                    <SortIcon field="module" current={sortField} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    className="flex items-center font-medium hover:text-foreground transition-colors"
+                    onClick={() => handleSort("type")}
+                    data-testid="sort-type"
+                  >
+                    Type
+                    <SortIcon field="type" current={sortField} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead>Site</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(ev => {
+                const mod = MODULE_CONFIG[ev.module];
+                const typeConf = EVENT_TYPE_CONFIG[ev.type];
+                const TypeIcon = typeConf?.icon ?? FileText;
+                const siteName = siteMap[ev.siteId];
+
+                return (
+                  <TableRow
+                    key={ev.id}
+                    data-testid={`event-row-${ev.id}`}
+                    className={ev.isOverdue ? "bg-red-50/50 dark:bg-red-950/20" : ""}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${ev.isOverdue ? "bg-red-100 dark:bg-red-900/40" : "bg-muted"}`}>
+                          <TypeIcon className={`h-3.5 w-3.5 ${ev.isOverdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} />
+                        </div>
+                        <span className="text-sm font-medium truncate" title={ev.title}>{ev.title}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-sm">
+                      <span className={ev.isOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
+                        {format(new Date(ev.date), "d MMM yyyy")}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {mod ? (
+                        <Badge className={`text-xs ${mod.badgeClass}`}>{mod.label}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{ev.module}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {typeConf ? (
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">{typeConf.label}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{ev.type}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {siteName ?? <span className="text-xs text-muted-foreground/50">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {ev.isOverdue ? (
+                        <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 whitespace-nowrap">
+                          Overdue
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 whitespace-nowrap">
+                          Upcoming
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" asChild className="h-7 px-2" data-testid={`event-view-${ev.id}`}>
+                        <Link href={ev.url}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                          View
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
-  );
-}
-
-function UpcomingRow({ event }: { event: CalendarEvent }) {
-  const mod = MODULE_CONFIG[event.module];
-  const typeConf = EVENT_TYPE_CONFIG[event.type];
-  const TypeIcon = typeConf?.icon ?? FileText;
-  const isOverdue = event.isOverdue;
-
-  return (
-    <Link href={event.url} data-testid={`upcoming-row-${event.id}`}>
-      <div className={`flex items-center gap-3 rounded-md border p-2.5 hover:bg-muted/50 transition-colors cursor-pointer mb-1.5 ${isOverdue ? "border-red-200 dark:border-red-800" : ""}`}>
-        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isOverdue ? "bg-red-100 dark:bg-red-900/40" : "bg-muted"}`}>
-          <TypeIcon className={`h-4 w-4 ${isOverdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{event.title}</p>
-          <p className={`text-xs ${isOverdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-            {format(new Date(event.date), "d MMM yyyy")}
-          </p>
-        </div>
-        {mod && (
-          <Badge className={`text-xs shrink-0 ${mod.badgeClass}`}>{mod.label}</Badge>
-        )}
-      </div>
-    </Link>
   );
 }
 
@@ -253,8 +405,6 @@ export default function CalendarPage() {
     queryKey: ["/api/companies"],
     enabled: isPrivileged,
   });
-  const companies = companiesData?.companies ?? [];
-
   const selectedCompanyId = useMemo(() => {
     if (!selectedCompany || selectedCompany === "all") return null;
     const match = sites.find((s: any) => s.companyName === selectedCompany);
@@ -278,9 +428,8 @@ export default function CalendarPage() {
   });
 
   const events = useMemo(() => {
-    let filtered = rawEvents;
-    if (typeFilter !== "all") filtered = filtered.filter(e => e.type === typeFilter);
-    return filtered;
+    if (typeFilter === "all") return rawEvents;
+    return rawEvents.filter(e => e.type === typeFilter);
   }, [rawEvents, typeFilter]);
 
   const stats = useMemo(() => ({
@@ -449,10 +598,24 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Upcoming / overdue list */}
+        {/* Event list table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Event List – {format(currentMonth, "MMMM yyyy")}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Event List – {format(currentMonth, "MMMM yyyy")}</CardTitle>
+              {!isLoading && (
+                <div className="flex gap-2">
+                  {stats.overdue > 0 && (
+                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      {stats.overdue} overdue
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-muted-foreground">
+                    {stats.total} total
+                  </Badge>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -460,7 +623,7 @@ export default function CalendarPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <UpcomingList events={events} />
+              <EventTable events={events} sites={sites} />
             )}
           </CardContent>
         </Card>
