@@ -128,12 +128,6 @@ const moduleNavItems: {
   },
 ];
 
-const calendarNavItem = {
-  title: "Calendar",
-  url: "/calendar",
-  icon: CalendarDays,
-};
-
 const settingsNavItems = [
   {
     title: "Settings",
@@ -311,6 +305,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Overview
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -318,15 +315,32 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   asChild
                   isActive={location === "/"}
                   className={cn(
-                    "transition-colors font-semibold",
-                    location === "/" 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                      : "bg-sidebar-accent/50"
+                    "transition-colors",
+                    location === "/"
+                      ? "bg-sidebar-accent font-medium"
+                      : ""
                   )}
                 >
                   <Link href="/" data-testid="nav-dashboard">
                     <LayoutDashboard className="h-4 w-4" />
-                    <span>Overview</span>
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/calendar" || location.startsWith("/calendar/")}
+                  className={cn(
+                    "transition-colors",
+                    (location === "/calendar" || location.startsWith("/calendar/"))
+                      ? "bg-sidebar-accent font-medium"
+                      : ""
+                  )}
+                >
+                  <Link href="/calendar" data-testid="nav-calendar">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Calendar</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -466,30 +480,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {[calendarNavItem].map((item) => {
-                const isActive = location === item.url || location.startsWith(item.url + "/");
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={cn("transition-colors", isActive && "bg-sidebar-accent font-medium")}
-                    >
-                      <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
