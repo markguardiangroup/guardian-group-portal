@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -79,8 +79,20 @@ import {
   ChevronRight,
   Shield,
   Eye,
+  Filter,
 } from "lucide-react";
-import { format, isPast } from "date-fns";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { CompanyCombobox } from "@/components/company-combobox";
+import { SiteCombobox } from "@/components/site-combobox";
+import { useSiteFilter } from "@/hooks/use-site-filter";
+import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1855,9 +1867,9 @@ function IncidentsListView() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
-  const [siteFilter, setSiteFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
@@ -1876,43 +1888,75 @@ function IncidentsListView() {
   });
   const companies = companiesData?.companies ?? [];
 
-  const filteredSitesForFilter = companyFilter === "all"
-    ? sites
-    : sites.filter((s: any) => s.companyId === companyFilter);
+  const filteredSitesForCombobox = useMemo(() => {
+    if (!sites || !selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter((s: any) => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
 
-  const filteredIncidents = incidents.filter((incident) => {
+  const selectedSiteObj = useMemo(() =>
+    sites.find((s: any) => s.id === selectedSiteId), [sites, selectedSiteId]);
+
+  const currentContextLabel = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteObj?.name || null;
+    if (isPrivileged) return selectedCompany && selectedCompany !== "all" ? selectedCompany : "All Clients";
+    return null;
+  }, [selectedSiteId, selectedCompany, selectedSiteObj, isPrivileged]);
+
+  const filteredIncidents = useMemo(() => incidents.filter((incident) => {
+    const incidentSite = sites.find((s: any) => s.id === incident.siteId);
     const matchesSearch =
       incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       incident.incidentReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
       incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
-    const matchesSite = siteFilter === "all" || incident.siteId === siteFilter;
-    const incidentSite = sites.find((s: any) => s.id === incident.siteId);
-    const matchesCompany = companyFilter === "all" || incidentSite?.companyId === companyFilter;
-    return matchesSearch && matchesStatus && matchesSite && matchesCompany;
-  });
+    const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
+    const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
+    const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
+    return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
+  }), [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany]);
 
   const stats = {
-    total: incidents.length,
-    reported: incidents.filter(i => i.status === "reported").length,
-    underReview: incidents.filter(i => i.status === "under_review").length,
+    active: incidents.filter(i => i.status === "reported" || i.status === "under_review").length,
+    critical: incidents.filter(i => i.severity === "major" || i.severity === "critical").length,
     resolved: incidents.filter(i => i.status === "resolved" || i.status === "closed").length,
   };
 
   return (
     <div className="theme-hs">
-      <div className="border-t-4 border-t-module-accent bg-module-accent-subtle">
-        <div className="p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-module-accent/20">
-                <ShieldAlert className="h-6 w-6 text-module-accent" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold">Incidents</h1>
-                <p className="text-muted-foreground">Report, review, and manage workplace incidents</p>
-              </div>
+      {/* Module header */}
+      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <ShieldAlert className="h-7 w-7 text-module-accent-foreground" />
             </div>
+            <div>
+              <h1 className="text-3xl font-semibold">Incidents</h1>
+              <p className="text-muted-foreground">
+                Workplace incident management
+                {currentContextLabel && <span className="font-medium"> – {currentContextLabel}</span>}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {isPrivileged && sites && sites.length > 0 && (
+              <>
+                <CompanyCombobox
+                  sites={sites}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-48"
+                  testId="select-company-incidents"
+                />
+                <SiteCombobox
+                  sites={filteredSitesForCombobox}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-48"
+                  testId="select-site-incidents"
+                />
+              </>
+            )}
             <Button
               className="bg-module-accent hover:bg-module-accent/90"
               onClick={() => setShowReportDialog(true)}
@@ -1926,146 +1970,203 @@ function IncidentsListView() {
       </div>
 
       <div className="space-y-6 p-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-module-accent/10">
-                <AlertTriangle className="h-5 w-5 text-module-accent" />
+        {/* Stat cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="border-l-4 border-l-module-accent">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Incidents</CardTitle>
+              <div className="rounded-full bg-module-accent/10 p-2">
+                <AlertOctagon className="h-4 w-4 text-module-accent" />
               </div>
-              <div>
-                <p className="text-2xl font-semibold" data-testid="text-total-incidents">{stats.total}</p>
-                <p className="text-sm text-muted-foreground">Total</p>
-              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-module-accent" data-testid="text-active-incidents">{stats.active}</div>
+              <p className="text-xs text-muted-foreground">Reported or under review</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <AlertOctagon className="h-5 w-5 text-amber-500" />
+          <Card className="border-l-4 border-l-red-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">High Severity</CardTitle>
+              <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
+                <Flag className="h-4 w-4 text-red-600 dark:text-red-400" />
               </div>
-              <div>
-                <p className="text-2xl font-semibold" data-testid="text-reported">{stats.reported}</p>
-                <p className="text-sm text-muted-foreground">New Reports</p>
-              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-critical-incidents">{stats.critical}</div>
+              <p className="text-xs text-muted-foreground">Major or critical severity</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-                <Clock className="h-5 w-5 text-blue-500" />
+          <Card className="border-l-4 border-l-green-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+              <div className="rounded-full bg-green-100 dark:bg-green-900/40 p-2">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
-              <div>
-                <p className="text-2xl font-semibold" data-testid="text-under-review">{stats.underReview}</p>
-                <p className="text-sm text-muted-foreground">Under Review</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-semibold" data-testid="text-resolved">{stats.resolved}</p>
-                <p className="text-sm text-muted-foreground">Resolved</p>
-              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-resolved-incidents">{stats.resolved}</div>
+              <p className="text-xs text-muted-foreground">Successfully closed</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search incidents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-incidents"
-              />
+        {/* Table card */}
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle>Incident Register</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search incidents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-[200px] pl-8"
+                    data-testid="input-search-incidents"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="reported">Reported</SelectItem>
+                    <SelectItem value="under_review">Under Review</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                  <SelectTrigger className="w-[140px]" data-testid="select-severity-filter">
+                    <SelectValue placeholder="All Severity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Severity</SelectItem>
+                    <SelectItem value="minor">Minor</SelectItem>
+                    <SelectItem value="moderate">Moderate</SelectItem>
+                    <SelectItem value="major">Major</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            {isPrivileged && (
-              <div className="flex gap-2">
-                <Select
-                  value={companyFilter}
-                  onValueChange={(v) => { setCompanyFilter(v); setSiteFilter("all"); }}
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredIncidents.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Severity</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead className="w-[60px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredIncidents.map((incident) => {
+                    const site = sites.find((s: any) => s.id === incident.siteId);
+                    const sev = severityConfig[incident.severity as IncidentSeverity] ?? severityConfig.minor;
+                    const sta = statusConfig[incident.status as IncidentStatus] ?? statusConfig.reported;
+                    return (
+                      <TableRow
+                        key={incident.id}
+                        className="cursor-pointer"
+                        data-testid={`row-incident-${incident.id}`}
+                        onClick={() => window.location.href = `/health-safety/incidents/${incident.id}`}
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-1.5">
+                            <ShieldAlert className="h-3.5 w-3.5 text-module-accent" />
+                            <span>{incident.incidentReference}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{incident.title}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {site ? (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {site.name}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs whitespace-nowrap">
+                            {incident.incidentType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-xs ${sev.className}`}>
+                            {sev.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-xs ${sta.className}`}>
+                            {sta.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {format(new Date(incident.incidentDate), "dd MMM yyyy")}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {formatDistanceToNow(new Date(incident.updatedAt), { addSuffix: true })}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" data-testid={`button-incident-menu-${incident.id}`}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/health-safety/incidents/${incident.id}`} data-testid={`button-view-incident-${incident.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Incident
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                  <AlertTriangle className="h-7 w-7 text-muted-foreground" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {searchQuery || statusFilter !== "all" || severityFilter !== "all"
+                    ? "Try adjusting your filters"
+                    : "No incidents have been reported yet"}
+                </p>
+                <Button
+                  className="mt-4 bg-module-accent hover:bg-module-accent/90"
+                  onClick={() => setShowReportDialog(true)}
+                  data-testid="button-report-first-incident"
                 >
-                  <SelectTrigger className="w-[180px]" data-testid="filter-company">
-                    <SelectValue placeholder="All Companies" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Companies</SelectItem>
-                    {companies.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={siteFilter} onValueChange={setSiteFilter}>
-                  <SelectTrigger className="w-[180px]" data-testid="filter-site">
-                    <SelectValue placeholder="All Sites" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sites</SelectItem>
-                    {filteredSitesForFilter.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Report First Incident
+                </Button>
               </div>
             )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {["all", "reported", "under_review", "resolved", "closed"].map((status) => (
-              <Button
-                key={status}
-                variant={statusFilter === status ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(status)}
-                className={statusFilter === status ? "bg-module-accent hover:bg-module-accent/90" : ""}
-                data-testid={`filter-${status}`}
-              >
-                {status === "all" ? "All" :
-                 status === "under_review" ? "Under Review" :
-                 status.charAt(0).toUpperCase() + status.slice(1)}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : filteredIncidents.length > 0 ? (
-          <div className="space-y-4">
-            {filteredIncidents.map((incident) => (
-              <IncidentCard key={incident.id} incident={incident} sites={sites} />
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                <AlertTriangle className="h-7 w-7 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || statusFilter !== "all" || companyFilter !== "all" || siteFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "No incidents have been reported yet"}
-              </p>
-              <Button
-                className="mt-4 bg-module-accent hover:bg-module-accent/90"
-                onClick={() => setShowReportDialog(true)}
-                data-testid="button-report-first-incident"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Report First Incident
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          </CardContent>
+        </Card>
       </div>
 
       <ReportIncidentDialog
