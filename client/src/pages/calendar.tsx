@@ -182,12 +182,30 @@ function SortIcon({ field, current, dir }: { field: SortField; current: SortFiel
     : <ArrowDown className="ml-1 h-3 w-3 text-foreground inline" />;
 }
 
-function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; sites: any[]; isPrivileged: boolean }) {
+type EventTableProps = {
+  events: CalendarEvent[];
+  sites: any[];
+  filteredSites: any[];
+  isPrivileged: boolean;
+  selectedCompany: string;
+  selectedSiteId: string;
+  onCompanyChange: (v: string) => void;
+  onSiteChange: (v: string) => void;
+};
+
+function EventTable({
+  events,
+  sites,
+  filteredSites,
+  isPrivileged,
+  selectedCompany,
+  selectedSiteId,
+  onCompanyChange,
+  onSiteChange,
+}: EventTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [moduleTableFilter, setModuleTableFilter] = useState("all");
-  const [companyTableFilter, setCompanyTableFilter] = useState("all");
-  const [siteTableFilter, setSiteTableFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -196,35 +214,6 @@ function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; 
     for (const s of sites) m[s.id] = s.name;
     return m;
   }, [sites]);
-
-  const siteCompanyMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    for (const s of sites) m[s.id] = s.companyName ?? s.companyId ?? "";
-    return m;
-  }, [sites]);
-
-  const uniqueCompanies = useMemo(() => {
-    const seen = new Set<string>();
-    const result: { id: string; name: string }[] = [];
-    for (const s of sites) {
-      const key = s.companyName ?? s.companyId;
-      if (key && !seen.has(key)) {
-        seen.add(key);
-        result.push({ id: s.companyId ?? key, name: s.companyName ?? key });
-      }
-    }
-    return result.sort((a, b) => a.name.localeCompare(b.name));
-  }, [sites]);
-
-  const sitesForCompanyFilter = useMemo(() => {
-    if (companyTableFilter === "all") return sites;
-    return sites.filter((s: any) => s.companyName === companyTableFilter || s.companyId === companyTableFilter);
-  }, [sites, companyTableFilter]);
-
-  const handleCompanyTableChange = (val: string) => {
-    setCompanyTableFilter(val);
-    setSiteTableFilter("all");
-  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -239,25 +228,13 @@ function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; 
 
     if (moduleTableFilter !== "all") rows = rows.filter(e => e.module === moduleTableFilter);
 
-    if (companyTableFilter !== "all") {
-      const companySiteIds = new Set(
-        sites
-          .filter((s: any) => s.companyName === companyTableFilter || s.companyId === companyTableFilter)
-          .map((s: any) => s.id)
-      );
-      rows = rows.filter(e => companySiteIds.has(e.siteId));
-    }
-
-    if (siteTableFilter !== "all") rows = rows.filter(e => e.siteId === siteTableFilter);
-
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(e =>
         e.title.toLowerCase().includes(q) ||
         (MODULE_CONFIG[e.module]?.label ?? e.module).toLowerCase().includes(q) ||
         (EVENT_TYPE_CONFIG[e.type]?.label ?? e.type).toLowerCase().includes(q) ||
-        (siteMap[e.siteId] ?? "").toLowerCase().includes(q) ||
-        (siteCompanyMap[e.siteId] ?? "").toLowerCase().includes(q)
+        (siteMap[e.siteId] ?? "").toLowerCase().includes(q)
       );
     }
 
@@ -271,11 +248,11 @@ function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; 
     });
 
     return rows;
-  }, [events, statusFilter, moduleTableFilter, companyTableFilter, siteTableFilter, search, sortField, sortDir, siteMap, siteCompanyMap, sites]);
+  }, [events, statusFilter, moduleTableFilter, search, sortField, sortDir, siteMap]);
 
   return (
     <div className="space-y-4">
-      {/* Table filters — row 1 */}
+      {/* Table filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -287,30 +264,22 @@ function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; 
             data-testid="input-event-search"
           />
         </div>
-        {isPrivileged && uniqueCompanies.length > 1 && (
-          <Select value={companyTableFilter} onValueChange={handleCompanyTableChange}>
-            <SelectTrigger className="w-[180px]" data-testid="select-table-company-filter">
-              <SelectValue placeholder="All Companies" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Companies</SelectItem>
-              {uniqueCompanies.map(c => (
-                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {isPrivileged && (
+          <CompanyCombobox
+            sites={sites}
+            value={selectedCompany}
+            onValueChange={onCompanyChange}
+            className="w-[180px]"
+            testId="select-table-company-filter"
+          />
         )}
-        <Select value={siteTableFilter} onValueChange={setSiteTableFilter}>
-          <SelectTrigger className="w-[160px]" data-testid="select-table-site-filter">
-            <SelectValue placeholder="All Sites" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sites</SelectItem>
-            {sitesForCompanyFilter.map((s: any) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SiteCombobox
+          sites={filteredSites}
+          value={selectedSiteId}
+          onValueChange={onSiteChange}
+          className="w-[160px]"
+          testId="select-table-site-filter"
+        />
         <Select value={moduleTableFilter} onValueChange={setModuleTableFilter}>
           <SelectTrigger className="w-[160px]" data-testid="select-table-module-filter">
             <SelectValue placeholder="All Modules" />
@@ -349,7 +318,7 @@ function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">
+                <TableHead className="w-[38%]">
                   <button
                     className="flex items-center font-medium hover:text-foreground transition-colors"
                     onClick={() => handleSort("title")}
@@ -483,10 +452,6 @@ export default function CalendarPage() {
     return sites.filter((s: any) => s.companyName === selectedCompany);
   }, [sites, selectedCompany]);
 
-  const { data: companiesData } = useQuery<any>({
-    queryKey: ["/api/companies"],
-    enabled: isPrivileged,
-  });
   const selectedCompanyId = useMemo(() => {
     if (!selectedCompany || selectedCompany === "all") return null;
     const match = sites.find((s: any) => s.companyName === selectedCompany);
@@ -520,48 +485,17 @@ export default function CalendarPage() {
     upcoming: events.filter(e => !e.isOverdue).length,
   }), [events]);
 
-  const contextLabel = useMemo(() => {
-    if (selectedSiteId && selectedSiteId !== "all") return sites.find((s: any) => s.id === selectedSiteId)?.name;
-    if (isPrivileged) return selectedCompany && selectedCompany !== "all" ? selectedCompany : "All Clients";
-    return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivileged]);
-
   return (
     <div>
-      {/* Header */}
+      {/* Header — title only, filters live in the cards */}
       <div className="bg-muted/30 border-b border-t-4 border-t-primary px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary">
-              <CalendarDays className="h-7 w-7 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold">Calendar</h1>
-              <p className="text-muted-foreground">
-                Key dates across all modules
-                {contextLabel && <span className="font-medium"> – {contextLabel}</span>}
-              </p>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary">
+            <CalendarDays className="h-7 w-7 text-primary-foreground" />
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {isPrivileged && (
-              <>
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-48"
-                  testId="select-company-calendar"
-                />
-                <SiteCombobox
-                  sites={filteredSitesForCombobox}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-48"
-                  testId="select-site-calendar"
-                />
-              </>
-            )}
+          <div>
+            <h1 className="text-3xl font-semibold">Calendar</h1>
+            <p className="text-muted-foreground">Key dates across all modules</p>
           </div>
         </div>
       </div>
@@ -610,7 +544,8 @@ export default function CalendarPage() {
         {/* Calendar card */}
         <Card>
           <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Row 1: month nav + company/site + module/type */}
+            <div className="flex flex-wrap gap-3 items-center justify-between">
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} data-testid="button-prev-month">
                   <ChevronLeft className="h-4 w-4" />
@@ -625,9 +560,25 @@ export default function CalendarPage() {
                   Today
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
+                {isPrivileged && (
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-[180px]"
+                    testId="select-company-calendar"
+                  />
+                )}
+                <SiteCombobox
+                  sites={filteredSitesForCombobox}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
+                  className="w-[160px]"
+                  testId="select-site-calendar"
+                />
                 <Select value={moduleFilter} onValueChange={setModuleFilter}>
-                  <SelectTrigger className="w-[170px]" data-testid="select-module-filter">
+                  <SelectTrigger className="w-[160px]" data-testid="select-module-filter">
                     <SelectValue placeholder="All Modules" />
                   </SelectTrigger>
                   <SelectContent>
@@ -639,7 +590,7 @@ export default function CalendarPage() {
                   </SelectContent>
                 </Select>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[160px]" data-testid="select-type-filter">
+                  <SelectTrigger className="w-[150px]" data-testid="select-type-filter">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
                   <SelectContent>
@@ -705,7 +656,16 @@ export default function CalendarPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <EventTable events={events} sites={sites} isPrivileged={isPrivileged} />
+              <EventTable
+                events={events}
+                sites={sites}
+                filteredSites={filteredSitesForCombobox}
+                isPrivileged={isPrivileged}
+                selectedCompany={selectedCompany}
+                selectedSiteId={selectedSiteId}
+                onCompanyChange={handleCompanyChange}
+                onSiteChange={setSelectedSiteId}
+              />
             )}
           </CardContent>
         </Card>
