@@ -191,6 +191,8 @@ type EventTableProps = {
   selectedSiteId: string;
   onCompanyChange: (v: string) => void;
   onSiteChange: (v: string) => void;
+  moduleFilter: string;
+  onModuleChange: (v: string) => void;
 };
 
 function EventTable({
@@ -202,10 +204,11 @@ function EventTable({
   selectedSiteId,
   onCompanyChange,
   onSiteChange,
+  moduleFilter,
+  onModuleChange,
 }: EventTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [moduleTableFilter, setModuleTableFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -226,7 +229,7 @@ function EventTable({
     if (statusFilter === "overdue") rows = rows.filter(e => e.isOverdue);
     else if (statusFilter === "upcoming") rows = rows.filter(e => !e.isOverdue);
 
-    if (moduleTableFilter !== "all") rows = rows.filter(e => e.module === moduleTableFilter);
+    if (moduleFilter !== "all") rows = rows.filter(e => e.module === moduleFilter);
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -248,7 +251,7 @@ function EventTable({
     });
 
     return rows;
-  }, [events, statusFilter, moduleTableFilter, search, sortField, sortDir, siteMap]);
+  }, [events, statusFilter, moduleFilter, search, sortField, sortDir, siteMap]);
 
   return (
     <div className="space-y-4">
@@ -280,7 +283,7 @@ function EventTable({
           className="w-[160px]"
           testId="select-table-site-filter"
         />
-        <Select value={moduleTableFilter} onValueChange={setModuleTableFilter}>
+        <Select value={moduleFilter} onValueChange={onModuleChange}>
           <SelectTrigger className="w-[160px]" data-testid="select-table-module-filter">
             <SelectValue placeholder="All Modules" />
           </SelectTrigger>
@@ -665,6 +668,8 @@ export default function CalendarPage() {
                 selectedSiteId={selectedSiteId}
                 onCompanyChange={handleCompanyChange}
                 onSiteChange={setSelectedSiteId}
+                moduleFilter={moduleFilter}
+                onModuleChange={setModuleFilter}
               />
             )}
           </CardContent>
