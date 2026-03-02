@@ -143,17 +143,20 @@ export default function Login() {
           <div className="mt-auto mb-auto pt-16">
             {/* Accent bar + label */}
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-0.5 w-10 rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8, #10b981, #eab308, #f472b6)" }} />
+              <div className="h-0.5 w-10 rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8, #818cf8, #e879f9, #f97316, #a3e635)" }} />
               <span className="text-white/60 text-xs font-semibold tracking-[0.2em] uppercase">Compliance That Counts</span>
             </div>
 
             <h1 className="text-5xl font-bold leading-[1.1] text-white mb-2">
               Safer people.
             </h1>
-            <h1 className="text-5xl font-bold leading-[1.1] mb-8"
-              style={{ background: "linear-gradient(90deg, #38bdf8 0%, #10b981 35%, #eab308 70%, #f472b6 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-              Stronger futures.
-            </h1>
+            <div className="mb-8">
+              <h1 className="text-5xl font-bold leading-[1.1]"
+                style={{ background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 22%, #e879f9 45%, #f97316 70%, #a3e635 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+                Stronger futures.
+              </h1>
+              <div className="mt-2 h-[3px] w-full rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 22%, #e879f9 45%, #f97316 70%, #a3e635 100%)" }} />
+            </div>
             <p className="text-white/60 text-base max-w-sm leading-relaxed">
               Your organisation deserves more than tick-box compliance. We turn HR, employment law, and health and safety into foundations for growth.
             </p>
