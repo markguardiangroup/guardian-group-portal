@@ -185,6 +185,7 @@ function SortIcon({ field, current, dir }: { field: SortField; current: SortFiel
 function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [moduleTableFilter, setModuleTableFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -204,6 +205,8 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
 
     if (statusFilter === "overdue") rows = rows.filter(e => e.isOverdue);
     else if (statusFilter === "upcoming") rows = rows.filter(e => !e.isOverdue);
+
+    if (moduleTableFilter !== "all") rows = rows.filter(e => e.module === moduleTableFilter);
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -225,7 +228,7 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
     });
 
     return rows;
-  }, [events, statusFilter, search, sortField, sortDir, siteMap]);
+  }, [events, statusFilter, moduleTableFilter, search, sortField, sortDir, siteMap]);
 
   return (
     <div className="space-y-4">
@@ -241,6 +244,18 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
             data-testid="input-event-search"
           />
         </div>
+        <Select value={moduleTableFilter} onValueChange={setModuleTableFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-table-module-filter">
+            <SelectValue placeholder="All Modules" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Modules</SelectItem>
+            <SelectItem value="health_safety">Health & Safety</SelectItem>
+            <SelectItem value="human_resources">Human Resources</SelectItem>
+            <SelectItem value="employment_law">Employment Law</SelectItem>
+            <SelectItem value="training">Training</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
             <SelectValue placeholder="All Status" />
