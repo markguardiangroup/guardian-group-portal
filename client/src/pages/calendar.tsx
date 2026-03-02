@@ -182,10 +182,12 @@ function SortIcon({ field, current, dir }: { field: SortField; current: SortFiel
     : <ArrowDown className="ml-1 h-3 w-3 text-foreground inline" />;
 }
 
-function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }) {
+function EventTable({ events, sites, isPrivileged }: { events: CalendarEvent[]; sites: any[]; isPrivileged: boolean }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [moduleTableFilter, setModuleTableFilter] = useState("all");
+  const [companyTableFilter, setCompanyTableFilter] = useState("all");
+  const [siteTableFilter, setSiteTableFilter] = useState("all");
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -194,6 +196,35 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
     for (const s of sites) m[s.id] = s.name;
     return m;
   }, [sites]);
+
+  const siteCompanyMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of sites) m[s.id] = s.companyName ?? s.companyId ?? "";
+    return m;
+  }, [sites]);
+
+  const uniqueCompanies = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { id: string; name: string }[] = [];
+    for (const s of sites) {
+      const key = s.companyName ?? s.companyId;
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        result.push({ id: s.companyId ?? key, name: s.companyName ?? key });
+      }
+    }
+    return result.sort((a, b) => a.name.localeCompare(b.name));
+  }, [sites]);
+
+  const sitesForCompanyFilter = useMemo(() => {
+    if (companyTableFilter === "all") return sites;
+    return sites.filter((s: any) => s.companyName === companyTableFilter || s.companyId === companyTableFilter);
+  }, [sites, companyTableFilter]);
+
+  const handleCompanyTableChange = (val: string) => {
+    setCompanyTableFilter(val);
+    setSiteTableFilter("all");
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -208,13 +239,25 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
 
     if (moduleTableFilter !== "all") rows = rows.filter(e => e.module === moduleTableFilter);
 
+    if (companyTableFilter !== "all") {
+      const companySiteIds = new Set(
+        sites
+          .filter((s: any) => s.companyName === companyTableFilter || s.companyId === companyTableFilter)
+          .map((s: any) => s.id)
+      );
+      rows = rows.filter(e => companySiteIds.has(e.siteId));
+    }
+
+    if (siteTableFilter !== "all") rows = rows.filter(e => e.siteId === siteTableFilter);
+
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(e =>
         e.title.toLowerCase().includes(q) ||
         (MODULE_CONFIG[e.module]?.label ?? e.module).toLowerCase().includes(q) ||
         (EVENT_TYPE_CONFIG[e.type]?.label ?? e.type).toLowerCase().includes(q) ||
-        (siteMap[e.siteId] ?? "").toLowerCase().includes(q)
+        (siteMap[e.siteId] ?? "").toLowerCase().includes(q) ||
+        (siteCompanyMap[e.siteId] ?? "").toLowerCase().includes(q)
       );
     }
 
@@ -228,13 +271,13 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
     });
 
     return rows;
-  }, [events, statusFilter, moduleTableFilter, search, sortField, sortDir, siteMap]);
+  }, [events, statusFilter, moduleTableFilter, companyTableFilter, siteTableFilter, search, sortField, sortDir, siteMap, siteCompanyMap, sites]);
 
   return (
     <div className="space-y-4">
-      {/* Table filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+      {/* Table filters — row 1 */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search events..."
@@ -244,6 +287,30 @@ function EventTable({ events, sites }: { events: CalendarEvent[]; sites: any[] }
             data-testid="input-event-search"
           />
         </div>
+        {isPrivileged && uniqueCompanies.length > 1 && (
+          <Select value={companyTableFilter} onValueChange={handleCompanyTableChange}>
+            <SelectTrigger className="w-[180px]" data-testid="select-table-company-filter">
+              <SelectValue placeholder="All Companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {uniqueCompanies.map(c => (
+                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        <Select value={siteTableFilter} onValueChange={setSiteTableFilter}>
+          <SelectTrigger className="w-[160px]" data-testid="select-table-site-filter">
+            <SelectValue placeholder="All Sites" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sites</SelectItem>
+            {sitesForCompanyFilter.map((s: any) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={moduleTableFilter} onValueChange={setModuleTableFilter}>
           <SelectTrigger className="w-[160px]" data-testid="select-table-module-filter">
             <SelectValue placeholder="All Modules" />
@@ -638,7 +705,7 @@ export default function CalendarPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <EventTable events={events} sites={sites} />
+              <EventTable events={events} sites={sites} isPrivileged={isPrivileged} />
             )}
           </CardContent>
         </Card>
