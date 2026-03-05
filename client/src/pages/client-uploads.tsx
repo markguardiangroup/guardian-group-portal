@@ -183,7 +183,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [selectedSiteId, setSelectedSiteId] = useState<string>("");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>("__all__");
   const [selectedFolder, setSelectedFolder] = useState<ClientUploadFolderWithMeta | null>(null);
   const [checkedFileIds, setCheckedFileIds] = useState<Set<string>>(new Set());
 
@@ -191,7 +191,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [folderName, setFolderName] = useState("");
   const [folderDescription, setFolderDescription] = useState("");
-  const [folderAllocatedClientId, setFolderAllocatedClientId] = useState<string>("");
+  const [folderAllocatedClientId, setFolderAllocatedClientId] = useState<string>("__none__");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [creatingFolder, setCreatingFolder] = useState(false);
 
@@ -227,7 +227,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     queryKey: ["/api/client-upload-folders", module, selectedSiteId],
     queryFn: async () => {
       const params = new URLSearchParams({ module });
-      if (selectedSiteId) params.set("siteId", selectedSiteId);
+      if (selectedSiteId && selectedSiteId !== "__all__") params.set("siteId", selectedSiteId);
       const res = await fetch(`/api/client-upload-folders?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch folders");
       return res.json();
@@ -393,12 +393,13 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
 
     setCreatingFolder(true);
     try {
+      const effectiveSiteId = selectedSiteId === "__all__" ? "" : selectedSiteId;
       const folderRes = await apiRequest("POST", "/api/client-upload-folders", {
         name: folderName.trim(),
         description: folderDescription.trim() || null,
         module,
-        siteId: selectedSiteId,
-        allocatedClientId: canManageFolders ? (folderAllocatedClientId || null) : undefined,
+        siteId: effectiveSiteId,
+        allocatedClientId: canManageFolders ? (folderAllocatedClientId === "__none__" ? null : folderAllocatedClientId || null) : undefined,
       });
       if (!folderRes.ok) {
         const err = await folderRes.json();
@@ -445,7 +446,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     setCreateStep(1);
     setFolderName("");
     setFolderDescription("");
-    setFolderAllocatedClientId("");
+    setFolderAllocatedClientId("__none__");
     setPendingFiles([]);
   }
 
@@ -956,7 +957,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
               <SelectValue placeholder="All sites" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All sites</SelectItem>
+              <SelectItem value="__all__">All sites</SelectItem>
               {sites.map((s) => (
                 <SelectItem key={s.id} value={s.id} data-testid={`site-option-${s.id}`}>
                   {s.name}
@@ -1125,7 +1126,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                       <SelectValue placeholder="No specific client..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No specific client</SelectItem>
+                      <SelectItem value="__none__">No specific client</SelectItem>
                       {clientUsers.map((u) => (
                         <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
                       ))}
@@ -1216,7 +1217,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     toast({ title: "Please enter a folder name", variant: "destructive" });
                     return;
                   }
-                  if (!isClient && !selectedSiteId) {
+                  if (!isClient && (!selectedSiteId || selectedSiteId === "__all__")) {
                     toast({ title: "Please select a site", variant: "destructive" });
                     return;
                   }
