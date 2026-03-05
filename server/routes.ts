@@ -8737,6 +8737,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_folder_created",
         resourceType: "client_upload_folder",
         resourceId: folder.id,
@@ -8776,6 +8777,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_folder_deleted",
         resourceType: "client_upload_folder",
         resourceId: folder.id,
@@ -8831,6 +8833,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_folder_access_granted",
         resourceType: "client_upload_folder",
         resourceId: folder.id,
@@ -8864,6 +8867,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_folder_access_revoked",
         resourceType: "client_upload_folder",
         resourceId: folder.id,
@@ -8942,6 +8946,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_upload_uploaded",
         resourceType: "client_upload",
         resourceId: upload.id,
@@ -8976,6 +8981,7 @@ export async function registerRoutes(
         action: "client_upload_downloaded",
         resourceType: "client_upload",
         resourceId: upload.id,
+        userName: user.fullName,
         details: `Downloaded file "${upload.fileName}" from folder "${folder.name}"`,
         siteId: folder.siteId,
       });
@@ -9015,6 +9021,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "client_upload_deleted",
         resourceType: "client_upload",
         resourceId: upload.id,
@@ -9070,6 +9077,7 @@ export async function registerRoutes(
             action: "client_upload_downloaded",
             resourceType: "client_upload",
             resourceId: file.id,
+            userName: user.fullName,
             details: `Bulk downloaded file "${file.fileName}" from folder "${folder.name}"`,
             siteId: folder.siteId,
           });
