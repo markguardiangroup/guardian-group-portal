@@ -97,13 +97,13 @@ function Router() {
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
       <Route path="/health-safety/incidents" component={HSIncidents} />
       <Route path="/health-safety/incidents/:id" component={HSIncidents} />
-      <Route path="/health-safety/client-uploads" component={HSClientUploads} />
+      <Route path="/health-safety/document-transfer" component={HSClientUploads} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
       <Route path="/human-resources/documents/upload" component={DocumentUpload} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
-      <Route path="/human-resources/client-uploads" component={HRClientUploads} />
+      <Route path="/human-resources/document-transfer" component={HRClientUploads} />
       
       <Route path="/employment-law" component={EmploymentLawPage} />
       <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
@@ -111,7 +111,7 @@ function Router() {
       <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />
       <Route path="/employment-law/cases" component={EmploymentLawPage} />
       <Route path="/employment-law/cases/:id" component={EmploymentLawPage} />
-      <Route path="/employment-law/client-uploads" component={ELClientUploads} />
+      <Route path="/employment-law/document-transfer" component={ELClientUploads} />
       
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
