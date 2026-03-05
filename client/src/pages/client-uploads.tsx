@@ -968,10 +968,10 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         <div className="flex items-center gap-3">
           <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
             <SelectTrigger className="w-64" data-testid="select-site-filter">
-              <SelectValue placeholder={isClient ? "Select a site..." : "All sites"} />
+              <SelectValue placeholder="All sites" />
             </SelectTrigger>
             <SelectContent>
-              {!isClient && <SelectItem value="__all__">All sites</SelectItem>}
+              <SelectItem value="__all__">All sites</SelectItem>
               {isClient
                 ? clientSiteAssignments.map((a) => (
                     <SelectItem key={a.siteId} value={a.siteId} data-testid={`site-option-${a.siteId}`}>
