@@ -220,6 +220,19 @@ export class ObjectStorageService {
     return `/objects/${entityId}`;
   }
 
+  // Deletes an object entity from storage by its normalized path.
+  async deleteObjectEntityFile(objectPath: string): Promise<void> {
+    try {
+      const objectFile = await this.getObjectEntityFile(objectPath);
+      await objectFile.delete();
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        return;
+      }
+      throw error;
+    }
+  }
+
   // Tries to set the ACL policy for the object entity and return the normalized path.
   async trySetObjectEntityAclPolicy(
     rawPath: string,

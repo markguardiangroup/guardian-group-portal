@@ -706,7 +706,14 @@ export type AuditAction =
   | "login_failed"
   | "account_locked"
   | "password_change"
-  | "email_sent";
+  | "email_sent"
+  | "client_folder_created"
+  | "client_folder_deleted"
+  | "client_upload_uploaded"
+  | "client_upload_downloaded"
+  | "client_upload_deleted"
+  | "client_folder_access_granted"
+  | "client_folder_access_revoked";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
@@ -1286,6 +1293,63 @@ export const insertRoadmapItemSchema = createInsertSchema(roadmapItems).omit({
 });
 export type InsertRoadmapItem = z.infer<typeof insertRoadmapItemSchema>;
 export type RoadmapItem = typeof roadmapItems.$inferSelect;
+
+// ─── Client Upload Folders ────────────────────────────────────────────────────
+export type ClientUploadModule = "health_safety" | "human_resources" | "employment_law";
+
+export const clientUploadFolders = pgTable("client_upload_folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  module: text("module").$type<ClientUploadModule>().notNull(),
+  siteId: varchar("site_id").notNull(),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  allocatedClientId: varchar("allocated_client_id"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertClientUploadFolderSchema = createInsertSchema(clientUploadFolders).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertClientUploadFolder = z.infer<typeof insertClientUploadFolderSchema>;
+export type ClientUploadFolder = typeof clientUploadFolders.$inferSelect;
+
+export const clientUploadFolderAccess = pgTable("client_upload_folder_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderId: varchar("folder_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  grantedByUserId: varchar("granted_by_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertClientUploadFolderAccessSchema = createInsertSchema(clientUploadFolderAccess).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertClientUploadFolderAccess = z.infer<typeof insertClientUploadFolderAccessSchema>;
+export type ClientUploadFolderAccess = typeof clientUploadFolderAccess.$inferSelect;
+
+export const clientUploads = pgTable("client_uploads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderId: varchar("folder_id").notNull(),
+  module: text("module").$type<ClientUploadModule>().notNull(),
+  siteId: varchar("site_id").notNull(),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileUrl: text("file_url").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertClientUploadSchema = createInsertSchema(clientUploads).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertClientUpload = z.infer<typeof insertClientUploadSchema>;
+export type ClientUpload = typeof clientUploads.$inferSelect;
 
 // Feedback table for consultants to submit feedback during testing
 export const feedback = pgTable("feedback", {

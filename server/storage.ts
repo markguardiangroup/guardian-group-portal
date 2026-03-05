@@ -42,6 +42,12 @@ import {
   type Feedback, type InsertFeedback,
   type FeedbackComment, type InsertFeedbackComment,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
+  type ClientUploadFolder, type InsertClientUploadFolder,
+  type ClientUploadFolderAccess, type InsertClientUploadFolderAccess,
+  type ClientUpload, type InsertClientUpload,
+  clientUploadFolders as clientUploadFoldersTable,
+  clientUploadFolderAccess as clientUploadFolderAccessTable,
+  clientUploads as clientUploadsTable,
   userInvitations as userInvitationsTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
@@ -96,6 +102,24 @@ function getUserReferencePrefix(role: string): ReferencePrefix {
     default: return 'USR';
   }
 }
+
+export type ClientUploadFolderWithMeta = ClientUploadFolder & {
+  fileCount: number;
+  totalSize: number;
+  creatorName: string;
+  allocatedClientName: string | null;
+  siteName: string;
+};
+
+export type FolderAccessWithUser = ClientUploadFolderAccess & {
+  userName: string;
+  userEmail: string;
+  userRole: string;
+};
+
+export type ClientUploadWithUploader = ClientUpload & {
+  uploaderName: string;
+};
 
 export interface IStorage {
   // Users
@@ -338,6 +362,22 @@ export interface IStorage {
   deleteUserInvitation(id: string): Promise<boolean>;
   invalidateUserInvitations(userId: string, purpose?: InvitationPurpose): Promise<void>;
   getUserByEmail(email: string): Promise<User | undefined>;
+
+  // Client Upload Folders
+  // Extended types used by client upload methods
+  getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null }): Promise<ClientUploadFolderWithMeta[]>;
+  getClientUploadFolder(id: string): Promise<ClientUploadFolder | undefined>;
+  createClientUploadFolder(data: InsertClientUploadFolder): Promise<ClientUploadFolder>;
+  deleteClientUploadFolder(id: string): Promise<boolean>;
+  getClientUploadFolderAccess(folderId: string): Promise<FolderAccessWithUser[]>;
+  grantClientUploadFolderAccess(folderId: string, userId: string, grantedByUserId: string): Promise<void>;
+  revokeClientUploadFolderAccess(folderId: string, userId: string): Promise<void>;
+  getGrantableUsers(folderId: string): Promise<User[]>;
+  getClientUploads(folderId: string): Promise<ClientUploadWithUploader[]>;
+  getClientUpload(id: string): Promise<ClientUpload | undefined>;
+  createClientUpload(data: InsertClientUpload): Promise<ClientUpload>;
+  deleteClientUpload(id: string): Promise<boolean>;
+  cleanupExpiredFolders(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -2919,6 +2959,277 @@ export class MemStorage implements IStorage {
       console.error("Error fetching user by email from DB:", error);
       return undefined;
     }
+  }
+
+  // Client Upload Folders
+  async getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null }): Promise<ClientUploadFolderWithMeta[]> {
+    const { module, siteId, userId, userRole, userCompanyId } = params;
+    const now = new Date();
+
+    const allFolders = await db
+      .select()
+      .from(clientUploadFoldersTable)
+      .where(
+        and(
+          eq(clientUploadFoldersTable.module, module as any),
+          gt(clientUploadFoldersTable.expiresAt, now)
+        )
+      )
+      .orderBy(desc(clientUploadFoldersTable.createdAt));
+
+    const siteIds = siteId ? [siteId] : undefined;
+
+    let visibleFolders = allFolders;
+
+    if (userRole === "consultant") {
+      const assignments = await db
+        .select()
+        .from(consultantAssignmentsTable)
+        .where(eq(consultantAssignmentsTable.consultantId, userId));
+      const assignedSiteIds = new Set(assignments.map((a) => a.siteId));
+      visibleFolders = allFolders.filter((f) => assignedSiteIds.has(f.siteId));
+    } else if (userRole === "client") {
+      if (!userCompanyId) return [];
+      const companySites = await db
+        .select()
+        .from(sitesTable)
+        .where(eq(sitesTable.companyId, userCompanyId));
+      const companySiteIds = new Set(companySites.map((s) => s.id));
+
+      const accessGrants = await db
+        .select()
+        .from(clientUploadFolderAccessTable)
+        .where(eq(clientUploadFolderAccessTable.userId, userId));
+      const accessFolderIds = new Set(accessGrants.map((g) => g.folderId));
+
+      visibleFolders = allFolders.filter(
+        (f) =>
+          companySiteIds.has(f.siteId) &&
+          (f.allocatedClientId === userId || accessFolderIds.has(f.id))
+      );
+    }
+
+    if (siteIds) {
+      visibleFolders = visibleFolders.filter((f) => siteIds.includes(f.siteId));
+    }
+
+    const results: ClientUploadFolderWithMeta[] = [];
+    for (const folder of visibleFolders) {
+      const files = await db
+        .select()
+        .from(clientUploadsTable)
+        .where(eq(clientUploadsTable.folderId, folder.id));
+      const fileCount = files.length;
+      const totalSize = files.reduce((sum, f) => sum + f.fileSize, 0);
+
+      const creator = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, folder.createdByUserId))
+        .limit(1);
+      const creatorName = creator[0]?.fullName ?? "Unknown";
+
+      let allocatedClientName: string | null = null;
+      if (folder.allocatedClientId) {
+        const client = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, folder.allocatedClientId))
+          .limit(1);
+        allocatedClientName = client[0]?.fullName ?? null;
+      }
+
+      const site = await db
+        .select()
+        .from(sitesTable)
+        .where(eq(sitesTable.id, folder.siteId))
+        .limit(1);
+      const siteName = site[0]?.name ?? "Unknown Site";
+
+      results.push({ ...folder, fileCount, totalSize, creatorName, allocatedClientName, siteName });
+    }
+
+    return results;
+  }
+
+  async getClientUploadFolder(id: string): Promise<ClientUploadFolder | undefined> {
+    const rows = await db
+      .select()
+      .from(clientUploadFoldersTable)
+      .where(eq(clientUploadFoldersTable.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
+  async createClientUploadFolder(data: InsertClientUploadFolder): Promise<ClientUploadFolder> {
+    const rows = await db
+      .insert(clientUploadFoldersTable)
+      .values(data)
+      .returning();
+    return rows[0];
+  }
+
+  async deleteClientUploadFolder(id: string): Promise<boolean> {
+    await db
+      .delete(clientUploadFolderAccessTable)
+      .where(eq(clientUploadFolderAccessTable.folderId, id));
+    await db
+      .delete(clientUploadsTable)
+      .where(eq(clientUploadsTable.folderId, id));
+    const result = await db
+      .delete(clientUploadFoldersTable)
+      .where(eq(clientUploadFoldersTable.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getClientUploadFolderAccess(folderId: string): Promise<FolderAccessWithUser[]> {
+    const grants = await db
+      .select()
+      .from(clientUploadFolderAccessTable)
+      .where(eq(clientUploadFolderAccessTable.folderId, folderId));
+
+    const results: FolderAccessWithUser[] = [];
+    for (const grant of grants) {
+      const user = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, grant.userId))
+        .limit(1);
+      if (user[0]) {
+        results.push({
+          ...grant,
+          userName: user[0].fullName,
+          userEmail: user[0].email,
+          userRole: user[0].role,
+        });
+      }
+    }
+    return results;
+  }
+
+  async grantClientUploadFolderAccess(folderId: string, userId: string, grantedByUserId: string): Promise<void> {
+    await db
+      .insert(clientUploadFolderAccessTable)
+      .values({ folderId, userId, grantedByUserId })
+      .onConflictDoNothing();
+  }
+
+  async revokeClientUploadFolderAccess(folderId: string, userId: string): Promise<void> {
+    await db
+      .delete(clientUploadFolderAccessTable)
+      .where(
+        and(
+          eq(clientUploadFolderAccessTable.folderId, folderId),
+          eq(clientUploadFolderAccessTable.userId, userId)
+        )
+      );
+  }
+
+  async getGrantableUsers(folderId: string): Promise<User[]> {
+    const folder = await this.getClientUploadFolder(folderId);
+    if (!folder) return [];
+
+    const site = await db
+      .select()
+      .from(sitesTable)
+      .where(eq(sitesTable.id, folder.siteId))
+      .limit(1);
+    if (!site[0]) return [];
+    const companyId = site[0].companyId;
+
+    const existingGrants = await db
+      .select()
+      .from(clientUploadFolderAccessTable)
+      .where(eq(clientUploadFolderAccessTable.folderId, folderId));
+    const grantedUserIds = new Set([
+      ...existingGrants.map((g) => g.userId),
+      ...(folder.allocatedClientId ? [folder.allocatedClientId] : []),
+    ]);
+
+    const companyClients = await db
+      .select()
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.companyId, companyId),
+          eq(usersTable.role, "client")
+        )
+      );
+
+    return companyClients.filter((u) => !grantedUserIds.has(u.id));
+  }
+
+  async getClientUploads(folderId: string): Promise<ClientUploadWithUploader[]> {
+    const files = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(eq(clientUploadsTable.folderId, folderId))
+      .orderBy(desc(clientUploadsTable.createdAt));
+
+    const results: ClientUploadWithUploader[] = [];
+    for (const file of files) {
+      const uploader = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, file.uploadedByUserId))
+        .limit(1);
+      results.push({ ...file, uploaderName: uploader[0]?.fullName ?? "Unknown" });
+    }
+    return results;
+  }
+
+  async getClientUpload(id: string): Promise<ClientUpload | undefined> {
+    const rows = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(eq(clientUploadsTable.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
+  async createClientUpload(data: InsertClientUpload): Promise<ClientUpload> {
+    const rows = await db
+      .insert(clientUploadsTable)
+      .values(data)
+      .returning();
+    return rows[0];
+  }
+
+  async deleteClientUpload(id: string): Promise<boolean> {
+    const result = await db
+      .delete(clientUploadsTable)
+      .where(eq(clientUploadsTable.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async cleanupExpiredFolders(): Promise<number> {
+    const now = new Date();
+    const { objectStorageService } = await import("./replit_integrations/object_storage/objectStorage");
+    const expired = await db
+      .select()
+      .from(clientUploadFoldersTable)
+      .where(sql`${clientUploadFoldersTable.expiresAt} < ${now}`);
+
+    let count = 0;
+    for (const folder of expired) {
+      const files = await db
+        .select()
+        .from(clientUploadsTable)
+        .where(eq(clientUploadsTable.folderId, folder.id));
+
+      for (const file of files) {
+        try {
+          await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+        } catch {
+        }
+      }
+
+      await this.deleteClientUploadFolder(folder.id);
+      count++;
+    }
+    return count;
   }
 
   // Initialize default admin user in database if not exists

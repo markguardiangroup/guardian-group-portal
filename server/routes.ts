@@ -8,6 +8,7 @@ import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
+import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail } from "./email";
 
@@ -663,6 +664,27 @@ export async function registerRoutes(
       return clientSites.some(a => a.siteId === siteId);
     }
     
+    return false;
+  };
+
+  const canUserAccessFolder = async (
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null },
+    folder: { id: string; siteId: string; allocatedClientId: string | null }
+  ): Promise<boolean> => {
+    if (user.role === "admin") return true;
+    if (isProConsultant(user)) return true;
+    if (user.role === "consultant" && user.id) {
+      const assignments = await storage.getConsultantSites(user.id);
+      return assignments.some((a) => a.siteId === folder.siteId);
+    }
+    if (user.role === "client" && user.id) {
+      if (!user.companyId) return false;
+      const site = await storage.getSite(folder.siteId);
+      if (!site || site.companyId !== user.companyId) return false;
+      if (folder.allocatedClientId === user.id) return true;
+      const grants = await storage.getClientUploadFolderAccess(folder.id);
+      return grants.some((g) => g.userId === user.id);
+    }
     return false;
   };
 
@@ -8656,6 +8678,398 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching calendar events:", error);
       res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  });
+
+  // ==================== CLIENT UPLOADS ====================
+
+  app.get("/api/client-upload-folders", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { module, siteId } = req.query as { module?: string; siteId?: string };
+      if (!module) return res.status(400).json({ error: "module is required" });
+
+      await storage.cleanupExpiredFolders();
+
+      const folders = await storage.getClientUploadFolders({
+        module,
+        siteId,
+        userId: user.id,
+        userRole: user.role,
+        userCompanyId: user.companyId,
+      });
+      res.json(folders);
+    } catch (error) {
+      console.error("Error fetching client upload folders:", error);
+      res.status(500).json({ error: "Failed to fetch folders" });
+    }
+  });
+
+  app.post("/api/client-upload-folders", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const body = req.body;
+      const { name, description, module, siteId, allocatedClientId } = body;
+
+      if (!name || !module || !siteId) {
+        return res.status(400).json({ error: "name, module, and siteId are required" });
+      }
+
+      const canAccess = await canUserAccessSite(user, siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied to this site" });
+
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      const effectiveAllocatedClientId =
+        user.role === "client" ? user.id : allocatedClientId ?? null;
+
+      const folder = await storage.createClientUploadFolder({
+        name,
+        description: description ?? null,
+        module,
+        siteId,
+        createdByUserId: user.id,
+        allocatedClientId: effectiveAllocatedClientId,
+        expiresAt,
+      });
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_folder_created",
+        resourceType: "client_upload_folder",
+        resourceId: folder.id,
+        details: `Created upload folder "${name}" in module ${module}`,
+        siteId,
+      });
+
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error("Error creating client upload folder:", error);
+      res.status(500).json({ error: "Failed to create folder" });
+    }
+  });
+
+  app.delete("/api/client-upload-folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot delete folders" });
+      }
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const files = await storage.getClientUploads(folder.id);
+      const objectStorageService = new ObjectStorageService();
+      for (const file of files) {
+        try {
+          await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+        } catch {}
+      }
+
+      await storage.deleteClientUploadFolder(folder.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_folder_deleted",
+        resourceType: "client_upload_folder",
+        resourceId: folder.id,
+        details: `Deleted upload folder "${folder.name}" and ${files.length} file(s)`,
+        siteId: folder.siteId,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting client upload folder:", error);
+      res.status(500).json({ error: "Failed to delete folder" });
+    }
+  });
+
+  app.get("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const grants = await storage.getClientUploadFolderAccess(folder.id);
+      res.json(grants);
+    } catch (error) {
+      console.error("Error fetching folder access:", error);
+      res.status(500).json({ error: "Failed to fetch access" });
+    }
+  });
+
+  app.post("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+      if (targetUser.role !== "client") return res.status(400).json({ error: "Can only grant access to client users" });
+
+      const site = await storage.getSite(folder.siteId);
+      if (!site || targetUser.companyId !== site.companyId) {
+        return res.status(400).json({ error: "User must be from the same company as the folder's site" });
+      }
+
+      await storage.grantClientUploadFolderAccess(folder.id, userId, user.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_folder_access_granted",
+        resourceType: "client_upload_folder",
+        resourceId: folder.id,
+        details: `Granted access to "${targetUser.fullName}" for folder "${folder.name}"`,
+        siteId: folder.siteId,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error granting folder access:", error);
+      res.status(500).json({ error: "Failed to grant access" });
+    }
+  });
+
+  app.delete("/api/client-upload-folders/:id/access/:userId", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { userId } = req.params;
+      if (folder.allocatedClientId === userId) {
+        return res.status(400).json({ error: "Cannot revoke access from the allocated client" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      await storage.revokeClientUploadFolderAccess(folder.id, userId);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_folder_access_revoked",
+        resourceType: "client_upload_folder",
+        resourceId: folder.id,
+        details: `Revoked access from "${targetUser?.fullName ?? userId}" for folder "${folder.name}"`,
+        siteId: folder.siteId,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error revoking folder access:", error);
+      res.status(500).json({ error: "Failed to revoke access" });
+    }
+  });
+
+  app.get("/api/client-upload-folders/:id/grantable-users", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const users = await storage.getGrantableUsers(folder.id);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching grantable users:", error);
+      res.status(500).json({ error: "Failed to fetch grantable users" });
+    }
+  });
+
+  app.get("/api/client-upload-folders/:folderId/files", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const files = await storage.getClientUploads(folder.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching folder files:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
+  app.post("/api/client-uploads", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { folderId, fileName, fileSize, fileUrl, description } = req.body;
+      if (!folderId || !fileName || !fileSize || !fileUrl) {
+        return res.status(400).json({ error: "folderId, fileName, fileSize, and fileUrl are required" });
+      }
+      const folder = await storage.getClientUploadFolder(folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+      const now = new Date();
+      if (folder.expiresAt < now) {
+        return res.status(400).json({ error: "This folder has expired" });
+      }
+
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const upload = await storage.createClientUpload({
+        folderId,
+        module: folder.module,
+        siteId: folder.siteId,
+        uploadedByUserId: user.id,
+        fileName,
+        fileSize,
+        fileUrl,
+        description: description ?? null,
+      });
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_upload_uploaded",
+        resourceType: "client_upload",
+        resourceId: upload.id,
+        details: `Uploaded file "${fileName}" to folder "${folder.name}"`,
+        siteId: folder.siteId,
+      });
+
+      res.status(201).json(upload);
+    } catch (error) {
+      console.error("Error creating client upload:", error);
+      res.status(500).json({ error: "Failed to create upload" });
+    }
+  });
+
+  app.get("/api/client-uploads/:id/download", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const upload = await storage.getClientUpload(req.params.id);
+      if (!upload) return res.status(404).json({ error: "File not found" });
+
+      const folder = await storage.getClientUploadFolder(upload.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(upload.fileUrl);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_upload_downloaded",
+        resourceType: "client_upload",
+        resourceId: upload.id,
+        details: `Downloaded file "${upload.fileName}" from folder "${folder.name}"`,
+        siteId: folder.siteId,
+      });
+
+      res.setHeader("Content-Disposition", `attachment; filename="${upload.fileName}"`);
+      await objectStorageService.downloadObject(objectFile, res, 0, upload.fileName);
+    } catch (error) {
+      console.error("Error downloading client upload:", error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  app.delete("/api/client-uploads/:id", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const upload = await storage.getClientUpload(req.params.id);
+      if (!upload) return res.status(404).json({ error: "File not found" });
+
+      const folder = await storage.getClientUploadFolder(upload.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+      if (
+        user.role === "client" &&
+        upload.uploadedByUserId !== user.id
+      ) {
+        return res.status(403).json({ error: "You can only delete files you uploaded" });
+      }
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const objectStorageService = new ObjectStorageService();
+      try {
+        await objectStorageService.deleteObjectEntityFile(upload.fileUrl);
+      } catch {}
+      await storage.deleteClientUpload(upload.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "client_upload_deleted",
+        resourceType: "client_upload",
+        resourceId: upload.id,
+        details: `Deleted file "${upload.fileName}" from folder "${folder.name}"`,
+        siteId: folder.siteId,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting client upload:", error);
+      res.status(500).json({ error: "Failed to delete file" });
+    }
+  });
+
+  app.post("/api/client-upload-folders/:folderId/download", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const folder = await storage.getClientUploadFolder(req.params.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { fileIds } = req.body as { fileIds?: string[] };
+      const allFiles = await storage.getClientUploads(folder.id);
+      const filesToDownload = fileIds
+        ? allFiles.filter((f) => fileIds.includes(f.id))
+        : allFiles;
+
+      if (filesToDownload.length === 0) {
+        return res.status(400).json({ error: "No files to download" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${folder.name.replace(/[^a-zA-Z0-9]/g, "_")}_files.zip"`
+      );
+
+      const archive = archiver("zip", { zlib: { level: 6 } });
+      archive.pipe(res);
+
+      for (const file of filesToDownload) {
+        try {
+          const objectFile = await objectStorageService.getObjectEntityFile(file.fileUrl);
+          const stream = objectFile.createReadStream();
+          archive.append(stream, { name: file.fileName });
+
+          await storage.createAuditLog({
+            userId: user.id,
+            action: "client_upload_downloaded",
+            resourceType: "client_upload",
+            resourceId: file.id,
+            details: `Bulk downloaded file "${file.fileName}" from folder "${folder.name}"`,
+            siteId: folder.siteId,
+          });
+        } catch {}
+      }
+
+      await archive.finalize();
+    } catch (error) {
+      console.error("Error creating ZIP download:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to create ZIP download" });
+      }
     }
   });
 

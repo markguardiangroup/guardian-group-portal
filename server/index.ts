@@ -7,6 +7,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
+import { storage } from "./storage";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -135,6 +136,18 @@ process.on("uncaughtException", (err) => {
 });
 
 (async () => {
+  // Run expired folder cleanup on startup and then daily
+  storage.cleanupExpiredFolders().catch((err) =>
+    console.error("Startup folder cleanup error:", err)
+  );
+  setInterval(
+    () =>
+      storage.cleanupExpiredFolders().catch((err) =>
+        console.error("Scheduled folder cleanup error:", err)
+      ),
+    24 * 60 * 60 * 1000
+  );
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

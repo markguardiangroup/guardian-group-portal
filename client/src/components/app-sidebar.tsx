@@ -68,6 +68,7 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
       { title: "Incidents", url: "/health-safety/incidents" },
+      { title: "Client Uploads", url: "/health-safety/client-uploads" },
     ],
   },
   {
@@ -79,6 +80,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
+      { title: "Client Uploads", url: "/human-resources/client-uploads" },
     ],
   },
   {
@@ -91,6 +93,7 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/employment-law" },
       { title: "Documents", url: "/employment-law/documents" },
       { title: "Cases", url: "/employment-law/cases" },
+      { title: "Client Uploads", url: "/employment-law/client-uploads" },
     ],
   },
   {

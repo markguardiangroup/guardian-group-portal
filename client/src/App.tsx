@@ -50,6 +50,7 @@ import SetPassword from "@/pages/set-password";
 import HelpGuide from "@/pages/help-guide";
 import HSIncidents from "@/pages/hs-incidents";
 import CalendarPage from "@/pages/calendar";
+import ClientUploads from "@/pages/client-uploads";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -72,6 +73,18 @@ function EmploymentLawDocuments() {
   return <ModuleDocuments module="employment_law" />;
 }
 
+function HSClientUploads() {
+  return <ClientUploads module="health_safety" />;
+}
+
+function HRClientUploads() {
+  return <ClientUploads module="human_resources" />;
+}
+
+function ELClientUploads() {
+  return <ClientUploads module="employment_law" />;
+}
+
 
 function Router() {
   return (
@@ -84,11 +97,13 @@ function Router() {
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
       <Route path="/health-safety/incidents" component={HSIncidents} />
       <Route path="/health-safety/incidents/:id" component={HSIncidents} />
+      <Route path="/health-safety/client-uploads" component={HSClientUploads} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
       <Route path="/human-resources/documents/upload" component={DocumentUpload} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
+      <Route path="/human-resources/client-uploads" component={HRClientUploads} />
       
       <Route path="/employment-law" component={EmploymentLawPage} />
       <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
@@ -96,6 +111,7 @@ function Router() {
       <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />
       <Route path="/employment-law/cases" component={EmploymentLawPage} />
       <Route path="/employment-law/cases/:id" component={EmploymentLawPage} />
+      <Route path="/employment-law/client-uploads" component={ELClientUploads} />
       
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
