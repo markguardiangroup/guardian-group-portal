@@ -287,7 +287,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     enabled: !!accessFolder,
   });
 
-  const { data: companies = [] } = useQuery<Company[]>({
+  const { data: companiesData } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies"],
     queryFn: async () => {
       const res = await fetch("/api/companies", { credentials: "include" });
@@ -296,6 +296,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     },
     enabled: canManageFolders && createDialogOpen,
   });
+  const companies = companiesData?.companies ?? [];
 
   const { data: siteClientAssignments = [] } = useQuery<{ clientId: string; clientName: string; clientEmail: string }[]>({
     queryKey: ["/api/sites", dialogSiteId, "client-assignments"],
@@ -989,7 +990,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
               <SelectValue placeholder="All sites" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All sites</SelectItem>
+              {!isClient && <SelectItem value="__all__">All sites</SelectItem>}
               {isClient
                 ? clientSiteAssignments.map((a) => (
                     <SelectItem key={a.siteId} value={a.siteId} data-testid={`site-option-${a.siteId}`}>
