@@ -112,6 +112,11 @@ interface FolderAccessWithUser {
   userRole: string;
 }
 
+interface Company {
+  id: string;
+  name: string;
+}
+
 interface Site {
   id: string;
   name: string;
@@ -191,6 +196,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [folderName, setFolderName] = useState("");
   const [folderDescription, setFolderDescription] = useState("");
+  const [dialogCompanyId, setDialogCompanyId] = useState<string>("");
+  const [dialogSiteId, setDialogSiteId] = useState<string>("");
   const [folderAllocatedClientId, setFolderAllocatedClientId] = useState<string>("__none__");
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -280,16 +287,25 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     enabled: !!accessFolder,
   });
 
-  const { data: allUsers = [] } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
     queryFn: async () => {
-      const res = await fetch(`/api/users`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch users");
+      const res = await fetch("/api/companies", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch companies");
       return res.json();
     },
     enabled: canManageFolders && createDialogOpen,
   });
-  const clientUsers = allUsers.filter((u: any) => u.role === "client");
+
+  const { data: siteClientAssignments = [] } = useQuery<{ clientId: string; clientName: string; clientEmail: string }[]>({
+    queryKey: ["/api/sites", dialogSiteId, "client-assignments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${dialogSiteId}/client-assignments`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch site clients");
+      return res.json();
+    },
+    enabled: canManageFolders && !!dialogSiteId,
+  });
 
   const deleteFolderMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -401,14 +417,14 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       toast({ title: "Please enter a folder name", variant: "destructive" });
       return;
     }
-    if (!selectedSiteId || selectedSiteId === "__all__") {
+    const effectiveSiteId = canManageFolders ? dialogSiteId : selectedSiteId;
+    if (!effectiveSiteId || effectiveSiteId === "__all__") {
       toast({ title: "Please select a site", variant: "destructive" });
       return;
     }
 
     setCreatingFolder(true);
     try {
-      const effectiveSiteId = selectedSiteId === "__all__" ? "" : selectedSiteId;
       const folderRes = await apiRequest("POST", "/api/client-upload-folders", {
         name: folderName.trim(),
         description: folderDescription.trim() || null,
@@ -461,6 +477,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     setCreateStep(1);
     setFolderName("");
     setFolderDescription("");
+    setDialogCompanyId("");
+    setDialogSiteId("");
     setFolderAllocatedClientId("__none__");
     setPendingFiles([]);
   }
@@ -1129,7 +1147,71 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   data-testid="input-folder-description"
                 />
               </div>
-              {(!isClient || (isClient && clientSiteAssignments.length > 1)) && (
+              {canManageFolders && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="company-select">Company <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={dialogCompanyId}
+                      onValueChange={(val) => {
+                        setDialogCompanyId(val);
+                        setDialogSiteId("");
+                        setFolderAllocatedClientId("__none__");
+                      }}
+                    >
+                      <SelectTrigger id="company-select" data-testid="select-folder-company">
+                        <SelectValue placeholder="Select a company..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="site-select">Site <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={dialogSiteId}
+                      onValueChange={(val) => {
+                        setDialogSiteId(val);
+                        setFolderAllocatedClientId("__none__");
+                      }}
+                      disabled={!dialogCompanyId}
+                    >
+                      <SelectTrigger id="site-select" data-testid="select-folder-site">
+                        <SelectValue placeholder={dialogCompanyId ? "Select a site..." : "Select a company first..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sites
+                          .filter((s) => s.companyId === dialogCompanyId)
+                          .map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="allocate-client">Allocate to Client (optional)</Label>
+                    <Select
+                      value={folderAllocatedClientId}
+                      onValueChange={setFolderAllocatedClientId}
+                      disabled={!dialogSiteId}
+                    >
+                      <SelectTrigger id="allocate-client" data-testid="select-allocate-client">
+                        <SelectValue placeholder={dialogSiteId ? "No specific client..." : "Select a site first..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No specific client</SelectItem>
+                        {siteClientAssignments.map((a) => (
+                          <SelectItem key={a.clientId} value={a.clientId}>{a.clientName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              {isClient && clientSiteAssignments.length > 1 && (
                 <div className="space-y-2">
                   <Label htmlFor="site-select">Site <span className="text-destructive">*</span></Label>
                   <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
@@ -1137,28 +1219,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                       <SelectValue placeholder="Select a site..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {isClient
-                        ? clientSiteAssignments.map((a) => (
-                            <SelectItem key={a.siteId} value={a.siteId}>{a.siteName}</SelectItem>
-                          ))
-                        : sites.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {canManageFolders && (
-                <div className="space-y-2">
-                  <Label htmlFor="allocate-client">Allocate to Client (optional)</Label>
-                  <Select value={folderAllocatedClientId} onValueChange={setFolderAllocatedClientId}>
-                    <SelectTrigger id="allocate-client" data-testid="select-allocate-client">
-                      <SelectValue placeholder="No specific client..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">No specific client</SelectItem>
-                      {clientUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
+                      {clientSiteAssignments.map((a) => (
+                        <SelectItem key={a.siteId} value={a.siteId}>{a.siteName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1247,7 +1309,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     toast({ title: "Please enter a folder name", variant: "destructive" });
                     return;
                   }
-                  if (!selectedSiteId || selectedSiteId === "__all__") {
+                  const siteToCheck = canManageFolders ? dialogSiteId : selectedSiteId;
+                  if (!siteToCheck || siteToCheck === "__all__") {
                     toast({ title: "Please select a site", variant: "destructive" });
                     return;
                   }
