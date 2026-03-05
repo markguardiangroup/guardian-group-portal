@@ -945,8 +945,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
         <p className="text-sm text-amber-800 dark:text-amber-300">
           Folders and all their files are <strong>automatically and permanently deleted 30 days</strong> after
-          the folder is created. Files cannot be individually extended — create a new folder if you need
-          longer-term storage.
+          the folder is created.
         </p>
       </div>
 
