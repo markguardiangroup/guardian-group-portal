@@ -1107,7 +1107,13 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   id="folder-name"
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
-                  placeholder="e.g. Risk Assessment Documents"
+                  placeholder={
+                    module === "health_safety"
+                      ? "e.g. Risk Assessment Documents"
+                      : module === "human_resources"
+                      ? "e.g. Employee Handbook Updates"
+                      : "e.g. Settlement Agreement Documents"
+                  }
                   data-testid="input-folder-name"
                 />
               </div>
