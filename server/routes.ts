@@ -7022,17 +7022,26 @@ export async function registerRoutes(
       
       const assignments = await storage.getClientSiteAssignments(req.params.siteId);
       
-      // Enhance with client details
-      const enhancedAssignments = await Promise.all(
-        assignments.map(async (a) => {
-          const client = await storage.getUser(a.clientId);
-          return {
-            ...a,
-            clientName: client?.fullName || "Unknown",
-            clientEmail: client?.email || "",
-          };
-        })
-      );
+      // Enhance with client details, filtering out orphaned assignments
+      const enhancedAssignments = (
+        await Promise.all(
+          assignments.map(async (a) => {
+            const client = await storage.getUser(a.clientId);
+            if (!client) return null;
+            const displayName =
+              client.fullName ||
+              [client.firstName, client.lastName].filter(Boolean).join(" ") ||
+              client.username ||
+              client.email ||
+              "Unknown";
+            return {
+              ...a,
+              clientName: displayName,
+              clientEmail: client.email || "",
+            };
+          })
+        )
+      ).filter(Boolean);
       
       res.json(enhancedAssignments);
     } catch (error) {
