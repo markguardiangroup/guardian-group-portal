@@ -8685,7 +8685,8 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const { module, siteId } = req.query as { module?: string; siteId?: string };
       if (!module) return res.status(400).json({ error: "module is required" });
 
@@ -8707,7 +8708,8 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const body = req.body;
       const { name, description, module, siteId, allocatedClientId } = body;
 
@@ -8751,7 +8753,8 @@ export async function registerRoutes(
 
   app.delete("/api/client-upload-folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
 
@@ -8789,7 +8792,8 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
@@ -8804,7 +8808,8 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
@@ -8842,7 +8847,8 @@ export async function registerRoutes(
 
   app.delete("/api/client-upload-folders/:id/access/:userId", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
@@ -8874,7 +8880,8 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:id/grantable-users", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
@@ -8889,7 +8896,8 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:folderId/files", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
@@ -8904,7 +8912,8 @@ export async function registerRoutes(
 
   app.post("/api/client-uploads", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const { folderId, fileName, fileSize, fileUrl, description } = req.body;
       if (!folderId || !fileName || !fileSize || !fileUrl) {
         return res.status(400).json({ error: "folderId, fileName, fileSize, and fileUrl are required" });
@@ -8949,7 +8958,8 @@ export async function registerRoutes(
 
   app.get("/api/client-uploads/:id/download", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const upload = await storage.getClientUpload(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
 
@@ -8980,7 +8990,8 @@ export async function registerRoutes(
 
   app.delete("/api/client-uploads/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const upload = await storage.getClientUpload(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
 
@@ -9020,7 +9031,8 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders/:folderId/download", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
       const canAccess = await canUserAccessFolder(user, folder);
