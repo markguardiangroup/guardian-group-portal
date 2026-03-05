@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -223,6 +223,22 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     enabled: !isClient,
   });
 
+  const { data: clientSiteAssignments = [] } = useQuery<{ siteId: string; siteName: string }[]>({
+    queryKey: ["/api/users", user?.id, "site-assignments"],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${user!.id}/site-assignments`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch site assignments");
+      return res.json();
+    },
+    enabled: isClient && !!user?.id,
+  });
+
+  useEffect(() => {
+    if (isClient && clientSiteAssignments.length === 1) {
+      setSelectedSiteId(clientSiteAssignments[0].siteId);
+    }
+  }, [isClient, clientSiteAssignments]);
+
   const { data: folders = [], isLoading: foldersLoading } = useQuery<ClientUploadFolderWithMeta[]>({
     queryKey: ["/api/client-upload-folders", module, selectedSiteId],
     queryFn: async () => {
@@ -385,8 +401,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       toast({ title: "Please enter a folder name", variant: "destructive" });
       return;
     }
-    const siteId = selectedSiteId || (isClient ? (user as any).siteId : "");
-    if (!siteId && !isClient) {
+    if (!selectedSiteId || selectedSiteId === "__all__") {
       toast({ title: "Please select a site", variant: "destructive" });
       return;
     }
@@ -949,19 +964,25 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         </p>
       </div>
 
-      {!isClient && (
+      {(!isClient || (isClient && clientSiteAssignments.length > 1)) && (
         <div className="flex items-center gap-3">
           <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
             <SelectTrigger className="w-64" data-testid="select-site-filter">
-              <SelectValue placeholder="All sites" />
+              <SelectValue placeholder={isClient ? "Select a site..." : "All sites"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All sites</SelectItem>
-              {sites.map((s) => (
-                <SelectItem key={s.id} value={s.id} data-testid={`site-option-${s.id}`}>
-                  {s.name}
-                </SelectItem>
-              ))}
+              {!isClient && <SelectItem value="__all__">All sites</SelectItem>}
+              {isClient
+                ? clientSiteAssignments.map((a) => (
+                    <SelectItem key={a.siteId} value={a.siteId} data-testid={`site-option-${a.siteId}`}>
+                      {a.siteName}
+                    </SelectItem>
+                  ))
+                : sites.map((s) => (
+                    <SelectItem key={s.id} value={s.id} data-testid={`site-option-${s.id}`}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
             </SelectContent>
           </Select>
         </div>
@@ -1102,7 +1123,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   data-testid="input-folder-description"
                 />
               </div>
-              {!isClient && (
+              {(!isClient || (isClient && clientSiteAssignments.length > 1)) && (
                 <div className="space-y-2">
                   <Label htmlFor="site-select">Site <span className="text-destructive">*</span></Label>
                   <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
@@ -1110,9 +1131,13 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                       <SelectValue placeholder="Select a site..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {sites.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
+                      {isClient
+                        ? clientSiteAssignments.map((a) => (
+                            <SelectItem key={a.siteId} value={a.siteId}>{a.siteName}</SelectItem>
+                          ))
+                        : sites.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1216,7 +1241,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     toast({ title: "Please enter a folder name", variant: "destructive" });
                     return;
                   }
-                  if (!isClient && (!selectedSiteId || selectedSiteId === "__all__")) {
+                  if (!selectedSiteId || selectedSiteId === "__all__") {
                     toast({ title: "Please select a site", variant: "destructive" });
                     return;
                   }
