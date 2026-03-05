@@ -68,7 +68,7 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/health-safety" },
       { title: "Documents", url: "/health-safety/documents" },
       { title: "Incidents", url: "/health-safety/incidents" },
-      { title: "Data Transfer", url: "/health-safety/client-uploads" },
+      { title: "Document Transfer", url: "/health-safety/client-uploads" },
     ],
   },
   {
@@ -80,7 +80,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
       { title: "Documents", url: "/human-resources/documents" },
-      { title: "Data Transfer", url: "/human-resources/client-uploads" },
+      { title: "Document Transfer", url: "/human-resources/client-uploads" },
     ],
   },
   {
@@ -93,7 +93,7 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/employment-law" },
       { title: "Documents", url: "/employment-law/documents" },
       { title: "Cases", url: "/employment-law/cases" },
-      { title: "Data Transfer", url: "/employment-law/client-uploads" },
+      { title: "Document Transfer", url: "/employment-law/client-uploads" },
     ],
   },
   {
