@@ -978,7 +978,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30" data-testid="expiry-info-banner">
         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
         <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-          Press <strong>Upload Documents</strong> to create a new folder for your documents.<br />
+          Press <strong>Upload Documents</strong> to create a new folder for your documents, or add files within an existing folder.<br />
           Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded. The folder is removed once all its files have been deleted.
         </p>
       </div>
