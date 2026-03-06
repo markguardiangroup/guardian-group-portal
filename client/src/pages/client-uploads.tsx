@@ -597,7 +597,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
             data-testid="button-back-to-folders"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Document Transfer
+            Cloud Share
           </Button>
           <span className="text-muted-foreground">/</span>
           <span className="font-medium">{selectedFolder.name}</span>
@@ -960,7 +960,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     <div className="p-6 space-y-5" data-testid="folder-list-view">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Document Transfer</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Cloud Share</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{MODULE_LABELS[module]}</p>
         </div>
         <Button
