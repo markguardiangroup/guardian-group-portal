@@ -484,6 +484,32 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroup>
         )}
 
+        {/* Toolkit — visible to all roles */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Resources
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/toolkit" || location.startsWith("/toolkit/")}
+                  className={cn(
+                    "transition-colors",
+                    (location === "/toolkit" || location.startsWith("/toolkit/")) && "bg-sidebar-accent font-medium"
+                  )}
+                >
+                  <Link href="/toolkit" data-testid="nav-toolkit">
+                    <BookOpen className="h-4 w-4" />
+                    <span>Toolkit</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
