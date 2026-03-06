@@ -1018,89 +1018,86 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           <p className="text-sm text-muted-foreground mt-1">Click "Upload Documents" to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="folders-grid">
+        <div className="rounded-lg border divide-y" data-testid="folders-grid">
           {folders.map((folder) => (
-            <Card
+            <div
               key={folder.id}
-              className="group hover:border-foreground/20 transition-colors"
+              className="flex items-center gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
               data-testid={`card-folder-${folder.id}`}
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <CardTitle className="text-base leading-snug truncate">{folder.name}</CardTitle>
-                  </div>
+              <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm">{folder.name}</span>
                   <ExpiryBadge expiresAt={folder.expiresAt} />
                 </div>
                 {folder.description && (
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{folder.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{folder.description}</p>
                 )}
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-                  <span>{folder.fileCount} file{folder.fileCount !== 1 ? "s" : ""}</span>
-                  {folder.totalSize > 0 && <span>· {formatBytes(folder.totalSize)}</span>}
-                  <span>· {folder.siteName}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+                  <span>{folder.siteName}</span>
+                  <span>·</span>
+                  <span>{folder.fileCount} file{folder.fileCount !== 1 ? "s" : ""}{folder.totalSize > 0 ? ` · ${formatBytes(folder.totalSize)}` : ""}</span>
+                  {folder.allocatedClientName && (
+                    <>
+                      <span>·</span>
+                      <span className="flex items-center gap-1">
+                        <Shield className="h-3 w-3" />
+                        {folder.allocatedClientName}
+                      </span>
+                    </>
+                  )}
+                  <span>·</span>
+                  <span>Created by {folder.creatorName} {formatDistanceToNow(new Date(folder.createdAt), { addSuffix: true })}</span>
                 </div>
-                {folder.allocatedClientName && (
-                  <div className="flex items-center gap-1.5 text-xs">
-                    <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-muted-foreground">Allocated to:</span>
-                    <span className="font-medium">{folder.allocatedClientName}</span>
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  Created by {folder.creatorName} · {formatDistanceToNow(new Date(folder.createdAt), { addSuffix: true })}
-                </div>
-                <div className="flex items-center gap-1.5 pt-1">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-8"
-                    onClick={() => {
-                      setSelectedFolder(folder);
-                      setCheckedFileIds(new Set());
-                    }}
-                    data-testid={`button-open-folder-${folder.id}`}
-                  >
-                    Open
-                  </Button>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    setSelectedFolder(folder);
+                    setCheckedFileIds(new Set());
+                  }}
+                  data-testid={`button-open-folder-${folder.id}`}
+                >
+                  Open
+                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8"
+                      onClick={() => {
+                        setAccessFolder(folder);
+                        setAccessSheetOpen(true);
+                      }}
+                      data-testid={`button-folder-access-${folder.id}`}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manage Access</TooltipContent>
+                </Tooltip>
+                {!isClient && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         size="icon"
                         variant="outline"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setAccessFolder(folder);
-                          setAccessSheetOpen(true);
-                        }}
-                        data-testid={`button-folder-access-${folder.id}`}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteFolder(folder)}
+                        data-testid={`button-delete-folder-${folder.id}`}
                       >
-                        <Users className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Manage Access</TooltipContent>
+                    <TooltipContent>Delete Folder</TooltipContent>
                   </Tooltip>
-                  {!isClient && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteFolder(folder)}
-                          data-testid={`button-delete-folder-${folder.id}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete Folder</TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
