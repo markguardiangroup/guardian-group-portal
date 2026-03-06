@@ -91,8 +91,6 @@ import {
   Check,
   CircleDot,
   GripVertical,
-  Globe,
-  Lock,
 } from "lucide-react";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link } from "wouter";
@@ -125,7 +123,6 @@ const moduleIcons: Record<string, typeof HardHat> = {
   human_resources: Users,
   employment_law: Scale,
   support: Headphones,
-  toolkit: BookOpen,
 };
 
 const moduleNames: Record<string, string> = {
@@ -133,7 +130,6 @@ const moduleNames: Record<string, string> = {
   human_resources: "Human Resources",
   employment_law: "Employment Law",
   support: "Support",
-  toolkit: "Toolkit",
 };
 
 const moduleColors: Record<string, string> = {
@@ -141,7 +137,6 @@ const moduleColors: Record<string, string> = {
   human_resources: "text-blue-600 dark:text-blue-400",
   employment_law: "text-pink-600 dark:text-pink-400",
   support: "text-purple-600 dark:text-purple-400",
-  toolkit: "text-amber-600 dark:text-amber-400",
 };
 
 const moduleBgColors: Record<string, string> = {
@@ -149,7 +144,6 @@ const moduleBgColors: Record<string, string> = {
   human_resources: "bg-blue-100 dark:bg-blue-900/30",
   employment_law: "bg-pink-100 dark:bg-pink-900/30",
   support: "bg-purple-100 dark:bg-purple-900/30",
-  toolkit: "bg-amber-100 dark:bg-amber-900/30",
 };
 
 const moduleBorderColors: Record<string, string> = {
@@ -157,7 +151,6 @@ const moduleBorderColors: Record<string, string> = {
   human_resources: "border-blue-200 dark:border-blue-800",
   employment_law: "border-pink-200 dark:border-pink-800",
   support: "border-purple-200 dark:border-purple-800",
-  toolkit: "border-amber-200 dark:border-amber-800",
 };
 
 const moduleGradients: Record<string, string> = {
@@ -165,7 +158,6 @@ const moduleGradients: Record<string, string> = {
   human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
   employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
   support: "from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/10",
-  toolkit: "from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/20 dark:via-amber-500/10",
 };
 
 const getFileIcon = (mimeType: string) => {
@@ -218,8 +210,6 @@ type TemplateFormData = {
   sortOrder: number;
   createNewFolder: boolean;
   newFolderName: string;
-  isPublic: boolean;
-  toolkitFolderId: string;
 };
 
 type FolderFormData = {
@@ -259,8 +249,6 @@ const defaultTemplateFormData: TemplateFormData = {
   sortOrder: 0,
   createNewFolder: false,
   newFolderName: "",
-  isPublic: false,
-  toolkitFolderId: "",
 };
 
 const defaultFolderFormData: FolderFormData = {
@@ -367,12 +355,6 @@ export default function TemplateLibraryPage() {
   const [createdFolderId, setCreatedFolderId] = useState<string | null>(null);
   const [createdDocTypeId, setCreatedDocTypeId] = useState<string | null>(null);
   
-  // Visibility dialog state
-  const [visibilityTemplate, setVisibilityTemplate] = useState<DocumentTemplate | null>(null);
-  const [visibilityIsPublic, setVisibilityIsPublic] = useState(false);
-  const [visibilityToolkitFolderId, setVisibilityToolkitFolderId] = useState<string>("");
-  const [isVisibilityDialogOpen, setIsVisibilityDialogOpen] = useState(false);
-
   // Delete confirmation
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplate | null>(null);
@@ -486,22 +468,6 @@ export default function TemplateLibraryPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to restore template", variant: "destructive" });
-    },
-  });
-
-  const updateVisibilityMutation = useMutation({
-    mutationFn: async ({ id, isPublic, toolkitFolderId }: { id: string; isPublic: boolean; toolkitFolderId: string | null }) => {
-      return apiRequest("PATCH", `/api/document-templates/${id}/visibility`, { isPublic, toolkitFolderId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/templates"] });
-      setIsVisibilityDialogOpen(false);
-      setVisibilityTemplate(null);
-      toast({ title: "Visibility updated" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to update visibility", variant: "destructive" });
     },
   });
 
@@ -863,9 +829,7 @@ export default function TemplateLibraryPage() {
       isRequired: templateFormData.isRequired,
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       requiresApproval: templateFormData.requiresApproval,
-      isPublic: templateFormData.isPublic,
-      toolkitFolderId: templateFormData.toolkitFolderId || null,
-    } as any);
+    });
   };
   
   const handleEditTemplate = (template: DocumentTemplate) => {
@@ -886,17 +850,8 @@ export default function TemplateLibraryPage() {
       sortOrder: template.sortOrder,
       createNewFolder: false,
       newFolderName: "",
-      isPublic: (template as any).isPublic ?? false,
-      toolkitFolderId: (template as any).toolkitFolderId ?? "",
     });
     setIsEditTemplateDialogOpen(true);
-  };
-
-  const handleOpenVisibilityDialog = (template: DocumentTemplate) => {
-    setVisibilityTemplate(template);
-    setVisibilityIsPublic((template as any).isPublic ?? false);
-    setVisibilityToolkitFolderId((template as any).toolkitFolderId ?? "");
-    setIsVisibilityDialogOpen(true);
   };
   
   const handleUpdateTemplate = () => {
@@ -911,8 +866,6 @@ export default function TemplateLibraryPage() {
         isRequired: templateFormData.isRequired,
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
         requiresApproval: templateFormData.requiresApproval,
-        isPublic: templateFormData.isPublic,
-        toolkitFolderId: templateFormData.toolkitFolderId || null,
       },
     });
   };
@@ -1242,17 +1195,6 @@ export default function TemplateLibraryPage() {
                   {template.renewalPeriodMonths}mo
                 </Badge>
               )}
-              {(template as any).isPublic ? (
-                <Badge variant="outline" className="text-green-600 border-green-500 text-xs py-0" title="Visible to all users in Toolkit">
-                  <Globe className="h-3 w-3 mr-1" />
-                  Public
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-muted-foreground text-xs py-0" title="Visible to consultants and admins only">
-                  <Lock className="h-3 w-3 mr-1" />
-                  Private
-                </Badge>
-              )}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{template.fileName}</span>
@@ -1315,10 +1257,6 @@ export default function TemplateLibraryPage() {
                 <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleOpenVisibilityDialog(template)} data-testid={`button-visibility-template-${template.id}`}>
-                  <Globe className="h-4 w-4 mr-2" />
-                  Set Visibility
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-amber-600 dark:text-amber-400">
@@ -1977,35 +1915,6 @@ export default function TemplateLibraryPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Toolkit Folder <span className="text-xs text-muted-foreground">(for Toolkit page)</span></Label>
-              <Select
-                value={templateFormData.toolkitFolderId || "__none__"}
-                onValueChange={(v) => setTemplateFormData({ ...templateFormData, toolkitFolderId: v === "__none__" ? "" : v })}
-              >
-                <SelectTrigger data-testid="select-template-toolkit-folder">
-                  <SelectValue placeholder="Select toolkit folder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No toolkit folder</SelectItem>
-                  {folderTemplates.filter(f => (f as any).module === "toolkit" && f.isActive).map(f => (
-                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-              <div className="space-y-0.5">
-                <Label htmlFor="template-isPublic" className="font-medium text-sm">Public in Toolkit</Label>
-                <p className="text-xs text-muted-foreground">Visible to all users including clients</p>
-              </div>
-              <Switch
-                id="template-isPublic"
-                checked={templateFormData.isPublic}
-                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isPublic: checked })}
-                data-testid="switch-template-public"
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Folder</Label>
               <div className="flex gap-2 mb-2">
                 <Button
@@ -2417,68 +2326,6 @@ export default function TemplateLibraryPage() {
       </Dialog>
       
       {/* Delete Confirmation Dialog */}
-      {/* Visibility Dialog */}
-      <Dialog open={isVisibilityDialogOpen} onOpenChange={(o) => { if (!o) { setIsVisibilityDialogOpen(false); setVisibilityTemplate(null); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Set Visibility
-            </DialogTitle>
-            <DialogDescription>
-              Control whether "{visibilityTemplate?.name}" is visible to clients in the Toolkit.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between p-3 bg-muted/40 rounded-md border">
-              <div className="space-y-0.5">
-                <Label className="font-medium text-sm">Public in Toolkit</Label>
-                <p className="text-xs text-muted-foreground">Visible to all users including clients</p>
-              </div>
-              <Switch
-                checked={visibilityIsPublic}
-                onCheckedChange={setVisibilityIsPublic}
-                data-testid="switch-visibility-public"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Toolkit Folder</Label>
-              <Select
-                value={visibilityToolkitFolderId || "__none__"}
-                onValueChange={(v) => setVisibilityToolkitFolderId(v === "__none__" ? "" : v)}
-              >
-                <SelectTrigger data-testid="select-visibility-toolkit-folder">
-                  <SelectValue placeholder="Select toolkit folder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">No toolkit folder</SelectItem>
-                  {folderTemplates.filter(f => (f as any).module === "toolkit" && f.isActive).map(f => (
-                    <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsVisibilityDialogOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => {
-                if (!visibilityTemplate) return;
-                updateVisibilityMutation.mutate({
-                  id: visibilityTemplate.id,
-                  isPublic: visibilityIsPublic,
-                  toolkitFolderId: visibilityToolkitFolderId || null,
-                });
-              }}
-              disabled={updateVisibilityMutation.isPending}
-              data-testid="button-save-visibility"
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -2573,7 +2420,6 @@ export default function TemplateLibraryPage() {
                   <SelectItem value="health_safety">Health & Safety</SelectItem>
                   <SelectItem value="human_resources">Human Resources</SelectItem>
                   <SelectItem value="employment_law">Employment Law</SelectItem>
-                  <SelectItem value="toolkit">Toolkit</SelectItem>
                 </SelectContent>
               </Select>
             </div>

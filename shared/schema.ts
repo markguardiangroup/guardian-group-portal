@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Modules
-export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "training" | "support" | "reports" | "toolkit";
+export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "training" | "support" | "reports";
 
 // User roles (top-level)
 export type UserRole = "admin" | "consultant" | "client";
@@ -549,9 +549,6 @@ export const documentTemplates = pgTable("document_templates", {
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  // Toolkit categorisation
-  isPublic: boolean("is_public").notNull().default(false), // Public = visible to all in Toolkit; Private = consultants/admins only
-  toolkitFolderId: varchar("toolkit_folder_id"), // Points to a folder_templates row with module = 'toolkit'
   // Soft delete tracking
   deletedAt: timestamp("deleted_at"),
   deletedBy: varchar("deleted_by"),

@@ -32,8 +32,6 @@ A database-first storage model uses PostgreSQL as the primary data store for all
 
 Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in object storage, with API endpoints for upload and retrieval. User acceptance is required during invitation flow and upon revision, triggering a re-acceptance workflow to block access until updated documents are reviewed.
 
-A Toolkit module provides a curated library of document templates visible to all user roles. Templates retain their original module (health_safety/human_resources/employment_law) as a categorisation badge but are also assigned to Toolkit folders (folder_templates rows with module='toolkit'). Each template has an `isPublic` flag: public templates are visible to all users including clients; private templates are visible to consultants and admins only. Admins can manage visibility via a "Set Visibility" action on each template card in the Template Library. The Toolkit page (/toolkit) groups templates by their assigned Toolkit folder.
-
 ## External Dependencies
 
 -   **Database**: PostgreSQL, Drizzle ORM, connect-pg-simple
