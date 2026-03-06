@@ -979,7 +979,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
         <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
           Press <strong>Upload Documents</strong> to create a new folder for your documents, or add files within an existing folder.<br />
-          Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded. The folder is removed once all its files have been deleted.
+          Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded.
         </p>
       </div>
 
