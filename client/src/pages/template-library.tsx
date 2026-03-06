@@ -202,6 +202,7 @@ type TemplateFormData = {
   isRequired: boolean;
   renewalPeriodMonths: number | null;
   requiresApproval: boolean;
+  visibility: "public" | "private";
   fileName: string;
   fileUrl: string;
   fileSize: number;
@@ -241,6 +242,7 @@ const defaultTemplateFormData: TemplateFormData = {
   isRequired: false,
   renewalPeriodMonths: null,
   requiresApproval: true,
+  visibility: "public",
   fileName: "",
   fileUrl: "",
   fileSize: 0,
@@ -829,6 +831,7 @@ export default function TemplateLibraryPage() {
       isRequired: templateFormData.isRequired,
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       requiresApproval: templateFormData.requiresApproval,
+      visibility: templateFormData.visibility,
     });
   };
   
@@ -842,6 +845,7 @@ export default function TemplateLibraryPage() {
       isRequired: template.isRequired || false,
       renewalPeriodMonths: template.renewalPeriodMonths || null,
       requiresApproval: template.requiresApproval !== false,
+      visibility: (template.visibility as "public" | "private") || "public",
       fileName: template.fileName,
       fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
@@ -866,6 +870,7 @@ export default function TemplateLibraryPage() {
         isRequired: templateFormData.isRequired,
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
         requiresApproval: templateFormData.requiresApproval,
+        visibility: templateFormData.visibility,
       },
     });
   };
@@ -1193,6 +1198,11 @@ export default function TemplateLibraryPage() {
                 <Badge variant="outline" className="text-xs py-0">
                   <RotateCcw className="h-3 w-3 mr-1" />
                   {template.renewalPeriodMonths}mo
+                </Badge>
+              )}
+              {(template as any).visibility === "private" && (
+                <Badge variant="outline" className="text-purple-600 border-purple-600 text-xs py-0">
+                  Private
                 </Badge>
               )}
             </div>
@@ -2006,6 +2016,30 @@ export default function TemplateLibraryPage() {
                 </div>
               </div>
               <div className="space-y-1">
+                <Label className="text-sm">Visibility</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.visibility === "public" ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "public" })}
+                    data-testid="button-template-visibility-public"
+                  >
+                    Public
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.visibility === "private" ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "private" })}
+                    data-testid="button-template-visibility-private"
+                  >
+                    Private
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Public templates are visible to all clients. Private templates are restricted.</p>
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="template-renewal" className="text-sm">Renewal Period (months)</Label>
                 <Input
                   id="template-renewal"
@@ -2167,6 +2201,30 @@ export default function TemplateLibraryPage() {
                     data-testid="switch-edit-template-requires-approval"
                   />
                 </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Visibility</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.visibility === "public" ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "public" })}
+                    data-testid="button-edit-template-visibility-public"
+                  >
+                    Public
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.visibility === "private" ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "private" })}
+                    data-testid="button-edit-template-visibility-private"
+                  >
+                    Private
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Public templates are visible to all clients. Private templates are restricted.</p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period (months)</Label>

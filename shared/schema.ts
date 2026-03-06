@@ -544,6 +544,7 @@ export const documentTemplates = pgTable("document_templates", {
   isRequired: boolean("is_required").notNull().default(false), // Is this template required for compliance?
   renewalPeriodMonths: integer("renewal_period_months"), // How often documents from this template need renewal (null = no renewal)
   requiresApproval: boolean("requires_approval").notNull().default(true), // Does document need client approval workflow?
+  visibility: text("visibility").$type<"public" | "private">().notNull().default("public"), // Public = visible to all clients, Private = restricted
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),

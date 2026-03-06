@@ -2922,6 +2922,7 @@ export async function registerRoutes(
         isRequired: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
+        visibility: z.enum(["public", "private"]).optional(),
       });
       
       const parsed = schema.safeParse(req.body);
@@ -2990,6 +2991,7 @@ export async function registerRoutes(
         isRequired: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
+        visibility: z.enum(["public", "private"]).optional(),
       });
       
       const parsed = schema.safeParse(req.body);
