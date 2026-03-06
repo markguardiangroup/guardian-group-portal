@@ -143,7 +143,7 @@ const MODULE_LABELS: Record<ClientUploadModule, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
   employment_law: "Employment Law",
-};
+} as const;
 
 const MODULE_COLOR: Record<ClientUploadModule, string> = {
   health_safety: "emerald",
