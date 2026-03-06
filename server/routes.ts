@@ -8729,7 +8729,8 @@ export async function registerRoutes(
       const canAccess = await canUserAccessSite(user, siteId);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this site" });
 
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      // Folder expiry is a long-running safety-net; actual deletion is driven by file-level expiry
+      const expiresAt = new Date(Date.now() + 366 * 24 * 60 * 60 * 1000);
 
       const effectiveAllocatedClientId =
         user.role === "client" ? user.id : allocatedClientId ?? null;
@@ -8942,6 +8943,8 @@ export async function registerRoutes(
       const canAccess = await canUserAccessFolder(user, folder);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
+      const fileExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
       const upload = await storage.createClientUpload({
         folderId,
         module: folder.module,
@@ -8951,6 +8954,7 @@ export async function registerRoutes(
         fileSize,
         fileUrl,
         description: description ?? null,
+        expiresAt: fileExpiresAt,
       });
 
       await storage.createAuditLog({

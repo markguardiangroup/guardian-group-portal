@@ -1341,6 +1341,7 @@ export const clientUploads = pgTable("client_uploads", {
   fileSize: integer("file_size").notNull(),
   fileUrl: text("file_url").notNull(),
   description: text("description"),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

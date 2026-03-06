@@ -97,6 +97,7 @@ interface ClientUploadWithUploader {
   fileSize: number;
   fileUrl: string;
   description: string | null;
+  expiresAt: string;
   createdAt: string;
   uploaderName: string;
 }
@@ -611,7 +612,6 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <ExpiryBadge expiresAt={selectedFolder.expiresAt} />
             <Badge variant="outline" className="text-xs">
               {selectedFolder.fileCount} file{selectedFolder.fileCount !== 1 ? "s" : ""}
             </Badge>
@@ -710,6 +710,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   <TableHead>Uploaded By</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Size</TableHead>
+                  <TableHead>Expires</TableHead>
                   <TableHead className="w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -735,6 +736,9 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                       {format(new Date(file.createdAt), "d MMM yyyy")}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatBytes(file.fileSize)}</TableCell>
+                    <TableCell>
+                      <ExpiryBadge expiresAt={file.expiresAt} />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Tooltip>
@@ -792,10 +796,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     Before you upload
                   </DialogTitle>
                   <DialogDescription>
-                    This folder will be <strong>automatically deleted</strong> on{" "}
-                    <strong>{format(new Date(selectedFolder.expiresAt), "d MMMM yyyy")}</strong>. All files
-                    — including any you add now — will be permanently removed at that point. If you need
-                    files available beyond this date, create a new upload instead.
+                    Each file you upload will be <strong>automatically deleted 30 days</strong> after it is uploaded. If you need files available for longer, create a new upload closer to when they are needed.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="gap-2 sm:gap-0">
@@ -826,8 +827,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                 <DialogHeader>
                   <DialogTitle>Upload More Files</DialogTitle>
                   <DialogDescription>
-                    Add files to <strong>{selectedFolder.name}</strong>. These will be deleted on{" "}
-                    {format(new Date(selectedFolder.expiresAt), "d MMMM yyyy")}.
+                    Add files to <strong>{selectedFolder.name}</strong>. Each file will be automatically deleted 30 days after upload.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
@@ -979,7 +979,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
         <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
           Press <strong>Upload Documents</strong> to create a new folder for your documents.<br />
-          Folders and all their files are <strong>automatically and permanently deleted 30 days</strong> after the folder is created.
+          Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded. The folder is removed once all its files have been deleted.
         </p>
       </div>
 
@@ -1029,7 +1029,6 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm">{folder.name}</span>
-                  <ExpiryBadge expiresAt={folder.expiresAt} />
                 </div>
                 {folder.description && (
                   <p className="text-xs text-muted-foreground mt-0.5">{folder.description}</p>

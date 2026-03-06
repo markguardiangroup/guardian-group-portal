@@ -3207,29 +3207,43 @@ export class MemStorage implements IStorage {
   async cleanupExpiredFolders(): Promise<number> {
     const now = new Date();
     const { objectStorageService } = await import("./replit_integrations/object_storage/objectStorage");
-    const expired = await db
-      .select()
-      .from(clientUploadFoldersTable)
-      .where(sql`${clientUploadFoldersTable.expiresAt} < ${now}`);
 
-    let count = 0;
-    for (const folder of expired) {
-      const files = await db
+    // Step 1: Delete individual files that have passed their 30-day expiry
+    const expiredFiles = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(sql`${clientUploadsTable.expiresAt} < ${now}`);
+
+    let fileCount = 0;
+    for (const file of expiredFiles) {
+      try {
+        await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+      } catch {
+        // Continue even if object storage deletion fails
+      }
+      await db.delete(clientUploadsTable).where(eq(clientUploadsTable.id, file.id));
+      fileCount++;
+    }
+
+    // Step 2: Delete any folders that are now empty (all files have expired/been deleted)
+    // Also delete folders that hit the long-running safety-net expiry
+    const allFolders = await db.select().from(clientUploadFoldersTable);
+    for (const folder of allFolders) {
+      const remaining = await db
         .select()
         .from(clientUploadsTable)
-        .where(eq(clientUploadsTable.folderId, folder.id));
+        .where(eq(clientUploadsTable.folderId, folder.id))
+        .limit(1);
 
-      for (const file of files) {
-        try {
-          await objectStorageService.deleteObjectEntityFile(file.fileUrl);
-        } catch {
-        }
+      const isEmpty = remaining.length === 0;
+      const pastSafetyNet = folder.expiresAt < now;
+
+      if (isEmpty || pastSafetyNet) {
+        await this.deleteClientUploadFolder(folder.id);
       }
-
-      await this.deleteClientUploadFolder(folder.id);
-      count++;
     }
-    return count;
+
+    return fileCount;
   }
 
   // Initialize default admin user in database if not exists
