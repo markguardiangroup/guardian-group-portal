@@ -525,13 +525,28 @@ export const insertFolderDocumentTypeRuleSchema = createInsertSchema(folderDocum
 export type InsertFolderDocumentTypeRule = z.infer<typeof insertFolderDocumentTypeRuleSchema>;
 export type FolderDocumentTypeRule = typeof folderDocumentTypeRules.$inferSelect;
 
+// Toolkit Folders (separate from Template Library folders — admin-managed, for organising Toolkit templates)
+export const toolkitFolders = pgTable("toolkit_folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  module: text("module").$type<ModuleType>().notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertToolkitFolderSchema = createInsertSchema(toolkitFolders).omit({ id: true, createdAt: true });
+export type InsertToolkitFolder = z.infer<typeof insertToolkitFolderSchema>;
+export type ToolkitFolder = typeof toolkitFolders.$inferSelect;
+
 // Document Templates (The "Document Bible" - master templates for creating documents)
 export const documentTemplates = pgTable("document_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
-  folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to
+  folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to (Template Library)
+  toolkitFolderId: varchar("toolkit_folder_id"), // Which toolkit folder this belongs to (Toolkit page, nullable)
   documentTypeId: varchar("document_type_id"), // Legacy - kept for backward compatibility
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"), // URL/path to the uploaded template file in object storage

@@ -40,6 +40,8 @@ import {
   Search,
   BookMarked,
   GripVertical,
+  FolderPlus,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
@@ -51,7 +53,7 @@ interface ToolkitTemplate {
   name: string;
   description: string | null;
   module: ModuleType;
-  folderTemplateId: string;
+  toolkitFolderId: string | null;
   fileName: string;
   fileUrl: string | null;
   fileSize: number;
@@ -66,7 +68,6 @@ interface ToolkitFolder {
   id: string;
   name: string;
   module: string;
-  parentId: string | null;
   sortOrder: number;
   templates: ToolkitTemplate[];
 }
@@ -234,10 +235,14 @@ function DroppableFolder({
   folder,
   children,
   isOver,
+  canEdit,
+  onDelete,
 }: {
   folder: ToolkitFolder;
   children: React.ReactNode;
   isOver: boolean;
+  canEdit: boolean;
+  onDelete: (folder: ToolkitFolder) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: folder.id, data: { folderId: folder.id } });
 
@@ -246,6 +251,22 @@ function DroppableFolder({
       ref={setNodeRef}
       className={`rounded-lg border transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border bg-card"}`}
     >
+      <div className="flex items-center gap-2 px-4 py-3 border-b">
+        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+        <span className="font-semibold text-sm flex-1" data-testid={`folder-name-${folder.id}`}>{folder.name}</span>
+        <Badge variant="secondary" className="text-xs">{folder.templates.length} template{folder.templates.length !== 1 ? "s" : ""}</Badge>
+        {canEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(folder)}
+            data-testid={`button-delete-folder-${folder.id}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
       {children}
     </div>
   );
@@ -273,6 +294,7 @@ function DroppableUnassigned({
 export default function Toolkit() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = user?.role === "admin";
   const canEdit = user?.role === "admin" || user?.role === "consultant";
 
   const [selectedModule, setSelectedModule] = useState<ModuleType>("health_safety");
@@ -284,6 +306,13 @@ export default function Toolkit() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
+  // Create folder dialog
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+
+  // Delete folder confirmation
+  const [deletingFolder, setDeletingFolder] = useState<ToolkitFolder | null>(null);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const { data: toolkit, isLoading } = useQuery<ToolkitData>({
@@ -293,6 +322,29 @@ export default function Toolkit() {
   const { data: versions = [], isLoading: versionsLoading } = useQuery<TemplateVersion[]>({
     queryKey: ["/api/document-templates", historyTemplate?.id, "versions"],
     enabled: !!historyTemplate,
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: async ({ name, module }: { name: string; module: ModuleType }) =>
+      apiRequest("POST", "/api/toolkit/folders", { name, module }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setShowCreateFolder(false);
+      setNewFolderName("");
+      toast({ title: "Folder created", description: "The new folder has been added to the Toolkit." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to create folder.", variant: "destructive" }),
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: async (folderId: string) =>
+      apiRequest("DELETE", `/api/toolkit/folders/${folderId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setDeletingFolder(null);
+      toast({ title: "Folder deleted", description: "The folder has been removed. Any templates in it are now unassigned." });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete folder.", variant: "destructive" }),
   });
 
   const replaceMutation = useMutation({
@@ -309,8 +361,8 @@ export default function Toolkit() {
   });
 
   const moveMutation = useMutation({
-    mutationFn: async ({ templateId, folderTemplateId }: { templateId: string; folderTemplateId: string | null }) =>
-      apiRequest("PATCH", `/api/document-templates/${templateId}`, { folderTemplateId }),
+    mutationFn: async ({ templateId, toolkitFolderId }: { templateId: string; toolkitFolderId: string | null }) =>
+      apiRequest("PATCH", `/api/document-templates/${templateId}`, { toolkitFolderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
     },
@@ -334,12 +386,11 @@ export default function Toolkit() {
     const templateId = active.id as string;
     const targetFolderId = over.id === "__unassigned__" ? null : over.id as string;
 
-    // Find current folder
-    const template = [
+    const allTemplates = [
       ...(toolkit?.folders.flatMap(f => f.templates) ?? []),
       ...(toolkit?.unassigned ?? []),
-    ].find(t => t.id === templateId);
-
+    ];
+    const template = allTemplates.find(t => t.id === templateId);
     if (!template) return;
 
     const currentFolderId = toolkit?.folders.find(f =>
@@ -348,7 +399,7 @@ export default function Toolkit() {
 
     if (currentFolderId === targetFolderId) return;
 
-    moveMutation.mutate({ templateId, folderTemplateId: targetFolderId as string });
+    moveMutation.mutate({ templateId, toolkitFolderId: targetFolderId });
   }, [toolkit, moveMutation]);
 
   const handleReplace = () => {
@@ -357,6 +408,11 @@ export default function Toolkit() {
       templateId: replaceTemplate.id,
       data: { ...newFile, changeNote: changeNote || undefined },
     });
+  };
+
+  const handleCreateFolder = () => {
+    if (!newFolderName.trim()) return;
+    createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
   };
 
   const filteredFolders = (toolkit?.folders ?? []).filter(f => f.module === selectedModule);
@@ -374,15 +430,26 @@ export default function Toolkit() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start gap-3">
-        <BookMarked className="h-7 w-7 text-primary mt-0.5 shrink-0" />
-        <div>
-          <h1 className="text-2xl font-bold">Toolkit</h1>
-          <p className="text-muted-foreground text-sm">
-            Download public document templates.
-            {canEdit && " Drag templates between folders to organise them, or replace files to update the template."}
-          </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <BookMarked className="h-7 w-7 text-primary mt-0.5 shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold">Toolkit</h1>
+            <p className="text-muted-foreground text-sm">
+              Download public document templates.
+              {canEdit && " Drag templates between folders to organise them, or replace files to update the template."}
+            </p>
+          </div>
         </div>
+        {isAdmin && (
+          <Button
+            onClick={() => setShowCreateFolder(true)}
+            data-testid="button-create-folder"
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            New Folder
+          </Button>
+        )}
       </div>
 
       {/* Module tabs */}
@@ -437,12 +504,13 @@ export default function Toolkit() {
               const isOver = overId === folder.id;
 
               return (
-                <DroppableFolder key={folder.id} folder={folder} isOver={isOver}>
-                  <div className="flex items-center gap-2 px-4 py-3 border-b">
-                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-sm" data-testid={`folder-name-${folder.id}`}>{folder.name}</span>
-                    <Badge variant="secondary" className="text-xs ml-auto">{folder.templates.length} template{folder.templates.length !== 1 ? "s" : ""}</Badge>
-                  </div>
+                <DroppableFolder
+                  key={folder.id}
+                  folder={folder}
+                  isOver={isOver}
+                  canEdit={isAdmin}
+                  onDelete={setDeletingFolder}
+                >
                   {visibleTemplates.length === 0 ? (
                     <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                       {canEdit ? "Drop templates here" : "No templates in this folder"}
@@ -462,7 +530,7 @@ export default function Toolkit() {
               );
             })}
 
-            {/* Unassigned section — admin/consultant only, or when there are items */}
+            {/* Unassigned section */}
             {(canEdit || filteredUnassigned.length > 0) && (
               <DroppableUnassigned isOver={overId === "__unassigned__"}>
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
@@ -494,6 +562,7 @@ export default function Toolkit() {
                 <BookMarked className="h-10 w-10 mx-auto mb-3 opacity-30" />
                 <p className="font-medium">No templates available for this module yet.</p>
                 {canEdit && <p className="text-sm mt-1">Add public templates in the Template Library to display them here.</p>}
+                {isAdmin && <p className="text-sm mt-1">Use "New Folder" to create folders for organising templates.</p>}
               </div>
             )}
           </div>
@@ -510,6 +579,71 @@ export default function Toolkit() {
           </DragOverlay>
         </DndContext>
       )}
+
+      {/* Create Folder Dialog */}
+      <Dialog open={showCreateFolder} onOpenChange={(o) => { if (!o) { setShowCreateFolder(false); setNewFolderName(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Toolkit Folder</DialogTitle>
+            <DialogDescription>
+              Create a folder for organising templates in the <strong>{MODULE_CONFIG[selectedModule].label}</strong> module.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="folder-name">Folder Name</Label>
+            <Input
+              id="folder-name"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="e.g. Risk Assessments"
+              onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
+              data-testid="input-folder-name"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowCreateFolder(false); setNewFolderName(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateFolder}
+              disabled={!newFolderName.trim() || createFolderMutation.isPending}
+              data-testid="button-confirm-create-folder"
+            >
+              {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Folder Confirmation */}
+      <Dialog open={!!deletingFolder} onOpenChange={(o) => { if (!o) setDeletingFolder(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Folder</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingFolder?.name}</strong>?
+              {(deletingFolder?.templates.length ?? 0) > 0 && (
+                <span className="block mt-2 text-amber-600 dark:text-amber-400">
+                  The {deletingFolder?.templates.length} template{deletingFolder?.templates.length !== 1 ? "s" : ""} inside will be moved to Unassigned.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingFolder(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deletingFolder && deleteFolderMutation.mutate(deletingFolder.id)}
+              disabled={deleteFolderMutation.isPending}
+              data-testid="button-confirm-delete-folder"
+            >
+              {deleteFolderMutation.isPending ? "Deleting..." : "Delete Folder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Replace File Dialog */}
       <Dialog open={!!replaceTemplate} onOpenChange={(o) => { if (!o) { setReplaceTemplate(null); setNewFile(null); setChangeNote(""); } }}>

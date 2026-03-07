@@ -26,6 +26,8 @@ import {
   type ClientSiteAssignment, type InsertClientSiteAssignment,
   clientSiteAssignments as clientSiteAssignmentsTable,
   type DocumentTypeRecord, type InsertDocumentType,
+  type ToolkitFolder, type InsertToolkitFolder,
+  toolkitFolders as toolkitFoldersTable,
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
   type DocumentTemplate, type InsertDocumentTemplate,
@@ -263,6 +265,11 @@ export interface IStorage {
   deleteDocumentFolder(id: string): Promise<boolean>;
   getDocumentsByFolder(folderId: string): Promise<Document[]>;
   moveDocumentToFolder(documentId: string, folderId: string | null): Promise<Document | undefined>;
+  
+  // Toolkit Folders (separate from Template Library — admin-managed)
+  getToolkitFolders(module?: ModuleType): Promise<ToolkitFolder[]>;
+  createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
+  deleteToolkitFolder(id: string): Promise<boolean>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1819,6 +1826,30 @@ export class MemStorage implements IStorage {
       .where(eq(documentsTable.id, documentId))
       .returning();
     return result[0];
+  }
+
+  // Toolkit Folders (separate from Template Library — admin-managed)
+  async getToolkitFolders(module?: ModuleType): Promise<ToolkitFolder[]> {
+    let query = db.select().from(toolkitFoldersTable);
+    if (module) {
+      query = query.where(eq(toolkitFoldersTable.module, module)) as typeof query;
+    }
+    return await query.orderBy(asc(toolkitFoldersTable.sortOrder), asc(toolkitFoldersTable.createdAt));
+  }
+
+  async createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder> {
+    const [result] = await db.insert(toolkitFoldersTable).values(folder).returning();
+    return result;
+  }
+
+  async deleteToolkitFolder(id: string): Promise<boolean> {
+    // Unassign any templates from this folder before deleting
+    await db
+      .update(documentTemplatesTable)
+      .set({ toolkitFolderId: null })
+      .where(eq(documentTemplatesTable.toolkitFolderId, id));
+    const result = await db.delete(toolkitFoldersTable).where(eq(toolkitFoldersTable.id, id)).returning();
+    return result.length > 0;
   }
 
   // Folder Templates (Admin-managed master folder structure - Database-backed)

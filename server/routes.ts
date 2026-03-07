@@ -2992,7 +2992,8 @@ export async function registerRoutes(
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
-        folderTemplateId: z.string().optional(), // Allow folder reassignment (drag-and-drop in Toolkit)
+        folderTemplateId: z.string().optional(), // Allow folder reassignment (Template Library)
+        toolkitFolderId: z.string().nullable().optional(), // Allow toolkit folder assignment (Toolkit drag-and-drop)
       });
       
       const parsed = schema.safeParse(req.body);
@@ -3000,8 +3001,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
 
-      // If folderTemplateId is being changed, consultants are also allowed
-      const isJustFolderChange = Object.keys(parsed.data).length === 1 && parsed.data.folderTemplateId;
+      // If only toolkitFolderId or folderTemplateId is being changed, consultants are also allowed
+      const changedKeys = Object.keys(parsed.data);
+      const isJustFolderChange = changedKeys.length === 1 && (changedKeys[0] === "toolkitFolderId" || changedKeys[0] === "folderTemplateId");
       if (!isJustFolderChange && user.role !== "admin") {
         return res.status(403).json({ error: "Only admins can update document templates" });
       }
@@ -3202,14 +3204,90 @@ export async function registerRoutes(
     }
   });
   
-  // Toolkit: get all public templates grouped by folder (all authenticated roles)
+  // Toolkit Folder CRUD (admin only)
+  app.get("/api/toolkit/folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      const module = req.query.module as string | undefined;
+      const folders = await storage.getToolkitFolders(module as any);
+      res.json(folders);
+    } catch (error) {
+      console.error("Get toolkit folders error:", error);
+      res.status(500).json({ error: "Failed to fetch toolkit folders" });
+    }
+  });
+
+  app.post("/api/toolkit/folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can create toolkit folders" });
+
+      const schema = z.object({
+        name: z.string().min(1).max(100),
+        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        sortOrder: z.number().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+
+      const folder = await storage.createToolkitFolder({
+        name: parsed.data.name,
+        module: parsed.data.module,
+        sortOrder: parsed.data.sortOrder ?? 0,
+        createdBy: user.id,
+      });
+
+      await storage.createAuditLog({
+        action: "toolkit_folder_created",
+        userId: user.id,
+        userName: user.fullName,
+        module: parsed.data.module,
+        details: `Created toolkit folder "${parsed.data.name}"`,
+        metadata: JSON.stringify({ folderId: folder.id }),
+      });
+
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error("Create toolkit folder error:", error);
+      res.status(500).json({ error: "Failed to create toolkit folder" });
+    }
+  });
+
+  app.delete("/api/toolkit/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete toolkit folders" });
+
+      const deleted = await storage.deleteToolkitFolder(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Folder not found" });
+
+      await storage.createAuditLog({
+        action: "toolkit_folder_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        module: "health_safety",
+        details: `Deleted toolkit folder`,
+        metadata: JSON.stringify({ folderId: req.params.id }),
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete toolkit folder error:", error);
+      res.status(500).json({ error: "Failed to delete toolkit folder" });
+    }
+  });
+
+  // Toolkit: get all public templates grouped by toolkit folder (all authenticated roles)
   app.get("/api/toolkit", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      // Get all active folder templates
-      const allFolderTemplates = await storage.getFolderTemplates();
+      // Get all toolkit folders
+      const allToolkitFolders = await storage.getToolkitFolders();
 
       // Get all public, active, non-deleted document templates
       const allTemplates = await storage.getDocumentTemplates();
@@ -3217,18 +3295,16 @@ export async function registerRoutes(
         (t) => !t.deletedAt && t.isActive && (t as any).visibility !== "private"
       );
 
-      // Build folder map with templates
+      // Build folder map with templates, keyed by toolkit folder id
       const folderMap = new Map<string, {
-        id: string; name: string; module: string; parentId: string | null; sortOrder: number; templates: typeof publicTemplates;
+        id: string; name: string; module: string; sortOrder: number; templates: typeof publicTemplates;
       }>();
 
-      for (const folder of allFolderTemplates) {
-        if (!folder.isActive) continue;
+      for (const folder of allToolkitFolders) {
         folderMap.set(folder.id, {
           id: folder.id,
           name: folder.name,
           module: folder.module,
-          parentId: folder.parentId ?? null,
           sortOrder: folder.sortOrder,
           templates: [],
         });
@@ -3237,15 +3313,15 @@ export async function registerRoutes(
       const unassigned: typeof publicTemplates = [];
 
       for (const template of publicTemplates) {
-        const folder = folderMap.get(template.folderTemplateId);
-        if (folder) {
-          folder.templates.push(template);
+        const tkFolderId = (template as any).toolkitFolderId;
+        if (tkFolderId && folderMap.has(tkFolderId)) {
+          folderMap.get(tkFolderId)!.templates.push(template);
         } else {
           unassigned.push(template);
         }
       }
 
-      const folders = Array.from(folderMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+      const folders = Array.from(folderMap.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 
       res.json({ folders, unassigned });
     } catch (error) {
