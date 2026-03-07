@@ -786,6 +786,13 @@ export default function TemplateLibraryPage() {
       .filter(t => t.folderTemplateId === folderId)
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   };
+
+  const getTotalTemplatesInFolderTree = (folderId: string): number => {
+    const direct = filteredTemplates.filter(t => t.folderTemplateId === folderId).length;
+    const childFolders = filteredFolders.filter(f => f.parentId === folderId);
+    const childTotal = childFolders.reduce((sum, child) => sum + getTotalTemplatesInFolderTree(child.id), 0);
+    return direct + childTotal;
+  };
   
   const getRootFolders = (module: ModuleType) => {
     return filteredFolders.filter(f => f.module === module && !f.parentId);
@@ -1470,6 +1477,7 @@ export default function TemplateLibraryPage() {
     const hasContent = children.length > 0 || templatesInFolder.length > 0;
     const folderModule = folder.module || moduleContext || "health_safety";
     const ModuleIcon = moduleIcons[folderModule];
+    const totalTemplatesInTree = getTotalTemplatesInFolderTree(folder.id);
     
     // Root level folders get gradient styling
     const isRootLevel = depth === 0;
@@ -1490,9 +1498,9 @@ export default function TemplateLibraryPage() {
               <FolderOpen className="h-4 w-4 text-amber-500" />
             )}
             <span className={`font-medium ${isRootLevel ? moduleColors[folderModule] : ""}`}>{folder.name}</span>
-            {templatesInFolder.length > 0 && (
+            {totalTemplatesInTree > 0 && (
               <Badge variant="secondary" className="ml-2">
-                {templatesInFolder.length}
+                {totalTemplatesInTree}
               </Badge>
             )}
             {isAdmin && (
