@@ -245,7 +245,7 @@ const defaultTemplateFormData: TemplateFormData = {
   isRequired: false,
   renewalPeriodMonths: null,
   requiresApproval: true,
-  visibility: "public",
+  visibility: "private",
   fileName: "",
   fileUrl: "",
   fileSize: 0,
@@ -827,25 +827,30 @@ export default function TemplateLibraryPage() {
       return;
     }
 
-    // If public and creating a new Toolkit folder, create it first
+    // If public, toolkit folder is mandatory
     let toolkitFolderId: string | undefined = templateFormData.toolkitFolderId || undefined;
-    if (templateFormData.visibility === "public" && templateFormData.createNewToolkitFolder) {
-      if (!templateFormData.newToolkitFolderName) {
-        toast({ title: "Validation error", description: "Please fill in the Toolkit folder name", variant: "destructive" });
-        return;
-      }
-      try {
-        const response = await apiRequest("POST", "/api/toolkit/folders", {
-          name: templateFormData.newToolkitFolderName,
-          module: templateFormData.module,
-          sortOrder: 0,
-        });
-        const newToolkitFolder = await response.json();
-        toolkitFolderId = newToolkitFolder.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+    if (templateFormData.visibility === "public") {
+      if (templateFormData.createNewToolkitFolder) {
+        if (!templateFormData.newToolkitFolderName) {
+          toast({ title: "Validation error", description: "Please enter a Toolkit folder name", variant: "destructive" });
+          return;
+        }
+        try {
+          const response = await apiRequest("POST", "/api/toolkit/folders", {
+            name: templateFormData.newToolkitFolderName,
+            module: templateFormData.module,
+            sortOrder: 0,
+          });
+          const newToolkitFolder = await response.json();
+          toolkitFolderId = newToolkitFolder.id;
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+          return;
+        }
+      } else if (!toolkitFolderId) {
+        toast({ title: "Validation error", description: "Please select or create a Toolkit folder", variant: "destructive" });
         return;
       }
     }
@@ -899,23 +904,28 @@ export default function TemplateLibraryPage() {
     if (!selectedTemplate) return;
 
     let toolkitFolderId: string | null = templateFormData.toolkitFolderId || null;
-    if (templateFormData.visibility === "public" && templateFormData.createNewToolkitFolder) {
-      if (!templateFormData.newToolkitFolderName) {
-        toast({ title: "Validation error", description: "Please fill in the Toolkit folder name", variant: "destructive" });
-        return;
-      }
-      try {
-        const response = await apiRequest("POST", "/api/toolkit/folders", {
-          name: templateFormData.newToolkitFolderName,
-          module: templateFormData.module,
-          sortOrder: 0,
-        });
-        const newToolkitFolder = await response.json();
-        toolkitFolderId = newToolkitFolder.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+    if (templateFormData.visibility === "public") {
+      if (templateFormData.createNewToolkitFolder) {
+        if (!templateFormData.newToolkitFolderName) {
+          toast({ title: "Validation error", description: "Please enter a Toolkit folder name", variant: "destructive" });
+          return;
+        }
+        try {
+          const response = await apiRequest("POST", "/api/toolkit/folders", {
+            name: templateFormData.newToolkitFolderName,
+            module: templateFormData.module,
+            sortOrder: 0,
+          });
+          const newToolkitFolder = await response.json();
+          toolkitFolderId = newToolkitFolder.id;
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+        } catch (error) {
+          toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+          return;
+        }
+      } else if (!toolkitFolderId) {
+        toast({ title: "Validation error", description: "Please select or create a Toolkit folder", variant: "destructive" });
         return;
       }
     }
@@ -1988,20 +1998,25 @@ export default function TemplateLibraryPage() {
             {/* Visibility toggle — just below Module */}
             <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
               <div className="space-y-0.5">
-                <Label htmlFor="template-visibility" className="font-medium text-sm">Public</Label>
+                <Label htmlFor="template-visibility" className="font-medium text-sm">Visibility</Label>
                 <p className="text-xs text-muted-foreground">Public templates will appear in the Toolkit</p>
               </div>
-              <Switch
-                id="template-visibility"
-                checked={templateFormData.visibility === "public"}
-                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                data-testid="switch-template-visibility"
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {templateFormData.visibility === "public" ? "Public" : "Private"}
+                </span>
+                <Switch
+                  id="template-visibility"
+                  checked={templateFormData.visibility === "public"}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                  data-testid="switch-template-visibility"
+                />
+              </div>
             </div>
             {/* Toolkit Folder — shown only when public */}
             {templateFormData.visibility === "public" && (
               <div className="space-y-2">
-                <Label>Toolkit Folder <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
                 <div className="flex gap-2 mb-2">
                   <Button
                     type="button"
@@ -2271,20 +2286,25 @@ export default function TemplateLibraryPage() {
             {/* Visibility toggle */}
             <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
               <div className="space-y-0.5">
-                <Label htmlFor="edit-template-visibility" className="font-medium text-sm">Public</Label>
+                <Label htmlFor="edit-template-visibility" className="font-medium text-sm">Visibility</Label>
                 <p className="text-xs text-muted-foreground">Public templates will appear in the Toolkit</p>
               </div>
-              <Switch
-                id="edit-template-visibility"
-                checked={templateFormData.visibility === "public"}
-                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                data-testid="switch-edit-template-visibility"
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {templateFormData.visibility === "public" ? "Public" : "Private"}
+                </span>
+                <Switch
+                  id="edit-template-visibility"
+                  checked={templateFormData.visibility === "public"}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                  data-testid="switch-edit-template-visibility"
+                />
+              </div>
             </div>
             {/* Toolkit Folder — shown only when public */}
             {templateFormData.visibility === "public" && (
               <div className="space-y-2">
-                <Label>Toolkit Folder <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
                 <div className="flex gap-2 mb-2">
                   <Button
                     type="button"
