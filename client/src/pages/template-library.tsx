@@ -91,8 +91,9 @@ import {
   Check,
   CircleDot,
   GripVertical,
+  Inbox,
 } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -102,21 +103,16 @@ import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocume
 
 import {
   DndContext,
-  closestCenter,
-  KeyboardSensor,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  useDraggable,
+  useDroppable,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 const moduleIcons: Record<string, typeof HardHat> = {
   health_safety: HardHat,
@@ -315,6 +311,46 @@ const defaultWizardData: WizardData = {
 };
 
 type RuleWithDocType = FolderDocumentTypeRule & { documentType?: DocumentTypeRecord };
+
+function DroppableFolderContent({
+  folderId,
+  isOver,
+  children,
+}: {
+  folderId: string;
+  isOver: boolean;
+  children: ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: `folder-${folderId}`, data: { folderId } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[32px] rounded-md transition-colors ${isOver ? "bg-primary/10 ring-1 ring-primary ring-inset" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DroppableUnassignedContent({
+  moduleId,
+  isOver,
+  children,
+}: {
+  moduleId: string;
+  isOver: boolean;
+  children: ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({ id: `__unassigned_${moduleId}__`, data: { folderId: null } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg border border-dashed transition-colors mt-3 ${isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30"}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function TemplateLibraryPage() {
   const { user } = useAuth();
@@ -515,6 +551,21 @@ export default function TemplateLibraryPage() {
       toast({ title: "Error", description: error.message || "Failed to reorder templates", variant: "destructive" });
     },
   });
+
+  const moveFolderTemplateMutation = useMutation({
+    mutationFn: async ({ templateId, folderTemplateId }: { templateId: string; folderTemplateId: string | null }) =>
+      apiRequest("PATCH", `/api/document-templates/${templateId}`, { folderTemplateId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      toast({ title: "Template moved", description: "Template folder assignment updated." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to move template.", variant: "destructive" });
+    },
+  });
+
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [overDropId, setOverDropId] = useState<string | null>(null);
 
   // Query for version history
   const { data: templateVersions = [] } = useQuery<Array<{ id: string; templateId: string; version: number; fileName: string; fileUrl: string | null; fileSize: number; mimeType: string | null; changeNote: string | null; uploadedBy: string; createdAt: string }>>({
@@ -743,7 +794,42 @@ export default function TemplateLibraryPage() {
   const getChildFolders = (parentId: string) => {
     return filteredFolders.filter(f => f.parentId === parentId);
   };
-  
+
+  const getUnassignedTemplates = (module: string) => {
+    return filteredTemplates
+      .filter(t => t.module === module && !t.folderTemplateId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  };
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveTemplateId(event.active.id as string);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    setOverDropId(event.over?.id as string | null ?? null);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTemplateId(null);
+    setOverDropId(null);
+    if (!over) return;
+
+    const templateId = active.id as string;
+    const isUnassignedDrop = (over.id as string).startsWith("__unassigned_");
+    const targetFolderId = isUnassignedDrop
+      ? null
+      : (over.data.current?.folderId ?? null);
+
+    const currentTemplate = templates.find(t => t.id === templateId);
+    if (!currentTemplate) return;
+
+    const currentFolderId = currentTemplate.folderTemplateId ?? null;
+    if (currentFolderId === targetFolderId) return;
+
+    moveFolderTemplateMutation.mutate({ templateId, folderTemplateId: targetFolderId });
+  }, [templates, moveFolderTemplateMutation]);
+
   // Sort folders hierarchically: parents first, then their children immediately after
   const sortFoldersHierarchically = (folders: FolderTemplate[]) => {
     const result: FolderTemplate[] = [];
@@ -1353,108 +1439,29 @@ export default function TemplateLibraryPage() {
   };
 
   // Sortable template card wrapper for drag-and-drop
-  const SortableTemplateCard = ({ template }: { template: DocumentTemplate }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: template.id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-      zIndex: isDragging ? 1000 : "auto",
-    };
+  const DraggableTemplateCard = ({ template }: { template: DocumentTemplate }) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+      id: template.id,
+      data: { template },
+      disabled: !isAdmin,
+    });
 
     return (
-      <div ref={setNodeRef} style={style} {...attributes}>
-        <TemplateCard 
-          template={template} 
-          isDraggable={true}
+      <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...attributes}>
+        <TemplateCard
+          template={template}
+          isDraggable={isAdmin}
           dragHandleProps={listeners}
         />
       </div>
     );
   };
 
-  // DnD sensors for mouse and keyboard
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      activationConstraint: { distance: 8 },
     })
   );
-
-  // Sortable templates list component with local state for immediate visual updates
-  const SortableTemplatesList = ({ folderId, templates }: { folderId: string; templates: DocumentTemplate[] }) => {
-    const [localOrder, setLocalOrder] = useState<DocumentTemplate[]>(templates);
-    
-    // Sync local order when templates prop changes (e.g., after server refetch)
-    useEffect(() => {
-      setLocalOrder(templates);
-    }, [templates]);
-
-    if (!isAdmin || templates.length <= 1) {
-      return (
-        <>
-          {templates.map(template => (
-            <TemplateCard key={template.id} template={template} />
-          ))}
-        </>
-      );
-    }
-
-    const handleLocalDragEnd = (event: DragEndEvent) => {
-      const { active, over } = event;
-      
-      if (over && active.id !== over.id) {
-        const oldIndex = localOrder.findIndex(t => t.id === active.id);
-        const newIndex = localOrder.findIndex(t => t.id === over.id);
-        
-        if (oldIndex !== -1 && newIndex !== -1) {
-          // Update local state immediately for visual feedback
-          const reordered = arrayMove(localOrder, oldIndex, newIndex);
-          setLocalOrder(reordered);
-          
-          // Create the template order for the API
-          const templateOrder = reordered.map((t, index) => ({
-            id: t.id,
-            sortOrder: index,
-          }));
-          
-          reorderTemplatesMutation.mutate({
-            folderTemplateId: folderId,
-            templateOrder,
-          });
-        }
-      }
-    };
-
-    return (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleLocalDragEnd}
-      >
-        <SortableContext
-          items={localOrder.map(t => t.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {localOrder.map(template => (
-            <SortableTemplateCard key={template.id} template={template} />
-          ))}
-        </SortableContext>
-      </DndContext>
-    );
-  };
   
   // Folder tree renderer
   const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType) => {
@@ -1501,22 +1508,28 @@ export default function TemplateLibraryPage() {
           </div>
         </AccordionTrigger>
         <AccordionContent className="pb-0">
-          <div className="px-4 py-2 space-y-2">
-            <SortableTemplatesList folderId={folder.id} templates={templatesInFolder} />
-            {children.length > 0 && (
-              <Accordion 
-                type="multiple" 
-                className="w-full"
-                value={openFolders}
-                onValueChange={setOpenFolders}
-              >
-                {children.map(child => renderFolderTree(child, depth + 1, folderModule))}
-              </Accordion>
-            )}
-            {!hasContent && (
-              <p className="text-sm text-muted-foreground py-2">No templates in this folder</p>
-            )}
-          </div>
+          <DroppableFolderContent folderId={folder.id} isOver={overDropId === `folder-${folder.id}`}>
+            <div className="px-4 py-2 space-y-2">
+              {templatesInFolder.length === 0 && children.length === 0 && (
+                <p className="text-sm text-muted-foreground py-2">
+                  {isAdmin ? "Drop templates here to assign them to this folder." : "No templates in this folder"}
+                </p>
+              )}
+              {templatesInFolder.map(template => (
+                <DraggableTemplateCard key={template.id} template={template} />
+              ))}
+              {children.length > 0 && (
+                <Accordion 
+                  type="multiple" 
+                  className="w-full"
+                  value={openFolders}
+                  onValueChange={setOpenFolders}
+                >
+                  {children.map(child => renderFolderTree(child, depth + 1, folderModule))}
+                </Accordion>
+              )}
+            </div>
+          </DroppableFolderContent>
         </AccordionContent>
       </AccordionItem>
     );
@@ -1708,13 +1721,20 @@ export default function TemplateLibraryPage() {
               </CardContent>
             </Card>
           ) : (
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
             <div className="space-y-6">
               {modules.filter(m => selectedModule === "all" || selectedModule === m).map(module => {
                 const ModuleIcon = moduleIcons[module];
                 const rootFolders = getRootFolders(module);
                 const moduleTemplateCount = templates.filter(t => t.module === module).length;
+                const unassignedTemplates = getUnassignedTemplates(module);
                 
-                if (rootFolders.length === 0 && moduleTemplateCount === 0) return null;
+                if (rootFolders.length === 0 && moduleTemplateCount === 0 && unassignedTemplates.length === 0) return null;
                 
                 return (
                   <Card key={module} className={moduleBgColors[module]}>
@@ -1726,6 +1746,11 @@ export default function TemplateLibraryPage() {
                           {moduleTemplateCount} templates
                         </Badge>
                       </CardTitle>
+                      {isAdmin && (
+                        <CardDescription>
+                          Drag templates between folders to organise them.
+                        </CardDescription>
+                      )}
                     </CardHeader>
                     <CardContent>
                       {rootFolders.length > 0 ? (
@@ -1742,6 +1767,26 @@ export default function TemplateLibraryPage() {
                           No folder structure defined. 
                           {isAdmin && " Create folders in the Folders tab first."}
                         </p>
+                      )}
+                      {(isAdmin || unassignedTemplates.length > 0) && (
+                        <DroppableUnassignedContent moduleId={module} isOver={overDropId === `__unassigned_${module}__`}>
+                          <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
+                            <Inbox className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-semibold text-sm text-muted-foreground">Unassigned</span>
+                            <Badge variant="outline" className="text-xs ml-auto">{unassignedTemplates.length}</Badge>
+                          </div>
+                          <div className="px-4 py-2 space-y-2">
+                            {unassignedTemplates.length === 0 ? (
+                              <p className="text-sm text-muted-foreground py-3 text-center">
+                                {isAdmin ? "Templates not assigned to any folder will appear here. Drag to assign." : "No unassigned templates."}
+                              </p>
+                            ) : (
+                              unassignedTemplates.map(template => (
+                                <DraggableTemplateCard key={template.id} template={template} />
+                              ))
+                            )}
+                          </div>
+                        </DroppableUnassignedContent>
                       )}
                     </CardContent>
                   </Card>
@@ -1799,7 +1844,20 @@ export default function TemplateLibraryPage() {
                   )}
                 </Card>
               )}
+
+              <DragOverlay>
+                {activeTemplateId && (() => {
+                  const t = templates.find(t => t.id === activeTemplateId);
+                  return t ? (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-card border rounded-lg shadow-lg opacity-90">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{t.name}</span>
+                    </div>
+                  ) : null;
+                })()}
+              </DragOverlay>
             </div>
+          </DndContext>
           )}
         </TabsContent>
         
