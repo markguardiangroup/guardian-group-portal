@@ -14,6 +14,7 @@ import {
   Lock,
   Headphones,
   BookOpen,
+  BookMarked,
   GraduationCap,
   Lightbulb,
   HelpCircle,
@@ -447,6 +448,29 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Collapsible>
                 );
               })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Resources group — visible to all roles */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Resources
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/toolkit"}
+                  className={cn("transition-colors", location === "/toolkit" && "bg-sidebar-accent font-medium")}
+                >
+                  <Link href="/toolkit" data-testid="nav-toolkit">
+                    <BookMarked className="h-4 w-4" />
+                    <span className="flex-1">Toolkit</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

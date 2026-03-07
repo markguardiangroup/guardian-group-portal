@@ -2965,16 +2965,16 @@ export async function registerRoutes(
     }
   });
   
-  // Update document template (admin only)
+  // Update document template (admin only, except folder reassignment which consultants can also do)
   app.patch("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update document templates" });
+
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot update document templates" });
       }
       
       const template = await storage.getDocumentTemplate(req.params.id);
@@ -2992,11 +2992,18 @@ export async function registerRoutes(
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
+        folderTemplateId: z.string().optional(), // Allow folder reassignment (drag-and-drop in Toolkit)
       });
       
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+
+      // If folderTemplateId is being changed, consultants are also allowed
+      const isJustFolderChange = Object.keys(parsed.data).length === 1 && parsed.data.folderTemplateId;
+      if (!isJustFolderChange && user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can update document templates" });
       }
       
       const updated = await storage.updateDocumentTemplate(req.params.id, parsed.data);
@@ -3195,6 +3202,116 @@ export async function registerRoutes(
     }
   });
   
+  // Toolkit: get all public templates grouped by folder (all authenticated roles)
+  app.get("/api/toolkit", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      // Get all active folder templates
+      const allFolderTemplates = await storage.getFolderTemplates();
+
+      // Get all public, active, non-deleted document templates
+      const allTemplates = await storage.getDocumentTemplates();
+      const publicTemplates = allTemplates.filter(
+        (t) => !t.deletedAt && t.isActive && (t as any).visibility !== "private"
+      );
+
+      // Build folder map with templates
+      const folderMap = new Map<string, {
+        id: string; name: string; module: string; parentId: string | null; sortOrder: number; templates: typeof publicTemplates;
+      }>();
+
+      for (const folder of allFolderTemplates) {
+        if (!folder.isActive) continue;
+        folderMap.set(folder.id, {
+          id: folder.id,
+          name: folder.name,
+          module: folder.module,
+          parentId: folder.parentId ?? null,
+          sortOrder: folder.sortOrder,
+          templates: [],
+        });
+      }
+
+      const unassigned: typeof publicTemplates = [];
+
+      for (const template of publicTemplates) {
+        const folder = folderMap.get(template.folderTemplateId);
+        if (folder) {
+          folder.templates.push(template);
+        } else {
+          unassigned.push(template);
+        }
+      }
+
+      const folders = Array.from(folderMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+
+      res.json({ folders, unassigned });
+    } catch (error) {
+      console.error("Toolkit fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch toolkit" });
+    }
+  });
+
+  // Toolkit: replace a template's file (admin or consultant)
+  app.post("/api/toolkit/:templateId/replace", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot replace template files" });
+
+      const template = await storage.getDocumentTemplate(req.params.templateId);
+      if (!template) return res.status(404).json({ error: "Template not found" });
+
+      const schema = z.object({
+        fileUrl: z.string().min(1),
+        fileName: z.string().min(1),
+        fileSize: z.number().min(1),
+        mimeType: z.string().min(1),
+        changeNote: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+
+      // Archive current file as a new version entry
+      await storage.createDocumentTemplateVersion({
+        templateId: template.id,
+        version: template.version,
+        fileName: template.fileName,
+        fileUrl: template.fileUrl ?? undefined,
+        fileSize: template.fileSize,
+        mimeType: template.mimeType,
+        changeNote: parsed.data.changeNote ?? `Replaced by ${user.fullName}`,
+        uploadedBy: user.id,
+      });
+
+      // Update template with new file and incremented version
+      const updated = await storage.updateDocumentTemplate(template.id, {
+        fileUrl: parsed.data.fileUrl,
+        fileName: parsed.data.fileName,
+        fileSize: parsed.data.fileSize,
+        mimeType: parsed.data.mimeType,
+        version: template.version + 1,
+      });
+
+      await storage.createAuditLog({
+        action: "toolkit_file_replaced",
+        userId: user.id,
+        userName: user.fullName,
+        module: template.module,
+        details: `Replaced file for template "${template.name}" (now v${template.version + 1})`,
+        metadata: JSON.stringify({ templateId: template.id, changeNote: parsed.data.changeNote }),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Toolkit replace error:", error);
+      res.status(500).json({ error: "Failed to replace template file" });
+    }
+  });
+
   // Delete document template (admin only)
   app.delete("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
