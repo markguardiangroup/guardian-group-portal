@@ -32,6 +32,10 @@ import {
   Briefcase,
   Clock,
   AlertTriangle,
+  Info,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
 } from "lucide-react";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
 
@@ -790,6 +794,55 @@ export default function CreateFromTemplate() {
         </Card>
 
         <div className="space-y-4">
+          {selectedTemplate && (
+            <Card className="border-muted bg-muted/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                  <Info className="h-4 w-4" />
+                  Compliance Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-2">
+                <div className="flex items-start gap-2.5 text-sm">
+                  {selectedTemplate.requiresApproval === false ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <span className="font-medium">
+                      {selectedTemplate.requiresApproval === false
+                        ? "No approval required"
+                        : "Client approval required"}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedTemplate.requiresApproval === false
+                        ? "Document will be automatically marked as compliant on upload"
+                        : "Document will need to be reviewed and approved before becoming compliant"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 text-sm">
+                  <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="font-medium">
+                      {selectedTemplate.renewalPeriodMonths
+                        ? `Renews every ${selectedTemplate.renewalPeriodMonths} month${selectedTemplate.renewalPeriodMonths === 1 ? "" : "s"}`
+                        : "No renewal period"}
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {selectedTemplate.renewalPeriodMonths
+                        ? selectedTemplate.requiresApproval === false
+                          ? `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from today`
+                          : `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from final approval`
+                        : "This document does not have an automatic renewal schedule"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Download Template</CardTitle>

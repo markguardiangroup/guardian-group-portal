@@ -1616,6 +1616,7 @@ export async function registerRoutes(
       // Check if approval is required
       let documentStatus: "review_required" | "compliant" = "review_required";
       let documentApprovalStatus: string = "pending";
+      let autoRenewalDate: Date | null = null;
       
       // Training certificates are automatically compliant - they prove completion
       if (body.module === "training") {
@@ -1631,6 +1632,11 @@ export async function registerRoutes(
           // Template doesn't require approval - auto-mark as compliant
           documentStatus = "compliant";
           documentApprovalStatus = "approved";
+          // Also calculate renewal date from template if set
+          if (template.renewalPeriodMonths) {
+            autoRenewalDate = new Date();
+            autoRenewalDate.setMonth(autoRenewalDate.getMonth() + template.renewalPeriodMonths);
+          }
         }
       }
       
@@ -1662,7 +1668,7 @@ export async function registerRoutes(
         trainingCourseTitle: body.trainingCourseTitle || null,
         trainingCourseCode: body.trainingCourseCode || null,
         trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
-        renewalDate: body.renewalDate ? new Date(body.renewalDate) : null,
+        renewalDate: autoRenewalDate || (body.renewalDate ? new Date(body.renewalDate) : null),
       });
 
       await storage.createAuditLog({
