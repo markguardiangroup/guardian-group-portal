@@ -211,6 +211,9 @@ type TemplateFormData = {
   sortOrder: number;
   createNewFolder: boolean;
   newFolderName: string;
+  toolkitFolderId: string;
+  createNewToolkitFolder: boolean;
+  newToolkitFolderName: string;
 };
 
 type FolderFormData = {
@@ -251,6 +254,9 @@ const defaultTemplateFormData: TemplateFormData = {
   sortOrder: 0,
   createNewFolder: false,
   newFolderName: "",
+  toolkitFolderId: "",
+  createNewToolkitFolder: false,
+  newToolkitFolderName: "",
 };
 
 const defaultFolderFormData: FolderFormData = {
@@ -394,6 +400,10 @@ export default function TemplateLibraryPage() {
   
   const { data: folderRules = [] } = useQuery<FolderDocumentTypeRule[]>({
     queryKey: ["/api/folder-document-type-rules"],
+  });
+
+  const { data: toolkitFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
+    queryKey: ["/api/toolkit/folders"],
   });
   
   // Helper to invalidate documents hierarchy cache (depends on folder/document templates)
@@ -788,7 +798,7 @@ export default function TemplateLibraryPage() {
     
     let folderId = templateFormData.folderTemplateId;
     
-    // If creating a new folder, create it first
+    // If creating a new Template Library folder, create it first
     if (templateFormData.createNewFolder) {
       if (!templateFormData.newFolderName) {
         toast({ title: "Validation error", description: "Please fill in folder name", variant: "destructive" });
@@ -816,6 +826,29 @@ export default function TemplateLibraryPage() {
       toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
       return;
     }
+
+    // If public and creating a new Toolkit folder, create it first
+    let toolkitFolderId: string | undefined = templateFormData.toolkitFolderId || undefined;
+    if (templateFormData.visibility === "public" && templateFormData.createNewToolkitFolder) {
+      if (!templateFormData.newToolkitFolderName) {
+        toast({ title: "Validation error", description: "Please fill in the Toolkit folder name", variant: "destructive" });
+        return;
+      }
+      try {
+        const response = await apiRequest("POST", "/api/toolkit/folders", {
+          name: templateFormData.newToolkitFolderName,
+          module: templateFormData.module,
+          sortOrder: 0,
+        });
+        const newToolkitFolder = await response.json();
+        toolkitFolderId = newToolkitFolder.id;
+        queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+        return;
+      }
+    }
     
     createTemplateMutation.mutate({
       name: templateFormData.name,
@@ -832,7 +865,8 @@ export default function TemplateLibraryPage() {
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       requiresApproval: templateFormData.requiresApproval,
       visibility: templateFormData.visibility,
-    });
+      toolkitFolderId: templateFormData.visibility === "public" ? (toolkitFolderId || null) : null,
+    } as any);
   };
   
   const handleEditTemplate = (template: DocumentTemplate) => {
@@ -854,12 +888,38 @@ export default function TemplateLibraryPage() {
       sortOrder: template.sortOrder,
       createNewFolder: false,
       newFolderName: "",
+      toolkitFolderId: (template as any).toolkitFolderId || "",
+      createNewToolkitFolder: false,
+      newToolkitFolderName: "",
     });
     setIsEditTemplateDialogOpen(true);
   };
   
-  const handleUpdateTemplate = () => {
+  const handleUpdateTemplate = async () => {
     if (!selectedTemplate) return;
+
+    let toolkitFolderId: string | null = templateFormData.toolkitFolderId || null;
+    if (templateFormData.visibility === "public" && templateFormData.createNewToolkitFolder) {
+      if (!templateFormData.newToolkitFolderName) {
+        toast({ title: "Validation error", description: "Please fill in the Toolkit folder name", variant: "destructive" });
+        return;
+      }
+      try {
+        const response = await apiRequest("POST", "/api/toolkit/folders", {
+          name: templateFormData.newToolkitFolderName,
+          module: templateFormData.module,
+          sortOrder: 0,
+        });
+        const newToolkitFolder = await response.json();
+        toolkitFolderId = newToolkitFolder.id;
+        queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+        return;
+      }
+    }
+
     updateTemplateMutation.mutate({
       id: selectedTemplate.id,
       data: {
@@ -871,7 +931,8 @@ export default function TemplateLibraryPage() {
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
         requiresApproval: templateFormData.requiresApproval,
         visibility: templateFormData.visibility,
-      },
+        toolkitFolderId: templateFormData.visibility === "public" ? toolkitFolderId : null,
+      } as any,
     });
   };
   
@@ -1912,7 +1973,7 @@ export default function TemplateLibraryPage() {
               <Label htmlFor="template-module">Module</Label>
               <Select 
                 value={templateFormData.module} 
-                onValueChange={(v) => setTemplateFormData({ ...templateFormData, module: v as ModuleType, folderTemplateId: "" })}
+                onValueChange={(v) => setTemplateFormData({ ...templateFormData, module: v as ModuleType, folderTemplateId: "", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
               >
                 <SelectTrigger data-testid="select-template-module">
                   <SelectValue />
@@ -1924,8 +1985,80 @@ export default function TemplateLibraryPage() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Visibility toggle — just below Module */}
+            <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+              <div className="space-y-0.5">
+                <Label htmlFor="template-visibility" className="font-medium text-sm">Public</Label>
+                <p className="text-xs text-muted-foreground">Public templates will appear in the Toolkit</p>
+              </div>
+              <Switch
+                id="template-visibility"
+                checked={templateFormData.visibility === "public"}
+                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                data-testid="switch-template-visibility"
+              />
+            </div>
+            {/* Toolkit Folder — shown only when public */}
+            {templateFormData.visibility === "public" && (
+              <div className="space-y-2">
+                <Label>Toolkit Folder <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!templateFormData.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                    data-testid="button-select-existing-toolkit-folder"
+                  >
+                    Select Existing
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: true, toolkitFolderId: "" })}
+                    data-testid="button-create-new-toolkit-folder"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create New
+                  </Button>
+                </div>
+                {!templateFormData.createNewToolkitFolder ? (
+                  <>
+                    <Select
+                      value={templateFormData.toolkitFolderId}
+                      onValueChange={(v) => setTemplateFormData({ ...templateFormData, toolkitFolderId: v })}
+                    >
+                      <SelectTrigger data-testid="select-toolkit-folder">
+                        <SelectValue placeholder="No folder (unassigned)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toolkitFolders.filter(f => f.module === templateFormData.module).map(folder => (
+                          <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {toolkitFolders.filter(f => f.module === templateFormData.module).length === 0 && (
+                      <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-1 p-3 border rounded-md bg-muted/30">
+                    <Label htmlFor="new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
+                    <Input
+                      id="new-toolkit-folder-name"
+                      value={templateFormData.newToolkitFolderName}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newToolkitFolderName: e.target.value })}
+                      placeholder="e.g., HR Policies"
+                      data-testid="input-new-toolkit-folder-name"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Template Library Folder */}
             <div className="space-y-2">
-              <Label>Folder</Label>
+              <Label>Template Library Folder</Label>
               <div className="flex gap-2 mb-2">
                 <Button
                   type="button"
@@ -1989,55 +2122,17 @@ export default function TemplateLibraryPage() {
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="template-required" className="font-medium text-sm">Required</Label>
-                    <p className="text-xs text-muted-foreground">Must have this document</p>
-                  </div>
-                  <Switch
-                    id="template-required"
-                    checked={templateFormData.isRequired}
-                    onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isRequired: checked })}
-                    data-testid="switch-template-required"
-                  />
+              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
+                <div className="space-y-0.5">
+                  <Label htmlFor="template-requiresApproval-inline" className="font-medium text-sm">Client Approval</Label>
+                  <p className="text-xs text-muted-foreground">Needs client sign-off</p>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="template-requiresApproval-inline" className="font-medium text-sm">Client Approval</Label>
-                    <p className="text-xs text-muted-foreground">Needs client sign-off</p>
-                  </div>
-                  <Switch
-                    id="template-requiresApproval-inline"
-                    checked={templateFormData.requiresApproval}
-                    onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
-                    data-testid="switch-template-requires-approval"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm">Visibility</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={templateFormData.visibility === "public" ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "public" })}
-                    data-testid="button-template-visibility-public"
-                  >
-                    Public
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={templateFormData.visibility === "private" ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "private" })}
-                    data-testid="button-template-visibility-private"
-                  >
-                    Private
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">Public templates are visible to all clients. Private templates are restricted.</p>
+                <Switch
+                  id="template-requiresApproval-inline"
+                  checked={templateFormData.requiresApproval}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
+                  data-testid="switch-template-requires-approval"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="template-renewal" className="text-sm">Renewal Period (months)</Label>
@@ -2139,7 +2234,7 @@ export default function TemplateLibraryPage() {
       
       {/* Template Edit Dialog */}
       <Dialog open={isEditTemplateDialogOpen} onOpenChange={setIsEditTemplateDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Template</DialogTitle>
             <DialogDescription>Update template details</DialogDescription>
@@ -2173,58 +2268,91 @@ export default function TemplateLibraryPage() {
                 data-testid="input-edit-template-placeholders"
               />
             </div>
+            {/* Visibility toggle */}
+            <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
+              <div className="space-y-0.5">
+                <Label htmlFor="edit-template-visibility" className="font-medium text-sm">Public</Label>
+                <p className="text-xs text-muted-foreground">Public templates will appear in the Toolkit</p>
+              </div>
+              <Switch
+                id="edit-template-visibility"
+                checked={templateFormData.visibility === "public"}
+                onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                data-testid="switch-edit-template-visibility"
+              />
+            </div>
+            {/* Toolkit Folder — shown only when public */}
+            {templateFormData.visibility === "public" && (
+              <div className="space-y-2">
+                <Label>Toolkit Folder <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!templateFormData.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                    data-testid="button-edit-select-existing-toolkit-folder"
+                  >
+                    Select Existing
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={templateFormData.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: true, toolkitFolderId: "" })}
+                    data-testid="button-edit-create-new-toolkit-folder"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create New
+                  </Button>
+                </div>
+                {!templateFormData.createNewToolkitFolder ? (
+                  <>
+                    <Select
+                      value={templateFormData.toolkitFolderId}
+                      onValueChange={(v) => setTemplateFormData({ ...templateFormData, toolkitFolderId: v })}
+                    >
+                      <SelectTrigger data-testid="select-edit-toolkit-folder">
+                        <SelectValue placeholder="No folder (unassigned)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toolkitFolders.filter(f => f.module === templateFormData.module).map(folder => (
+                          <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {toolkitFolders.filter(f => f.module === templateFormData.module).length === 0 && (
+                      <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-1 p-3 border rounded-md bg-muted/30">
+                    <Label htmlFor="edit-new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
+                    <Input
+                      id="edit-new-toolkit-folder-name"
+                      value={templateFormData.newToolkitFolderName}
+                      onChange={(e) => setTemplateFormData({ ...templateFormData, newToolkitFolderName: e.target.value })}
+                      placeholder="e.g., HR Policies"
+                      data-testid="input-edit-new-toolkit-folder-name"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="edit-template-required" className="font-medium text-sm">Required</Label>
-                    <p className="text-xs text-muted-foreground">Must have this document</p>
-                  </div>
-                  <Switch
-                    id="edit-template-required"
-                    checked={templateFormData.isRequired}
-                    onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isRequired: checked })}
-                    data-testid="switch-edit-template-required"
-                  />
+              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
+                <div className="space-y-0.5">
+                  <Label htmlFor="edit-template-requiresApproval" className="font-medium text-sm">Client Approval</Label>
+                  <p className="text-xs text-muted-foreground">Needs client sign-off</p>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="edit-template-requiresApproval" className="font-medium text-sm">Client Approval</Label>
-                    <p className="text-xs text-muted-foreground">Needs client sign-off</p>
-                  </div>
-                  <Switch
-                    id="edit-template-requiresApproval"
-                    checked={templateFormData.requiresApproval}
-                    onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
-                    data-testid="switch-edit-template-requires-approval"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm">Visibility</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={templateFormData.visibility === "public" ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "public" })}
-                    data-testid="button-edit-template-visibility-public"
-                  >
-                    Public
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={templateFormData.visibility === "private" ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, visibility: "private" })}
-                    data-testid="button-edit-template-visibility-private"
-                  >
-                    Private
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">Public templates are visible to all clients. Private templates are restricted.</p>
+                <Switch
+                  id="edit-template-requiresApproval"
+                  checked={templateFormData.requiresApproval}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
+                  data-testid="switch-edit-template-requires-approval"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period (months)</Label>
