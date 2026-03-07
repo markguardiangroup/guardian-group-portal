@@ -545,7 +545,7 @@ export const documentTemplates = pgTable("document_templates", {
   name: text("name").notNull(),
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
-  folderTemplateId: varchar("folder_template_id").notNull(), // Which template folder this belongs to (Template Library)
+  folderTemplateId: varchar("folder_template_id"), // Which template folder this belongs to (Template Library), nullable = unassigned
   toolkitFolderId: varchar("toolkit_folder_id"), // Which toolkit folder this belongs to (Toolkit page, nullable)
   documentTypeId: varchar("document_type_id"), // Legacy - kept for backward compatibility
   fileName: text("file_name").notNull(),

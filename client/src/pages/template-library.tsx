@@ -1768,7 +1768,7 @@ export default function TemplateLibraryPage() {
                           {isAdmin && " Create folders in the Folders tab first."}
                         </p>
                       )}
-                      {(isAdmin || unassignedTemplates.length > 0) && (
+                      {(unassignedTemplates.length > 0 || (isAdmin && activeTemplateId !== null)) && (
                         <DroppableUnassignedContent moduleId={module} isOver={overDropId === `__unassigned_${module}__`}>
                           <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
                             <Inbox className="h-4 w-4 text-muted-foreground" />
@@ -1778,7 +1778,7 @@ export default function TemplateLibraryPage() {
                           <div className="px-4 py-2 space-y-2">
                             {unassignedTemplates.length === 0 ? (
                               <p className="text-sm text-muted-foreground py-3 text-center">
-                                {isAdmin ? "Templates not assigned to any folder will appear here. Drag to assign." : "No unassigned templates."}
+                                Drop here to remove from folder
                               </p>
                             ) : (
                               unassignedTemplates.map(template => (

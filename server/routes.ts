@@ -2998,7 +2998,7 @@ export async function registerRoutes(
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
-        folderTemplateId: z.string().optional(), // Allow folder reassignment (Template Library)
+        folderTemplateId: z.string().nullable().optional(), // Allow folder reassignment (Template Library), null = unassigned
         toolkitFolderId: z.string().nullable().optional(), // Allow toolkit folder assignment (Toolkit drag-and-drop)
       });
       
