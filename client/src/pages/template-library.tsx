@@ -1776,7 +1776,7 @@ export default function TemplateLibraryPage() {
                           {isAdmin && " Create folders in the Folders tab first."}
                         </p>
                       )}
-                      {unassignedTemplates.length > 0 && (
+                      {(unassignedTemplates.length > 0 || (isAdmin && activeTemplateId !== null)) && (
                         <DroppableUnassignedContent moduleId={module} isOver={overDropId === `__unassigned_${module}__`}>
                           <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
                             <Inbox className="h-4 w-4 text-muted-foreground" />
