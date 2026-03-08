@@ -36,6 +36,7 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
 
@@ -125,6 +126,8 @@ export default function CreateFromTemplate() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+  const [reviewDate, setReviewDate] = useState<string>("");
+  const [expiryDate, setExpiryDate] = useState<string>("");
   
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>("all");
@@ -340,6 +343,8 @@ export default function CreateFromTemplate() {
         templateVersion: selectedTemplate.version,
         requiresApproval,
         notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+        reviewDate: reviewDate || undefined,
+        expiryDate: expiryDate || undefined,
       };
 
       return apiRequest("POST", "/api/documents", formData);
@@ -910,6 +915,42 @@ export default function CreateFromTemplate() {
                 })}
               </div>
             )}
+
+            <div className="pt-4 border-t space-y-4">
+              <div>
+                <Label htmlFor="reviewDate" className="text-sm font-medium">
+                  When should this document be reviewed by?
+                </Label>
+                <div className="relative mt-1">
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="reviewDate"
+                    type="date"
+                    className="pl-10"
+                    value={reviewDate}
+                    onChange={(e) => setReviewDate(e.target.value)}
+                    data-testid="input-review-date"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Optional — sets the compliance review reminder date</p>
+              </div>
+
+              <div>
+                <Label htmlFor="expiryDate" className="text-sm font-medium">Expiry Date</Label>
+                <div className="relative mt-1">
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="expiryDate"
+                    type="date"
+                    className="pl-10"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    data-testid="input-expiry-date"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Optional — when does this document expire?</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
