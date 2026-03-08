@@ -205,6 +205,16 @@ const consultantNavItems = [
     icon: Users,
   },
   {
+    title: "Template Library",
+    url: "/template-library",
+    icon: BookOpen,
+  },
+  {
+    title: "Training Library",
+    url: "/training-library",
+    icon: GraduationCap,
+  },
+  {
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
@@ -257,7 +267,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { logout, isLoggingOut } = useAuth();
   const { hasActiveAccess, hasVisibleAccess, isHidden } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
 
   // Fetch support request counts for notification badge
   const { data: supportCounts } = useQuery<{ openCount: number }>({
@@ -280,10 +289,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   // Previously filtered out hidden modules, now show all with locked indicator
   const visibleModules = moduleNavItems;
 
-  const consultantNavItemsWithPro = consultantNavItems.filter(item => {
-    if ((item.title === "Companies" || item.title === "Users") && !isProConsultant) return false;
-    return true;
-  });
+  const consultantNavItemsWithPro = consultantNavItems;
 
   return (
     <Sidebar>
