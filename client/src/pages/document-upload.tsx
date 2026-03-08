@@ -7,7 +7,6 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,8 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -36,11 +33,12 @@ import {
   FileText,
   X,
   CheckCircle,
+  CheckCircle2,
+  XCircle,
   Calendar,
   BookOpen,
   ArrowRight,
   AlertTriangle,
-  Mail,
   Users,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -104,7 +102,7 @@ export default function DocumentUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
-  const [selectedNotifyUsers, setSelectedNotifyUsers] = useState<string[]>([]);
+  const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
@@ -152,7 +150,7 @@ export default function DocumentUpload() {
   const requiresApproval = form.watch("requiresApproval");
 
   useEffect(() => {
-    setSelectedNotifyUsers([]);
+    setSelectedApproverId("");
   }, [selectedSiteId]);
 
   // Get unique companies from sites
@@ -374,7 +372,7 @@ export default function DocumentUpload() {
           fileUrl,
           fileSize: selectedFile.size,
           mimeType: selectedFile.type || "application/pdf",
-          notifyUserIds: data.requiresApproval ? selectedNotifyUsers : [],
+          notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
         };
         return apiRequest("POST", "/api/documents", formData);
       }
@@ -439,6 +437,14 @@ export default function DocumentUpload() {
       toast({
         title: "No File Selected",
         description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (data.requiresApproval && data.uploadScope === "site" && data.siteId && !selectedApproverId) {
+      toast({
+        title: "Client Approver Required",
+        description: "Please select a client approver for this document.",
         variant: "destructive",
       });
       return;
@@ -773,72 +779,89 @@ export default function DocumentUpload() {
                     control={form.control}
                     name="requiresApproval"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">
-                            {field.value ? "Approval Required" : "No Approval Required"}
-                          </FormLabel>
-                          <FormDescription>
-                            {field.value
-                              ? "This document must be reviewed and approved before it is marked as compliant."
-                              : "This document will be automatically marked as compliant — no approval needed."}
-                          </FormDescription>
+                      <FormItem>
+                        <FormLabel>Approval Process</FormLabel>
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(true)}
+                            data-testid="approval-required-button"
+                            className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
+                              field.value
+                                ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                                : "border-muted bg-muted/30 hover:bg-muted/50"
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <XCircle className={`h-3.5 w-3.5 ${field.value ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
+                              Client approval
+                            </span>
+                            <span className="text-xs text-muted-foreground leading-tight">
+                              Needs review before becoming compliant
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => field.onChange(false)}
+                            data-testid="no-approval-button"
+                            className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
+                              !field.value
+                                ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
+                                : "border-muted bg-muted/30 hover:bg-muted/50"
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <CheckCircle2 className={`h-3.5 w-3.5 ${!field.value ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
+                              Auto-approve
+                            </span>
+                            <span className="text-xs text-muted-foreground leading-tight">
+                              Marked compliant immediately on upload
+                            </span>
+                          </button>
                         </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-requires-approval"
-                          />
-                        </FormControl>
                       </FormItem>
                     )}
                   />
 
-                  {requiresApproval && isAdminOrConsultant && selectedSiteId && (
-                    <div className="rounded-lg border p-4 space-y-3" data-testid="notify-users-section">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-base font-medium">Notify Client Users for Approval</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Select client users assigned to this site who should receive an email notification to review and approve this document.
+                  {requiresApproval && uploadScope === "site" && selectedSiteId && (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium flex items-center gap-1">
+                        Client Approver
+                        <span className="text-destructive">*</span>
+                      </label>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Select the client user who will review and approve this document
                       </p>
                       {siteClientUsers.length > 0 ? (
-                        <div className="space-y-2 pt-1">
-                          {siteClientUsers.map((clientUser) => {
-                            const isActive = clientUser.status === "active";
-                            return (
-                              <div key={clientUser.id} className={`flex items-center gap-3 rounded-md border p-3 ${!isActive ? "opacity-60" : ""}`}>
-                                <Checkbox
-                                  id={`notify-${clientUser.id}`}
-                                  checked={selectedNotifyUsers.includes(clientUser.id)}
-                                  disabled={!isActive}
-                                  onCheckedChange={(checked) => {
-                                    setSelectedNotifyUsers(prev =>
-                                      checked
-                                        ? [...prev, clientUser.id]
-                                        : prev.filter(id => id !== clientUser.id)
-                                    );
-                                  }}
-                                  data-testid={`checkbox-notify-${clientUser.id}`}
-                                />
-                                <label htmlFor={`notify-${clientUser.id}`} className={`flex-1 ${isActive ? "cursor-pointer" : "cursor-default"}`}>
-                                  <span className="flex items-center gap-2">
-                                    <span className="font-medium">{clientUser.fullName}</span>
-                                    {!isActive && (
-                                      <Badge variant="outline" className="text-xs text-muted-foreground">Not Active</Badge>
-                                    )}
-                                  </span>
-                                </label>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                          <SelectTrigger
+                            className={!selectedApproverId ? "border-destructive" : ""}
+                            data-testid="select-client-approver"
+                          >
+                            <SelectValue placeholder="Select a client approver…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {siteClientUsers.map((u) => (
+                              <SelectItem
+                                key={u.id}
+                                value={u.id}
+                                disabled={u.status !== "active"}
+                                data-testid={`option-approver-${u.id}`}
+                              >
+                                <span className="flex items-center gap-2">
+                                  {u.fullName}
+                                  {u.status !== "active" && (
+                                    <span className="text-xs text-muted-foreground">(not active)</span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                          <Users className="h-4 w-4" />
-                          No client users are assigned to this site. Assign users in User Management to enable email notifications.
+                          <Users className="h-4 w-4 shrink-0" />
+                          No client users are assigned to this site. Assign users in User Management first.
                         </div>
                       )}
                     </div>
