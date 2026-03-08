@@ -531,7 +531,7 @@ export default function Toolkit() {
             })}
 
             {/* Unassigned section */}
-            {(canEdit || filteredUnassigned.length > 0) && (
+            {filteredUnassigned.length > 0 && (
               <DroppableUnassigned isOver={overId === "__unassigned__"}>
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
                   <Inbox className="h-4 w-4 text-muted-foreground" />
