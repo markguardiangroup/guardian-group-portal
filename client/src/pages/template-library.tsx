@@ -401,10 +401,15 @@ export default function TemplateLibraryPage() {
   const [createdFolderId, setCreatedFolderId] = useState<string | null>(null);
   const [createdDocTypeId, setCreatedDocTypeId] = useState<string | null>(null);
   
-  // Delete confirmation
+  // Archive confirmation
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<DocumentTemplate | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
+
+  // Permanent delete confirmation
+  const [isPermanentDeleteDialogOpen, setIsPermanentDeleteDialogOpen] = useState(false);
+  const [templateToPermanentlyDelete, setTemplateToPermanentlyDelete] = useState<DocumentTemplate | null>(null);
+  const [permanentDeleteReason, setPermanentDeleteReason] = useState("");
   
   // Folder delete confirmation
   const [folderToDelete, setFolderToDelete] = useState<FolderTemplate | null>(null);
@@ -506,6 +511,24 @@ export default function TemplateLibraryPage() {
     },
   });
   
+  const permanentDeleteTemplateMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      return apiRequest("DELETE", `/api/document-templates/${id}/permanent`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      invalidateDocumentsHierarchy();
+      setIsPermanentDeleteDialogOpen(false);
+      setTemplateToPermanentlyDelete(null);
+      setPermanentDeleteReason("");
+      toast({ title: "Template permanently deleted", description: "The document template has been permanently removed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to permanently delete template", variant: "destructive" });
+    },
+  });
+
   const restoreTemplateMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("POST", `/api/document-templates/${id}/restore`);
@@ -1051,6 +1074,17 @@ export default function TemplateLibraryPage() {
     if (!templateToDelete || deleteReason.trim().length < 5) return;
     deleteTemplateMutation.mutate({ id: templateToDelete.id, reason: deleteReason.trim() });
   };
+
+  const handlePermanentDeleteTemplate = (template: DocumentTemplate) => {
+    setTemplateToPermanentlyDelete(template);
+    setPermanentDeleteReason("");
+    setIsPermanentDeleteDialogOpen(true);
+  };
+
+  const confirmPermanentDeleteTemplate = () => {
+    if (!templateToPermanentlyDelete || permanentDeleteReason.trim().length < 5) return;
+    permanentDeleteTemplateMutation.mutate({ id: templateToPermanentlyDelete.id, reason: permanentDeleteReason.trim() });
+  };
   
   // Folder handlers
   const handleCreateFolder = () => {
@@ -1443,10 +1477,16 @@ export default function TemplateLibraryPage() {
                   </>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-amber-600 dark:text-amber-400">
+                <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-amber-600 dark:text-amber-400" data-testid={`button-archive-template-${template.id}`}>
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   Archive
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => handlePermanentDeleteTemplate(template)} className="text-destructive focus:text-destructive" data-testid={`button-permanent-delete-template-${template.id}`}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -1846,16 +1886,28 @@ export default function TemplateLibraryPage() {
                                 </p>
                               )}
                             </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => restoreTemplateMutation.mutate(template.id)}
-                              disabled={restoreTemplateMutation.isPending}
-                              data-testid={`button-restore-template-${template.id}`}
-                            >
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Restore
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => restoreTemplateMutation.mutate(template.id)}
+                                disabled={restoreTemplateMutation.isPending}
+                                data-testid={`button-restore-template-${template.id}`}
+                              >
+                                <RotateCcw className="h-4 w-4 mr-1" />
+                                Restore
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive"
+                                onClick={() => handlePermanentDeleteTemplate(template)}
+                                data-testid={`button-permanent-delete-archived-${template.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
@@ -2672,6 +2724,68 @@ export default function TemplateLibraryPage() {
         </DialogContent>
       </Dialog>
       
+      {/* Permanent Delete Confirmation Dialog */}
+      <Dialog open={isPermanentDeleteDialogOpen} onOpenChange={setIsPermanentDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Permanently Delete Template
+            </DialogTitle>
+            <DialogDescription>
+              This will <strong>permanently remove</strong> "{templateToPermanentlyDelete?.name}" and all its version history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="permanent-delete-reason" className="text-sm font-medium">
+                Reason for deletion <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="permanent-delete-reason"
+                value={permanentDeleteReason}
+                onChange={(e) => setPermanentDeleteReason(e.target.value)}
+                placeholder="Please provide a reason for permanently deleting this template (minimum 5 characters)..."
+                className="min-h-[80px]"
+                data-testid="input-permanent-delete-reason"
+              />
+              {permanentDeleteReason.trim().length > 0 && permanentDeleteReason.trim().length < 5 && (
+                <p className="text-xs text-destructive">Reason must be at least 5 characters</p>
+              )}
+            </div>
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm">
+              <p className="font-medium text-destructive mb-1">Warning — this action is irreversible:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>The template and all versions are permanently removed</li>
+                <li>Documents already generated from this template are not affected</li>
+                <li>This cannot be recovered</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsPermanentDeleteDialogOpen(false);
+                setTemplateToPermanentlyDelete(null);
+                setPermanentDeleteReason("");
+              }}
+              data-testid="button-cancel-permanent-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmPermanentDeleteTemplate}
+              disabled={permanentDeleteReason.trim().length < 5 || permanentDeleteTemplateMutation.isPending}
+              data-testid="button-confirm-permanent-delete"
+            >
+              {permanentDeleteTemplateMutation.isPending ? "Deleting..." : "Delete Permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Folder Create Dialog */}
       <Dialog open={isFolderDialogOpen} onOpenChange={setIsFolderDialogOpen}>
         <DialogContent className="max-w-md">

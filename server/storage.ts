@@ -292,6 +292,7 @@ export interface IStorage {
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
   deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
+  permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
   restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean>;
   
   // Document Template Versions
@@ -2136,6 +2137,27 @@ export class MemStorage implements IStorage {
       }),
     });
     
+    return true;
+  }
+
+  async permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
+    const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+
+    // Hard delete versions first, then the template
+    await db.delete(documentTemplateVersionsTable).where(eq(documentTemplateVersionsTable.templateId, id));
+    await db.delete(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+
+    await this.createAuditLog({
+      userId: deletedBy,
+      action: 'template_permanently_deleted',
+      entityType: 'document_template',
+      entityId: id,
+      details: JSON.stringify({
+        templateName: existing?.name || 'Unknown',
+        reason: reason,
+      }),
+    });
+
     return true;
   }
   
