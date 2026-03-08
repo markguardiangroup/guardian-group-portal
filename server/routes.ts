@@ -3419,7 +3419,7 @@ export async function registerRoutes(
       }
       
       // Soft delete with audit trail
-      const success = await storage.deleteDocumentTemplate(req.params.id, user.id, reason.trim());
+      const success = await storage.deleteDocumentTemplate(req.params.id, user.id, user.fullName, reason.trim());
       
       if (!success) {
         return res.status(500).json({ error: "Failed to archive document template" });
@@ -3488,7 +3488,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document template not found" });
       }
 
-      const success = await storage.permanentlyDeleteDocumentTemplate(req.params.id, user.id, reason.trim());
+      const success = await storage.permanentlyDeleteDocumentTemplate(req.params.id, user.id, user.fullName, reason.trim());
 
       if (!success) {
         return res.status(500).json({ error: "Failed to permanently delete document template" });

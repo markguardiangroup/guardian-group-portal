@@ -291,8 +291,8 @@ export interface IStorage {
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
-  deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
-  permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean>;
+  deleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean>;
+  permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean>;
   restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean>;
   
   // Document Template Versions
@@ -2110,7 +2110,7 @@ export class MemStorage implements IStorage {
     return updated;
   }
   
-  async deleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
+  async deleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean> {
     // Get existing template for audit log
     const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
     
@@ -2128,6 +2128,7 @@ export class MemStorage implements IStorage {
     // Log to audit trail
     await this.createAuditLog({
       userId: deletedBy,
+      userName: deletedByName,
       action: 'template_deleted',
       entityType: 'document_template',
       entityId: id,
@@ -2140,7 +2141,7 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  async permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, reason: string): Promise<boolean> {
+  async permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean> {
     const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
 
     // Hard delete versions first, then the template
@@ -2149,6 +2150,7 @@ export class MemStorage implements IStorage {
 
     await this.createAuditLog({
       userId: deletedBy,
+      userName: deletedByName,
       action: 'template_permanently_deleted',
       entityType: 'document_template',
       entityId: id,
