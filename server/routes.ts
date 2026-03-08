@@ -3402,8 +3402,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete document templates" });
+      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
+      if (user.role !== "admin" && !isProConsultant) {
+        return res.status(403).json({ error: "Only admins and pro consultants can delete document templates" });
       }
       
       // Require deletion reason

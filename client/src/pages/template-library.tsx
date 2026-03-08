@@ -356,6 +356,7 @@ export default function TemplateLibraryPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === "admin";
+  const canDelete = user?.role === "admin" || (user?.role === "consultant" && user?.consultantTier === "pro");
   
   const [activeTab, setActiveTab] = useState("templates");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1387,7 +1388,7 @@ export default function TemplateLibraryPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {canDelete && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid={`button-template-actions-${template.id}`}>
@@ -1411,15 +1412,19 @@ export default function TemplateLibraryPage() {
                     <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuItem onClick={() => {
-                  setVersionUploadTemplate(template);
-                  setNewVersionFile(null);
-                  setVersionChangeNote("");
-                  setIsVersionUploadDialogOpen(true);
-                }} data-testid={`button-upload-version-${template.id}`}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload New Version
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => {
+                      setVersionUploadTemplate(template);
+                      setNewVersionFile(null);
+                      setVersionChangeNote("");
+                      setIsVersionUploadDialogOpen(true);
+                    }} data-testid={`button-upload-version-${template.id}`}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload New Version
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => {
                   setSelectedTemplate(template);
                   setIsVersionHistoryDialogOpen(true);
@@ -1427,11 +1432,15 @@ export default function TemplateLibraryPage() {
                   <History className="h-4 w-4 mr-2" />
                   Version History
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleDeleteTemplate(template)} className="text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="h-4 w-4 mr-2" />
