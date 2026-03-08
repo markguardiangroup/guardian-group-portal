@@ -124,6 +124,7 @@ export default function CreateFromTemplate() {
   const [documentTitle, setDocumentTitle] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
+  const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>("all");
@@ -177,6 +178,19 @@ export default function CreateFromTemplate() {
     },
     enabled: !!selectedSiteId,
   });
+
+  const { data: siteUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
+    queryKey: ["/api/sites", selectedSiteId, "users"],
+    queryFn: async () => {
+      if (!selectedSiteId) return [];
+      const res = await fetch(`/api/sites/${selectedSiteId}/users`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!selectedSiteId,
+  });
+
+  const siteClientUsers = siteUsers.filter(u => u.role === "client");
 
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
@@ -259,6 +273,7 @@ export default function CreateFromTemplate() {
 
   const handleSelectSite = (siteId: string) => {
     setSelectedSiteId(siteId);
+    setSelectedApproverId("");
     const site = sites.find(s => s.id === siteId);
     if (site) {
       populatePlaceholders(site);
@@ -283,6 +298,9 @@ export default function CreateFromTemplate() {
       }
       if (!selectedFolderId) {
         throw new Error("Please select a folder");
+      }
+      if (requiresApproval && !selectedApproverId) {
+        throw new Error("Please select a client approver");
       }
 
       // Step 1: Upload the file to object storage
@@ -321,6 +339,7 @@ export default function CreateFromTemplate() {
         templateId: selectedTemplate.id,
         templateVersion: selectedTemplate.version,
         requiresApproval,
+        notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
       };
 
       return apiRequest("POST", "/api/documents", formData);
@@ -799,6 +818,53 @@ export default function CreateFromTemplate() {
                   </span>
                 </button>
               </div>
+
+              {requiresApproval && (
+                <div className="mt-3">
+                  <Label className="text-sm font-medium flex items-center gap-1">
+                    Client Approver
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                    Select the client user who will review and approve this document
+                  </p>
+                  {siteClientUsers.length > 0 ? (
+                    <Select
+                      value={selectedApproverId}
+                      onValueChange={setSelectedApproverId}
+                    >
+                      <SelectTrigger
+                        className={`mt-1 ${requiresApproval && !selectedApproverId ? "border-destructive" : ""}`}
+                        data-testid="select-client-approver"
+                      >
+                        <SelectValue placeholder="Select a client approver…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {siteClientUsers.map((u) => (
+                          <SelectItem
+                            key={u.id}
+                            value={u.id}
+                            disabled={u.status !== "active"}
+                            data-testid={`option-approver-${u.id}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {u.fullName}
+                              {u.status !== "active" && (
+                                <span className="text-xs text-muted-foreground">(not active)</span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground mt-1">
+                      <Users className="h-4 w-4 shrink-0" />
+                      No client users are assigned to this site. Assign users in User Management first.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {templatePlaceholders.length > 0 && (
