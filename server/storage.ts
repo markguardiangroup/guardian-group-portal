@@ -1917,16 +1917,21 @@ export class MemStorage implements IStorage {
   }
 
   async deleteFolderTemplate(id: string): Promise<boolean> {
-    // First remove any rules associated with this template
+    // First remove any rules associated with this folder
     await db.delete(folderDocumentTypeRulesTable).where(eq(folderDocumentTypeRulesTable.folderTemplateId, id));
     
-    // Delete child templates recursively
+    // Unassign any document templates that reference this folder (set to null so they appear as Unassigned)
+    await db.update(documentTemplatesTable)
+      .set({ folderTemplateId: null, updatedAt: new Date() })
+      .where(eq(documentTemplatesTable.folderTemplateId, id));
+    
+    // Delete child folders recursively (this will also unassign their templates)
     const children = await db.select().from(folderTemplatesTable).where(eq(folderTemplatesTable.parentId, id));
     for (const child of children) {
       await this.deleteFolderTemplate(child.id);
     }
     
-    // Delete the template
+    // Delete the folder
     await db.delete(folderTemplatesTable).where(eq(folderTemplatesTable.id, id));
     return true;
   }
