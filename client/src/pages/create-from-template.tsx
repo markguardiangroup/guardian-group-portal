@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -123,6 +123,7 @@ export default function CreateFromTemplate() {
   const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({});
   const [documentTitle, setDocumentTitle] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>("all");
@@ -147,6 +148,13 @@ export default function CreateFromTemplate() {
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const selectedSite = sites.find(s => s.id === selectedSiteId);
+
+  // Sync requiresApproval from template whenever the selected template changes
+  useEffect(() => {
+    if (selectedTemplate) {
+      setRequiresApproval(selectedTemplate.requiresApproval !== false);
+    }
+  }, [selectedTemplateId]);
 
   const templatePlaceholders: string[] = useMemo(() => {
     if (!selectedTemplate?.placeholders) return [];
@@ -312,6 +320,7 @@ export default function CreateFromTemplate() {
         source: "template" as const,
         templateId: selectedTemplate.id,
         templateVersion: selectedTemplate.version,
+        requiresApproval,
       };
 
       return apiRequest("POST", "/api/documents", formData);
@@ -747,6 +756,51 @@ export default function CreateFromTemplate() {
               </div>
             )}
 
+            <div className="pt-2">
+              <Label className="text-sm font-medium">Approval Process</Label>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                Set from the template preference — override here if needed
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRequiresApproval(true)}
+                  data-testid="approval-required-button"
+                  className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
+                    requiresApproval
+                      ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
+                      : "border-muted bg-muted/30 hover:bg-muted/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <XCircle className={`h-3.5 w-3.5 ${requiresApproval ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
+                    Client approval
+                  </span>
+                  <span className="text-xs text-muted-foreground leading-tight">
+                    Needs review before becoming compliant
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequiresApproval(false)}
+                  data-testid="no-approval-button"
+                  className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
+                    !requiresApproval
+                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
+                      : "border-muted bg-muted/30 hover:bg-muted/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <CheckCircle2 className={`h-3.5 w-3.5 ${!requiresApproval ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
+                    Auto-approve
+                  </span>
+                  <span className="text-xs text-muted-foreground leading-tight">
+                    Marked compliant immediately on upload
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {templatePlaceholders.length > 0 && (
               <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
@@ -804,25 +858,6 @@ export default function CreateFromTemplate() {
               </CardHeader>
               <CardContent className="pt-0 space-y-2">
                 <div className="flex items-start gap-2.5 text-sm">
-                  {selectedTemplate.requiresApproval === false ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                  )}
-                  <div>
-                    <span className="font-medium">
-                      {selectedTemplate.requiresApproval === false
-                        ? "No approval required"
-                        : "Client approval required"}
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {selectedTemplate.requiresApproval === false
-                        ? "Document will be automatically marked as compliant on upload"
-                        : "Document will need to be reviewed and approved before becoming compliant"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5 text-sm">
                   <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                   <div>
                     <span className="font-medium">
@@ -832,9 +867,9 @@ export default function CreateFromTemplate() {
                     </span>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {selectedTemplate.renewalPeriodMonths
-                        ? selectedTemplate.requiresApproval === false
-                          ? `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from today`
-                          : `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from final approval`
+                        ? requiresApproval
+                          ? `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from final approval`
+                          : `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from today`
                         : "This document does not have an automatic renewal schedule"}
                     </p>
                   </div>
