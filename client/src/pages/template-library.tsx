@@ -46,6 +46,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import {
   Table,
   TableBody,
@@ -1497,10 +1498,10 @@ export default function TemplateLibraryPage() {
         value={folder.id} 
         className={`border rounded-lg mb-2 overflow-hidden ${isRootLevel ? moduleBorderColors[folderModule] : "border-border"}`}
       >
-        <AccordionTrigger 
-          className={`py-3 px-4 hover:no-underline ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}
-        >
-          <div className="flex items-center gap-2 flex-1">
+        <AccordionPrimitive.Header className="flex">
+          <AccordionPrimitive.Trigger
+            className={`flex flex-1 items-center gap-2 py-3 px-4 hover:no-underline text-left transition-all [&[data-state=open]_.chevron]:rotate-180 ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}
+          >
             {isRootLevel ? (
               <ModuleIcon className={`h-4 w-4 ${moduleColors[folderModule]}`} />
             ) : (
@@ -1512,18 +1513,19 @@ export default function TemplateLibraryPage() {
                 {totalTemplatesInTree}
               </Badge>
             )}
-            {isAdmin && (
-              <div className="ml-auto mr-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600" onClick={() => handleDeleteFolder(folder)} data-testid={`button-folder-delete-${folder.id}`}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </AccordionTrigger>
+            <ChevronDown className="chevron h-4 w-4 ml-auto shrink-0 text-muted-foreground transition-transform duration-200" />
+          </AccordionPrimitive.Trigger>
+          {isAdmin && (
+            <div className={`flex items-center gap-1 pr-2 ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
+                <Pencil className="h-3 w-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600" onClick={() => handleDeleteFolder(folder)} data-testid={`button-folder-delete-${folder.id}`}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </AccordionPrimitive.Header>
         <AccordionContent className="pb-0">
           <DroppableFolderContent folderId={folder.id} isOver={overDropId === `folder-${folder.id}`}>
             <div className="px-4 py-2 space-y-2">
