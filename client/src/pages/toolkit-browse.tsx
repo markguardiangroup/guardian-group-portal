@@ -216,7 +216,9 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
           {template.name}
         </p>
         {template.description && (
-          <p className="text-xs text-muted-foreground truncate">{template.description}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {template.description.length > 80 ? template.description.slice(0, 80) + "…" : template.description}
+          </p>
         )}
       </div>
       <Button
