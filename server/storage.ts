@@ -272,8 +272,8 @@ export interface IStorage {
   getToolkitFolders(module?: ModuleType): Promise<ToolkitFolder[]>;
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
-  trackTemplateDownload(templateId: string, userId: string, userName: string): Promise<void>;
-  getToolkitStats(): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; downloadedAt: string; downloadedBy: string }> }>;
+  trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
+  getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1857,36 +1857,63 @@ export class MemStorage implements IStorage {
     return result.length > 0;
   }
 
-  async trackTemplateDownload(templateId: string, userId: string, userName: string): Promise<void> {
+  async trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void> {
     await db.insert(toolkitDownloadsTable).values({
       templateId,
       userId,
       userName,
+      companyId: companyId ?? null,
+      companyName: companyName ?? null,
+      siteId: siteId ?? null,
+      siteName: siteName ?? null,
       downloadedAt: new Date(),
     });
   }
 
-  async getToolkitStats() {
+  async getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null }) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
-    const [totalRow] = await db.select({ count: count() }).from(toolkitDownloadsTable);
+
+    const buildWhere = (extra?: any) => {
+      const conditions = [];
+      if (filter?.siteId) {
+        conditions.push(eq(toolkitDownloadsTable.siteId, filter.siteId));
+      } else if (filter?.siteIds && filter.siteIds.length > 0) {
+        conditions.push(sql`${toolkitDownloadsTable.siteId} = ANY(${filter.siteIds})`);
+      }
+      if (extra) conditions.push(extra);
+      return conditions.length > 0 ? and(...conditions) : undefined;
+    };
+
+    const totalWhere = buildWhere();
+    const last30Where = buildWhere(gt(toolkitDownloadsTable.downloadedAt, thirtyDaysAgo));
+
+    const [totalRow] = await db
+      .select({ count: count() })
+      .from(toolkitDownloadsTable)
+      .where(totalWhere);
     const [last30Row] = await db
       .select({ count: count() })
       .from(toolkitDownloadsTable)
-      .where(gt(toolkitDownloadsTable.downloadedAt, thirtyDaysAgo));
+      .where(last30Where);
 
-    const recentDownloads = await db
+    const recentQuery = db
       .select({
         id: toolkitDownloadsTable.id,
         templateName: documentTemplatesTable.name,
         templateId: toolkitDownloadsTable.templateId,
         downloadedAt: toolkitDownloadsTable.downloadedAt,
         downloadedBy: toolkitDownloadsTable.userName,
+        companyName: toolkitDownloadsTable.companyName,
+        siteName: toolkitDownloadsTable.siteName,
       })
       .from(toolkitDownloadsTable)
       .leftJoin(documentTemplatesTable, eq(documentTemplatesTable.id, toolkitDownloadsTable.templateId))
       .orderBy(desc(toolkitDownloadsTable.downloadedAt))
       .limit(10);
+
+    const recentDownloads = totalWhere
+      ? await recentQuery.where(totalWhere)
+      : await recentQuery;
 
     return {
       totalDownloads: totalRow?.count ?? 0,
@@ -1897,6 +1924,8 @@ export class MemStorage implements IStorage {
         templateId: r.templateId,
         downloadedAt: r.downloadedAt?.toISOString() ?? new Date().toISOString(),
         downloadedBy: r.downloadedBy,
+        companyName: r.companyName ?? null,
+        siteName: r.siteName ?? null,
       })),
     };
   }

@@ -9350,10 +9350,30 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       
-      const { templateId } = req.body;
+      const { templateId, siteId } = req.body;
       if (!templateId) return res.status(400).json({ error: "Missing templateId" });
 
-      await storage.trackTemplateDownload(templateId, user.id, user.fullName);
+      // Look up company and site info for tracking
+      let companyId: string | null = user.companyId ?? null;
+      let companyName: string | null = null;
+      let siteName: string | null = null;
+      let resolvedSiteId: string | null = siteId ?? null;
+
+      if (siteId) {
+        const site = await storage.getSite(siteId);
+        if (site) {
+          companyId = site.companyId;
+          siteName = site.name;
+          // Get company name from company record
+          const company = await storage.getCompany(site.companyId);
+          if (company) companyName = company.name;
+        }
+      } else if (companyId) {
+        const company = await storage.getCompany(companyId);
+        if (company) companyName = company.name;
+      }
+
+      await storage.trackTemplateDownload(templateId, user.id, user.fullName, companyId, companyName, resolvedSiteId, siteName);
       res.json({ success: true });
     } catch (error) {
       console.error("Error tracking download:", error);
@@ -9364,7 +9384,14 @@ export async function registerRoutes(
   // Toolkit stats
   app.get("/api/toolkit/stats", requireAuth, async (req, res) => {
     try {
-      const stats = await storage.getToolkitStats();
+      const { siteId, siteIds } = req.query;
+      const filter: { siteId?: string | null; siteIds?: string[] | null } = {};
+      if (typeof siteId === "string" && siteId) {
+        filter.siteId = siteId;
+      } else if (typeof siteIds === "string" && siteIds) {
+        filter.siteIds = siteIds.split(",").filter(Boolean);
+      }
+      const stats = await storage.getToolkitStats(Object.keys(filter).length > 0 ? filter : undefined);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching toolkit stats:", error);

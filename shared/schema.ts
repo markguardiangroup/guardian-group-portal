@@ -1426,6 +1426,10 @@ export const toolkitDownloads = pgTable("toolkit_downloads", {
   templateId: varchar("template_id").notNull(),
   userId: varchar("user_id").notNull(),
   userName: text("user_name").notNull(),
+  companyId: varchar("company_id"),
+  companyName: text("company_name"),
+  siteId: varchar("site_id"),
+  siteName: text("site_name"),
   downloadedAt: timestamp("downloaded_at").notNull().defaultNow(),
 });
 
