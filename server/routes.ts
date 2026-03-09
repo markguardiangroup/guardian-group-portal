@@ -2929,6 +2929,7 @@ export async function registerRoutes(
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
+        toolkitFolderId: z.string().nullable().optional(),
       });
       
       const parsed = schema.safeParse(req.body);
