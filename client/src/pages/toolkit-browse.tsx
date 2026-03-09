@@ -198,6 +198,13 @@ async function downloadTemplate(template: ToolkitTemplate) {
 }
 
 function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnClass: string }) {
+  const [popping, setPopping] = useState(false);
+
+  const handleDownload = () => {
+    setPopping(true);
+    downloadTemplate(template);
+  };
+
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-muted/40 transition-colors"
@@ -222,10 +229,11 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
       </div>
       <Button
         size="sm"
-        onClick={() => downloadTemplate(template)}
+        onClick={handleDownload}
         disabled={!template.fileUrl}
         data-testid={`button-download-${template.id}`}
-        className={`shrink-0 ${btnClass}`}
+        className={`shrink-0 ${btnClass}${popping ? " download-btn-pop" : ""}`}
+        onAnimationEnd={() => setPopping(false)}
       >
         <Download className="h-3.5 w-3.5 mr-1.5" />
         Download

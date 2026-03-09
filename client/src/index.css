@@ -401,6 +401,18 @@
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6) rotate(-2deg) translateY(20px); }
 }
 
+@keyframes download-btn-pop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(0.82); }
+  60%  { transform: scale(1.12); }
+  80%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+.download-btn-pop {
+  animation: download-btn-pop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 .toolkit-folder-dialog[data-state=open] {
   animation: toolkit-folder-bounce-in 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }
