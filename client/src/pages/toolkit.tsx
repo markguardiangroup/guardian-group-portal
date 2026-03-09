@@ -25,6 +25,39 @@ import {
   Search,
   BookMarked,
   FolderPlus,
+  AlertTriangle,
+  Flame,
+  HeartPulse,
+  FlaskConical,
+  Zap,
+  Car,
+  Leaf,
+  Monitor,
+  Wrench,
+  ShieldAlert,
+  CalendarMinus,
+  Clock,
+  Baby,
+  Gavel,
+  MessageSquareWarning,
+  UserMinus,
+  UserPlus,
+  TrendingUp,
+  Banknote,
+  CalendarDays,
+  FileSignature,
+  BookOpen,
+  Lock,
+  Timer,
+  Heart,
+  UserX,
+  ArrowLeftRight,
+  ClipboardList,
+  Users,
+  Building2,
+  Stethoscope,
+  GraduationCap,
+  Activity,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -98,6 +131,50 @@ function getMimeLabel(mimeType: string) {
   if (mimeType.includes("powerpoint") || mimeType.includes("pptx")) return "PowerPoint";
   if (mimeType.includes("text")) return "Text";
   return "File";
+}
+
+const FOLDER_ICON_MAP: { keywords: string[]; Icon: any }[] = [
+  { keywords: ["fire", "evacuation", "emergency"], Icon: Flame },
+  { keywords: ["risk", "hazard", "coshh", "chemical", "substance"], Icon: AlertTriangle },
+  { keywords: ["first aid", "first-aid", "medical", "health surveillance", "occupational health", "welfare"], Icon: HeartPulse },
+  { keywords: ["electrical", "electric"], Icon: Zap },
+  { keywords: ["vehicle", "driving", "transport", "fleet"], Icon: Car },
+  { keywords: ["environmental", "environment", "eco"], Icon: Leaf },
+  { keywords: ["display screen", "dse", "computer", "screen"], Icon: Monitor },
+  { keywords: ["manual handling", "lifting", "equipment", "maintenance", "plant"], Icon: Wrench },
+  { keywords: ["lone worker", "lone working", "security"], Icon: ShieldAlert },
+  { keywords: ["noise", "vibration", "radiation"], Icon: Activity },
+  { keywords: ["construction", "building", "site safety"], Icon: HardHat },
+  { keywords: ["training", "induction", "learning"], Icon: GraduationCap },
+  { keywords: ["absence short", "short term"], Icon: CalendarMinus },
+  { keywords: ["absence long", "long term", "long-term sickness"], Icon: Clock },
+  { keywords: ["adoption", "maternity", "paternity", "parental", "shared parental"], Icon: Baby },
+  { keywords: ["disciplinary", "misconduct", "capability"], Icon: Gavel },
+  { keywords: ["grievance", "complaint", "bullying", "harassment"], Icon: MessageSquareWarning },
+  { keywords: ["redundancy", "dismissal", "termination", "leaving"], Icon: UserX },
+  { keywords: ["recruitment", "onboarding", "new starter"], Icon: UserPlus },
+  { keywords: ["performance", "appraisal", "review"], Icon: TrendingUp },
+  { keywords: ["pay", "wage", "salary", "payroll", "expenses"], Icon: Banknote },
+  { keywords: ["holiday", "leave", "annual", "flexitime", "time off"], Icon: CalendarDays },
+  { keywords: ["contract", "offer letter", "terms"], Icon: FileSignature },
+  { keywords: ["handbook", "policy", "procedure", "guideline"], Icon: BookOpen },
+  { keywords: ["gdpr", "data protection", "privacy", "confidential"], Icon: Lock },
+  { keywords: ["working time", "hours", "overtime", "shift"], Icon: Timer },
+  { keywords: ["wellbeing", "mental health", "stress"], Icon: Heart },
+  { keywords: ["tupe", "transfer"], Icon: ArrowLeftRight },
+  { keywords: ["discrimination", "equality", "diversity"], Icon: Scale },
+  { keywords: ["audit", "inspection", "checklist", "assessment"], Icon: ClipboardList },
+  { keywords: ["workforce", "staffing", "headcount"], Icon: Users },
+  { keywords: ["premises", "workplace", "office"], Icon: Building2 },
+  { keywords: ["occupational", "stethoscope", "clinic"], Icon: Stethoscope },
+];
+
+function getFolderIcon(folderName: string): any {
+  const lower = folderName.toLowerCase();
+  for (const { keywords, Icon } of FOLDER_ICON_MAP) {
+    if (keywords.some(k => lower.includes(k))) return Icon;
+  }
+  return FolderOpen;
 }
 
 async function downloadTemplate(template: ToolkitTemplate) {
@@ -289,29 +366,37 @@ export default function Toolkit() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {visibleFolders.map((folder) => {
-            const { Icon, color, cardColor } = MODULE_CONFIG[folder.module as ModuleType];
+            const { color, cardColor } = MODULE_CONFIG[folder.module as ModuleType];
+            const FolderIcon = getFolderIcon(folder.name);
             const matchCount = search.trim()
               ? folder.templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).length
               : folder.templates.length;
+            // derive a soft bg from the module btn colour
+            const iconBg =
+              folder.module === "health_safety"
+                ? "bg-emerald-100 dark:bg-emerald-900/40"
+                : folder.module === "human_resources"
+                ? "bg-blue-100 dark:bg-blue-900/40"
+                : "bg-pink-100 dark:bg-pink-900/40";
             return (
               <button
                 key={folder.id}
                 type="button"
                 onClick={() => { setSelectedFolder(folder); setSheetSearch(""); }}
                 data-testid={`button-folder-${folder.id}`}
-                className={`group relative flex flex-col items-start gap-3 rounded-xl border bg-card p-5 text-left hover:shadow-md transition-all ${cardColor}`}
+                className={`group relative flex flex-col items-start gap-4 rounded-xl border bg-card p-5 text-left hover:shadow-lg transition-all duration-200 ${cardColor}`}
               >
-                <div className={`p-2.5 rounded-lg bg-muted/60 group-hover:bg-muted transition-colors`}>
-                  <Icon className={`h-6 w-6 ${color}`} />
+                <div className={`p-3 rounded-xl ${iconBg} transition-transform group-hover:scale-110 duration-200`}>
+                  <FolderIcon className={`h-7 w-7 ${color}`} />
                 </div>
-                <div className="flex-1 min-w-0 w-full">
-                  <p className="font-semibold text-sm leading-tight" data-testid={`text-folder-name-${folder.id}`}>
+                <div className="flex-1 min-w-0 w-full space-y-1.5">
+                  <p className="font-semibold text-sm leading-snug" data-testid={`text-folder-name-${folder.id}`}>
                     {folder.name}
                   </p>
+                  <p className={`text-xs font-medium ${color}`}>
+                    {matchCount} {matchCount === 1 ? "file" : "files"}
+                  </p>
                 </div>
-                <Badge variant="secondary" className="text-xs">
-                  {matchCount} {matchCount === 1 ? "file" : "files"}
-                </Badge>
               </button>
             );
           })}
