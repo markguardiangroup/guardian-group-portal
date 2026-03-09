@@ -2657,10 +2657,10 @@ export default function TemplateLibraryPage() {
                             <Label className="text-xs">Description (Optional)</Label>
                             <Input
                               value={item.description}
-                              onChange={(e) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, description: e.target.value.slice(0, 80) } : i))}
+                              onChange={(e) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, description: e.target.value.slice(0, 150) } : i))}
                               placeholder="Brief description..."
                               className="h-8 text-sm"
-                              maxLength={80}
+                              maxLength={150}
                               disabled={item.status === "creating" || item.status === "done"}
                               data-testid={`input-bulk-description-${item.id}`}
                             />
@@ -2721,16 +2721,16 @@ export default function TemplateLibraryPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="edit-template-description">Description</Label>
-                <span className={`text-xs ${templateFormData.description.length > 80 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {templateFormData.description.length}/80
+                <span className={`text-xs ${templateFormData.description.length > 150 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {templateFormData.description.length}/150
                 </span>
               </div>
               <Textarea
                 id="edit-template-description"
                 value={templateFormData.description}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value.slice(0, 80) })}
+                onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value.slice(0, 150) })}
                 rows={2}
-                maxLength={80}
+                maxLength={150}
                 data-testid="input-edit-template-description"
               />
             </div>
@@ -3751,16 +3751,16 @@ export default function TemplateLibraryPage() {
                       <div className="flex items-center justify-between">
                         <Label htmlFor="wizard-template-description">Description (optional)</Label>
                         <span className="text-xs text-muted-foreground">
-                          {wizardData.templateDescription.length}/80
+                          {wizardData.templateDescription.length}/150
                         </span>
                       </div>
                       <Textarea
                         id="wizard-template-description"
                         value={wizardData.templateDescription}
-                        onChange={(e) => setWizardData(prev => ({ ...prev, templateDescription: e.target.value.slice(0, 80) }))}
+                        onChange={(e) => setWizardData(prev => ({ ...prev, templateDescription: e.target.value.slice(0, 150) }))}
                         placeholder="Brief description of this template"
                         className="resize-none"
-                        maxLength={80}
+                        maxLength={150}
                         data-testid="wizard-input-template-description"
                       />
                     </div>

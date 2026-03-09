@@ -16,6 +16,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Download,
   FileText,
   FolderOpen,
@@ -216,7 +221,14 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
           {template.name}
         </p>
         {template.description && (
-          <p className="text-xs text-muted-foreground truncate">{template.description}</p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-xs text-muted-foreground truncate cursor-default">{template.description}</p>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              {template.description}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
       <Button
