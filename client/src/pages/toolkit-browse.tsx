@@ -218,14 +218,6 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
         {template.description && (
           <p className="text-xs text-muted-foreground truncate">{template.description}</p>
         )}
-        <div className="flex items-center gap-2 mt-1">
-          <Badge variant="outline" className="text-xs">{getMimeLabel(template.mimeType)}</Badge>
-          <Badge variant="secondary" className="text-xs">v{template.version}</Badge>
-          <span className="text-xs text-muted-foreground">
-            {format(new Date(template.updatedAt), "d MMM yyyy")}
-          </span>
-          <span className="text-xs text-muted-foreground">{formatBytes(template.fileSize)}</span>
-        </div>
       </div>
       <Button
         size="sm"
