@@ -387,3 +387,25 @@
     inset: -1px;
   }
 }
+
+@keyframes toolkit-folder-bounce-in {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6) rotate(-1deg); }
+  55%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05) rotate(0.5deg); }
+  75%  { transform: translate(-50%, -50%) scale(0.97) rotate(-0.2deg); }
+  90%  { transform: translate(-50%, -50%) scale(1.01); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+@keyframes toolkit-folder-bounce-out {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  30%  { transform: translate(-50%, -50%) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.75) translateY(16px); }
+}
+
+.toolkit-folder-dialog[data-state=open] {
+  animation: toolkit-folder-bounce-in 0.48s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+.toolkit-folder-dialog[data-state=closed] {
+  animation: toolkit-folder-bounce-out 0.22s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+}

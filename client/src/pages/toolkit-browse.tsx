@@ -408,7 +408,7 @@ export default function ToolkitBrowse() {
           if (!o) { setSelectedFolder(null); setSheetSearch(""); }
         }}
       >
-        <DialogContent className="max-w-2xl w-full p-0 gap-0 overflow-hidden">
+        <DialogContent className="toolkit-folder-dialog max-w-2xl w-full p-0 gap-0 overflow-hidden">
           {selectedFolder && (
             <>
               <DialogHeader className="px-6 py-5 border-b">
