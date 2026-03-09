@@ -1430,15 +1430,3 @@ export const toolkitDownloads = pgTable("toolkit_downloads", {
 });
 
 export type ToolkitDownload = typeof toolkitDownloads.$inferSelect;
-
-// Security configuration
-export const SECURITY_CONFIG = {
-  maxLoginAttempts: 5,
-  lockoutDurationMinutes: 15,
-  sessionTimeoutMinutes: 60,
-  passwordMinLength: 8,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumber: true,
-  requireSpecialChar: false,
-} as const;
