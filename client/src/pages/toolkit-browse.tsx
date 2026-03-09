@@ -243,6 +243,19 @@ export default function ToolkitBrowse() {
   const [search, setSearch] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<ToolkitFolder | null>(null);
   const [sheetSearch, setSheetSearch] = useState("");
+  const [isFolderClosing, setIsFolderClosing] = useState(false);
+
+  const closeFolderDialog = () => {
+    setIsFolderClosing(true);
+  };
+
+  const handleFolderAnimationEnd = () => {
+    if (isFolderClosing) {
+      setIsFolderClosing(false);
+      setSelectedFolder(null);
+      setSheetSearch("");
+    }
+  };
 
   // Create folder dialog
   const [showCreateFolder, setShowCreateFolder] = useState(false);
@@ -403,12 +416,13 @@ export default function ToolkitBrowse() {
 
       {/* Folder files Dialog */}
       <Dialog
-        open={selectedFolder !== null}
-        onOpenChange={(o) => {
-          if (!o) { setSelectedFolder(null); setSheetSearch(""); }
-        }}
+        open={selectedFolder !== null || isFolderClosing}
+        onOpenChange={(o) => { if (!o) closeFolderDialog(); }}
       >
-        <DialogContent className="toolkit-folder-dialog max-w-2xl w-full p-0 gap-0 overflow-hidden">
+        <DialogContent
+          className={`toolkit-folder-dialog max-w-2xl w-full p-0 gap-0 overflow-hidden${isFolderClosing ? " toolkit-closing" : ""}`}
+          onAnimationEnd={handleFolderAnimationEnd}
+        >
           {selectedFolder && (
             <>
               <DialogHeader className="px-6 py-5 border-b">

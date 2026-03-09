@@ -405,6 +405,7 @@
   animation: toolkit-folder-bounce-in 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }
 
-.toolkit-folder-dialog[data-state=closed] {
+.toolkit-folder-dialog.toolkit-closing {
   animation: toolkit-folder-bounce-out 0.28s cubic-bezier(0.55, 0, 1, 0.45) forwards !important;
+  pointer-events: none;
 }
