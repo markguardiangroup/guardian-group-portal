@@ -16,13 +16,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import {
   Download,
   FileText,
   FolderOpen,
@@ -66,24 +59,27 @@ interface ToolkitData {
   unassigned: ToolkitTemplate[];
 }
 
-const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: string; cardColor: string }> = {
+const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: string; cardColor: string; btnClass: string }> = {
   health_safety: {
     label: "Health & Safety",
     Icon: HardHat,
     color: "text-emerald-600 dark:text-emerald-400",
     cardColor: "border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600",
+    btnClass: "bg-emerald-600 hover:bg-emerald-700 text-white border-0",
   },
   human_resources: {
     label: "Human Resources",
     Icon: Briefcase,
     color: "text-blue-600 dark:text-blue-400",
     cardColor: "border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600",
+    btnClass: "bg-blue-600 hover:bg-blue-700 text-white border-0",
   },
   employment_law: {
     label: "Employment Law",
     Icon: Scale,
     color: "text-pink-600 dark:text-pink-400",
     cardColor: "border-pink-200 dark:border-pink-800 hover:border-pink-400 dark:hover:border-pink-600",
+    btnClass: "bg-pink-600 hover:bg-pink-700 text-white border-0",
   },
 };
 
@@ -123,7 +119,7 @@ async function downloadTemplate(template: ToolkitTemplate) {
   }
 }
 
-function TemplateRow({ template }: { template: ToolkitTemplate }) {
+function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnClass: string }) {
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-muted/40 transition-colors"
@@ -148,11 +144,10 @@ function TemplateRow({ template }: { template: ToolkitTemplate }) {
       </div>
       <Button
         size="sm"
-        variant="outline"
         onClick={() => downloadTemplate(template)}
         disabled={!template.fileUrl}
         data-testid={`button-download-${template.id}`}
-        className="shrink-0"
+        className={`shrink-0 ${btnClass}`}
       >
         <Download className="h-3.5 w-3.5 mr-1.5" />
         Download
@@ -213,8 +208,6 @@ export default function Toolkit() {
           )
         : selectedFolder.templates)
     : [];
-
-  const { color: moduleColor } = MODULE_CONFIG[selectedModule];
 
   return (
     <div className="space-y-6">
@@ -325,29 +318,28 @@ export default function Toolkit() {
         </div>
       )}
 
-      {/* Folder files Sheet */}
-      <Sheet
+      {/* Folder files Dialog */}
+      <Dialog
         open={selectedFolder !== null}
         onOpenChange={(o) => {
           if (!o) { setSelectedFolder(null); setSheetSearch(""); }
         }}
       >
-        <SheetContent side="right" className="sm:max-w-xl w-full flex flex-col p-0">
+        <DialogContent className="max-w-2xl w-full p-0 gap-0 overflow-hidden">
           {selectedFolder && (
             <>
-              <SheetHeader className="px-6 py-5 border-b">
+              <DialogHeader className="px-6 py-5 border-b">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted">
                     <FolderOpen className={`h-5 w-5 ${MODULE_CONFIG[selectedFolder.module as ModuleType].color}`} />
                   </div>
                   <div>
-                    <SheetTitle className="text-base">{selectedFolder.name}</SheetTitle>
-                    <SheetDescription className="text-xs mt-0.5">
+                    <DialogTitle className="text-base">{selectedFolder.name}</DialogTitle>
+                    <DialogDescription className="text-xs mt-0.5">
                       {MODULE_CONFIG[selectedFolder.module as ModuleType].label} · {selectedFolder.templates.length} {selectedFolder.templates.length === 1 ? "file" : "files"}
-                    </SheetDescription>
+                    </DialogDescription>
                   </div>
                 </div>
-                {/* Sheet search */}
                 <div className="relative mt-3">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
@@ -355,12 +347,12 @@ export default function Toolkit() {
                     value={sheetSearch}
                     onChange={(e) => setSheetSearch(e.target.value)}
                     className="pl-9 h-8 text-sm"
-                    data-testid="input-sheet-search"
+                    data-testid="input-dialog-search"
                   />
                 </div>
-              </SheetHeader>
+              </DialogHeader>
 
-              <div className="flex-1 overflow-y-auto">
+              <div className="overflow-y-auto max-h-[60vh]">
                 {sheetTemplates.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -371,15 +363,19 @@ export default function Toolkit() {
                 ) : (
                   <div className="divide-y">
                     {sheetTemplates.map((template) => (
-                      <TemplateRow key={template.id} template={template} />
+                      <TemplateRow
+                        key={template.id}
+                        template={template}
+                        btnClass={MODULE_CONFIG[selectedFolder.module as ModuleType].btnClass}
+                      />
                     ))}
                   </div>
                 )}
               </div>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Folder Dialog */}
       <Dialog open={showCreateFolder} onOpenChange={(o) => { if (!o) { setShowCreateFolder(false); setNewFolderName(""); } }}>
