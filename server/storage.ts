@@ -2049,6 +2049,7 @@ export class MemStorage implements IStorage {
       description: template.description ?? null,
       module: template.module,
       folderTemplateId: template.folderTemplateId,
+      toolkitFolderId: template.toolkitFolderId ?? null,
       documentTypeId: template.documentTypeId ?? null,
       fileName: template.fileName,
       fileUrl: template.fileUrl ?? null,
@@ -2058,7 +2059,8 @@ export class MemStorage implements IStorage {
       placeholders: template.placeholders ?? null,
       isRequired: template.isRequired ?? false,
       renewalPeriodMonths: template.renewalPeriodMonths ?? null,
-      requiresApproval: template.requiresApproval ?? true, // Default to requiring approval
+      requiresApproval: template.requiresApproval ?? true,
+      visibility: template.visibility ?? "public",
       isActive: template.isActive ?? true,
       sortOrder: template.sortOrder ?? 0,
       createdBy: template.createdBy,
