@@ -94,7 +94,7 @@ import {
   GripVertical,
   Inbox,
 } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect, type ReactNode } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -211,6 +211,44 @@ type TemplateFormData = {
   toolkitFolderId: string;
   createNewToolkitFolder: boolean;
   newToolkitFolderName: string;
+};
+
+type BulkSharedSettings = {
+  module: ModuleType;
+  folderTemplateId: string;
+  createNewFolder: boolean;
+  newFolderName: string;
+  requiresApproval: boolean;
+  renewalPeriodMonths: number | null;
+  visibility: "public" | "private";
+  toolkitFolderId: string;
+  createNewToolkitFolder: boolean;
+  newToolkitFolderName: string;
+};
+
+type BulkFileItem = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  objectPath: string;
+  name: string;
+  description: string;
+  status: "uploading" | "ready" | "creating" | "done" | "error";
+  error?: string;
+};
+
+const defaultBulkSharedSettings: BulkSharedSettings = {
+  module: "health_safety",
+  folderTemplateId: "",
+  createNewFolder: false,
+  newFolderName: "",
+  requiresApproval: true,
+  renewalPeriodMonths: null,
+  visibility: "private",
+  toolkitFolderId: "",
+  createNewToolkitFolder: false,
+  newToolkitFolderName: "",
 };
 
 type FolderFormData = {
@@ -378,6 +416,12 @@ export default function TemplateLibraryPage() {
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<DocumentTemplate | null>(null);
   const [templateFormData, setTemplateFormData] = useState<TemplateFormData>(defaultTemplateFormData);
+
+  // Bulk add template state
+  const [bulkShared, setBulkShared] = useState<BulkSharedSettings>(defaultBulkSharedSettings);
+  const [bulkFileItems, setBulkFileItems] = useState<BulkFileItem[]>([]);
+  const [isBulkCreating, setIsBulkCreating] = useState(false);
+  const bulkFileInputRef = useRef<HTMLInputElement>(null);
   
   // Folder dialogs
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
@@ -992,6 +1036,178 @@ export default function TemplateLibraryPage() {
     } as any);
   };
   
+  // Bulk file select handler — uploads files immediately
+  const handleBulkFileSelect = async (files: FileList) => {
+    const newItems: BulkFileItem[] = Array.from(files).map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type || "application/octet-stream",
+      objectPath: "",
+      name: "",
+      description: "",
+      status: "uploading" as const,
+    }));
+
+    setBulkFileItems((prev) => [...prev, ...newItems]);
+
+    await Promise.all(
+      Array.from(files).map(async (file, idx) => {
+        const item = newItems[idx];
+        try {
+          const uploadRes = await fetch("/api/uploads/file", {
+            method: "POST",
+            headers: {
+              "Content-Type": file.type || "application/octet-stream",
+              "X-File-Name": encodeURIComponent(file.name),
+            },
+            credentials: "include",
+            body: file,
+          });
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
+            throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
+          }
+          const result = await uploadRes.json();
+          setBulkFileItems((prev) =>
+            prev.map((i) =>
+              i.id === item.id
+                ? { ...i, objectPath: result.objectPath, fileSize: result.fileSize, mimeType: result.mimeType, status: "ready" }
+                : i
+            )
+          );
+        } catch (err) {
+          setBulkFileItems((prev) =>
+            prev.map((i) =>
+              i.id === item.id
+                ? { ...i, status: "error", error: err instanceof Error ? err.message : "Upload failed" }
+                : i
+            )
+          );
+        }
+      })
+    );
+  };
+
+  // Bulk create handler — sends one API call per ready item
+  const handleBulkCreate = async () => {
+    const readyItems = bulkFileItems.filter((i) => i.status === "ready");
+
+    // Validate names
+    const missingName = readyItems.find((i) => !i.name.trim());
+    if (missingName) {
+      toast({ title: "Validation error", description: "Please enter a name for every file", variant: "destructive" });
+      return;
+    }
+
+    // Resolve Template Library folder
+    let folderId = bulkShared.folderTemplateId;
+    if (bulkShared.createNewFolder) {
+      if (!bulkShared.newFolderName.trim()) {
+        toast({ title: "Validation error", description: "Please enter a folder name", variant: "destructive" });
+        return;
+      }
+      try {
+        const res = await apiRequest("POST", "/api/folder-templates", {
+          name: bulkShared.newFolderName,
+          module: bulkShared.module,
+          description: "",
+          parentId: null,
+          sortOrder: 0,
+          isActive: true,
+        });
+        const newFolder = await res.json();
+        folderId = newFolder.id;
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      } catch {
+        toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+        return;
+      }
+    }
+    if (!folderId) {
+      toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
+      return;
+    }
+
+    // Resolve Toolkit folder (only if public)
+    let toolkitFolderId: string | undefined = bulkShared.toolkitFolderId || undefined;
+    if (bulkShared.visibility === "public") {
+      if (bulkShared.createNewToolkitFolder) {
+        if (!bulkShared.newToolkitFolderName.trim()) {
+          toast({ title: "Validation error", description: "Please enter a Toolkit folder name", variant: "destructive" });
+          return;
+        }
+        try {
+          const res = await apiRequest("POST", "/api/toolkit/folders", {
+            name: bulkShared.newToolkitFolderName,
+            module: bulkShared.module,
+            sortOrder: 0,
+          });
+          const newTkFolder = await res.json();
+          toolkitFolderId = newTkFolder.id;
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+        } catch {
+          toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
+          return;
+        }
+      } else if (!toolkitFolderId) {
+        toast({ title: "Validation error", description: "Please select or create a Toolkit folder", variant: "destructive" });
+        return;
+      }
+    }
+
+    setIsBulkCreating(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of readyItems) {
+      setBulkFileItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "creating" } : i)));
+      try {
+        await apiRequest("POST", "/api/document-templates", {
+          name: item.name.trim(),
+          description: item.description.trim() || undefined,
+          module: bulkShared.module,
+          folderTemplateId: folderId,
+          fileName: item.fileName,
+          fileUrl: item.objectPath,
+          fileSize: item.fileSize,
+          mimeType: item.mimeType,
+          sortOrder: 0,
+          isRequired: false,
+          renewalPeriodMonths: bulkShared.renewalPeriodMonths,
+          requiresApproval: bulkShared.requiresApproval,
+          visibility: bulkShared.visibility,
+          toolkitFolderId: bulkShared.visibility === "public" ? (toolkitFolderId || null) : null,
+        });
+        setBulkFileItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i)));
+        successCount++;
+      } catch (err) {
+        setBulkFileItems((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? { ...i, status: "error", error: err instanceof Error ? err.message : "Failed to create" }
+              : i
+          )
+        );
+        errorCount++;
+      }
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+    invalidateDocumentsHierarchy();
+    setIsBulkCreating(false);
+
+    if (errorCount === 0) {
+      toast({ title: "Templates created", description: `${successCount} template${successCount !== 1 ? "s" : ""} created successfully.` });
+      setIsTemplateDialogOpen(false);
+      setBulkFileItems([]);
+      setBulkShared(defaultBulkSharedSettings);
+    } else {
+      toast({ title: "Partial success", description: `${successCount} created, ${errorCount} failed. Fix errors and retry.`, variant: "destructive" });
+    }
+  };
+
   const handleEditTemplate = (template: DocumentTemplate) => {
     setSelectedTemplate(template);
     setTemplateFormData({
@@ -2090,31 +2306,28 @@ export default function TemplateLibraryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Template Create Dialog */}
-      <Dialog open={isTemplateDialogOpen} onOpenChange={setIsTemplateDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* Template Create Dialog — multi-file */}
+      <Dialog open={isTemplateDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setBulkFileItems([]);
+          setBulkShared(defaultBulkSharedSettings);
+        }
+        setIsTemplateDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Document Template</DialogTitle>
-            <DialogDescription>Upload a new template to the Document Bible</DialogDescription>
+            <DialogTitle>Add Document Templates</DialogTitle>
+            <DialogDescription>Set shared settings, then select one or more files. Each file gets its own name and description.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* ── Shared settings ── */}
             <div className="space-y-2">
-              <Label htmlFor="template-name">Template Name</Label>
-              <Input
-                id="template-name"
-                value={templateFormData.name}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, name: e.target.value })}
-                placeholder="e.g., Fire Risk Assessment Template"
-                data-testid="input-template-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="template-module">Module</Label>
-              <Select 
-                value={templateFormData.module} 
-                onValueChange={(v) => setTemplateFormData({ ...templateFormData, module: v as ModuleType, folderTemplateId: "", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+              <Label htmlFor="bulk-module">Module</Label>
+              <Select
+                value={bulkShared.module}
+                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType, folderTemplateId: "", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
               >
-                <SelectTrigger data-testid="select-template-module">
+                <SelectTrigger id="bulk-module" data-testid="select-bulk-module">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2124,253 +2337,248 @@ export default function TemplateLibraryPage() {
                 </SelectContent>
               </Select>
             </div>
-            {/* Visibility toggle — just below Module */}
+
+            {/* Visibility */}
             <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
               <div className="space-y-0.5">
-                <Label htmlFor="template-visibility" className="font-medium text-sm">Visibility</Label>
+                <Label className="font-medium text-sm">Visibility</Label>
                 <p className="text-xs text-muted-foreground">Public templates will appear in the Toolkit</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  {templateFormData.visibility === "public" ? "Public" : "Private"}
-                </span>
+                <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
-                  id="template-visibility"
-                  checked={templateFormData.visibility === "public"}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                  data-testid="switch-template-visibility"
+                  checked={bulkShared.visibility === "public"}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                  data-testid="switch-bulk-visibility"
                 />
               </div>
             </div>
-            {/* Toolkit Folder — shown only when public */}
-            {templateFormData.visibility === "public" && (
+
+            {/* Toolkit Folder (public only) */}
+            {bulkShared.visibility === "public" && (
               <div className="space-y-2">
                 <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
                 <div className="flex gap-2 mb-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={!templateFormData.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                    data-testid="button-select-existing-toolkit-folder"
-                  >
+                  <Button type="button" size="sm" variant={!bulkShared.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                    data-testid="button-bulk-select-existing-toolkit-folder">
                     Select Existing
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={templateFormData.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setTemplateFormData({ ...templateFormData, createNewToolkitFolder: true, toolkitFolderId: "" })}
-                    data-testid="button-create-new-toolkit-folder"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Create New
+                  <Button type="button" size="sm" variant={bulkShared.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: true, toolkitFolderId: "" })}
+                    data-testid="button-bulk-create-new-toolkit-folder">
+                    <Plus className="h-4 w-4 mr-1" />Create New
                   </Button>
                 </div>
-                {!templateFormData.createNewToolkitFolder ? (
+                {!bulkShared.createNewToolkitFolder ? (
                   <>
-                    <Select
-                      value={templateFormData.toolkitFolderId}
-                      onValueChange={(v) => setTemplateFormData({ ...templateFormData, toolkitFolderId: v })}
-                    >
-                      <SelectTrigger data-testid="select-toolkit-folder">
-                        <SelectValue placeholder="No folder (unassigned)" />
-                      </SelectTrigger>
+                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v })}>
+                      <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
                       <SelectContent>
-                        {toolkitFolders.filter(f => f.module === templateFormData.module).map(folder => (
-                          <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                        {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {toolkitFolders.filter(f => f.module === templateFormData.module).length === 0 && (
+                    {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
                       <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
                     )}
                   </>
                 ) : (
                   <div className="space-y-1 p-3 border rounded-md bg-muted/30">
-                    <Label htmlFor="new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
-                    <Input
-                      id="new-toolkit-folder-name"
-                      value={templateFormData.newToolkitFolderName}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newToolkitFolderName: e.target.value })}
-                      placeholder="e.g., HR Policies"
-                      data-testid="input-new-toolkit-folder-name"
-                    />
+                    <Label htmlFor="bulk-new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
+                    <Input id="bulk-new-toolkit-folder-name" value={bulkShared.newToolkitFolderName}
+                      onChange={(e) => setBulkShared({ ...bulkShared, newToolkitFolderName: e.target.value })}
+                      placeholder="e.g., HR Policies" data-testid="input-bulk-new-toolkit-folder-name" />
                   </div>
                 )}
               </div>
             )}
+
             {/* Template Library Folder */}
             <div className="space-y-2">
-              <Label>Template Library Folder</Label>
+              <Label>Template Library Folder <span className="text-destructive">*</span></Label>
               <div className="flex gap-2 mb-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={!templateFormData.createNewFolder ? "default" : "outline"}
-                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: false, newFolderName: "" })}
-                  data-testid="button-select-existing-folder"
-                >
+                <Button type="button" size="sm" variant={!bulkShared.createNewFolder ? "default" : "outline"}
+                  onClick={() => setBulkShared({ ...bulkShared, createNewFolder: false, newFolderName: "" })}
+                  data-testid="button-bulk-select-existing-folder">
                   Select Existing
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={templateFormData.createNewFolder ? "default" : "outline"}
-                  onClick={() => setTemplateFormData({ ...templateFormData, createNewFolder: true, folderTemplateId: "" })}
-                  data-testid="button-create-new-folder"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Create New
+                <Button type="button" size="sm" variant={bulkShared.createNewFolder ? "default" : "outline"}
+                  onClick={() => setBulkShared({ ...bulkShared, createNewFolder: true, folderTemplateId: "" })}
+                  data-testid="button-bulk-create-new-folder">
+                  <Plus className="h-4 w-4 mr-1" />Create New
                 </Button>
               </div>
-              {!templateFormData.createNewFolder ? (
+              {!bulkShared.createNewFolder ? (
                 <>
-                  <Select 
-                    value={templateFormData.folderTemplateId} 
-                    onValueChange={(v) => setTemplateFormData({ ...templateFormData, folderTemplateId: v })}
-                  >
-                    <SelectTrigger data-testid="select-template-folder">
-                      <SelectValue placeholder="Select a folder" />
-                    </SelectTrigger>
+                  <Select value={bulkShared.folderTemplateId} onValueChange={(v) => setBulkShared({ ...bulkShared, folderTemplateId: v })}>
+                    <SelectTrigger data-testid="select-bulk-template-folder"><SelectValue placeholder="Select a folder" /></SelectTrigger>
                     <SelectContent>
-                      {sortFoldersHierarchically(
-                        folderTemplates.filter(f => f.module === templateFormData.module && f.isActive)
-                      ).map(folder => (
-                          <SelectItem key={folder.id} value={folder.id}>
-                            {folder.parentId ? "└ " : ""}{folder.name}
-                          </SelectItem>
-                        ))}
+                      {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive)).map(f => (
+                        <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  {folderTemplates.filter(f => f.module === templateFormData.module && f.isActive).length === 0 && (
+                  {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive).length === 0 && (
                     <p className="text-xs text-muted-foreground">No folders available. Click "Create New" to add one.</p>
                   )}
                 </>
               ) : (
-                <div className="space-y-3 p-3 border rounded-md bg-muted/30">
-                  <div className="space-y-1">
-                    <Label htmlFor="new-folder-name" className="text-sm">Folder Name</Label>
-                    <Input
-                      id="new-folder-name"
-                      value={templateFormData.newFolderName}
-                      onChange={(e) => setTemplateFormData({ ...templateFormData, newFolderName: e.target.value })}
-                      placeholder="e.g., Policies"
-                      data-testid="input-new-folder-name"
-                    />
-                    <p className="text-xs text-muted-foreground">A unique code will be generated automatically</p>
-                  </div>
+                <div className="space-y-1 p-3 border rounded-md bg-muted/30">
+                  <Label htmlFor="bulk-new-folder-name" className="text-sm">Folder Name</Label>
+                  <Input id="bulk-new-folder-name" value={bulkShared.newFolderName}
+                    onChange={(e) => setBulkShared({ ...bulkShared, newFolderName: e.target.value })}
+                    placeholder="e.g., Policies" data-testid="input-bulk-new-folder-name" />
+                  <p className="text-xs text-muted-foreground">A unique code will be generated automatically</p>
                 </div>
               )}
             </div>
+
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
-                  <Label htmlFor="template-requiresApproval-inline" className="font-medium text-sm">Client Approval</Label>
+                  <Label className="font-medium text-sm">Client Approval</Label>
                   <p className="text-xs text-muted-foreground">Needs client sign-off</p>
                 </div>
                 <Switch
-                  id="template-requiresApproval-inline"
-                  checked={templateFormData.requiresApproval}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, requiresApproval: checked })}
-                  data-testid="switch-template-requires-approval"
+                  checked={bulkShared.requiresApproval}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, requiresApproval: checked })}
+                  data-testid="switch-bulk-requires-approval"
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="template-renewal" className="text-sm">Renewal Period (months)</Label>
-                <Input
-                  id="template-renewal"
-                  type="number"
-                  value={templateFormData.renewalPeriodMonths ?? ""}
-                  onChange={(e) => setTemplateFormData({ ...templateFormData, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
+                <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period (months)</Label>
+                <Input id="bulk-renewal" type="number"
+                  value={bulkShared.renewalPeriodMonths ?? ""}
+                  onChange={(e) => setBulkShared({ ...bulkShared, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
                   placeholder="e.g., 12 (leave blank for no renewal)"
-                  data-testid="input-template-renewal"
-                />
+                  data-testid="input-bulk-renewal" />
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
             </div>
+
+            {/* ── File picker ── */}
             <div className="space-y-2">
-              <Label>Template File <span className="text-destructive">*</span></Label>
-              {templateFormData.fileUrl ? (
-                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/30">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{templateFormData.fileName}</p>
-                    <p className="text-xs text-muted-foreground">{formatFileSize(templateFormData.fileSize)}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setTemplateFormData(prev => ({ ...prev, fileName: "", fileUrl: "", fileSize: 0, mimeType: "" }));
-                    }}
-                    data-testid="button-remove-file"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+              <Label>Template Files <span className="text-destructive">*</span></Label>
+              <input
+                ref={bulkFileInputRef}
+                type="file"
+                multiple
+                accept=".doc,.docx,.pdf,.xls,.xlsx,.txt,.rtf"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleBulkFileSelect(e.target.files);
+                    e.target.value = "";
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => bulkFileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-muted-foreground/30 rounded-md p-6 text-center hover:border-primary/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                data-testid="button-bulk-file-picker"
+              >
+                <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">Click to select files</p>
+                <p className="text-xs text-muted-foreground mt-1">Word, PDF, Excel — up to 50 MB each. Select multiple files at once.</p>
+              </button>
+            </div>
+
+            {/* ── Per-file list ── */}
+            {bulkFileItems.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Files ({bulkFileItems.filter(i => i.status === "ready" || i.status === "done").length} of {bulkFileItems.length} ready)</p>
                 </div>
-              ) : (
-                <SimpleFileUpload
-                  maxSizeMB={50}
-                  onUploadComplete={(result) => {
-                    setTemplateFormData(prev => ({
-                      ...prev,
-                      fileName: result.fileName,
-                      fileUrl: result.objectPath,
-                      fileSize: result.fileSize,
-                      mimeType: result.mimeType,
-                    }));
-                    toast({
-                      title: "File uploaded",
-                      description: `${result.fileName} uploaded successfully`,
-                    });
-                  }}
-                  onError={(error) => {
-                    toast({
-                      title: "Upload failed",
-                      description: error,
-                      variant: "destructive",
-                    });
-                  }}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Choose template file...
-                </SimpleFileUpload>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Supported formats: Word (.doc, .docx), PDF, Excel (.xls, .xlsx), Text files
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="template-description">Description (Optional)</Label>
-              <Textarea
-                id="template-description"
-                value={templateFormData.description}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, description: e.target.value })}
-                placeholder="Brief description of when to use this template..."
-                rows={2}
-                data-testid="input-template-description"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="template-placeholders">Placeholders (Optional)</Label>
-              <Input
-                id="template-placeholders"
-                value={templateFormData.placeholders}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, placeholders: e.target.value })}
-                placeholder='["COMPANY_NAME", "SITE_ADDRESS", "DATE"]'
-                data-testid="input-template-placeholders"
-              />
-              <p className="text-xs text-muted-foreground">JSON array of placeholder names that will be auto-filled</p>
-            </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {bulkFileItems.map((item) => (
+                    <div key={item.id} className="border rounded-md p-3 space-y-2 bg-muted/10" data-testid={`bulk-file-item-${item.id}`}>
+                      <div className="flex items-center gap-2">
+                        {item.status === "uploading" && (
+                          <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+                        )}
+                        {item.status === "ready" && <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />}
+                        {item.status === "creating" && (
+                          <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+                        )}
+                        {item.status === "done" && <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
+                        {item.status === "error" && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
+                        <span className="text-xs text-muted-foreground truncate flex-1">{item.fileName}</span>
+                        {item.status !== "creating" && item.status !== "done" && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 flex-shrink-0"
+                            onClick={() => setBulkFileItems(prev => prev.filter(i => i.id !== item.id))}
+                            data-testid={`button-remove-bulk-file-${item.id}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                      {item.status === "error" && (
+                        <p className="text-xs text-destructive">{item.error}</p>
+                      )}
+                      {(item.status === "ready" || item.status === "creating" || item.status === "done") && (
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Template Name <span className="text-destructive">*</span></Label>
+                            <Input
+                              value={item.name}
+                              onChange={(e) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))}
+                              placeholder="Enter template name..."
+                              className="h-8 text-sm"
+                              disabled={item.status === "creating" || item.status === "done"}
+                              data-testid={`input-bulk-name-${item.id}`}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Description (Optional)</Label>
+                            <Input
+                              value={item.description}
+                              onChange={(e) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
+                              placeholder="Brief description..."
+                              className="h-8 text-sm"
+                              disabled={item.status === "creating" || item.status === "done"}
+                              data-testid={`input-bulk-description-${item.id}`}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTemplateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateTemplate} disabled={createTemplateMutation.isPending} data-testid="button-save-template">
-              {createTemplateMutation.isPending ? "Creating..." : "Create Template"}
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => {
+              setIsTemplateDialogOpen(false);
+              setBulkFileItems([]);
+              setBulkShared(defaultBulkSharedSettings);
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkCreate}
+              disabled={
+                isBulkCreating ||
+                bulkFileItems.filter(i => i.status === "ready").length === 0 ||
+                bulkFileItems.some(i => i.status === "uploading") ||
+                bulkFileItems.filter(i => i.status === "ready").some(i => !i.name.trim())
+              }
+              data-testid="button-bulk-create-templates"
+            >
+              {isBulkCreating
+                ? "Creating..."
+                : `Create ${bulkFileItems.filter(i => i.status === "ready").length > 1
+                    ? `${bulkFileItems.filter(i => i.status === "ready").length} Templates`
+                    : "Template"}`}
             </Button>
           </DialogFooter>
         </DialogContent>
