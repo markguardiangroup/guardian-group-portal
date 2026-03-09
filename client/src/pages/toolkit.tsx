@@ -32,6 +32,7 @@ import {
   Upload,
   History,
   FileText,
+  Folder,
   FolderOpen,
   Inbox,
   HardHat,
@@ -42,6 +43,8 @@ import {
   GripVertical,
   FolderPlus,
   Trash2,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
@@ -237,12 +240,16 @@ function DroppableFolder({
   isOver,
   canEdit,
   onDelete,
+  isCollapsed,
+  onToggle,
 }: {
   folder: ToolkitFolder;
   children: React.ReactNode;
   isOver: boolean;
   canEdit: boolean;
   onDelete: (folder: ToolkitFolder) => void;
+  isCollapsed: boolean;
+  onToggle: () => void;
 }) {
   const { setNodeRef } = useDroppable({ id: folder.id, data: { folderId: folder.id } });
 
@@ -251,23 +258,32 @@ function DroppableFolder({
       ref={setNodeRef}
       className={`rounded-lg border transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border bg-card"}`}
     >
-      <div className="flex items-center gap-2 px-4 py-3 border-b">
-        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+      <button
+        type="button"
+        className={`w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors ${isCollapsed ? "rounded-lg" : "rounded-t-lg"}`}
+        onClick={onToggle}
+        data-testid={`button-toggle-folder-${folder.id}`}
+      >
+        {isCollapsed
+          ? <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+        {isCollapsed
+          ? <Folder className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          : <FolderOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
         <span className="font-semibold text-sm flex-1" data-testid={`folder-name-${folder.id}`}>{folder.name}</span>
         <Badge variant="secondary" className="text-xs">{folder.templates.length} template{folder.templates.length !== 1 ? "s" : ""}</Badge>
         {canEdit && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-            onClick={() => onDelete(folder)}
+          <span
+            role="button"
+            className="inline-flex items-center justify-center h-7 w-7 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onDelete(folder); }}
             data-testid={`button-delete-folder-${folder.id}`}
           >
             <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          </span>
         )}
-      </div>
-      {children}
+      </button>
+      {!isCollapsed && <div className={isCollapsed ? "" : "border-t"}>{children}</div>}
     </div>
   );
 }
@@ -305,6 +321,16 @@ export default function Toolkit() {
   const [newFile, setNewFile] = useState<{ fileUrl: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+
+  // Folder collapse state — empty set means all collapsed by default
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const toggleFolder = (folderId: string) =>
+    setExpandedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
 
   // Create folder dialog
   const [showCreateFolder, setShowCreateFolder] = useState(false);
@@ -510,6 +536,8 @@ export default function Toolkit() {
                   isOver={isOver}
                   canEdit={isAdmin}
                   onDelete={setDeletingFolder}
+                  isCollapsed={!expandedFolders.has(folder.id)}
+                  onToggle={() => toggleFolder(folder.id)}
                 >
                   {visibleTemplates.length === 0 ? (
                     <div className="px-4 py-6 text-center text-sm text-muted-foreground">
