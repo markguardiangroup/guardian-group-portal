@@ -180,6 +180,7 @@ function getFolderIcon(folderName: string): any {
 async function downloadTemplate(template: ToolkitTemplate) {
   if (!template.fileUrl) return;
   try {
+    await apiRequest("POST", "/api/toolkit/download", { templateId: template.id });
     const response = await fetch(template.fileUrl, { credentials: "include" });
     if (!response.ok) throw new Error("Download failed");
     const blob = await response.blob();
@@ -233,7 +234,7 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
   );
 }
 
-export default function Toolkit() {
+export default function ToolkitBrowse() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === "admin";
@@ -270,14 +271,12 @@ export default function Toolkit() {
 
   const filteredFolders = (toolkit?.folders ?? []).filter(f => f.module === selectedModule);
 
-  // When search is active, only show folders that have at least one matching template
   const visibleFolders = search.trim()
     ? filteredFolders.filter(f =>
         f.templates.some(t => t.name.toLowerCase().includes(search.toLowerCase()))
       )
     : filteredFolders;
 
-  // Templates in the open sheet, filtered by sheet-local search
   const sheetTemplates = selectedFolder
     ? (sheetSearch.trim()
         ? selectedFolder.templates.filter(t =>
@@ -293,7 +292,7 @@ export default function Toolkit() {
         <div className="flex items-start gap-3">
           <BookMarked className="h-7 w-7 text-primary mt-0.5 shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold">Toolkit</h1>
+            <h1 className="text-2xl font-bold">Browse Templates</h1>
             <p className="text-muted-foreground text-sm">
               Browse and download document templates organised by category.
             </p>
@@ -371,7 +370,6 @@ export default function Toolkit() {
             const matchCount = search.trim()
               ? folder.templates.filter(t => t.name.toLowerCase().includes(search.toLowerCase())).length
               : folder.templates.length;
-            // derive a soft bg from the module btn colour
             const iconBg =
               folder.module === "health_safety"
                 ? "bg-emerald-100 dark:bg-emerald-900/40"

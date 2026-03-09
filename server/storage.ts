@@ -28,6 +28,8 @@ import {
   type DocumentTypeRecord, type InsertDocumentType,
   type ToolkitFolder, type InsertToolkitFolder,
   toolkitFolders as toolkitFoldersTable,
+  type ToolkitDownload,
+  toolkitDownloads as toolkitDownloadsTable,
   type FolderTemplate, type InsertFolderTemplate,
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
   type DocumentTemplate, type InsertDocumentTemplate,
@@ -270,6 +272,8 @@ export interface IStorage {
   getToolkitFolders(module?: ModuleType): Promise<ToolkitFolder[]>;
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
+  trackTemplateDownload(templateId: string, userId: string, userName: string): Promise<void>;
+  getToolkitStats(): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; downloadedAt: string; downloadedBy: string }> }>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1851,6 +1855,50 @@ export class MemStorage implements IStorage {
       .where(eq(documentTemplatesTable.toolkitFolderId, id));
     const result = await db.delete(toolkitFoldersTable).where(eq(toolkitFoldersTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  async trackTemplateDownload(templateId: string, userId: string, userName: string): Promise<void> {
+    await db.insert(toolkitDownloadsTable).values({
+      templateId,
+      userId,
+      userName,
+      downloadedAt: new Date(),
+    });
+  }
+
+  async getToolkitStats() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    const [totalRow] = await db.select({ count: count() }).from(toolkitDownloadsTable);
+    const [last30Row] = await db
+      .select({ count: count() })
+      .from(toolkitDownloadsTable)
+      .where(gt(toolkitDownloadsTable.downloadedAt, thirtyDaysAgo));
+
+    const recentDownloads = await db
+      .select({
+        id: toolkitDownloadsTable.id,
+        templateName: documentTemplatesTable.name,
+        templateId: toolkitDownloadsTable.templateId,
+        downloadedAt: toolkitDownloadsTable.downloadedAt,
+        downloadedBy: toolkitDownloadsTable.userName,
+      })
+      .from(toolkitDownloadsTable)
+      .leftJoin(documentTemplatesTable, eq(documentTemplatesTable.id, toolkitDownloadsTable.templateId))
+      .orderBy(desc(toolkitDownloadsTable.downloadedAt))
+      .limit(10);
+
+    return {
+      totalDownloads: totalRow?.count ?? 0,
+      downloadsLast30Days: last30Row?.count ?? 0,
+      recentDownloads: recentDownloads.map(r => ({
+        id: r.id,
+        templateName: r.templateName ?? 'Unknown',
+        templateId: r.templateId,
+        downloadedAt: r.downloadedAt?.toISOString() ?? new Date().toISOString(),
+        downloadedBy: r.downloadedBy,
+      })),
+    };
   }
 
   // Folder Templates (Admin-managed master folder structure - Database-backed)

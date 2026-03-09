@@ -98,6 +98,17 @@ const moduleNavItems: {
     ],
   },
   {
+    title: "Toolkit",
+    icon: BookMarked,
+    url: "/toolkit",
+    themeClass: "theme-toolkit",
+    module: "training" as ModuleType,
+    subItems: [
+      { title: "Dashboard", url: "/toolkit" },
+      { title: "Browse Templates", url: "/toolkit/browse" },
+    ],
+  },
+  {
     title: "Training",
     icon: GraduationCap,
     url: "/training",
@@ -364,7 +375,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleModules.slice(0, 3).map((item) => {
+              {visibleModules.slice(0, 4).map((item) => {
                 const isModuleActive = location.startsWith(item.url);
                 const isTrainingModule = item.module === ("training" as ModuleType);
                 const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
@@ -455,20 +466,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 );
               })}
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location === "/toolkit"}
-                  className={cn("transition-colors", location === "/toolkit" && "bg-sidebar-accent font-medium")}
-                >
-                  <Link href="/toolkit" data-testid="nav-toolkit">
-                    <BookMarked className="h-4 w-4" />
-                    <span className="flex-1">Toolkit</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              {visibleModules.slice(3).map((item) => {
+              {visibleModules.slice(4).map((item) => {
                 const isModuleActive = location.startsWith(item.url);
                 const isTrainingModule = item.module === ("training" as ModuleType);
                 const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);

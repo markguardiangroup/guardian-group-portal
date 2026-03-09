@@ -1419,3 +1419,26 @@ export const feedbackReads = pgTable("feedback_reads", {
 });
 
 export type FeedbackRead = typeof feedbackReads.$inferSelect;
+
+// Toolkit Template Downloads (track when users download templates)
+export const toolkitDownloads = pgTable("toolkit_downloads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  downloadedAt: timestamp("downloaded_at").notNull().defaultNow(),
+});
+
+export type ToolkitDownload = typeof toolkitDownloads.$inferSelect;
+
+// Security configuration
+export const SECURITY_CONFIG = {
+  maxLoginAttempts: 5,
+  lockoutDurationMinutes: 15,
+  sessionTimeoutMinutes: 60,
+  passwordMinLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumber: true,
+  requireSpecialChar: false,
+} as const;

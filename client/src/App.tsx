@@ -51,7 +51,8 @@ import HelpGuide from "@/pages/help-guide";
 import HSIncidents from "@/pages/hs-incidents";
 import CalendarPage from "@/pages/calendar";
 import ClientUploads from "@/pages/client-uploads";
-import Toolkit from "@/pages/toolkit";
+import ToolkitDashboard from "@/pages/toolkit-dashboard";
+import ToolkitBrowse from "@/pages/toolkit-browse";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -139,7 +140,8 @@ function Router() {
       <Route path="/feedback" component={AdminFeedback} />
       <Route path="/help" component={HelpGuide} />
       <Route path="/calendar" component={CalendarPage} />
-      <Route path="/toolkit" component={Toolkit} />
+      <Route path="/toolkit" component={ToolkitDashboard} />
+      <Route path="/toolkit/browse" component={ToolkitBrowse} />
       <Route component={NotFound} />
     </Switch>
   );

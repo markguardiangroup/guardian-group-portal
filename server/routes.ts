@@ -9344,5 +9344,33 @@ export async function registerRoutes(
     }
   });
 
+  // Toolkit download tracking
+  app.post("/api/toolkit/download", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      
+      const { templateId } = req.body;
+      if (!templateId) return res.status(400).json({ error: "Missing templateId" });
+
+      await storage.trackTemplateDownload(templateId, user.id, user.fullName);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking download:", error);
+      res.status(500).json({ error: "Failed to track download" });
+    }
+  });
+
+  // Toolkit stats
+  app.get("/api/toolkit/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getToolkitStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching toolkit stats:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   return httpServer;
 }
