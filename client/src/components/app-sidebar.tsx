@@ -364,6 +364,97 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {visibleModules.slice(0, 3).map((item) => {
+                const isModuleActive = location.startsWith(item.url);
+                const isTrainingModule = item.module === ("training" as ModuleType);
+                const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
+                
+                if (!hasAccess) {
+                  return (
+                    <SidebarMenuItem key={item.title} className={item.themeClass}>
+                      <SidebarMenuButton
+                        className="cursor-default opacity-60"
+                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <item.icon className="h-4 w-4 text-module-accent" />
+                        <span className="flex-1">{item.title}</span>
+                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Locked
+                        </Badge>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                
+                return (
+                  <Collapsible
+                    key={item.title}
+                    asChild
+                    defaultOpen={isModuleActive}
+                    className={cn("group/collapsible", item.themeClass)}
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          className={cn(
+                            "transition-colors",
+                            isModuleActive && "bg-sidebar-accent font-medium"
+                          )}
+                          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          <item.icon className="h-4 w-4 text-module-accent" />
+                          <span className="flex-1">{item.title}</span>
+                          {item.module === "support" && openSupportCount > 0 && (
+                            <Badge 
+                              variant="destructive" 
+                              className="h-5 min-w-5 px-1.5 text-xs font-medium"
+                              data-testid="badge-support-notifications"
+                            >
+                              {openSupportCount}
+                            </Badge>
+                          )}
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.subItems
+                            .filter((subItem) => {
+                              // Filter based on role permissions
+                              if (subItem.adminOnly && user?.role === "client") return false;
+                              if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
+                              return true;
+                            })
+                            .map((subItem) => {
+                            const isSubActive = location === subItem.url;
+                            return (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isSubActive}
+                                  className={cn(
+                                    "transition-colors",
+                                    isSubActive && "bg-sidebar-accent font-medium"
+                                  )}
+                                >
+                                  <Link 
+                                    href={subItem.url}
+                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
+                                  >
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                );
+              })}
+
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -376,7 +467,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {visibleModules.map((item) => {
+
+              {visibleModules.slice(3).map((item) => {
                 const isModuleActive = location.startsWith(item.url);
                 const isTrainingModule = item.module === ("training" as ModuleType);
                 const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);

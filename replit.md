@@ -28,6 +28,8 @@ A comprehensive H&S Incidents module provides incident tracking (with `INC-XXXXX
 
 A secure Client Uploads feature allows sharing files with clients through folders with a 30-day expiry model, granular access control, and audit logging.
 
+A **Toolkit** feature provides consultants and clients with a browsable, module-organized library of document templates. Folders are displayed as responsive card grids with contextual icons (matched via keyword lookup), module-specific color themes, and open via centered dialogs. Files within folders are downloadable with version and metadata information visible. The Toolkit is positioned in the sidebar navigation under Employment Law for easy access alongside other compliance modules.
+
 A database-first storage model uses PostgreSQL as the primary data store for all persistent entities, with in-memory caching for performance. Development uses Vite and `tsx`, while production builds are bundled with Vite and esbuild. Drizzle Kit manages database migrations.
 
 Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in object storage, with API endpoints for upload and retrieval. User acceptance is required during invitation flow and upon revision, triggering a re-acceptance workflow to block access until updated documents are reviewed.
