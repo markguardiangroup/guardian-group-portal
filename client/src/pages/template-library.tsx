@@ -1846,6 +1846,10 @@ export default function TemplateLibraryPage() {
               <FileText className="h-4 w-4 mr-2" />
               Templates
             </TabsTrigger>
+            <TabsTrigger value="files" data-testid="tab-files">
+              <File className="h-4 w-4 mr-2" />
+              Files
+            </TabsTrigger>
             <TabsTrigger value="folders" data-testid="tab-folders">
               <FolderTree className="h-4 w-4 mr-2" />
               Folders
@@ -1858,7 +1862,7 @@ export default function TemplateLibraryPage() {
                 <Wand2 className="h-4 w-4 mr-2" />
                 Setup Wizard
               </Button>
-              {activeTab === "templates" && (
+              {(activeTab === "templates" || activeTab === "files") && (
                 <Button onClick={() => setIsTemplateDialogOpen(true)} data-testid="button-add-template">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Template
@@ -2146,6 +2150,118 @@ export default function TemplateLibraryPage() {
             </div>
           </DndContext>
           )}
+        </TabsContent>
+
+        {/* Files Tab */}
+        <TabsContent value="files" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              {filteredTemplates.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <File className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No files found</p>
+                  <p className="text-sm mt-1">Add templates to see their files listed here</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>File</TableHead>
+                      <TableHead>Module</TableHead>
+                      <TableHead>Folder</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Visibility</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTemplates
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((template) => {
+                        const ModuleIcon = moduleIcons[template.module as ModuleType];
+                        const folder = folderTemplates.find(f => f.id === template.folderTemplateId);
+                        const ext = template.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
+                        return (
+                          <TableRow key={template.id} data-testid={`row-file-${template.id}`}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="font-medium">{template.name}</span>
+                              </div>
+                              {template.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-1 ml-6">{template.description}</p>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-mono">{ext}</Badge>
+                                <span className="text-sm text-muted-foreground truncate max-w-[200px]" title={decodeURIComponent(template.fileName)}>
+                                  {decodeURIComponent(template.fileName)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className={`flex items-center gap-1.5 ${moduleColors[template.module as ModuleType]}`}>
+                                <ModuleIcon className="h-4 w-4" />
+                                <span className="text-sm">{moduleNames[template.module as ModuleType]}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {folder ? (
+                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                  <Folder className="h-3.5 w-3.5 flex-shrink-0" />
+                                  {folder.name}
+                                </div>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-muted-foreground">Unassigned</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">{formatFileSize(template.fileSize)}</span>
+                            </TableCell>
+                            <TableCell>
+                              {template.visibility === "public" ? (
+                                <Badge variant="secondary" className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">Public</Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs">Private</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" data-testid={`button-file-actions-${template.id}`}>
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {template.fileUrl && (
+                                    <DropdownMenuItem onClick={() => downloadFile(template.fileUrl!, template.fileName)} data-testid={`button-file-download-${template.id}`}>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      Download
+                                    </DropdownMenuItem>
+                                  )}
+                                  {isAdmin && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* Folders Tab */}
