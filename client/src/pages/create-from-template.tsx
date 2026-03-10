@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,34 @@ import {
   RefreshCw,
   Calendar,
   BookOpen,
+  Flame,
+  HeartPulse,
+  Zap,
+  Car,
+  Leaf,
+  Monitor,
+  Wrench,
+  ShieldAlert,
+  Activity,
+  HardHat,
+  GraduationCap,
+  CalendarMinus,
+  Baby,
+  Gavel,
+  MessageSquareWarning,
+  UserX,
+  UserPlus,
+  TrendingUp,
+  Banknote,
+  CalendarDays,
+  FileSignature,
+  Lock,
+  Timer,
+  Heart,
+  ArrowLeftRight,
+  Scale,
+  ClipboardList,
+  Stethoscope,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
@@ -107,6 +136,50 @@ const moduleGradients: Record<string, string> = {
   human_resources: "from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/10",
   employment_law: "from-pink-500/10 via-pink-500/5 to-transparent dark:from-pink-500/20 dark:via-pink-500/10",
 };
+
+const FOLDER_ICON_MAP: { keywords: string[]; Icon: any }[] = [
+  { keywords: ["fire", "evacuation", "emergency"], Icon: Flame },
+  { keywords: ["risk", "hazard", "coshh", "chemical", "substance"], Icon: AlertTriangle },
+  { keywords: ["first aid", "first-aid", "medical", "health surveillance", "occupational health", "welfare"], Icon: HeartPulse },
+  { keywords: ["electrical", "electric"], Icon: Zap },
+  { keywords: ["vehicle", "driving", "transport", "fleet"], Icon: Car },
+  { keywords: ["environmental", "environment", "eco"], Icon: Leaf },
+  { keywords: ["display screen", "dse", "computer", "screen"], Icon: Monitor },
+  { keywords: ["manual handling", "lifting", "equipment", "maintenance", "plant"], Icon: Wrench },
+  { keywords: ["lone worker", "lone working", "security"], Icon: ShieldAlert },
+  { keywords: ["noise", "vibration", "radiation"], Icon: Activity },
+  { keywords: ["construction", "building", "site safety"], Icon: HardHat },
+  { keywords: ["training", "induction", "learning"], Icon: GraduationCap },
+  { keywords: ["absence short", "short term"], Icon: CalendarMinus },
+  { keywords: ["absence long", "long term", "long-term sickness"], Icon: Clock },
+  { keywords: ["adoption", "maternity", "paternity", "parental", "shared parental"], Icon: Baby },
+  { keywords: ["disciplinary", "misconduct", "capability"], Icon: Gavel },
+  { keywords: ["grievance", "complaint", "bullying", "harassment"], Icon: MessageSquareWarning },
+  { keywords: ["redundancy", "dismissal", "termination", "leaving"], Icon: UserX },
+  { keywords: ["recruitment", "onboarding", "new starter"], Icon: UserPlus },
+  { keywords: ["performance", "appraisal", "review"], Icon: TrendingUp },
+  { keywords: ["pay", "wage", "salary", "payroll", "expenses"], Icon: Banknote },
+  { keywords: ["holiday", "leave", "annual", "flexitime", "time off"], Icon: CalendarDays },
+  { keywords: ["contract", "offer letter", "terms"], Icon: FileSignature },
+  { keywords: ["handbook", "policy", "procedure", "guideline"], Icon: BookOpen },
+  { keywords: ["gdpr", "data protection", "privacy", "confidential"], Icon: Lock },
+  { keywords: ["working time", "hours", "overtime", "shift"], Icon: Timer },
+  { keywords: ["wellbeing", "mental health", "stress"], Icon: Heart },
+  { keywords: ["tupe", "transfer"], Icon: ArrowLeftRight },
+  { keywords: ["discrimination", "equality", "diversity"], Icon: Scale },
+  { keywords: ["audit", "inspection", "checklist", "assessment"], Icon: ClipboardList },
+  { keywords: ["workforce", "staffing", "headcount"], Icon: Users },
+  { keywords: ["premises", "workplace", "office"], Icon: Building2 },
+  { keywords: ["occupational", "stethoscope", "clinic"], Icon: Stethoscope },
+];
+
+function getFolderIcon(folderName: string): any {
+  const lower = folderName.toLowerCase();
+  for (const { keywords, Icon } of FOLDER_ICON_MAP) {
+    if (keywords.some(k => lower.includes(k))) return Icon;
+  }
+  return Folder;
+}
 
 type Step = "template" | "site" | "placeholders" | "complete";
 
@@ -555,69 +628,81 @@ export default function CreateFromTemplate() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
-          {filteredTemplates.map((template) => {
-            const ModuleIcon = moduleIcons[template.module] || FileText;
-            const isSelected = selectedTemplateId === template.id;
-            const iconBg = moduleBgColors[template.module] || "bg-muted";
-            const iconColor = moduleColors[template.module] || "";
-            const borderColor = moduleBorderColors[template.module] || "";
-            const folderName = template.folderTemplateId ? folderTemplateMap.get(template.folderTemplateId) : null;
-            const showModuleBadge = selectedModule === "all";
+        <TooltipProvider>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: "11rem" }}>
+            {filteredTemplates.map((template) => {
+              const ModuleIcon = moduleIcons[template.module] || FileText;
+              const isSelected = selectedTemplateId === template.id;
+              const iconBg = moduleBgColors[template.module] || "bg-muted";
+              const iconColor = moduleColors[template.module] || "";
+              const borderColor = moduleBorderColors[template.module] || "";
+              const folderName = template.folderTemplateId ? folderTemplateMap.get(template.folderTemplateId) : null;
+              const FolderIcon = folderName ? getFolderIcon(folderName) : Folder;
+              const showModuleBadge = selectedModule === "all";
 
-            return (
-              <Card
-                key={template.id}
-                className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col ${
-                  isSelected 
-                    ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}` 
-                    : ""
-                }`}
-                onClick={() => setSelectedTemplateId(template.id)}
-                data-testid={`template-card-${template.id}`}
-              >
-                <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
-                <CardContent className="p-4 relative flex flex-col flex-1 gap-2">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-md shrink-0 ${iconBg}`}>
-                      <ModuleIcon className={`h-5 w-5 ${iconColor}`} />
+              return (
+                <Card
+                  key={template.id}
+                  className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col h-full ${
+                    isSelected
+                      ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
+                      : ""
+                  }`}
+                  onClick={() => setSelectedTemplateId(template.id)}
+                  data-testid={`template-card-${template.id}`}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
+                  <CardContent className="p-3 relative flex flex-col h-full gap-1.5 overflow-hidden">
+                    <div className="flex items-start gap-2">
+                      <div className={`p-1.5 rounded-md shrink-0 ${iconBg}`}>
+                        <ModuleIcon className={`h-4 w-4 ${iconColor}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium leading-snug line-clamp-2 break-words">{template.name}</h3>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className={`h-4 w-4 shrink-0 mt-0.5 ${iconColor || "text-primary"}`} />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium leading-snug break-words">{template.name}</h3>
+
+                    {template.description ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs text-muted-foreground line-clamp-2 cursor-default leading-relaxed">
+                            {template.description}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs whitespace-normal text-xs">
+                          {template.description}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-1 mt-auto">
+                      {folderName && (
+                        <Badge variant="outline" className="text-xs">
+                          <FolderIcon className="h-3 w-3 mr-1 shrink-0" />
+                          {folderName}
+                        </Badge>
+                      )}
+                      {showModuleBadge && (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${iconColor} ${borderColor}`}
+                        >
+                          <ModuleIcon className="h-3 w-3 mr-1 shrink-0" />
+                          {moduleLabels[template.module] || template.module}
+                        </Badge>
+                      )}
                     </div>
-                    {isSelected && (
-                      <CheckCircle className={`h-5 w-5 shrink-0 mt-0.5 ${iconColor || "text-primary"}`} />
-                    )}
-                  </div>
-
-                  {template.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {template.description}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-1.5 mt-auto pt-1">
-                    {folderName && (
-                      <Badge variant="outline" className="text-xs">
-                        <Folder className="h-3 w-3 mr-1" />
-                        {folderName}
-                      </Badge>
-                    )}
-                    {showModuleBadge && (
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${iconColor} ${borderColor}`}
-                      >
-                        <ModuleIcon className="h-3 w-3 mr-1" />
-                        {moduleLabels[template.module] || template.module}
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       )}
 
       <div className="flex justify-end pt-4">
