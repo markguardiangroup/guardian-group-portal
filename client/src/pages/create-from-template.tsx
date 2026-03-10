@@ -691,7 +691,7 @@ export default function CreateFromTemplate() {
                     {template.description ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <p className="text-xs text-muted-foreground line-clamp-2 cursor-default leading-relaxed">
+                          <p className="text-xs text-muted-foreground line-clamp-2 cursor-pointer leading-relaxed">
                             {template.description}
                           </p>
                         </TooltipTrigger>
