@@ -650,6 +650,7 @@ export default function CreateFromTemplate() {
                       : ""
                   }`}
                   onClick={() => setSelectedTemplateId(template.id)}
+                  onDoubleClick={() => { setSelectedTemplateId(template.id); goToStep("site"); }}
                   data-testid={`template-card-${template.id}`}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
