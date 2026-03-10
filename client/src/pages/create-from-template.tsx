@@ -207,10 +207,10 @@ export default function CreateFromTemplate() {
   const [reviewDate, setReviewDate] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
-  const [reviewDateTouched, setReviewDateTouched] = useState(false);
-  const [expiryDateTouched, setExpiryDateTouched] = useState(false);
-  const [reviewDateBadInput, setReviewDateBadInput] = useState(false);
-  const [expiryDateBadInput, setExpiryDateBadInput] = useState(false);
+  const [reviewDateInteracted, setReviewDateInteracted] = useState(false);
+  const [reviewDateBlurred, setReviewDateBlurred] = useState(false);
+  const [expiryDateInteracted, setExpiryDateInteracted] = useState(false);
+  const [expiryDateBlurred, setExpiryDateBlurred] = useState(false);
   const reviewDateRef = useRef<HTMLInputElement>(null);
   const expiryDateRef = useRef<HTMLInputElement>(null);
 
@@ -538,8 +538,8 @@ export default function CreateFromTemplate() {
     return date < today;
   };
 
-  const isReviewDateInvalid = reviewDateBadInput || (reviewDateTouched && !reviewDate) || isDateInPast(reviewDate);
-  const isExpiryDateInvalid = expiryDateBadInput || (expiryDateTouched && !expiryDate) || isDateInPast(expiryDate);
+  const isReviewDateInvalid = (reviewDateBlurred && !reviewDate) || isDateInPast(reviewDate);
+  const isExpiryDateInvalid = (expiryDateBlurred && !expiryDate) || isDateInPast(expiryDate);
 
   const handleComplete = () => {
     setSubmitAttempted(true);
@@ -551,14 +551,24 @@ export default function CreateFromTemplate() {
       toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
       return;
     }
-    if (reviewDateRef.current?.validity.badInput || (reviewDate && isDateInPast(reviewDate))) {
-      setReviewDateBadInput(reviewDateRef.current?.validity.badInput ?? false);
-      toast({ title: "Invalid Review Date", description: "Please enter a complete, valid review date.", variant: "destructive" });
+    const reviewRefEmpty = reviewDateRef.current ? reviewDateRef.current.value === "" : !reviewDate;
+    const expiryRefEmpty = expiryDateRef.current ? expiryDateRef.current.value === "" : !expiryDate;
+    if (reviewDateInteracted && reviewRefEmpty) {
+      setReviewDateBlurred(true);
+      toast({ title: "Invalid Review Date", description: "Please enter a complete review date.", variant: "destructive" });
       return;
     }
-    if (expiryDateRef.current?.validity.badInput || (expiryDate && isDateInPast(expiryDate))) {
-      setExpiryDateBadInput(expiryDateRef.current?.validity.badInput ?? false);
-      toast({ title: "Invalid Expiry Date", description: "Please enter a complete, valid expiry date.", variant: "destructive" });
+    if (reviewDate && isDateInPast(reviewDate)) {
+      toast({ title: "Invalid Review Date", description: "Review date must be today or in the future.", variant: "destructive" });
+      return;
+    }
+    if (expiryDateInteracted && expiryRefEmpty) {
+      setExpiryDateBlurred(true);
+      toast({ title: "Invalid Expiry Date", description: "Please enter a complete expiry date.", variant: "destructive" });
+      return;
+    }
+    if (expiryDate && isDateInPast(expiryDate)) {
+      toast({ title: "Invalid Expiry Date", description: "Expiry date must be today or in the future.", variant: "destructive" });
       return;
     }
     if (!selectedFile) {
@@ -1120,24 +1130,22 @@ export default function CreateFromTemplate() {
                     ref={reviewDateRef}
                     id="reviewDate"
                     type="date"
-                    className={`pl-10 ${reviewDate || reviewDateTouched ? "pr-8" : ""} ${isReviewDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`pl-10 ${reviewDate || reviewDateBlurred ? "pr-8" : ""} ${isReviewDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)}
-                    onInput={(e) => {
-                      const input = e.target as HTMLInputElement;
-                      setReviewDateTouched(true);
-                      setReviewDateBadInput(input.validity.badInput);
-                    }}
+                    onKeyDown={() => setReviewDateInteracted(true)}
+                    onInput={() => setReviewDateInteracted(true)}
+                    onBlur={() => { if (reviewDateInteracted) setReviewDateBlurred(true); }}
                     data-testid="input-review-date"
                   />
-                  {(reviewDate || reviewDateTouched) && (
+                  {(reviewDate || reviewDateBlurred) && (
                     <button
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setReviewDate("");
-                        setReviewDateTouched(false);
-                        setReviewDateBadInput(false);
+                        setReviewDateInteracted(false);
+                        setReviewDateBlurred(false);
                         if (reviewDateRef.current) reviewDateRef.current.value = "";
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
@@ -1147,8 +1155,8 @@ export default function CreateFromTemplate() {
                     </button>
                   )}
                 </div>
-                {reviewDateTouched && !reviewDate ? (
-                  <p className="text-xs text-destructive mt-1">Review date is incomplete</p>
+                {reviewDateBlurred && !reviewDate ? (
+                  <p className="text-xs text-destructive mt-1">Review date is incomplete — please finish entering or clear it</p>
                 ) : isDateInPast(reviewDate) ? (
                   <p className="text-xs text-destructive mt-1">Review date must be today or in the future</p>
                 ) : (
@@ -1164,24 +1172,22 @@ export default function CreateFromTemplate() {
                     ref={expiryDateRef}
                     id="expiryDate"
                     type="date"
-                    className={`pl-10 ${expiryDate || expiryDateTouched ? "pr-8" : ""} ${isExpiryDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`pl-10 ${expiryDate || expiryDateBlurred ? "pr-8" : ""} ${isExpiryDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    onInput={(e) => {
-                      const input = e.target as HTMLInputElement;
-                      setExpiryDateTouched(true);
-                      setExpiryDateBadInput(input.validity.badInput);
-                    }}
+                    onKeyDown={() => setExpiryDateInteracted(true)}
+                    onInput={() => setExpiryDateInteracted(true)}
+                    onBlur={() => { if (expiryDateInteracted) setExpiryDateBlurred(true); }}
                     data-testid="input-expiry-date"
                   />
-                  {(expiryDate || expiryDateTouched) && (
+                  {(expiryDate || expiryDateBlurred) && (
                     <button
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setExpiryDate("");
-                        setExpiryDateTouched(false);
-                        setExpiryDateBadInput(false);
+                        setExpiryDateInteracted(false);
+                        setExpiryDateBlurred(false);
                         if (expiryDateRef.current) expiryDateRef.current.value = "";
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
@@ -1191,8 +1197,8 @@ export default function CreateFromTemplate() {
                     </button>
                   )}
                 </div>
-                {expiryDateTouched && !expiryDate ? (
-                  <p className="text-xs text-destructive mt-1">Expiry date is incomplete</p>
+                {expiryDateBlurred && !expiryDate ? (
+                  <p className="text-xs text-destructive mt-1">Expiry date is incomplete — please finish entering or clear it</p>
                 ) : isDateInPast(expiryDate) ? (
                   <p className="text-xs text-destructive mt-1">Expiry date must be today or in the future</p>
                 ) : (
