@@ -37,7 +37,9 @@ import {
   XCircle,
   RefreshCw,
   Calendar,
+  BookOpen,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
 
 interface DocumentTemplate extends BaseDocumentTemplate {
@@ -133,6 +135,7 @@ export default function CreateFromTemplate() {
   const [selectedModule, setSelectedModule] = useState<string>("all");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
+  const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -231,6 +234,7 @@ export default function CreateFromTemplate() {
   const filteredTemplates = useMemo(() => {
     return templates.filter(t => {
       if (!t.isActive) return false;
+      if (!showToolkitTemplates && t.visibility === "public") return false;
       if (selectedModule !== "all" && t.module !== selectedModule) return false;
       if (templateSearch) {
         const search = templateSearch.toLowerCase();
@@ -239,7 +243,7 @@ export default function CreateFromTemplate() {
       }
       return true;
     });
-  }, [templates, selectedModule, templateSearch]);
+  }, [templates, selectedModule, templateSearch, showToolkitTemplates]);
 
   const filteredSites = useMemo(() => {
     return sites.filter(s => {
@@ -478,7 +482,7 @@ export default function CreateFromTemplate() {
 
   const renderTemplateStep = () => (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -515,6 +519,15 @@ export default function CreateFromTemplate() {
             </SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2 ml-auto">
+          <BookOpen className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Toolkit templates</span>
+          <Switch
+            checked={showToolkitTemplates}
+            onCheckedChange={setShowToolkitTemplates}
+            data-testid="toggle-toolkit-templates"
+          />
+        </div>
       </div>
 
       {templatesLoading ? (
