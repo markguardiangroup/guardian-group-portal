@@ -2295,7 +2295,8 @@ export class MemStorage implements IStorage {
   // Provision folder structure from templates for a site
   async provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]> {
     const templates = await this.getFolderTemplates(module);
-    const activeTemplates = templates.filter(t => t.isActive);
+    // Exclude locked Toolkit root folders and their mirrored subfolders — these are Toolkit-only
+    const activeTemplates = templates.filter(t => t.isActive && !(t as any).isLocked && !(t as any).toolkitFolderId);
     const createdFolders: DocumentFolder[] = [];
     const templateIdToFolderId = new Map<string, string>();
 

@@ -6448,8 +6448,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid module type" });
       }
       
-      // Get folder templates for this module (the "master" folder structure)
-      const folderTemplates = await storage.getFolderTemplates(module as any);
+      // Get folder templates for this module (exclude locked Toolkit folders and their mirrored subfolders)
+      const folderTemplates = (await storage.getFolderTemplates(module as any))
+        .filter(ft => !(ft as any).isLocked && !(ft as any).toolkitFolderId);
       
       // Get document templates for this module (to check required templates)
       const allDocTemplates = await storage.getDocumentTemplates();
