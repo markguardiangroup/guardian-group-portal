@@ -812,7 +812,7 @@ export default function CreateFromTemplate() {
       ) : (
         <div
           key={`${siteSearch}-${selectedCompany}`}
-          className="space-y-5 max-h-[30rem] overflow-y-auto pr-1"
+          className="space-y-5 max-h-[30rem] overflow-y-auto p-1 -m-1"
         >
           {sitesByCompany.map(([company, companySites]) => (
             <div key={company}>
