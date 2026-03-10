@@ -320,7 +320,7 @@ export default function CreateFromTemplate() {
   const filteredTemplates = useMemo(() => {
     return templates.filter(t => {
       if (!t.isActive) return false;
-      if (!showToolkitTemplates && t.visibility === "public") return false;
+      if (showToolkitTemplates ? t.visibility !== "public" : t.visibility === "public") return false;
       if (selectedModule !== "all" && t.module !== selectedModule) return false;
       if (templateSearch) {
         const search = templateSearch.toLowerCase();
