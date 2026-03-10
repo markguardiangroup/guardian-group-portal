@@ -666,7 +666,7 @@ export default function CreateFromTemplate() {
                   data-testid={`template-card-${template.id}`}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
-                  <CardContent className="p-3 relative flex flex-col gap-1.5">
+                  <CardContent className="p-3 relative flex flex-col flex-1 gap-1.5">
                     <div className="flex items-start gap-2">
                       <div className={`p-1.5 rounded-md shrink-0 ${iconBg}`}>
                         <FolderIcon className={`h-4 w-4 ${iconColor}`} />
@@ -692,7 +692,7 @@ export default function CreateFromTemplate() {
                       </Tooltip>
                     ) : null}
 
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1 mt-auto">
                       {folderName && (
                         <Badge variant="outline" className="text-xs">
                           <FolderIcon className="h-3 w-3 mr-1 shrink-0" />
