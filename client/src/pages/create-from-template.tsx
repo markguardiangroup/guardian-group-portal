@@ -629,7 +629,7 @@ export default function CreateFromTemplate() {
         </Card>
       ) : (
         <TooltipProvider>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: "11rem" }}>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredTemplates.map((template) => {
               const ModuleIcon = moduleIcons[template.module] || FileText;
               const isSelected = selectedTemplateId === template.id;
@@ -643,7 +643,7 @@ export default function CreateFromTemplate() {
               return (
                 <Card
                   key={template.id}
-                  className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col h-full ${
+                  className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col ${
                     isSelected
                       ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
                       : ""
@@ -652,7 +652,7 @@ export default function CreateFromTemplate() {
                   data-testid={`template-card-${template.id}`}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
-                  <CardContent className="p-3 relative flex flex-col h-full gap-1.5 overflow-hidden">
+                  <CardContent className="p-3 relative flex flex-col gap-1.5">
                     <div className="flex items-start gap-2">
                       <div className={`p-1.5 rounded-md shrink-0 ${iconBg}`}>
                         <ModuleIcon className={`h-4 w-4 ${iconColor}`} />
@@ -676,11 +676,9 @@ export default function CreateFromTemplate() {
                           {template.description}
                         </TooltipContent>
                       </Tooltip>
-                    ) : (
-                      <div className="flex-1" />
-                    )}
+                    ) : null}
 
-                    <div className="flex flex-wrap items-center gap-1 mt-auto">
+                    <div className="flex flex-wrap items-center gap-1">
                       {folderName && (
                         <Badge variant="outline" className="text-xs">
                           <FolderIcon className="h-3 w-3 mr-1 shrink-0" />
