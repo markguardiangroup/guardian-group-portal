@@ -212,9 +212,6 @@ export default function CreateFromTemplate() {
   const reviewDateRef = useRef<HTMLInputElement>(null);
   const expiryDateRef = useRef<HTMLInputElement>(null);
 
-  const isReviewDateInvalid = (reviewDateTouched && !reviewDate) || isDateInPast(reviewDate);
-  const isExpiryDateInvalid = (expiryDateTouched && !expiryDate) || isDateInPast(expiryDate);
-
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
@@ -538,6 +535,9 @@ export default function CreateFromTemplate() {
     today.setHours(0, 0, 0, 0);
     return date < today;
   };
+
+  const isReviewDateInvalid = (reviewDateTouched && !reviewDate) || isDateInPast(reviewDate);
+  const isExpiryDateInvalid = (expiryDateTouched && !expiryDate) || isDateInPast(expiryDate);
 
   const handleComplete = () => {
     setSubmitAttempted(true);
