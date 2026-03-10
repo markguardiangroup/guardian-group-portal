@@ -204,6 +204,7 @@ export default function CreateFromTemplate() {
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [reviewDate, setReviewDate] = useState<string>("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
   
   const [templateSearch, setTemplateSearch] = useState("");
@@ -382,22 +383,24 @@ export default function CreateFromTemplate() {
   const handleSelectSite = (siteId: string) => {
     setSelectedSiteId(siteId);
     setSelectedApproverId("");
+    setSelectedFolderId(""); // reset — useEffect will auto-set once folders load
     const site = sites.find(s => s.id === siteId);
     if (site) {
       populatePlaceholders(site);
       setDocumentTitle(selectedTemplate?.name || "");
-      
-      if (selectedTemplate?.folderTemplateId) {
-        const folderTemplate = folderTemplates.find(ft => ft.id === selectedTemplate.folderTemplateId);
-        if (folderTemplate) {
-          const matchingFolder = siteFolders.find(f => f.name === folderTemplate.name);
-          if (matchingFolder) {
-            setSelectedFolderId(matchingFolder.id);
-          }
-        }
-      }
     }
   };
+
+  // Auto-set folder after the site's folders have loaded
+  useEffect(() => {
+    if (!selectedTemplate || !selectedSiteId || siteFolders.length === 0) return;
+    if (selectedTemplate.toolkitFolderId) return; // toolkit templates stay blank
+    if (!selectedTemplate.folderTemplateId) return;
+    const folderTemplate = folderTemplates.find(ft => ft.id === selectedTemplate.folderTemplateId);
+    if (!folderTemplate) return;
+    const matchingFolder = siteFolders.find(f => f.name === folderTemplate.name);
+    if (matchingFolder) setSelectedFolderId(matchingFolder.id);
+  }, [siteFolders, selectedSiteId]);
 
   const createDocumentMutation = useMutation({
     mutationFn: async () => {
@@ -521,12 +524,17 @@ export default function CreateFromTemplate() {
   };
 
   const handleComplete = () => {
+    setSubmitAttempted(true);
+    if (!documentTitle.trim()) {
+      toast({ title: "Title Required", description: "Please enter a document title.", variant: "destructive" });
+      return;
+    }
+    if (moduleFolders.length > 0 && !selectedFolderId) {
+      toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
+      return;
+    }
     if (!selectedFile) {
-      toast({
-        title: "No File Selected",
-        description: "Please upload the completed document.",
-        variant: "destructive",
-      });
+      toast({ title: "No File Selected", description: "Please upload the completed document.", variant: "destructive" });
       return;
     }
     createDocumentMutation.mutate();
@@ -902,13 +910,15 @@ export default function CreateFromTemplate() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="documentTitle">Document Title</Label>
+              <Label htmlFor="documentTitle">
+                Document Title <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="documentTitle"
                 value={documentTitle}
                 onChange={(e) => setDocumentTitle(e.target.value)}
                 placeholder="Enter document title"
-                className="mt-1"
+                className={`mt-1 ${!documentTitle.trim() ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 data-testid="input-document-title"
               />
             </div>
@@ -917,7 +927,10 @@ export default function CreateFromTemplate() {
               <div>
                 <Label htmlFor="folder">Folder *</Label>
                 <Select value={selectedFolderId} onValueChange={setSelectedFolderId}>
-                  <SelectTrigger className="mt-1" data-testid="select-folder">
+                  <SelectTrigger
+                    className={`mt-1 ${!selectedFolderId ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    data-testid="select-folder"
+                  >
                     <SelectValue placeholder="Select a folder" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1220,7 +1233,7 @@ export default function CreateFromTemplate() {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={() => goToStep("site")} data-testid="button-back-site">
+        <Button variant="outline" onClick={() => { goToStep("site"); setSubmitAttempted(false); }} data-testid="button-back-site">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -1267,6 +1280,7 @@ export default function CreateFromTemplate() {
               setPlaceholderValues({});
               setDocumentTitle("");
               setSelectedFile(null);
+              setSubmitAttempted(false);
             }}
             data-testid="button-create-another"
           >
