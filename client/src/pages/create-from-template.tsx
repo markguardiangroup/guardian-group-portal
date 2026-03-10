@@ -679,7 +679,7 @@ export default function CreateFromTemplate() {
                       </Tooltip>
                     ) : null}
 
-                    <div className="flex flex-wrap items-center gap-1 mt-auto">
+                    <div className="flex flex-wrap items-center gap-1">
                       {folderName && (
                         <Badge variant="outline" className="text-xs">
                           <FolderIcon className="h-3 w-3 mr-1 shrink-0" />
