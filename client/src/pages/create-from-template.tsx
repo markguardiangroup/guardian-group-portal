@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -211,8 +211,6 @@ export default function CreateFromTemplate() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
-  const [uniformCardHeight, setUniformCardHeight] = useState<number | undefined>(undefined);
-  const gridRef = useRef<HTMLDivElement>(null);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -331,20 +329,6 @@ export default function CreateFromTemplate() {
     });
   }, [templates, selectedModule, templateSearch, showToolkitTemplates]);
 
-  // Reset uniform height when module or search changes so we re-measure from scratch
-  useEffect(() => {
-    setUniformCardHeight(undefined);
-  }, [selectedModule, templateSearch]);
-
-  // Measure cards and keep the running max so toolkit/non-toolkit modes share the same height
-  useLayoutEffect(() => {
-    if (!gridRef.current) return;
-    const cards = Array.from(gridRef.current.children) as HTMLElement[];
-    if (cards.length === 0) return;
-    cards.forEach(el => { el.style.height = "auto"; el.style.minHeight = ""; });
-    const maxH = Math.max(...cards.map(el => el.getBoundingClientRect().height));
-    if (maxH > 0) setUniformCardHeight(prev => Math.max(prev || 0, maxH));
-  }, [filteredTemplates]);
 
   const filteredSites = useMemo(() => {
     return sites.filter(s => {
@@ -646,7 +630,7 @@ export default function CreateFromTemplate() {
         </Card>
       ) : (
         <TooltipProvider>
-          <div ref={gridRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: selectedModule === "all" ? "10rem" : "8.5rem" }}>
             {filteredTemplates.map((template) => {
               const ModuleIcon = moduleIcons[template.module] || FileText;
               const isSelected = selectedTemplateId === template.id;
@@ -665,7 +649,6 @@ export default function CreateFromTemplate() {
                       ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
                       : ""
                   }`}
-                  style={{ height: uniformCardHeight || undefined }}
                   onClick={() => setSelectedTemplateId(template.id)}
                   data-testid={`template-card-${template.id}`}
                 >
