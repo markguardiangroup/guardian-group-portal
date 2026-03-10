@@ -2917,7 +2917,7 @@ export async function registerRoutes(
         name: z.string().min(1),
         description: z.string().optional(),
         module: z.enum(["health_safety", "human_resources", "employment_law"]),
-        folderTemplateId: z.string().min(1),
+        folderTemplateId: z.string().min(1).optional(),
         documentTypeId: z.string().optional(), // Legacy - kept for backward compatibility
         fileName: z.string().min(1),
         fileUrl: z.string().min(1), // Path to the uploaded file in object storage
@@ -2937,8 +2937,20 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
       
+      let resolvedFolderTemplateId = parsed.data.folderTemplateId ?? null;
+      
+      // Auto-assign folderTemplateId for public templates based on the toolkit folder
+      if (parsed.data.visibility === "public" && parsed.data.toolkitFolderId) {
+        const linked = await storage.getFolderTemplateByToolkitFolderId(parsed.data.toolkitFolderId);
+        if (linked) resolvedFolderTemplateId = linked.id;
+      }
+      
+      if (!resolvedFolderTemplateId) {
+        return res.status(400).json({ error: "folderTemplateId is required" });
+      }
+      
       // Verify folder template exists and module matches
-      const folderTemplate = await storage.getFolderTemplate(parsed.data.folderTemplateId);
+      const folderTemplate = await storage.getFolderTemplate(resolvedFolderTemplateId);
       if (!folderTemplate) {
         return res.status(404).json({ error: "Folder template not found" });
       }
@@ -2948,6 +2960,7 @@ export async function registerRoutes(
       
       const template = await storage.createDocumentTemplate({
         ...parsed.data,
+        folderTemplateId: resolvedFolderTemplateId,
         createdBy: user.id,
       });
       
@@ -3015,7 +3028,16 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can update document templates" });
       }
       
-      const updated = await storage.updateDocumentTemplate(req.params.id, parsed.data);
+      // Auto-assign folderTemplateId for public templates based on the toolkit folder
+      let updateData: any = { ...parsed.data };
+      const effectiveVisibility = parsed.data.visibility ?? template.visibility;
+      const effectiveToolkitFolderId = parsed.data.toolkitFolderId !== undefined ? parsed.data.toolkitFolderId : template.toolkitFolderId;
+      if (effectiveVisibility === "public" && effectiveToolkitFolderId) {
+        const linked = await storage.getFolderTemplateByToolkitFolderId(effectiveToolkitFolderId);
+        if (linked) updateData.folderTemplateId = linked.id;
+      }
+      
+      const updated = await storage.updateDocumentTemplate(req.params.id, updateData);
       
       // Create audit log
       await storage.createAuditLog({
@@ -3218,7 +3240,12 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as string | undefined;
       const folders = await storage.getToolkitFolders(module as any);
-      res.json(folders);
+      // Enrich each folder with its linked FolderTemplate id (for auto-assign in template library)
+      const enriched = await Promise.all(folders.map(async (f) => {
+        const linked = await storage.getFolderTemplateByToolkitFolderId(f.id);
+        return { ...f, linkedFolderTemplateId: linked?.id ?? null };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Get toolkit folders error:", error);
       res.status(500).json({ error: "Failed to fetch toolkit folders" });
@@ -3246,6 +3273,22 @@ export async function registerRoutes(
         createdBy: user.id,
       });
 
+      // Mirror: create a FolderTemplate subfolder linked to this toolkit folder
+      const rootLibraryFolder = await storage.getModuleToolkitRootFolder(parsed.data.module as any);
+      if (rootLibraryFolder) {
+        const mirrorData: any = {
+          name: parsed.data.name,
+          module: parsed.data.module,
+          parentId: rootLibraryFolder.id,
+          toolkitFolderId: folder.id,
+          isRequired: false,
+          sortOrder: parsed.data.sortOrder ?? 0,
+          isActive: true,
+          createdBy: user.id,
+        };
+        await storage.createFolderTemplate(mirrorData);
+      }
+
       await storage.createAuditLog({
         action: "toolkit_folder_created",
         userId: user.id,
@@ -3267,6 +3310,12 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete toolkit folders" });
+
+      // Find and delete the mirrored FolderTemplate subfolder first
+      const mirroredFolder = await storage.getFolderTemplateByToolkitFolderId(req.params.id);
+      if (mirroredFolder) {
+        await storage.deleteFolderTemplate(mirroredFolder.id);
+      }
 
       const deleted = await storage.deleteToolkitFolder(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Folder not found" });

@@ -93,6 +93,7 @@ import {
   CircleDot,
   GripVertical,
   Inbox,
+  Lock,
 } from "lucide-react";
 import { useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "wouter";
@@ -958,10 +959,13 @@ export default function TemplateLibraryPage() {
       return;
     }
     
-    let folderId = templateFormData.folderTemplateId;
+    // For public templates, the server auto-assigns folderTemplateId from the toolkit folder
+    const isPublic = templateFormData.visibility === "public";
+
+    let folderId = isPublic ? undefined : templateFormData.folderTemplateId;
     
-    // If creating a new Template Library folder, create it first
-    if (templateFormData.createNewFolder) {
+    // If private: creating a new Template Library folder
+    if (!isPublic && templateFormData.createNewFolder) {
       if (!templateFormData.newFolderName) {
         toast({ title: "Validation error", description: "Please fill in folder name", variant: "destructive" });
         return;
@@ -984,14 +988,14 @@ export default function TemplateLibraryPage() {
       }
     }
     
-    if (!folderId) {
+    if (!isPublic && !folderId) {
       toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
       return;
     }
 
-    // If public, toolkit folder is mandatory
+    // If public, toolkit folder is mandatory (library folder assigned automatically by server)
     let toolkitFolderId: string | undefined = templateFormData.toolkitFolderId || undefined;
-    if (templateFormData.visibility === "public") {
+    if (isPublic) {
       if (templateFormData.createNewToolkitFolder) {
         if (!templateFormData.newToolkitFolderName) {
           toast({ title: "Validation error", description: "Please enter a Toolkit folder name", variant: "destructive" });
@@ -1021,7 +1025,7 @@ export default function TemplateLibraryPage() {
       name: templateFormData.name,
       description: templateFormData.description || undefined,
       module: templateFormData.module,
-      folderTemplateId: folderId,
+      ...(folderId ? { folderTemplateId: folderId } : {}),
       fileName: templateFormData.fileName,
       fileUrl: templateFormData.fileUrl,
       fileSize: templateFormData.fileSize || 1024,
@@ -1032,7 +1036,7 @@ export default function TemplateLibraryPage() {
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       requiresApproval: templateFormData.requiresApproval,
       visibility: templateFormData.visibility,
-      toolkitFolderId: templateFormData.visibility === "public" ? (toolkitFolderId || null) : null,
+      toolkitFolderId: isPublic ? (toolkitFolderId || null) : null,
     } as any);
   };
   
@@ -1100,9 +1104,12 @@ export default function TemplateLibraryPage() {
       return;
     }
 
-    // Resolve Template Library folder
-    let folderId = bulkShared.folderTemplateId;
-    if (bulkShared.createNewFolder) {
+    // For public templates, library folder is auto-assigned by the server from the toolkit folder
+    const isBulkPublic = bulkShared.visibility === "public";
+
+    // Resolve Template Library folder (private only)
+    let folderId = isBulkPublic ? undefined : bulkShared.folderTemplateId;
+    if (!isBulkPublic && bulkShared.createNewFolder) {
       if (!bulkShared.newFolderName.trim()) {
         toast({ title: "Validation error", description: "Please enter a folder name", variant: "destructive" });
         return;
@@ -1124,7 +1131,7 @@ export default function TemplateLibraryPage() {
         return;
       }
     }
-    if (!folderId) {
+    if (!isBulkPublic && !folderId) {
       toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
       return;
     }
@@ -1168,7 +1175,7 @@ export default function TemplateLibraryPage() {
           name: item.name.trim(),
           description: item.description.trim() || undefined,
           module: bulkShared.module,
-          folderTemplateId: folderId,
+          ...(folderId ? { folderTemplateId: folderId } : {}),
           fileName: item.fileName,
           fileUrl: item.objectPath,
           fileSize: item.fileSize,
@@ -1178,7 +1185,7 @@ export default function TemplateLibraryPage() {
           renewalPeriodMonths: bulkShared.renewalPeriodMonths,
           requiresApproval: bulkShared.requiresApproval,
           visibility: bulkShared.visibility,
-          toolkitFolderId: bulkShared.visibility === "public" ? (toolkitFolderId || null) : null,
+          toolkitFolderId: isBulkPublic ? (toolkitFolderId || null) : null,
         });
         setBulkFileItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i)));
         successCount++;
@@ -1764,6 +1771,12 @@ export default function TemplateLibraryPage() {
               <FolderOpen className="h-4 w-4 text-amber-500" />
             )}
             <span className={`font-medium ${isRootLevel ? moduleColors[folderModule] : ""}`}>{folder.name}</span>
+            {(folder as any).isLocked && (
+              <Lock className="h-3 w-3 text-muted-foreground ml-1" title="System-managed folder" />
+            )}
+            {(folder as any).toolkitFolderId && !(folder as any).isLocked && (
+              <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 h-4 text-muted-foreground">Toolkit</Badge>
+            )}
             {totalTemplatesInTree > 0 && (
               <Badge variant="secondary" className="ml-2">
                 {totalTemplatesInTree}
@@ -1773,12 +1786,16 @@ export default function TemplateLibraryPage() {
           </AccordionPrimitive.Trigger>
           {isAdmin && (
             <div className={`flex items-center gap-1 pr-2 ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
-                <Pencil className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600" onClick={() => handleDeleteFolder(folder)} data-testid={`button-folder-delete-${folder.id}`}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              {!(folder as any).isLocked && !(folder as any).toolkitFolderId && (
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+              {!(folder as any).isLocked && !(folder as any).toolkitFolderId && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-red-600" onClick={() => handleDeleteFolder(folder)} data-testid={`button-folder-delete-${folder.id}`}>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           )}
         </AccordionPrimitive.Header>
@@ -2350,14 +2367,24 @@ export default function TemplateLibraryPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
-                                      <Pencil className="h-4 w-4 mr-2" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleDeleteFolder(folder)} className="text-red-600 dark:text-red-400">
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
+                                    {!(folder as any).isLocked && !(folder as any).toolkitFolderId && (
+                                      <DropdownMenuItem onClick={() => handleEditFolder(folder)}>
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                    )}
+                                    {!(folder as any).isLocked && !(folder as any).toolkitFolderId && (
+                                      <DropdownMenuItem onClick={() => handleDeleteFolder(folder)} className="text-red-600 dark:text-red-400">
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    )}
+                                    {((folder as any).isLocked || (folder as any).toolkitFolderId) && (
+                                      <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                                        <Lock className="h-3 w-3 mr-2" />
+                                        System-managed
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}
@@ -2511,7 +2538,8 @@ export default function TemplateLibraryPage() {
               </div>
             )}
 
-            {/* Template Library Folder */}
+            {/* Template Library Folder — hidden for public (auto-assigned from toolkit folder) */}
+            {bulkShared.visibility !== "public" && (
             <div className="space-y-2">
               <Label>Template Library Folder <span className="text-destructive">*</span></Label>
               <div className="flex gap-2 mb-2">
@@ -2550,6 +2578,13 @@ export default function TemplateLibraryPage() {
                 </div>
               )}
             </div>
+            )}
+            {bulkShared.visibility === "public" && bulkShared.toolkitFolderId && (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs text-muted-foreground">
+                <Lock className="h-3 w-3 shrink-0" />
+                <span>Template Library folder will be automatically set to <strong>Toolkit → {toolkitFolders.find(f => f.id === bulkShared.toolkitFolderId)?.name}</strong></span>
+              </div>
+            )}
 
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
@@ -2817,6 +2852,13 @@ export default function TemplateLibraryPage() {
                     />
                   </div>
                 )}
+              </div>
+            )}
+            {/* Auto-assigned library folder info for public templates */}
+            {templateFormData.visibility === "public" && templateFormData.toolkitFolderId && (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs text-muted-foreground">
+                <Lock className="h-3 w-3 shrink-0" />
+                <span>Template Library folder will be automatically set to <strong>Toolkit → {toolkitFolders.find(f => f.id === templateFormData.toolkitFolderId)?.name}</strong></span>
               </div>
             )}
             {/* Compliance Settings */}

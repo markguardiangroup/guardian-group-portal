@@ -493,6 +493,8 @@ export const folderTemplates = pgTable("folder_templates", {
   isRequired: boolean("is_required").notNull().default(false), // Required folder per module
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  isLocked: boolean("is_locked").notNull().default(false), // Prevents deletion from UI (e.g. system Toolkit folders)
+  toolkitFolderId: varchar("toolkit_folder_id"), // Links this folder to a ToolkitFolder (for mirrored subfolders)
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

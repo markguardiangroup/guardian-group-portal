@@ -278,6 +278,8 @@ export interface IStorage {
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
   getFolderTemplate(id: string): Promise<FolderTemplate | undefined>;
+  getFolderTemplateByToolkitFolderId(toolkitFolderId: string): Promise<FolderTemplate | undefined>;
+  getModuleToolkitRootFolder(module: ModuleType): Promise<FolderTemplate | undefined>;
   createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate>;
   updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined>;
   deleteFolderTemplate(id: string): Promise<boolean>;
@@ -1944,6 +1946,25 @@ export class MemStorage implements IStorage {
     return template;
   }
 
+  async getFolderTemplateByToolkitFolderId(toolkitFolderId: string): Promise<FolderTemplate | undefined> {
+    const [template] = await db.select().from(folderTemplatesTable)
+      .where(eq(folderTemplatesTable.toolkitFolderId, toolkitFolderId));
+    return template;
+  }
+
+  async getModuleToolkitRootFolder(module: ModuleType): Promise<FolderTemplate | undefined> {
+    const [folder] = await db.select().from(folderTemplatesTable)
+      .where(
+        and(
+          eq(folderTemplatesTable.module, module),
+          eq(folderTemplatesTable.isLocked, true),
+          eq(folderTemplatesTable.name, "Toolkit"),
+          isNull(folderTemplatesTable.parentId)
+        )
+      );
+    return folder;
+  }
+
   private async generateNextFolderCode(): Promise<string> {
     // Get all existing folder codes that match FLD-XXXXX pattern
     const allFolders = await this.getFolderTemplates();
@@ -1977,6 +1998,8 @@ export class MemStorage implements IStorage {
       isRequired: template.isRequired ?? false,
       sortOrder: template.sortOrder ?? 0,
       isActive: template.isActive ?? true,
+      isLocked: (template as any).isLocked ?? false,
+      toolkitFolderId: (template as any).toolkitFolderId ?? null,
       createdBy: template.createdBy,
       createdAt: now,
       updatedAt: now,
