@@ -426,3 +426,14 @@
   animation: none !important;
   opacity: 0 !important;
 }
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
