@@ -207,7 +207,9 @@ export default function CreateFromTemplate() {
   const [reviewDate, setReviewDate] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
-  
+  const [reviewDateActive, setReviewDateActive] = useState(false);
+  const [expiryDateActive, setExpiryDateActive] = useState(false);
+
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
@@ -1108,15 +1110,17 @@ export default function CreateFromTemplate() {
                   <Input
                     id="reviewDate"
                     type="date"
-                    className={`pl-10 ${reviewDate ? "pr-8" : ""} ${submitAttempted && isDateInPast(reviewDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`pl-10 ${reviewDate || reviewDateActive ? "pr-8" : ""} ${submitAttempted && isDateInPast(reviewDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)}
+                    onFocus={() => setReviewDateActive(true)}
+                    onBlur={() => setReviewDateActive(false)}
                     data-testid="input-review-date"
                   />
-                  {reviewDate && (
+                  {(reviewDate || reviewDateActive) && (
                     <button
                       type="button"
-                      onClick={() => setReviewDate("")}
+                      onMouseDown={(e) => { e.preventDefault(); setReviewDate(""); setReviewDateActive(false); }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       data-testid="button-clear-review-date"
                     >
@@ -1138,15 +1142,17 @@ export default function CreateFromTemplate() {
                   <Input
                     id="expiryDate"
                     type="date"
-                    className={`pl-10 ${expiryDate ? "pr-8" : ""} ${submitAttempted && isDateInPast(expiryDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className={`pl-10 ${expiryDate || expiryDateActive ? "pr-8" : ""} ${submitAttempted && isDateInPast(expiryDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
+                    onFocus={() => setExpiryDateActive(true)}
+                    onBlur={() => setExpiryDateActive(false)}
                     data-testid="input-expiry-date"
                   />
-                  {expiryDate && (
+                  {(expiryDate || expiryDateActive) && (
                     <button
                       type="button"
-                      onClick={() => setExpiryDate("")}
+                      onMouseDown={(e) => { e.preventDefault(); setExpiryDate(""); setExpiryDateActive(false); }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       data-testid="button-clear-expiry-date"
                     >
