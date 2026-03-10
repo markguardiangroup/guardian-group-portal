@@ -336,8 +336,8 @@ export default function CreateFromTemplate() {
     if (!gridRef.current) return;
     const cards = Array.from(gridRef.current.children) as HTMLElement[];
     if (cards.length === 0) return;
-    // Reset any previous minHeight so we measure natural heights
-    cards.forEach(el => { el.style.minHeight = ""; });
+    // Reset to auto so we measure each card's natural content height
+    cards.forEach(el => { el.style.height = "auto"; el.style.minHeight = ""; });
     const maxH = Math.max(...cards.map(el => el.getBoundingClientRect().height));
     if (maxH > 0) setUniformCardHeight(maxH);
   }, [filteredTemplates, selectedModule, showToolkitTemplates, templateSearch]);
@@ -661,7 +661,7 @@ export default function CreateFromTemplate() {
                       ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
                       : ""
                   }`}
-                  style={{ minHeight: uniformCardHeight }}
+                  style={{ height: uniformCardHeight || undefined }}
                   onClick={() => setSelectedTemplateId(template.id)}
                   data-testid={`template-card-${template.id}`}
                 >
