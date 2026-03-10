@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -209,6 +209,8 @@ export default function CreateFromTemplate() {
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [reviewDateActive, setReviewDateActive] = useState(false);
   const [expiryDateActive, setExpiryDateActive] = useState(false);
+  const reviewDateRef = useRef<HTMLInputElement>(null);
+  const expiryDateRef = useRef<HTMLInputElement>(null);
 
   const [templateSearch, setTemplateSearch] = useState("");
   const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
@@ -1108,6 +1110,7 @@ export default function CreateFromTemplate() {
                 <div className="relative mt-1">
                   <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
+                    ref={reviewDateRef}
                     id="reviewDate"
                     type="date"
                     className={`pl-10 ${reviewDate || reviewDateActive ? "pr-8" : ""} ${submitAttempted && isDateInPast(reviewDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
@@ -1120,7 +1123,12 @@ export default function CreateFromTemplate() {
                   {(reviewDate || reviewDateActive) && (
                     <button
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); setReviewDate(""); setReviewDateActive(false); }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setReviewDate("");
+                        setReviewDateActive(false);
+                        if (reviewDateRef.current) reviewDateRef.current.value = "";
+                      }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       data-testid="button-clear-review-date"
                     >
@@ -1140,6 +1148,7 @@ export default function CreateFromTemplate() {
                 <div className="relative mt-1">
                   <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
+                    ref={expiryDateRef}
                     id="expiryDate"
                     type="date"
                     className={`pl-10 ${expiryDate || expiryDateActive ? "pr-8" : ""} ${submitAttempted && isDateInPast(expiryDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
@@ -1152,7 +1161,12 @@ export default function CreateFromTemplate() {
                   {(expiryDate || expiryDateActive) && (
                     <button
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); setExpiryDate(""); setExpiryDateActive(false); }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setExpiryDate("");
+                        setExpiryDateActive(false);
+                        if (expiryDateRef.current) expiryDateRef.current.value = "";
+                      }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       data-testid="button-clear-expiry-date"
                     >
