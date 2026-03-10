@@ -67,6 +67,7 @@ import {
   Scale,
   ClipboardList,
   Stethoscope,
+  X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
@@ -523,6 +524,14 @@ export default function CreateFromTemplate() {
     }
   };
 
+  const isDateInPast = (dateStr: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
   const handleComplete = () => {
     setSubmitAttempted(true);
     if (!documentTitle.trim()) {
@@ -531,6 +540,14 @@ export default function CreateFromTemplate() {
     }
     if (moduleFolders.length > 0 && !selectedFolderId) {
       toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
+      return;
+    }
+    if (reviewDate && isDateInPast(reviewDate)) {
+      toast({ title: "Invalid Review Date", description: "Review date must be today or in the future.", variant: "destructive" });
+      return;
+    }
+    if (expiryDate && isDateInPast(expiryDate)) {
+      toast({ title: "Invalid Expiry Date", description: "Expiry date must be today or in the future.", variant: "destructive" });
       return;
     }
     if (!selectedFile) {
@@ -1087,33 +1104,61 @@ export default function CreateFromTemplate() {
                   When should this document be reviewed by?
                 </Label>
                 <div className="relative mt-1">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
                     id="reviewDate"
                     type="date"
-                    className="pl-10"
+                    className={`pl-10 ${reviewDate ? "pr-8" : ""} ${submitAttempted && isDateInPast(reviewDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)}
                     data-testid="input-review-date"
                   />
+                  {reviewDate && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewDate("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-clear-review-date"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Optional — sets the compliance review reminder date</p>
+                {submitAttempted && isDateInPast(reviewDate) ? (
+                  <p className="text-xs text-destructive mt-1">Review date must be today or in the future</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">Optional — sets the compliance review reminder date</p>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="expiryDate" className="text-sm font-medium">Expiry Date</Label>
                 <div className="relative mt-1">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                   <Input
                     id="expiryDate"
                     type="date"
-                    className="pl-10"
+                    className={`pl-10 ${expiryDate ? "pr-8" : ""} ${submitAttempted && isDateInPast(expiryDate) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
                     data-testid="input-expiry-date"
                   />
+                  {expiryDate && (
+                    <button
+                      type="button"
+                      onClick={() => setExpiryDate("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-clear-expiry-date"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Optional — when does this document expire?</p>
+                {submitAttempted && isDateInPast(expiryDate) ? (
+                  <p className="text-xs text-destructive mt-1">Expiry date must be today or in the future</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">Optional — when does this document expire?</p>
+                )}
               </div>
             </div>
           </CardContent>
