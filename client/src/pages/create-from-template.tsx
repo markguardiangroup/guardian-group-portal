@@ -209,6 +209,8 @@ export default function CreateFromTemplate() {
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [reviewDateTouched, setReviewDateTouched] = useState(false);
   const [expiryDateTouched, setExpiryDateTouched] = useState(false);
+  const [reviewDateBadInput, setReviewDateBadInput] = useState(false);
+  const [expiryDateBadInput, setExpiryDateBadInput] = useState(false);
   const reviewDateRef = useRef<HTMLInputElement>(null);
   const expiryDateRef = useRef<HTMLInputElement>(null);
 
@@ -536,8 +538,8 @@ export default function CreateFromTemplate() {
     return date < today;
   };
 
-  const isReviewDateInvalid = (reviewDateTouched && !reviewDate) || isDateInPast(reviewDate);
-  const isExpiryDateInvalid = (expiryDateTouched && !expiryDate) || isDateInPast(expiryDate);
+  const isReviewDateInvalid = reviewDateBadInput || (reviewDateTouched && !reviewDate) || isDateInPast(reviewDate);
+  const isExpiryDateInvalid = expiryDateBadInput || (expiryDateTouched && !expiryDate) || isDateInPast(expiryDate);
 
   const handleComplete = () => {
     setSubmitAttempted(true);
@@ -549,12 +551,14 @@ export default function CreateFromTemplate() {
       toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
       return;
     }
-    if (reviewDate && isDateInPast(reviewDate)) {
-      toast({ title: "Invalid Review Date", description: "Review date must be today or in the future.", variant: "destructive" });
+    if (reviewDateRef.current?.validity.badInput || (reviewDate && isDateInPast(reviewDate))) {
+      setReviewDateBadInput(reviewDateRef.current?.validity.badInput ?? false);
+      toast({ title: "Invalid Review Date", description: "Please enter a complete, valid review date.", variant: "destructive" });
       return;
     }
-    if (expiryDate && isDateInPast(expiryDate)) {
-      toast({ title: "Invalid Expiry Date", description: "Expiry date must be today or in the future.", variant: "destructive" });
+    if (expiryDateRef.current?.validity.badInput || (expiryDate && isDateInPast(expiryDate))) {
+      setExpiryDateBadInput(expiryDateRef.current?.validity.badInput ?? false);
+      toast({ title: "Invalid Expiry Date", description: "Please enter a complete, valid expiry date.", variant: "destructive" });
       return;
     }
     if (!selectedFile) {
@@ -1119,7 +1123,11 @@ export default function CreateFromTemplate() {
                     className={`pl-10 ${reviewDate || reviewDateTouched ? "pr-8" : ""} ${isReviewDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)}
-                    onInput={() => setReviewDateTouched(true)}
+                    onInput={(e) => {
+                      const input = e.target as HTMLInputElement;
+                      setReviewDateTouched(true);
+                      setReviewDateBadInput(input.validity.badInput);
+                    }}
                     data-testid="input-review-date"
                   />
                   {(reviewDate || reviewDateTouched) && (
@@ -1129,6 +1137,7 @@ export default function CreateFromTemplate() {
                         e.preventDefault();
                         setReviewDate("");
                         setReviewDateTouched(false);
+                        setReviewDateBadInput(false);
                         if (reviewDateRef.current) reviewDateRef.current.value = "";
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
@@ -1158,7 +1167,11 @@ export default function CreateFromTemplate() {
                     className={`pl-10 ${expiryDate || expiryDateTouched ? "pr-8" : ""} ${isExpiryDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    onInput={() => setExpiryDateTouched(true)}
+                    onInput={(e) => {
+                      const input = e.target as HTMLInputElement;
+                      setExpiryDateTouched(true);
+                      setExpiryDateBadInput(input.validity.badInput);
+                    }}
                     data-testid="input-expiry-date"
                   />
                   {(expiryDate || expiryDateTouched) && (
@@ -1168,6 +1181,7 @@ export default function CreateFromTemplate() {
                         e.preventDefault();
                         setExpiryDate("");
                         setExpiryDateTouched(false);
+                        setExpiryDateBadInput(false);
                         if (expiryDateRef.current) expiryDateRef.current.value = "";
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
