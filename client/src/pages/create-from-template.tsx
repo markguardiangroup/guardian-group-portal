@@ -331,16 +331,20 @@ export default function CreateFromTemplate() {
     });
   }, [templates, selectedModule, templateSearch, showToolkitTemplates]);
 
-  // Measure the tallest card and apply uniform height across all cards
+  // Reset uniform height when module or search changes so we re-measure from scratch
+  useEffect(() => {
+    setUniformCardHeight(undefined);
+  }, [selectedModule, templateSearch]);
+
+  // Measure cards and keep the running max so toolkit/non-toolkit modes share the same height
   useLayoutEffect(() => {
     if (!gridRef.current) return;
     const cards = Array.from(gridRef.current.children) as HTMLElement[];
     if (cards.length === 0) return;
-    // Reset to auto so we measure each card's natural content height
     cards.forEach(el => { el.style.height = "auto"; el.style.minHeight = ""; });
     const maxH = Math.max(...cards.map(el => el.getBoundingClientRect().height));
-    if (maxH > 0) setUniformCardHeight(maxH);
-  }, [filteredTemplates, selectedModule, showToolkitTemplates, templateSearch]);
+    if (maxH > 0) setUniformCardHeight(prev => Math.max(prev || 0, maxH));
+  }, [filteredTemplates]);
 
   const filteredSites = useMemo(() => {
     return sites.filter(s => {
