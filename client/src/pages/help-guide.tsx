@@ -101,7 +101,7 @@ const guideSections: GuideSection[] = [
         <div>
           <h4 className="font-semibold mb-3">Portal Overview</h4>
           <p className="text-sm text-muted-foreground mb-4">
-            The portal is organized into several key areas accessible from the sidebar:
+            The portal is organised into several key areas accessible from the sidebar:
           </p>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">

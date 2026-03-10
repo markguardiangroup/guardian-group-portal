@@ -143,7 +143,7 @@ export default function AdminReports() {
               <p className="font-medium text-amber-800 dark:text-amber-200">Confidential Information</p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
                 Reports in this section contain sensitive data and are only visible to administrators and consultants. 
-                Do not share this information with unauthorized personnel.
+                Do not share this information with unauthorised personnel.
               </p>
             </div>
           </div>

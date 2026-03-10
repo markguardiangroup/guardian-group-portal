@@ -767,7 +767,7 @@ export default function DocumentUpload() {
                             </div>
                           )}
                           <FormDescription>
-                            Select a folder to organize this document
+                            Select a folder to organise this document
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

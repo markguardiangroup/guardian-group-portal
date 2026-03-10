@@ -575,7 +575,7 @@ function DocumentsListView() {
           <DialogHeader>
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>
-              Create a folder to organize your documents for this site.
+              Create a folder to organise your documents for this site.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -850,7 +850,7 @@ function DocumentsListView() {
                 </div>
                 <h3 className="mt-4 text-lg font-medium">No folders configured</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Apply folder templates to organize documents for this module
+                  Apply folder templates to organise documents for this module
                 </p>
                 {canManageFolders && (
                   <Button className="mt-4" onClick={() => setShowProvisionDialog(true)}>
@@ -905,7 +905,7 @@ function DocumentsListView() {
             </div>
             <h3 className="mt-4 text-lg font-medium">Select a site</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose a site to view documents organized by folder
+              Choose a site to view documents organised by folder
             </p>
           </CardContent>
         </Card>

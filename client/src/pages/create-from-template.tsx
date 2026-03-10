@@ -586,7 +586,7 @@ export default function CreateFromTemplate() {
     const steps = [
       { key: "template", label: "Select Template" },
       { key: "site", label: "Select Site" },
-      { key: "placeholders", label: "Customize & Upload" },
+      { key: "placeholders", label: "Customise & Upload" },
     ];
 
     return (
@@ -944,7 +944,7 @@ export default function CreateFromTemplate() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Document Details</CardTitle>
-            <CardDescription>Customize the document for this site</CardDescription>
+            <CardDescription>Customise the document for this site</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>

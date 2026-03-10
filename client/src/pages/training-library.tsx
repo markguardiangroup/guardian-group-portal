@@ -602,7 +602,7 @@ export default function TrainingLibrary() {
           <DialogHeader>
             <DialogTitle>{editingFolder ? "Edit Folder" : "Create Training Folder"}</DialogTitle>
             <DialogDescription>
-              {editingFolder ? "Update the folder details below." : "Add a new folder to organize training courses."}
+              {editingFolder ? "Update the folder details below." : "Add a new folder to organise training courses."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

@@ -617,7 +617,7 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
               <CardDescription>
-                Customize the look and feel of the application
+                Customise the look and feel of the application
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

@@ -645,7 +645,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </div>
                 <h3 className="mt-4 text-lg font-medium">Select a site</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Choose a site to view documents organized by folder
+                  Choose a site to view documents organised by folder
                 </p>
               </CardContent>
             </Card>
