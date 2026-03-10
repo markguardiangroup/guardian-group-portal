@@ -669,7 +669,7 @@ export default function CreateFromTemplate() {
                   <CardContent className="p-3 relative flex flex-col gap-1.5">
                     <div className="flex items-start gap-2">
                       <div className={`p-1.5 rounded-md shrink-0 ${iconBg}`}>
-                        <ModuleIcon className={`h-4 w-4 ${iconColor}`} />
+                        <FolderIcon className={`h-4 w-4 ${iconColor}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-medium leading-snug line-clamp-2 break-words">{template.name}</h3>
