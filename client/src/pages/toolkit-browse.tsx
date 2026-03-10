@@ -221,11 +221,11 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
           {template.name}
         </p>
         {template.description && (
-          <Tooltip>
+          <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <p className="text-xs text-muted-foreground truncate cursor-default">{template.description}</p>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs text-xs">
+            <TooltipContent side="bottom" className="max-w-xs text-xs z-[200]">
               {template.description}
             </TooltipContent>
           </Tooltip>
