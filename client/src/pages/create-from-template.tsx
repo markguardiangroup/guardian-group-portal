@@ -835,6 +835,13 @@ export default function CreateFromTemplate() {
                       }`}
                       style={{ animation: "slideUpFade 0.28s ease both", animationDelay: `${delay}ms` }}
                       onClick={() => handleSelectSite(site.id)}
+                      onDoubleClick={() => {
+                        handleSelectSite(site.id);
+                        if (moduleFolders.length === 0 && selectedTemplate) {
+                          provisionFoldersMutation.mutate({ siteId: site.id, module: selectedTemplate.module });
+                        }
+                        goToStep("placeholders");
+                      }}
                       data-testid={`site-card-${site.id}`}
                     >
                       <CardContent className="p-2.5">
