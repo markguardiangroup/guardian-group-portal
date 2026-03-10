@@ -646,8 +646,12 @@ export default function CreateFromTemplate() {
         </Card>
       ) : (
         <TooltipProvider>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" style={{ gridAutoRows: selectedModule === "all" ? "10rem" : "8.5rem" }}>
-            {filteredTemplates.map((template) => {
+          <div
+              key={`${selectedModule}-${templateSearch}-${showToolkitTemplates}`}
+              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+              style={{ gridAutoRows: selectedModule === "all" ? "10rem" : "8.5rem" }}
+            >
+            {filteredTemplates.map((template, index) => {
               const ModuleIcon = moduleIcons[template.module] || FileText;
               const isSelected = selectedTemplateId === template.id;
               const iconBg = moduleBgColors[template.module] || "bg-muted";
@@ -665,6 +669,7 @@ export default function CreateFromTemplate() {
                       ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
                       : ""
                   }`}
+                  style={{ animation: "slideUpFade 0.28s ease both", animationDelay: `${index * 40}ms` }}
                   onClick={() => setSelectedTemplateId(template.id)}
                   onDoubleClick={() => { setSelectedTemplateId(template.id); goToStep("site"); }}
                   data-testid={`template-card-${template.id}`}
