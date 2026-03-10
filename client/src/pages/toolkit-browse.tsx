@@ -225,7 +225,7 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
             <TooltipTrigger asChild>
               <p className="text-xs text-muted-foreground truncate cursor-default">{template.description}</p>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs text-xs z-[200]">
+            <TooltipContent side="top" className="max-w-sm text-xs z-[200] whitespace-normal break-words">
               {template.description}
             </TooltipContent>
           </Tooltip>
