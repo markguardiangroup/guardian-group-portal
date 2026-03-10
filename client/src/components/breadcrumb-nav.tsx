@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { ChevronRight, Home } from "lucide-react";
 import { Fragment } from "react";
 
@@ -32,25 +32,45 @@ function isIdSegment(segment: string): boolean {
   return /^\d+$/.test(segment) || /^[0-9a-f-]{36}$/i.test(segment);
 }
 
-export function BreadcrumbNav() {
-  const [location] = useLocation();
-
-  if (location === "/") return null;
-
-  const segments = location.split("/").filter(Boolean);
+function buildCrumbs(path: string): { label: string; href: string }[] {
+  const segments = path.split("/").filter(Boolean);
   const crumbs: { label: string; href: string }[] = [];
-
   let currentPath = "";
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
     currentPath += `/${segment}`;
-
     if (isIdSegment(segment)) {
       crumbs.push({ label: "Details", href: currentPath });
     } else {
       const label = routeLabels[segment] || segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       crumbs.push({ label, href: currentPath });
     }
+  }
+  return crumbs;
+}
+
+export function BreadcrumbNav() {
+  const [location] = useLocation();
+  const searchString = useSearch();
+
+  if (location === "/") return null;
+
+  let crumbs: { label: string; href: string }[];
+
+  if (location === "/create-from-template") {
+    const params = new URLSearchParams(searchString);
+    const returnTo = params.get("returnTo");
+    if (returnTo) {
+      const parentCrumbs = buildCrumbs(returnTo);
+      crumbs = [
+        ...parentCrumbs,
+        { label: "Create from Template", href: `/create-from-template?${searchString}` },
+      ];
+    } else {
+      crumbs = buildCrumbs(location);
+    }
+  } else {
+    crumbs = buildCrumbs(location);
   }
 
   return (

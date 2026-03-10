@@ -118,6 +118,8 @@ export default function CreateFromTemplate() {
   const urlParams = new URLSearchParams(searchString);
   const preselectedTemplateId = urlParams.get("templateId");
   const preselectedSiteId = urlParams.get("siteId");
+  const returnTo = urlParams.get("returnTo") || "/template-library";
+  const preselectedModule = urlParams.get("module") || "all";
   
   const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
@@ -132,7 +134,7 @@ export default function CreateFromTemplate() {
   const [expiryDate, setExpiryDate] = useState<string>("");
   
   const [templateSearch, setTemplateSearch] = useState("");
-  const [selectedModule, setSelectedModule] = useState<string>("all");
+  const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
@@ -1144,22 +1146,28 @@ export default function CreateFromTemplate() {
     </Card>
   );
 
+  const returnToLabel = (() => {
+    if (returnTo.includes("/health-safety")) return "Health & Safety";
+    if (returnTo.includes("/human-resources")) return "Human Resources";
+    if (returnTo.includes("/employment-law")) return "Employment Law";
+    if (returnTo.includes("/template-library")) return "Template Library";
+    return "Back";
+  })();
+
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/template-library")}
+          onClick={() => navigate(returnTo)}
           data-testid="button-back-library"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
+          <p className="text-sm text-muted-foreground mb-0.5">{returnToLabel}</p>
           <h1 className="text-3xl font-semibold">Create from Template</h1>
-          <p className="mt-1 text-muted-foreground">
-            Create a new document from a template and upload it to a client site
-          </p>
         </div>
       </div>
 

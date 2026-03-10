@@ -486,7 +486,7 @@ export default function DocumentUpload() {
                   </p>
                 </div>
               </div>
-              <Link href="/create-from-template">
+              <Link href={`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`}>
                 <Button data-testid="button-create-from-template">
                   Create from Template
                   <ArrowRight className="ml-2 h-4 w-4" />
