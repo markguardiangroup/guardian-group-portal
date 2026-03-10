@@ -233,6 +233,15 @@ export default function CreateFromTemplate() {
     return Array.from(new Set(sites.map(s => s.companyName).filter((c): c is string => !!c)));
   }, [sites]);
 
+  // Build a map of folderTemplateId -> folder name for quick lookup
+  const folderTemplateMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ft of folderTemplates) {
+      map.set(ft.id, ft.name);
+    }
+    return map;
+  }, [folderTemplates]);
+
   const filteredTemplates = useMemo(() => {
     return templates.filter(t => {
       if (!t.isActive) return false;
@@ -546,18 +555,20 @@ export default function CreateFromTemplate() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-start">
           {filteredTemplates.map((template) => {
             const ModuleIcon = moduleIcons[template.module] || FileText;
             const isSelected = selectedTemplateId === template.id;
             const iconBg = moduleBgColors[template.module] || "bg-muted";
             const iconColor = moduleColors[template.module] || "";
             const borderColor = moduleBorderColors[template.module] || "";
+            const folderName = template.folderTemplateId ? folderTemplateMap.get(template.folderTemplateId) : null;
+            const showModuleBadge = selectedModule === "all";
 
             return (
               <Card
                 key={template.id}
-                className={`cursor-pointer hover-elevate transition-all relative overflow-hidden ${
+                className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col ${
                   isSelected 
                     ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}` 
                     : ""
@@ -566,36 +577,40 @@ export default function CreateFromTemplate() {
                 data-testid={`template-card-${template.id}`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
-                <CardContent className="p-4 relative">
+                <CardContent className="p-4 relative flex flex-col flex-1 gap-2">
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-md ${iconBg}`}>
+                    <div className={`p-2 rounded-md shrink-0 ${iconBg}`}>
                       <ModuleIcon className={`h-5 w-5 ${iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{template.name}</h3>
-                      {template.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                          {template.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${iconColor} ${borderColor}`}
-                        >
-                          <ModuleIcon className="h-3 w-3 mr-1" />
-                          {moduleLabels[template.module] || template.module}
-                        </Badge>
-                        {template.folderTemplateName && (
-                          <Badge variant="outline" className="text-xs">
-                            <Folder className="h-3 w-3 mr-1" />
-                            {template.folderTemplateName}
-                          </Badge>
-                        )}
-                      </div>
+                      <h3 className="font-medium leading-snug break-words">{template.name}</h3>
                     </div>
                     {isSelected && (
-                      <CheckCircle className={`h-5 w-5 flex-shrink-0 ${iconColor || "text-primary"}`} />
+                      <CheckCircle className={`h-5 w-5 shrink-0 mt-0.5 ${iconColor || "text-primary"}`} />
+                    )}
+                  </div>
+
+                  {template.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {template.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-1.5 mt-auto pt-1">
+                    {folderName && (
+                      <Badge variant="outline" className="text-xs">
+                        <Folder className="h-3 w-3 mr-1" />
+                        {folderName}
+                      </Badge>
+                    )}
+                    {showModuleBadge && (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${iconColor} ${borderColor}`}
+                      >
+                        <ModuleIcon className="h-3 w-3 mr-1" />
+                        {moduleLabels[template.module] || template.module}
+                      </Badge>
                     )}
                   </div>
                 </CardContent>
