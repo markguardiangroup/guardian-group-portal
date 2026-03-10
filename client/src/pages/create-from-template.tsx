@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -211,6 +211,8 @@ export default function CreateFromTemplate() {
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
+  const [uniformCardHeight, setUniformCardHeight] = useState<number | undefined>(undefined);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -328,6 +330,17 @@ export default function CreateFromTemplate() {
       return true;
     });
   }, [templates, selectedModule, templateSearch, showToolkitTemplates]);
+
+  // Measure the tallest card and apply uniform height across all cards
+  useLayoutEffect(() => {
+    if (!gridRef.current) return;
+    const cards = Array.from(gridRef.current.children) as HTMLElement[];
+    if (cards.length === 0) return;
+    // Reset any previous minHeight so we measure natural heights
+    cards.forEach(el => { el.style.minHeight = ""; });
+    const maxH = Math.max(...cards.map(el => el.getBoundingClientRect().height));
+    if (maxH > 0) setUniformCardHeight(maxH);
+  }, [filteredTemplates, selectedModule, showToolkitTemplates, templateSearch]);
 
   const filteredSites = useMemo(() => {
     return sites.filter(s => {
@@ -629,7 +642,7 @@ export default function CreateFromTemplate() {
         </Card>
       ) : (
         <TooltipProvider>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div ref={gridRef} className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredTemplates.map((template) => {
               const ModuleIcon = moduleIcons[template.module] || FileText;
               const isSelected = selectedTemplateId === template.id;
@@ -648,6 +661,7 @@ export default function CreateFromTemplate() {
                       ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
                       : ""
                   }`}
+                  style={{ minHeight: uniformCardHeight }}
                   onClick={() => setSelectedTemplateId(template.id)}
                   data-testid={`template-card-${template.id}`}
                 >
