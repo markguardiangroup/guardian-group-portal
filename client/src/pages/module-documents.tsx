@@ -358,6 +358,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     module: string;
     parentId: string | null;
     isActive: boolean;
+    isLocked: boolean;
+    toolkitFolderId: string | null;
   }
   
   interface FolderDocumentTypeRule {
@@ -412,10 +414,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return { variant: "outline" as const, label: "Incomplete", className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" };
   };
   
-  // Get folder templates for current module
+  // Get folder templates for current module (exclude Toolkit roots and mirrored subfolders)
   const moduleFolderTemplates = useMemo(() => {
     if (!folderTemplates) return [];
-    return folderTemplates.filter(t => t.module === module && t.isActive);
+    return folderTemplates.filter(t => t.module === module && t.isActive && !t.isLocked && !t.toolkitFolderId);
   }, [folderTemplates, module]);
   
   // Build lookup: documentTypeId -> folder template name
