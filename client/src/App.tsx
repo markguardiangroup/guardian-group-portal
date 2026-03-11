@@ -349,6 +349,7 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
     p(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
     p(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
+    p(["/api/documents/module", "employment_law"], "/api/documents/module/employment_law");
 
     // Employment law dashboard – single combined endpoint
     p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
