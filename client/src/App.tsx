@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
@@ -316,6 +316,43 @@ function LegalAcceptanceScreen() {
   );
 }
 
+function DataPrefetcher({ userId }: { userId: string }) {
+  const prefetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+
+    const fetcher = async (url: string) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    };
+
+    const prefetch = (key: string[], url?: string) => {
+      queryClient.prefetchQuery({
+        queryKey: key,
+        queryFn: () => fetcher(url ?? key.join("/")),
+        staleTime: Infinity,
+      });
+    };
+
+    prefetch(["/api/sites"]);
+    prefetch(["/api/cases"]);
+    prefetch(["/api/documents"]);
+    prefetch(["/api/companies"]);
+    prefetch(["/api/documents/module", "employment_law"], "/api/documents/module/employment_law");
+    prefetch(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
+    prefetch(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
+    prefetch(["/api/modules/summary"]);
+    prefetch(["/api/modules/employment_law/summary", null, null], "/api/modules/employment_law/summary");
+    prefetch(["/api/training-bookings"]);
+    prefetch(["/api/support-requests/counts"]);
+  }, [userId]);
+
+  return null;
+}
+
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
@@ -345,6 +382,7 @@ function AuthenticatedApp() {
 
   return (
     <SiteFilterProvider>
+      <DataPrefetcher userId={user!.id} />
       <SidebarProvider style={sidebarStyle as React.CSSProperties}>
         <div className="flex h-screen w-full">
           <AppSidebar user={user} />
