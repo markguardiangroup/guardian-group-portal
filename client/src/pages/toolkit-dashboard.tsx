@@ -37,52 +37,29 @@ interface DownloadStats {
 }
 
 function TickerNumber({ value, className }: { value: number; className?: string }) {
+  const [animKey, setAnimKey] = useState(0);
   const [displayed, setDisplayed] = useState(value);
-  const [animating, setAnimating] = useState(false);
   const prevRef = useRef(value);
-  const rafRef = useRef<number | null>(null);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    const from = prevRef.current;
-    const to = value;
-    if (from === to) return;
-
-    prevRef.current = to;
-    setAnimating(true);
-
-    const diff = to - from;
-    const duration = Math.min(600, Math.abs(diff) * 60);
-    const startTime = performance.now();
-
-    const tick = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(from + diff * eased);
-      setDisplayed(current);
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        setDisplayed(to);
-        setAnimating(false);
-      }
-    };
-
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (prevRef.current === value) return;
+    prevRef.current = value;
+    setDisplayed(value);
+    setAnimKey(k => k + 1);
   }, [value]);
 
   return (
     <span
+      key={animKey}
       className={className}
       style={{
         display: "inline-block",
-        transition: "color 0.2s",
-        color: animating ? "var(--module-accent, currentColor)" : undefined,
+        animation: animKey > 0 ? "tickerUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both" : "none",
       }}
       data-testid="ticker-number"
     >

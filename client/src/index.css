@@ -437,3 +437,16 @@
     transform: translateY(0);
   }
 }
+
+@keyframes tickerUp {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em) scale(0.92);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
