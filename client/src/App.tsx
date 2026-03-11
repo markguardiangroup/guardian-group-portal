@@ -330,7 +330,7 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     };
 
     const p = (key: unknown[], url: string) =>
-      queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity });
+      queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
 
     // Core shared data
     p(["/api/sites"], "/api/sites");
