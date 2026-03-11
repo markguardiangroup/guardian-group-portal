@@ -1149,21 +1149,24 @@ export class MemStorage implements IStorage {
 
   // Cases (Employment Law) - Database backed
   async getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus; includeArchived?: boolean }): Promise<Case[]> {
-    let allCases = await db.select().from(casesTable);
-    // Filter out archived cases by default
+    const conditions = [];
     if (!filters?.includeArchived) {
-      allCases = allCases.filter(c => !c.isArchived);
+      conditions.push(eq(casesTable.isArchived, false));
     }
     if (filters?.siteId) {
-      allCases = allCases.filter(c => c.siteId === filters.siteId);
+      conditions.push(eq(casesTable.siteId, filters.siteId));
     }
     if (filters?.entityId) {
-      allCases = allCases.filter(c => c.entityId === filters.entityId);
+      conditions.push(eq(casesTable.entityId, filters.entityId));
     }
     if (filters?.status) {
-      allCases = allCases.filter(c => c.status === filters.status);
+      conditions.push(eq(casesTable.status, filters.status as CaseStatus));
     }
-    return allCases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const query = db.select().from(casesTable);
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions)).orderBy(desc(casesTable.createdAt));
+    }
+    return await query.orderBy(desc(casesTable.createdAt));
   }
 
   async archiveCase(id: string): Promise<Case | undefined> {
