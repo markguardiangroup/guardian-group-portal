@@ -1976,8 +1976,7 @@ function EmploymentLawDashboardView() {
     return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
   }, [selectedSiteId, selectedCompany]);
 
-  const showSkeleton = useDelayedSkeleton(summaryLoading);
-  if (showSkeleton) {
+  if (summaryLoading || sitesLoading) {
     return (
       <div className="theme-el">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
