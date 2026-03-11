@@ -450,3 +450,48 @@
     filter: blur(0);
   }
 }
+
+/* ── Dashboard entrance animations ─────────────────────────────────────── */
+@keyframes dashEnter {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* Coloured header band – snaps in slightly from the top */
+@keyframes dashHeaderEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.dash-header {
+  animation: dashHeaderEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0ms both;
+}
+
+/* Each direct child of .dash-animate gets a staggered entrance */
+.dash-animate > * {
+  animation: dashEnter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.dash-animate > *:nth-child(1) { animation-delay: 55ms; }
+.dash-animate > *:nth-child(2) { animation-delay: 130ms; }
+.dash-animate > *:nth-child(3) { animation-delay: 205ms; }
+.dash-animate > *:nth-child(4) { animation-delay: 280ms; }
+.dash-animate > *:nth-child(5) { animation-delay: 355ms; }
+.dash-animate > *:nth-child(6) { animation-delay: 430ms; }
+.dash-animate > *:nth-child(7) { animation-delay: 505ms; }
+.dash-animate > *:nth-child(8) { animation-delay: 580ms; }

@@ -294,7 +294,7 @@ export default function TrainingDashboard() {
   }
 
   return (
-    <div className="container px-6 py-6">
+    <div className="container px-6 py-6 dash-animate">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
