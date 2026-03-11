@@ -865,7 +865,7 @@ export default function HelpGuide() {
       </div>
 
       <div className="flex-1 overflow-auto">
-        <div className="p-6 max-w-4xl">
+        <div className="p-6 max-w-4xl dash-animate">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-primary">{currentSection.icon}</span>
