@@ -501,7 +501,7 @@ export default function Training() {
             </Card>
           </div>
         ) : (
-          <div className="p-6 space-y-8">
+          <div className="p-6 space-y-8 dash-animate">
             {!searchQuery && featuredCourses.length > 0 && (
               <section>
                 <div className="flex items-center gap-2 mb-4">
