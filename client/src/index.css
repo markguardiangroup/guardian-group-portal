@@ -495,3 +495,26 @@
 .dash-animate > *:nth-child(6) { animation-delay: 430ms; }
 .dash-animate > *:nth-child(7) { animation-delay: 505ms; }
 .dash-animate > *:nth-child(8) { animation-delay: 580ms; }
+
+/* ── Login progress bar ── */
+@keyframes loginBarScan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.login-progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 9999;
+  overflow: hidden;
+  background: rgba(255,255,255,0.12);
+}
+
+.login-progress-bar-inner {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #e879f9, #f97316, #a3e635);
+  animation: loginBarScan 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 0 2px 2px 0;
+}

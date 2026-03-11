@@ -42,7 +42,8 @@ const SERVICE_CARDS = [
 ];
 
 export default function Login() {
-  const [, setIsLoggingIn] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -88,6 +89,7 @@ export default function Login() {
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => apiRequest("POST", "/api/auth/login", data),
     onSuccess: async () => {
+      setIsLoadingPage(true);
       queryClient.clear();
       const currentPath = window.location.pathname + window.location.search;
       const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
@@ -97,6 +99,8 @@ export default function Login() {
       toast({ title: "Login Failed", description: error.message || "Invalid username or password", variant: "destructive" });
     },
   });
+
+  const isLoading = loginMutation.isPending || isLoggingIn || isLoadingPage;
 
   const devLogin = async (username: string) => {
     try {
@@ -108,14 +112,21 @@ export default function Login() {
         body: JSON.stringify({ username, password: "admin123" }),
         credentials: "include",
       });
+      setIsLoadingPage(true);
       window.location.href = "/";
     } catch (e) {
       console.error("Login failed", e);
+      setIsLoggingIn(false);
     }
   };
 
   return (
     <div className="min-h-screen flex">
+      {isLoading && (
+        <div className="login-progress-bar">
+          <div className="login-progress-bar-inner" />
+        </div>
+      )}
       {/* ── Left panel – brand ── */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col relative overflow-hidden"
@@ -189,6 +200,22 @@ export default function Login() {
             <span className="block text-slate-400 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
           </div>
         </div>
+
+        {isLoadingPage ? (
+          <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ background: "linear-gradient(135deg, #0ea5e9, #818cf8)" }}>
+              <Loader2 className="h-8 w-8 text-white animate-spin" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-slate-800">Signing you in</p>
+              <p className="text-sm text-slate-500 mt-1">Loading your portal, please wait…</p>
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full rounded-full login-progress-bar-inner" style={{ width: "60%" }} />
+            </div>
+          </div>
+        ) : (
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
@@ -297,6 +324,7 @@ export default function Login() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Forgot password dialog */}
