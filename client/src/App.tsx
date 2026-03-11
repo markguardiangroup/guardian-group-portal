@@ -316,38 +316,45 @@ function LegalAcceptanceScreen() {
   );
 }
 
-function DataPrefetcher({ userId }: { userId: string }) {
+function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser: boolean }) {
   const prefetchedRef = useRef(false);
 
   useEffect(() => {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
 
-    const fetcher = async (url: string) => {
+    const f = async (url: string) => {
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
     };
 
-    const prefetch = (key: string[], url?: string) => {
-      queryClient.prefetchQuery({
-        queryKey: key,
-        queryFn: () => fetcher(url ?? key.join("/")),
-        staleTime: Infinity,
-      });
-    };
+    const p = (key: unknown[], url: string) =>
+      queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity });
 
-    prefetch(["/api/sites"]);
-    prefetch(["/api/cases"]);
-    prefetch(["/api/documents"]);
-    prefetch(["/api/companies"]);
-    prefetch(["/api/documents/module", "employment_law"], "/api/documents/module/employment_law");
-    prefetch(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
-    prefetch(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
-    prefetch(["/api/modules/summary"]);
-    prefetch(["/api/modules/employment_law/summary", null, null], "/api/modules/employment_law/summary");
-    prefetch(["/api/training-bookings"]);
-    prefetch(["/api/support-requests/counts"]);
+    // Core shared data
+    p(["/api/sites"], "/api/sites");
+    p(["/api/companies"], "/api/companies");
+    p(["/api/training-bookings"], "/api/training-bookings");
+    p(["/api/support-requests/counts"], "/api/support-requests/counts");
+
+    // Main dashboard – keys include siteId=null, companySiteIdsKey=null, isClientUser
+    p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
+    p(["/api/documents", null, null], "/api/documents");
+    p(["/api/cases", null], "/api/cases");
+    p(["/api/support-requests", null], "/api/support-requests");
+
+    // Module dashboards – keys include module, siteId=null, companySiteIdsKey=null
+    p(["/api/dashboard", "health_safety", null, null], "/api/dashboard/health_safety");
+    p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
+    p(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
+    p(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
+
+    // Employment law dashboard – keys include siteId=null, selectedCompanyId=null
+    p(["/api/modules/employment_law/summary", null, null], "/api/modules/employment_law/summary");
+    p(["/api/cases", null, null], "/api/cases");
+    p(["/api/cases", null, null, false], "/api/cases");
+    p(["/api/documents/module", "employment_law", null, null], "/api/documents/module/employment_law");
   }, [userId]);
 
   return null;
@@ -382,7 +389,7 @@ function AuthenticatedApp() {
 
   return (
     <SiteFilterProvider>
-      <DataPrefetcher userId={user!.id} />
+      <DataPrefetcher userId={user!.id} isClientUser={user!.role === "client"} />
       <SidebarProvider style={sidebarStyle as React.CSSProperties}>
         <div className="flex h-screen w-full">
           <AppSidebar user={user} />
