@@ -351,7 +351,7 @@ function CasesList() {
         </div>
       </div>
       
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-8 dash-animate">
       <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-pink-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
