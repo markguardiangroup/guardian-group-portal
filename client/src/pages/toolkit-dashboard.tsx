@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookMarked, DownloadCloud, TrendingUp, Building2, Download, FolderOpen } from "lucide-react";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,6 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { CompanyCombobox } from "@/components/company-combobox";
-import { SiteCombobox } from "@/components/site-combobox";
 
 interface Site {
   id: string;
@@ -71,7 +71,7 @@ function TickerNumber({ value, className }: { value: number; className?: string 
 export default function ToolkitDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const isClient = user?.role === "client";
@@ -81,28 +81,15 @@ export default function ToolkitDashboard() {
     enabled: isPrivilegedUser,
   });
 
-  const filteredSites = useMemo(() => {
-    if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter(s => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
-
-  const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
-  const companySiteIds = useMemo(() => {
-    if (!sites || !selectedCompany || selectedCompany === "all") return null;
-    if (siteId) return null;
-    return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
-  }, [sites, selectedCompany, siteId]);
-  const companySiteIdsKey = companySiteIds?.join(",") || null;
+  const activeCompany = selectedCompany && selectedCompany !== "all" ? selectedCompany : null;
 
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
-    if (siteId) params.set("siteId", siteId);
-    else if (companySiteIds?.length) params.set("siteIds", companySiteIds.join(","));
+    if (activeCompany) params.set("companyName", activeCompany);
     return params.toString();
-  }, [siteId, companySiteIds]);
+  }, [activeCompany]);
 
-  const statsQueryKey = ["/api/toolkit/stats", siteId, companySiteIdsKey];
+  const statsQueryKey = ["/api/toolkit/stats", activeCompany];
 
   const { data: stats, isLoading } = useQuery<DownloadStats>({
     queryKey: statsQueryKey,
@@ -139,11 +126,7 @@ export default function ToolkitDashboard() {
     }
   }
 
-  const contextName = siteId
-    ? sites?.find(s => s.id === siteId)?.name
-    : selectedCompany && selectedCompany !== "all"
-    ? selectedCompany
-    : null;
+  const contextName = activeCompany ?? null;
 
   if (isLoading) {
     return (
@@ -200,14 +183,6 @@ export default function ToolkitDashboard() {
                   onValueChange={handleCompanyChange}
                   className="w-44"
                   testId="select-company-toolkit"
-                />
-                <span className="text-muted-foreground">/</span>
-                <SiteCombobox
-                  sites={filteredSites}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-44"
-                  testId="select-site-toolkit"
                 />
               </div>
             )}

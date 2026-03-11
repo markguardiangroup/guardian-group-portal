@@ -89,7 +89,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc, desc, isNull, gt, count, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, gt, count, sql } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -273,7 +273,7 @@ export interface IStorage {
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
-  getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
+  getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1872,17 +1872,15 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null; userId?: string }) {
+  async getToolkitStats(filter?: { companyName?: string; userId?: string }) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const buildWhere = (extra?: any) => {
       const conditions = [];
       if (filter?.userId) {
         conditions.push(eq(toolkitDownloadsTable.userId, filter.userId));
-      } else if (filter?.siteId) {
-        conditions.push(eq(toolkitDownloadsTable.siteId, filter.siteId));
-      } else if (filter?.siteIds && filter.siteIds.length > 0) {
-        conditions.push(inArray(toolkitDownloadsTable.siteId, filter.siteIds));
+      } else if (filter?.companyName) {
+        conditions.push(eq(toolkitDownloadsTable.companyName, filter.companyName));
       }
       if (extra) conditions.push(extra);
       return conditions.length > 0 ? and(...conditions) : undefined;

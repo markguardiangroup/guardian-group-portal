@@ -9437,18 +9437,14 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-      const { siteId, siteIds } = req.query;
-      const filter: { siteId?: string | null; siteIds?: string[] | null; userId?: string } = {};
+      const { companyName } = req.query;
+      const filter: { companyName?: string; userId?: string } = {};
 
       // Clients only see their own downloads
       if (user.role === "client") {
         filter.userId = user.id;
-      } else {
-        if (typeof siteId === "string" && siteId) {
-          filter.siteId = siteId;
-        } else if (typeof siteIds === "string" && siteIds) {
-          filter.siteIds = siteIds.split(",").filter(Boolean);
-        }
+      } else if (typeof companyName === "string" && companyName) {
+        filter.companyName = companyName;
       }
 
       const stats = await storage.getToolkitStats(Object.keys(filter).length > 0 ? filter : undefined);
