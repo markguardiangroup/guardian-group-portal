@@ -438,7 +438,7 @@ export default function TrainingLibrary() {
   const ModuleIcon = moduleIcons[activeModule] || GraduationCap;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 dash-animate">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">

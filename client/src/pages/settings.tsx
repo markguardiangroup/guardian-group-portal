@@ -271,7 +271,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-8 dash-animate">
       <div>
         <h1 className="text-3xl font-semibold">Settings</h1>
         <p className="mt-1 text-muted-foreground">

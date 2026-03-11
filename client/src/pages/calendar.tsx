@@ -491,7 +491,7 @@ export default function CalendarPage() {
   return (
     <div>
       {/* Header — title only, filters live in the cards */}
-      <div className="bg-muted/30 border-b border-t-4 border-t-primary px-8 py-6">
+      <div className="dash-header bg-muted/30 border-b border-t-4 border-t-primary px-8 py-6">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary">
             <CalendarDays className="h-7 w-7 text-primary-foreground" />
@@ -503,7 +503,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-primary">

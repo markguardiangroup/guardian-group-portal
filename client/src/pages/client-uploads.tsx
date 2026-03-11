@@ -957,7 +957,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   }
 
   return (
-    <div className="p-6 space-y-5" data-testid="folder-list-view">
+    <div className="p-6 space-y-5 dash-animate" data-testid="folder-list-view">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Cloud Share</h1>

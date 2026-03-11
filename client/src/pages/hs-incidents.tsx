@@ -1924,7 +1924,7 @@ function IncidentsListView() {
   return (
     <div className="theme-hs">
       {/* Module header */}
-      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
@@ -1969,7 +1969,7 @@ function IncidentsListView() {
         </div>
       </div>
 
-      <div className="space-y-6 p-8">
+      <div className="space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-module-accent">

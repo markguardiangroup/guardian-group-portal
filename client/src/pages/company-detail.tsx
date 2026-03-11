@@ -662,7 +662,7 @@ export default function CompanyDetail() {
     : 0;
 
   return (
-    <div className="space-y-6 p-8">
+    <div className="space-y-6 p-8 dash-animate">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />

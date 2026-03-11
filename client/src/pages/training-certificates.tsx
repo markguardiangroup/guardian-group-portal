@@ -152,7 +152,7 @@ export default function TrainingCertificates() {
   };
 
   return (
-    <div className="container px-6 py-6 space-y-6">
+    <div className="container px-6 py-6 space-y-6 dash-animate">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">

@@ -190,7 +190,7 @@ export default function DevelopmentRoadmap() {
 
   return (
     <div className="flex-1 overflow-auto p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6 dash-animate">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Development Roadmap</h1>

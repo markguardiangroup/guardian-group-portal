@@ -534,7 +534,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   return (
     <div className={`${themeClass}`}>
       {/* Module Header with tinted background */}
-      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${moduleBgColors[module]}`}>

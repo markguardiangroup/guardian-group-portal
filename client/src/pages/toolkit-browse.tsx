@@ -311,7 +311,7 @@ export default function ToolkitBrowse() {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 dash-animate">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
