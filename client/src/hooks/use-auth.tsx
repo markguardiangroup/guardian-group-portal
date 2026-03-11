@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserRole } from "@shared/schema";
 
@@ -44,14 +45,82 @@ function getDevUser(): AuthUser | null {
   }
 }
 
+function SigningOutOverlay() {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        background: "linear-gradient(160deg, #1d3057 0%, #1a2a4a 50%, #172240 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "24px",
+        animation: "fadeInOverlay 0.18s ease-out forwards",
+      }}
+    >
+      <style>{`
+        @keyframes fadeInOverlay {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes overlayBarScan {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+      `}</style>
+
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          background: "linear-gradient(135deg, #0ea5e9, #818cf8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Loader2 style={{ width: 32, height: 32, color: "white", animation: "spin 1s linear infinite" }} />
+      </div>
+
+      <div style={{ textAlign: "center" }}>
+        <p style={{ color: "white", fontSize: 18, fontWeight: 600, margin: 0 }}>Signing you out</p>
+        <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, marginTop: 6 }}>Please wait…</p>
+      </div>
+
+      <div
+        style={{
+          width: 200,
+          height: 4,
+          borderRadius: 9999,
+          background: "rgba(255,255,255,0.12)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: "45%",
+            borderRadius: 9999,
+            background: "linear-gradient(90deg, #38bdf8, #818cf8, #e879f9, #f97316, #a3e635)",
+            animation: "overlayBarScan 1.4s ease-in-out infinite",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [devUser, setDevUser] = useState<AuthUser | null>(getDevUser);
-  
-  // Check localStorage on mount and when storage changes
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   useEffect(() => {
     const handleStorage = () => setDevUser(getDevUser());
     window.addEventListener("storage", handleStorage);
-    // Also check periodically for same-window changes
     const interval = setInterval(handleStorage, 500);
     return () => {
       window.removeEventListener("storage", handleStorage);
@@ -65,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Use server session if available, otherwise fall back to dev user
   const effectiveUser = user ?? (isError || !isLoading ? devUser : null);
 
   const logoutMutation = useMutation({
@@ -73,18 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // Clear all local storage auth data
       localStorage.removeItem("dev_user");
       setDevUser(null);
-      
-      // Clear all React Query cache completely
       queryClient.clear();
-      
-      // Force a hard redirect to clear any in-memory state
       window.location.replace("/login");
     },
     onError: () => {
-      // Even on error, clear local state and redirect
       localStorage.removeItem("dev_user");
       setDevUser(null);
       queryClient.clear();
@@ -92,15 +154,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const logout = () => {
+    setIsSigningOut(true);
+    logoutMutation.mutate();
+  };
+
   const value: AuthContextType = {
     user: effectiveUser ?? null,
     isLoading: isLoading && !devUser,
     isAuthenticated: !!effectiveUser,
-    logout: () => logoutMutation.mutate(),
+    logout,
     isLoggingOut: logoutMutation.isPending,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {isSigningOut && <SigningOutOverlay />}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
