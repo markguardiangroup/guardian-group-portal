@@ -299,24 +299,6 @@ function CasesList() {
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length;
 
-  const showSkeleton = useDelayedSkeleton(isLoading || sitesLoading);
-  if (showSkeleton) {
-    return (
-      <div className="theme-el">
-        <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-          <Skeleton className="h-14 w-96" />
-        </div>
-        <div className="space-y-6 p-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-          </div>
-          <Skeleton className="h-96" />
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="theme-el">
       {/* Module Header with tinted background */}
@@ -379,7 +361,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{openCases}</div>
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{openCases}</div>}
               <p className="text-xs text-muted-foreground">Currently being managed</p>
             </CardContent>
           </Card>
@@ -391,7 +373,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{urgentCases}</div>
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{urgentCases}</div>}
               <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
             </CardContent>
           </Card>
@@ -403,7 +385,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{resolvedCases}</div>
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400">{resolvedCases}</div>}
               <p className="text-xs text-muted-foreground">Successfully completed</p>
             </CardContent>
           </Card>
@@ -463,7 +445,34 @@ function CasesList() {
           </div>
         </CardHeader>
         <CardContent>
-          {filteredCases.length > 0 ? (
+          {isLoading ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Deadline</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="w-[80px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : filteredCases.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1850,49 +1859,30 @@ function EmploymentLawDashboardView() {
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
-  // Fetch compliance summary for Employment Law
-  const { data: summary, isLoading: summaryLoading } = useQuery<ComplianceSummary>({
-    queryKey: ["/api/modules/employment_law/summary", siteId, selectedCompanyId],
+  // Single combined fetch for all Employment Law dashboard data
+  const { data: dashboardData, isLoading: dashboardLoading } = useQuery<{
+    summary: ComplianceSummary;
+    cases: Case[];
+    allDocuments: Document[];
+    recentDocuments: Document[];
+  }>({
+    queryKey: ["/api/dashboard/employment_law", siteId, selectedCompanyId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) params.set("siteId", siteId);
       if (selectedCompanyId) params.set("entityId", selectedCompanyId);
-      const url = params.toString() ? `/api/modules/employment_law/summary?${params.toString()}` : "/api/modules/employment_law/summary";
+      const url = params.toString() ? `/api/dashboard/employment_law?${params.toString()}` : "/api/dashboard/employment_law";
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
   });
-  
-  // Fetch cases with site filtering
-  const { data: cases, isLoading: casesLoading } = useQuery<Case[]>({
-    queryKey: ["/api/cases", siteId, selectedCompanyId],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (siteId) params.set("siteId", siteId);
-      if (selectedCompanyId) params.set("entityId", selectedCompanyId);
-      const url = params.toString() ? `/api/cases?${params.toString()}` : "/api/cases";
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-  });
-  
-  // Fetch recent documents for Employment Law
-  const { data: recentDocuments, isLoading: recentDocumentsLoading } = useQuery<Document[]>({
-    queryKey: ["/api/documents/module", "employment_law", siteId, selectedCompanyId],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (siteId) params.set("siteId", siteId);
-      if (selectedCompanyId) params.set("entityId", selectedCompanyId);
-      const url = params.toString() ? `/api/documents/module/employment_law?${params.toString()}` : "/api/documents/module/employment_law";
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
-  });
-  
-  const isLoading = summaryLoading || casesLoading || sitesLoading;
+
+  const summary = dashboardData?.summary;
+  const cases = dashboardData?.cases;
+  const recentDocuments = dashboardData?.allDocuments;
+
+  const isLoading = dashboardLoading || sitesLoading;
   
   // Always exclude archived cases from metrics
   const activeCases = cases?.filter(c => !c.isArchived) || [];
@@ -1978,7 +1968,7 @@ function EmploymentLawDashboardView() {
     return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
   }, [selectedSiteId, selectedCompany]);
 
-  if (summaryLoading || sitesLoading) {
+  if (dashboardLoading || sitesLoading) {
     return (
       <div className="theme-el">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
@@ -2068,14 +2058,14 @@ function EmploymentLawDashboardView() {
       <div className="space-y-8 p-8 dash-animate">
         {/* Metrics Grid - 5 columns like other module dashboards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-          <ELComplianceScoreCard score={complianceScore} loading={summaryLoading} />
+          <ELComplianceScoreCard score={complianceScore} loading={dashboardLoading} />
           <ELMetricCard
             title="Total Documents"
             value={summary?.totalDocuments || 0}
             description="In this module"
             icon={FileText}
             testId="card-el-total-documents"
-            loading={summaryLoading}
+            loading={dashboardLoading}
           />
           <ELMetricCard
             title="Compliant"
@@ -2084,7 +2074,7 @@ function EmploymentLawDashboardView() {
             icon={CheckCircle}
             variant="success"
             testId="card-el-compliant"
-            loading={summaryLoading}
+            loading={dashboardLoading}
           />
           <ELMetricCard
             title="Active Cases"
@@ -2093,7 +2083,7 @@ function EmploymentLawDashboardView() {
             icon={Briefcase}
             variant="warning"
             testId="card-el-active-cases"
-            loading={casesLoading}
+            loading={dashboardLoading}
           />
           <ELMetricCard
             title="Urgent Deadlines"
@@ -2102,7 +2092,7 @@ function EmploymentLawDashboardView() {
             icon={AlertTriangle}
             variant="danger"
             testId="card-el-urgent"
-            loading={casesLoading}
+            loading={dashboardLoading}
           />
         </div>
 
@@ -2122,7 +2112,7 @@ function EmploymentLawDashboardView() {
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{recentDocumentsLoading ? "–" : renewalMetrics.overdue}</p>
+                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{dashboardLoading ? "–" : renewalMetrics.overdue}</p>
                   <p className="text-sm text-muted-foreground">Overdue</p>
                 </div>
               </div>
@@ -2131,7 +2121,7 @@ function EmploymentLawDashboardView() {
                   <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{recentDocumentsLoading ? "–" : renewalMetrics.due30Days}</p>
+                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{dashboardLoading ? "–" : renewalMetrics.due30Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 30 Days</p>
                 </div>
               </div>
@@ -2140,7 +2130,7 @@ function EmploymentLawDashboardView() {
                   <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{recentDocumentsLoading ? "–" : renewalMetrics.due60Days}</p>
+                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{dashboardLoading ? "–" : renewalMetrics.due60Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 60 Days</p>
                 </div>
               </div>

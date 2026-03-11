@@ -915,12 +915,40 @@ export async function registerRoutes(
         .slice(0, 5);
       
       const recentActivity = auditLogs.slice(0, 10);
-      
+
+      // For employment_law, include cases and all documents for client-side metrics
+      let elCases: any[] | undefined;
+      let elAllDocuments: any[] | undefined;
+      if (module === "employment_law") {
+        const caseFilters: { siteId?: string; entityId?: string; includeArchived?: boolean } = {};
+        if (user.role === "client" && user.companyId) {
+          caseFilters.entityId = user.companyId;
+        } else {
+          const requestedEntityId = req.query.entityId as string | undefined;
+          if (requestedEntityId) caseFilters.entityId = requestedEntityId;
+        }
+        if (requestedSiteId && requestedSiteId !== "all") {
+          caseFilters.siteId = requestedSiteId;
+        }
+        const rawCases = await storage.getCases(caseFilters);
+        elCases = rawCases.filter(c => {
+          if (!c.isConfidential) return true;
+          if (user.role === "admin") return true;
+          if (user.role === "consultant") return true;
+          if (c.createdBy === user.id) return true;
+          if (c.assignedConsultant === user.id) return true;
+          if (c.restrictedToUsers && c.restrictedToUsers.includes(user.id)) return true;
+          return false;
+        });
+        elAllDocuments = documents;
+      }
+
       res.json({
         summary,
         recentDocuments,
         upcomingReviews,
         recentActivity,
+        ...(module === "employment_law" ? { cases: elCases, allDocuments: elAllDocuments } : {}),
       });
     } catch (error) {
       console.error("Module dashboard error:", error);

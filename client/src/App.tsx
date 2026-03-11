@@ -350,11 +350,9 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
     p(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
 
-    // Employment law dashboard – keys include siteId=null, selectedCompanyId=null
-    p(["/api/modules/employment_law/summary", null, null], "/api/modules/employment_law/summary");
+    // Employment law dashboard – single combined endpoint
+    p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
     p(["/api/cases", null, null], "/api/cases");
-    p(["/api/cases", null, null, false], "/api/cases");
-    p(["/api/documents/module", "employment_law", null, null], "/api/documents/module/employment_law");
 
     // Toolkit dashboard + browse – stats key includes activeCompany=null
     p(["/api/toolkit/stats", null], "/api/toolkit/stats");
