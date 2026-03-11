@@ -2001,7 +2001,6 @@ function EmploymentLawDashboardView() {
       </div>
     );
   }
-  if (isLoading) return null;
 
   const complianceScore = summary?.complianceScore || 0;
   
