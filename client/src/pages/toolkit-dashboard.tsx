@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookMarked, DownloadCloud, TrendingUp, Building2, Download, FolderOpen } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,32 +36,64 @@ interface DownloadStats {
   }[];
 }
 
-async function redownloadTemplate(templateId: string, fileUrl: string, fileName: string) {
-  try {
-    await fetch("/api/toolkit/download", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ templateId }),
-    });
-    const response = await fetch(fileUrl, { credentials: "include" });
-    if (!response.ok) throw new Error("Download failed");
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch {
-    window.open(fileUrl, "_blank");
-  }
+function TickerNumber({ value, className }: { value: number; className?: string }) {
+  const [displayed, setDisplayed] = useState(value);
+  const [animating, setAnimating] = useState(false);
+  const prevRef = useRef(value);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = value;
+    if (from === to) return;
+
+    prevRef.current = to;
+    setAnimating(true);
+
+    const diff = to - from;
+    const duration = Math.min(600, Math.abs(diff) * 60);
+    const startTime = performance.now();
+
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(from + diff * eased);
+      setDisplayed(current);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        setDisplayed(to);
+        setAnimating(false);
+      }
+    };
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+
+  return (
+    <span
+      className={className}
+      style={{
+        display: "inline-block",
+        transition: "color 0.2s",
+        color: animating ? "var(--module-accent, currentColor)" : undefined,
+      }}
+      data-testid="ticker-number"
+    >
+      {displayed}
+    </span>
+  );
 }
 
 export default function ToolkitDashboard() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -71,14 +103,12 @@ export default function ToolkitDashboard() {
     enabled: isPrivilegedUser,
   });
 
-  // Filter sites by selected company
   const filteredSites = useMemo(() => {
     if (!sites) return [];
     if (!selectedCompany || selectedCompany === "all") return sites;
     return sites.filter(s => s.companyName === selectedCompany);
   }, [sites, selectedCompany]);
 
-  // Determine site IDs for query
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   const companySiteIds = useMemo(() => {
     if (!sites || !selectedCompany || selectedCompany === "all") return null;
@@ -87,7 +117,6 @@ export default function ToolkitDashboard() {
   }, [sites, selectedCompany, siteId]);
   const companySiteIdsKey = companySiteIds?.join(",") || null;
 
-  // Build query params
   const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     if (siteId) params.set("siteId", siteId);
@@ -95,8 +124,10 @@ export default function ToolkitDashboard() {
     return params.toString();
   }, [siteId, companySiteIds]);
 
+  const statsQueryKey = ["/api/toolkit/stats", siteId, companySiteIdsKey];
+
   const { data: stats, isLoading } = useQuery<DownloadStats>({
-    queryKey: ["/api/toolkit/stats", siteId, companySiteIdsKey],
+    queryKey: statsQueryKey,
     queryFn: async () => {
       const url = queryParams ? `/api/toolkit/stats?${queryParams}` : "/api/toolkit/stats";
       const res = await fetch(url, { credentials: "include" });
@@ -105,7 +136,31 @@ export default function ToolkitDashboard() {
     },
   });
 
-  // Determine context label
+  async function handleRedownload(templateId: string, fileUrl: string, fileName: string) {
+    try {
+      await fetch("/api/toolkit/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ templateId }),
+      });
+      queryClient.invalidateQueries({ queryKey: statsQueryKey });
+      const response = await fetch(fileUrl, { credentials: "include" });
+      if (!response.ok) throw new Error("Download failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(fileUrl, "_blank");
+    }
+  }
+
   const contextName = siteId
     ? sites?.find(s => s.id === siteId)?.name
     : selectedCompany && selectedCompany !== "all"
@@ -142,7 +197,6 @@ export default function ToolkitDashboard() {
 
   return (
     <div className="theme-toolkit">
-      {/* Module Header */}
       <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -159,7 +213,6 @@ export default function ToolkitDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Company / Site filter — admin and consultant only */}
             {isPrivilegedUser && sites && sites.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -190,7 +243,6 @@ export default function ToolkitDashboard() {
       </div>
 
       <div className="p-8 space-y-6">
-        {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card data-testid="card-total-downloads">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -199,7 +251,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-total-downloads">
-                {stats?.totalDownloads ?? 0}
+                <TickerNumber value={stats?.totalDownloads ?? 0} />
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {contextName ? `For ${contextName}` : "All time, all companies"}
@@ -214,14 +266,13 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-downloads-30days">
-                {stats?.downloadsLast30Days ?? 0}
+                <TickerNumber value={stats?.downloadsLast30Days ?? 0} />
               </div>
               <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recently Downloaded */}
         <Card>
           <CardHeader>
             <CardTitle>Recently Downloaded</CardTitle>
@@ -269,7 +320,7 @@ export default function ToolkitDashboard() {
                       {item.fileUrl && item.fileName && (
                         <button
                           type="button"
-                          onClick={() => redownloadTemplate(item.templateId, item.fileUrl!, item.fileName!)}
+                          onClick={() => handleRedownload(item.templateId, item.fileUrl!, item.fileName!)}
                           className="flex h-8 w-8 items-center justify-center rounded-md border bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           title="Re-download"
                           data-testid={`button-redownload-${item.id}`}
