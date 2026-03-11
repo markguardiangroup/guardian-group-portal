@@ -273,7 +273,7 @@ export interface IStorage {
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
-  getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
+  getToolkitStats(filter?: { siteId?: string | null; siteIds?: string[] | null }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1903,6 +1903,9 @@ export class MemStorage implements IStorage {
         id: toolkitDownloadsTable.id,
         templateName: documentTemplatesTable.name,
         templateId: toolkitDownloadsTable.templateId,
+        folderName: toolkitFoldersTable.name,
+        fileUrl: documentTemplatesTable.fileUrl,
+        fileName: documentTemplatesTable.fileName,
         downloadedAt: toolkitDownloadsTable.downloadedAt,
         downloadedBy: toolkitDownloadsTable.userName,
         companyName: toolkitDownloadsTable.companyName,
@@ -1910,6 +1913,7 @@ export class MemStorage implements IStorage {
       })
       .from(toolkitDownloadsTable)
       .leftJoin(documentTemplatesTable, eq(documentTemplatesTable.id, toolkitDownloadsTable.templateId))
+      .leftJoin(toolkitFoldersTable, eq(toolkitFoldersTable.id, documentTemplatesTable.toolkitFolderId))
       .orderBy(desc(toolkitDownloadsTable.downloadedAt))
       .limit(10);
 
@@ -1924,6 +1928,9 @@ export class MemStorage implements IStorage {
         id: r.id,
         templateName: r.templateName ?? 'Unknown',
         templateId: r.templateId,
+        folderName: r.folderName ?? null,
+        fileUrl: r.fileUrl ?? null,
+        fileName: r.fileName ?? null,
         downloadedAt: r.downloadedAt?.toISOString() ?? new Date().toISOString(),
         downloadedBy: r.downloadedBy,
         companyName: r.companyName ?? null,
