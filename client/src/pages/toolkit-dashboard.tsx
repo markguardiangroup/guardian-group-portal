@@ -101,6 +101,15 @@ export default function ToolkitDashboard() {
     },
   });
 
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  useEffect(() => {
+    if (!isLoading) { setShowSkeleton(false); return; }
+    const t = setTimeout(() => setShowSkeleton(true), 200);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
+  const contextName = activeCompany ?? null;
+
   async function handleRedownload(templateId: string, fileUrl: string, fileName: string) {
     try {
       await fetch("/api/toolkit/download", {
@@ -126,9 +135,7 @@ export default function ToolkitDashboard() {
     }
   }
 
-  const contextName = activeCompany ?? null;
-
-  if (isLoading) {
+  if (showSkeleton) {
     return (
       <div className="space-y-6">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
@@ -155,6 +162,7 @@ export default function ToolkitDashboard() {
       </div>
     );
   }
+  if (isLoading) return null;
 
   return (
     <div className="theme-toolkit">

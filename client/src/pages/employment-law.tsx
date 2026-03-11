@@ -137,6 +137,16 @@ function CaseTypeBadge({ type }: { type: string }) {
   );
 }
 
+function useDelayedSkeleton(loading: boolean, delay = 200): boolean {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!loading) { setShow(false); return; }
+    const t = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(t);
+  }, [loading, delay]);
+  return show;
+}
+
 // Cases list component (reused by cases tab)
 function CasesList() {
   const searchParams = useSearch();
@@ -289,7 +299,8 @@ function CasesList() {
     return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
   }).length;
 
-  if (isLoading || sitesLoading) {
+  const showSkeleton = useDelayedSkeleton(isLoading || sitesLoading);
+  if (showSkeleton) {
     return (
       <div className="theme-el">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
@@ -306,6 +317,7 @@ function CasesList() {
       </div>
     );
   }
+  if (isLoading || sitesLoading) return null;
 
   return (
     <div className="theme-el">
@@ -1964,7 +1976,8 @@ function EmploymentLawDashboardView() {
     return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
   }, [selectedSiteId, selectedCompany]);
 
-  if (isLoading) {
+  const showSkeleton = useDelayedSkeleton(isLoading);
+  if (showSkeleton) {
     return (
       <div className="theme-el">
         <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
@@ -1988,6 +2001,7 @@ function EmploymentLawDashboardView() {
       </div>
     );
   }
+  if (isLoading) return null;
 
   const complianceScore = summary?.complianceScore || 0;
   

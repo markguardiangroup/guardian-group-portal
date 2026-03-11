@@ -355,6 +355,10 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/cases", null, null], "/api/cases");
     p(["/api/cases", null, null, false], "/api/cases");
     p(["/api/documents/module", "employment_law", null, null], "/api/documents/module/employment_law");
+
+    // Toolkit dashboard + browse – stats key includes activeCompany=null
+    p(["/api/toolkit/stats", null], "/api/toolkit/stats");
+    p(["/api/toolkit"], "/api/toolkit");
   }, [userId]);
 
   return null;
