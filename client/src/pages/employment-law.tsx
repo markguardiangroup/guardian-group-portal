@@ -317,8 +317,6 @@ function CasesList() {
       </div>
     );
   }
-  if (isLoading || sitesLoading) return null;
-
   return (
     <div className="theme-el">
       {/* Module Header with tinted background */}
@@ -1718,6 +1716,7 @@ function ELMetricCard({
   icon: Icon,
   variant = "default",
   testId,
+  loading = false,
 }: {
   title: string;
   value: number | string;
@@ -1725,6 +1724,7 @@ function ELMetricCard({
   icon: React.ElementType;
   variant?: "default" | "success" | "warning" | "danger";
   testId?: string;
+  loading?: boolean;
 }) {
   const variantStyles = {
     default: "bg-primary/10 text-primary",
@@ -1744,7 +1744,7 @@ function ELMetricCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-semibold" data-testid={testId ? `${testId}-value` : undefined}>{value}</div>
+        <div className="text-3xl font-semibold" data-testid={testId ? `${testId}-value` : undefined}>{loading ? "–" : value}</div>
         <div className="mt-1 text-sm text-muted-foreground">{description}</div>
       </CardContent>
     </Card>
@@ -1752,7 +1752,7 @@ function ELMetricCard({
 }
 
 // Compliance Score Card for Employment Law
-function ELComplianceScoreCard({ score }: { score: number }) {
+function ELComplianceScoreCard({ score, loading = false }: { score: number; loading?: boolean }) {
   const getScoreColor = (s: number) => {
     if (s >= 90) return "text-emerald-600 dark:text-emerald-400";
     if (s >= 70) return "text-amber-600 dark:text-amber-400";
@@ -1774,15 +1774,15 @@ function ELComplianceScoreCard({ score }: { score: number }) {
       </CardHeader>
       <CardContent>
         <div className="flex items-end gap-3">
-          <span className={`text-5xl font-bold ${getScoreColor(score)}`} data-testid="text-el-compliance-score">
-            {score}%
+          <span className={`text-5xl font-bold ${loading ? "text-muted-foreground" : getScoreColor(score)}`} data-testid="text-el-compliance-score">
+            {loading ? "–" : `${score}%`}
           </span>
         </div>
         <div className="mt-4">
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div 
-              className={`h-full transition-all ${getScoreBg(score)}`}
-              style={{ width: `${score}%` }}
+              className={`h-full transition-all ${loading ? "bg-muted" : getScoreBg(score)}`}
+              style={{ width: loading ? "0%" : `${score}%` }}
             />
           </div>
         </div>
@@ -1877,7 +1877,7 @@ function EmploymentLawDashboardView() {
   });
   
   // Fetch recent documents for Employment Law
-  const { data: recentDocuments } = useQuery<Document[]>({
+  const { data: recentDocuments, isLoading: recentDocumentsLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", "employment_law", siteId, selectedCompanyId],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -1976,7 +1976,7 @@ function EmploymentLawDashboardView() {
     return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
   }, [selectedSiteId, selectedCompany]);
 
-  const showSkeleton = useDelayedSkeleton(isLoading);
+  const showSkeleton = useDelayedSkeleton(summaryLoading);
   if (showSkeleton) {
     return (
       <div className="theme-el">
@@ -2067,13 +2067,14 @@ function EmploymentLawDashboardView() {
       <div className="space-y-8 p-8 dash-animate">
         {/* Metrics Grid - 5 columns like other module dashboards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-          <ELComplianceScoreCard score={complianceScore} />
+          <ELComplianceScoreCard score={complianceScore} loading={summaryLoading} />
           <ELMetricCard
             title="Total Documents"
             value={summary?.totalDocuments || 0}
             description="In this module"
             icon={FileText}
             testId="card-el-total-documents"
+            loading={summaryLoading}
           />
           <ELMetricCard
             title="Compliant"
@@ -2082,6 +2083,7 @@ function EmploymentLawDashboardView() {
             icon={CheckCircle}
             variant="success"
             testId="card-el-compliant"
+            loading={summaryLoading}
           />
           <ELMetricCard
             title="Active Cases"
@@ -2090,6 +2092,7 @@ function EmploymentLawDashboardView() {
             icon={Briefcase}
             variant="warning"
             testId="card-el-active-cases"
+            loading={casesLoading}
           />
           <ELMetricCard
             title="Urgent Deadlines"
@@ -2098,6 +2101,7 @@ function EmploymentLawDashboardView() {
             icon={AlertTriangle}
             variant="danger"
             testId="card-el-urgent"
+            loading={casesLoading}
           />
         </div>
 
@@ -2117,7 +2121,7 @@ function EmploymentLawDashboardView() {
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{renewalMetrics.overdue}</p>
+                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{recentDocumentsLoading ? "–" : renewalMetrics.overdue}</p>
                   <p className="text-sm text-muted-foreground">Overdue</p>
                 </div>
               </div>
@@ -2126,7 +2130,7 @@ function EmploymentLawDashboardView() {
                   <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{renewalMetrics.due30Days}</p>
+                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{recentDocumentsLoading ? "–" : renewalMetrics.due30Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 30 Days</p>
                 </div>
               </div>
@@ -2135,7 +2139,7 @@ function EmploymentLawDashboardView() {
                   <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{renewalMetrics.due60Days}</p>
+                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{recentDocumentsLoading ? "–" : renewalMetrics.due60Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 60 Days</p>
                 </div>
               </div>

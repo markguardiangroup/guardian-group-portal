@@ -478,8 +478,9 @@ export default function CalendarPage() {
   });
 
   const events = useMemo(() => {
-    if (typeFilter === "all") return rawEvents;
-    return rawEvents.filter(e => e.type === typeFilter);
+    const safeRaw = Array.isArray(rawEvents) ? rawEvents : [];
+    if (typeFilter === "all") return safeRaw;
+    return safeRaw.filter(e => e.type === typeFilter);
   }, [rawEvents, typeFilter]);
 
   const stats = useMemo(() => ({
