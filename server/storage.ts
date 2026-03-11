@@ -89,7 +89,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc, desc, isNull, gt, count, sql } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -1882,7 +1882,7 @@ export class MemStorage implements IStorage {
       } else if (filter?.siteId) {
         conditions.push(eq(toolkitDownloadsTable.siteId, filter.siteId));
       } else if (filter?.siteIds && filter.siteIds.length > 0) {
-        conditions.push(sql`${toolkitDownloadsTable.siteId} = ANY(${filter.siteIds})`);
+        conditions.push(inArray(toolkitDownloadsTable.siteId, filter.siteIds));
       }
       if (extra) conditions.push(extra);
       return conditions.length > 0 ? and(...conditions) : undefined;

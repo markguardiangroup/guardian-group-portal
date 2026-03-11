@@ -74,6 +74,7 @@ export default function ToolkitDashboard() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isClient = user?.role === "client";
 
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
@@ -260,52 +261,53 @@ export default function ToolkitDashboard() {
           </CardHeader>
           <CardContent>
             {stats?.recentDownloads && stats.recentDownloads.length > 0 ? (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {stats.recentDownloads.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-4 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                    className="flex items-start justify-between gap-2 rounded-lg border p-2.5 hover:bg-muted/50 transition-colors"
                     data-testid={`row-recent-download-${item.id}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate" data-testid={`text-template-name-${item.templateId}`}>
+                      <p className="font-medium text-xs truncate" data-testid={`text-template-name-${item.templateId}`}>
                         {item.templateName}
                       </p>
                       {item.folderName && (
                         <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <FolderOpen className="h-3 w-3 shrink-0" />
-                          {item.folderName}
+                          <span className="truncate">{item.folderName}</span>
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {item.downloadedBy} · {format(new Date(item.downloadedAt), "d MMM yyyy, HH:mm")}
+                        {!isClient && <>{item.downloadedBy} · </>}
+                        {format(new Date(item.downloadedAt), "d MMM yyyy, HH:mm")}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex flex-col items-end gap-1">
-                        {item.companyName && (
-                          <Badge variant="outline" className="text-xs" data-testid={`badge-company-${item.id}`}>
-                            {item.companyName}
-                          </Badge>
-                        )}
-                        {item.siteName && (
-                          <Badge variant="secondary" className="text-xs" data-testid={`badge-site-${item.id}`}>
-                            {item.siteName}
-                          </Badge>
-                        )}
-                      </div>
-                      {item.fileUrl && item.fileName && (
-                        <button
-                          type="button"
-                          onClick={() => handleRedownload(item.templateId, item.fileUrl!, item.fileName!)}
-                          className="flex h-8 w-8 items-center justify-center rounded-md border bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                          title="Re-download"
-                          data-testid={`button-redownload-${item.id}`}
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </button>
+                      {!isClient && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.companyName && (
+                            <Badge variant="outline" className="text-xs py-0 h-4" data-testid={`badge-company-${item.id}`}>
+                              {item.companyName}
+                            </Badge>
+                          )}
+                          {item.siteName && (
+                            <Badge variant="secondary" className="text-xs py-0 h-4" data-testid={`badge-site-${item.id}`}>
+                              {item.siteName}
+                            </Badge>
+                          )}
+                        </div>
                       )}
                     </div>
+                    {item.fileUrl && item.fileName && (
+                      <button
+                        type="button"
+                        onClick={() => handleRedownload(item.templateId, item.fileUrl!, item.fileName!)}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Re-download"
+                        data-testid={`button-redownload-${item.id}`}
+                      >
+                        <Download className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
