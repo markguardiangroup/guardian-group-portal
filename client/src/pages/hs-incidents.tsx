@@ -391,7 +391,7 @@ function ReportIncidentDialog({
 function DocHistoryPanel({ docId }: { docId: string }) {
   const { data: logs = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/documents", docId, "audit"],
-    queryFn: () => fetch(`/api/documents/${docId}/audit`).then(r => r.json()),
+    queryFn: () => fetch(`/api/documents/${docId}/audit`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch audit"); return r.json(); }),
   });
 
   const actionLabel: Record<string, string> = {
@@ -503,17 +503,17 @@ function IncidentDetailView({ id }: { id: string }) {
 
   const { data: incident, isLoading } = useQuery<Incident>({
     queryKey: ["/api/incidents", id],
-    queryFn: () => fetch(`/api/incidents/${id}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/incidents/${id}`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch incident"); return r.json(); }),
   });
 
   const { data: milestones = [] } = useQuery<IncidentMilestone[]>({
     queryKey: ["/api/incidents", id, "milestones"],
-    queryFn: () => fetch(`/api/incidents/${id}/milestones`).then(r => r.json()),
+    queryFn: () => fetch(`/api/incidents/${id}/milestones`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch milestones"); return r.json(); }),
   });
 
   const { data: documents = [] } = useQuery<any[]>({
     queryKey: ["/api/incidents", id, "documents"],
-    queryFn: () => fetch(`/api/incidents/${id}/documents`).then(r => r.json()),
+    queryFn: () => fetch(`/api/incidents/${id}/documents`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch documents"); return r.json(); }),
   });
 
   useEffect(() => {
@@ -530,19 +530,19 @@ function IncidentDetailView({ id }: { id: string }) {
 
   const { data: incidentAuditLogs = [] } = useQuery<any[]>({
     queryKey: ["/api/incidents", id, "audit"],
-    queryFn: () => fetch(`/api/incidents/${id}/audit`).then(r => r.json()),
+    queryFn: () => fetch(`/api/incidents/${id}/audit`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch audit"); return r.json(); }),
     enabled: !!id,
   });
 
   const { data: site } = useQuery<any>({
     queryKey: ["/api/sites", incident?.siteId],
-    queryFn: () => fetch(`/api/sites/${incident?.siteId}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/sites/${incident?.siteId}`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch site"); return r.json(); }),
     enabled: !!incident?.siteId,
   });
 
   const { data: company } = useQuery<any>({
     queryKey: ["/api/companies", incident?.entityId],
-    queryFn: () => fetch(`/api/companies/${incident?.entityId}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/companies/${incident?.entityId}`, { credentials: "include" }).then(r => { if (!r.ok) throw new Error("Failed to fetch company"); return r.json(); }),
     enabled: !!incident?.entityId,
   });
 
@@ -1873,10 +1873,10 @@ function IncidentsListView() {
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
-  const { data: incidents = [], isLoading } = useQuery<Incident[]>({
+  const { data: incidentsRaw, isLoading } = useQuery<Incident[]>({
     queryKey: ["/api/incidents"],
-    queryFn: () => fetch("/api/incidents").then(r => r.json()),
   });
+  const incidents = Array.isArray(incidentsRaw) ? incidentsRaw : [];
 
   const { data: sites = [] } = useQuery<any[]>({
     queryKey: ["/api/sites"],

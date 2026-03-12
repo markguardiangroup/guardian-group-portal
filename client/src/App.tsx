@@ -337,6 +337,7 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/companies"], "/api/companies");
     p(["/api/training-bookings"], "/api/training-bookings");
     p(["/api/support-requests/counts"], "/api/support-requests/counts");
+    p(["/api/incidents"], "/api/incidents");
 
     // Main dashboard – keys include siteId=null, companySiteIdsKey=null, isClientUser
     p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
