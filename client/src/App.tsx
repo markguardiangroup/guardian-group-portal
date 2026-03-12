@@ -325,7 +325,7 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 
     const f = async (url: string) => {
       const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Prefetch failed: ${res.status}`);
       return res.json();
     };
 
