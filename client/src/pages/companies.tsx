@@ -440,7 +440,10 @@ export default function Companies() {
       }
       try {
         const url = new URL(websiteValue);
-        if (!url.hostname.includes(".")) throw new Error("Invalid hostname");
+        const hostParts = url.hostname.split(".");
+        const tld = hostParts[hostParts.length - 1];
+        const validTld = /^[a-zA-Z]{2,6}$/.test(tld);
+        if (!validTld && hostParts.length < 3) throw new Error("Invalid hostname");
         submittedData.website = websiteValue;
         setFormData(prev => ({ ...prev, website: websiteValue }));
       } catch {
@@ -697,7 +700,10 @@ export default function Companies() {
                   if (!/^https?:\/\//i.test(normalised)) normalised = "https://" + normalised;
                   try {
                     const url = new URL(normalised);
-                    if (!url.hostname.includes(".")) throw new Error();
+                    const hostParts = url.hostname.split(".");
+                    const tld = hostParts[hostParts.length - 1];
+                    const validTld = /^[a-zA-Z]{2,6}$/.test(tld);
+                    if (!validTld && hostParts.length < 3) throw new Error();
                     setWebsiteError(null);
                   } catch {
                     setWebsiteError("Please enter a valid website URL (e.g. www.example.com)");
