@@ -231,8 +231,8 @@ export default function SetPassword() {
               </CardTitle>
               <CardDescription>
                 {validation.purpose === "invite" 
-                  ? "Your account is now active. You can log in with your new password."
-                  : "Your password has been reset. You can now log in."}
+                  ? `Your account is now active. You can log in using your email (${validation.email}) or username (${validation.username}).`
+                  : `Your password has been reset. You can log in using your email (${validation.email}) or username (${validation.username}).`}
               </CardDescription>
             </CardHeader>
             <CardFooter className="justify-center">
