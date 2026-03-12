@@ -1014,21 +1014,19 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                             {u.status === "invite_required" && (
                               <DropdownMenuItem 
-                                onClick={() => resendInviteMutation.mutate(u.id)}
-                                disabled={resendInviteMutation.isPending}
+                                onClick={() => setInviteConfirmUser(u)}
                                 data-testid={`button-send-invite-${u.id}`}
                               >
-                                <Mail className={`h-4 w-4 mr-2 ${resendInviteMutation.isPending ? 'animate-spin' : ''}`} />
+                                <Mail className="h-4 w-4 mr-2" />
                                 Send Invitation
                               </DropdownMenuItem>
                             )}
                             {u.status === "invited" && (
                               <DropdownMenuItem 
-                                onClick={() => resendInviteMutation.mutate(u.id)}
-                                disabled={resendInviteMutation.isPending}
+                                onClick={() => setInviteConfirmUser(u)}
                                 data-testid={`button-resend-invite-${u.id}`}
                               >
-                                <RefreshCw className={`h-4 w-4 mr-2 ${resendInviteMutation.isPending ? 'animate-spin' : ''}`} />
+                                <RefreshCw className="h-4 w-4 mr-2" />
                                 Resend Invitation
                               </DropdownMenuItem>
                             )}
