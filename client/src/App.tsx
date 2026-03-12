@@ -351,6 +351,11 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
     p(["/api/documents/module", "employment_law"], "/api/documents/module/employment_law");
 
+    // Document hierarchies (folder view) – prefetch the default "all sites" view
+    p(["/api/sites/all/modules/health_safety/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/health_safety/documents-hierarchy?includeArchived=true");
+    p(["/api/sites/all/modules/human_resources/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/human_resources/documents-hierarchy?includeArchived=true");
+    p(["/api/sites/all/modules/employment_law/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/employment_law/documents-hierarchy?includeArchived=true");
+
     // Employment law dashboard – single combined endpoint
     p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
     p(["/api/cases", null, null], "/api/cases");
