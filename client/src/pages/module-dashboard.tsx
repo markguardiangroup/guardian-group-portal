@@ -282,30 +282,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return queryString ? `${basePath}/documents?${queryString}` : `${basePath}/documents`;
   }, [basePath, selectedSiteId, selectedCompany]);
 
-  if (isLoading || isAuthLoading || sitesLoading) {
-    return (
-      <div className="space-y-8 p-8">
-        <div>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="mt-2 h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   const summary = data?.summary || {
     totalDocuments: 0,
     compliantDocuments: 0,
@@ -376,38 +352,52 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       <div className="space-y-8 p-8 dash-animate">
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <ComplianceScoreCard score={summary.complianceScore} moduleName={config.shortName} />
-        <MetricCard
-          title="Total Documents"
-          value={summary.totalDocuments}
-          description="In this module"
-          icon={FileText}
-          testId="card-module-total-documents"
-        />
-        <MetricCard
-          title="Compliant"
-          value={summary.compliantDocuments}
-          description="Up to date"
-          icon={CheckCircle}
-          variant="success"
-          testId="card-module-compliant"
-        />
-        <MetricCard
-          title="Review Required"
-          value={summary.reviewRequired}
-          description="Pending review"
-          icon={Clock}
-          variant="warning"
-          testId="card-module-review"
-        />
-        <MetricCard
-          title="Overdue"
-          value={summary.overdueDocuments}
-          description="Action needed"
-          icon={AlertTriangle}
-          variant="danger"
-          testId="card-module-overdue"
-        />
+        {isLoading ? (
+          [1, 2, 3, 4, 5].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="mt-2 h-3 w-32" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <ComplianceScoreCard score={summary.complianceScore} moduleName={config.shortName} />
+            <MetricCard
+              title="Total Documents"
+              value={summary.totalDocuments}
+              description="In this module"
+              icon={FileText}
+              testId="card-module-total-documents"
+            />
+            <MetricCard
+              title="Compliant"
+              value={summary.compliantDocuments}
+              description="Up to date"
+              icon={CheckCircle}
+              variant="success"
+              testId="card-module-compliant"
+            />
+            <MetricCard
+              title="Review Required"
+              value={summary.reviewRequired}
+              description="Pending review"
+              icon={Clock}
+              variant="warning"
+              testId="card-module-review"
+            />
+            <MetricCard
+              title="Overdue"
+              value={summary.overdueDocuments}
+              description="Action needed"
+              icon={AlertTriangle}
+              variant="danger"
+              testId="card-module-overdue"
+            />
+          </>
+        )}
       </div>
 
       {/* Renewal Compliance Section */}
@@ -519,7 +509,20 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </Button>
           </CardHeader>
           <CardContent>
-            {data?.recentDocuments && data.recentDocuments.length > 0 ? (
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-md border p-4">
+                    <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : data?.recentDocuments && data.recentDocuments.length > 0 ? (
               <div className="space-y-3">
                 {data.recentDocuments.map((doc) => (
                   <div
@@ -572,7 +575,20 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             <CardTitle className="text-lg">Upcoming Reviews</CardTitle>
           </CardHeader>
           <CardContent>
-            {data?.upcomingReviews && data.upcomingReviews.length > 0 ? (
+            {isLoading ? (
+              <div className="divide-y">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-3 py-3">
+                    <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <Skeleton className="h-3.5 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-3 w-8 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            ) : data?.upcomingReviews && data.upcomingReviews.length > 0 ? (
               <div className="divide-y">
                 {data.upcomingReviews.slice(0, 5).map((doc) => {
                   const reviewDate = doc.reviewDate ? new Date(doc.reviewDate) : null;
