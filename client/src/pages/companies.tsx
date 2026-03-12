@@ -37,6 +37,7 @@ import {
   MapPinned,
   Trash2,
   AlertTriangle,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -147,6 +148,12 @@ function CompanyCard({
                   {company.contactEmail}
                 </span>
               )}
+              {company.employeeRange && (
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" />
+                  {company.employeeRange} employees
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -163,10 +170,13 @@ export default function Companies() {
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanyWithSiteCount | null>(null);
+  const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
+
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
     website: "",
+    employeeRange: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -288,6 +298,7 @@ export default function Companies() {
       name: "",
       companyNumber: "",
       website: "",
+      employeeRange: "",
       addressLine1: "",
       addressLine2: "",
       city: "",
@@ -302,6 +313,7 @@ export default function Companies() {
       name: company.name,
       companyNumber: company.companyNumber || "",
       website: company.website || "",
+      employeeRange: company.employeeRange || "",
       addressLine1: company.addressLine1 || "",
       addressLine2: company.addressLine2 || "",
       city: company.city || "",
@@ -669,6 +681,22 @@ export default function Companies() {
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                 data-testid="input-company-website"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="company-employee-range">Number of Employees</Label>
+              <Select
+                value={formData.employeeRange}
+                onValueChange={(v) => setFormData({ ...formData, employeeRange: v })}
+              >
+                <SelectTrigger id="company-employee-range" data-testid="select-company-employee-range">
+                  <SelectValue placeholder="Select a range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYEE_RANGES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="border-t pt-4">

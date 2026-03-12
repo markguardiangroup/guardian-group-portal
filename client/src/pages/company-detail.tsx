@@ -266,10 +266,13 @@ export default function CompanyDetail() {
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
+  const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
+
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
     website: "",
+    employeeRange: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -482,6 +485,7 @@ export default function CompanyDetail() {
         name: company.name || "",
         companyNumber: company.companyNumber || "",
         website: company.website || "",
+        employeeRange: company.employeeRange || "",
         addressLine1: company.addressLine1 || "",
         addressLine2: company.addressLine2 || "",
         city: company.city || "",
@@ -722,6 +726,12 @@ export default function CompanyDetail() {
                 </a>
               </div>
             )}
+            {company.employeeRange && (
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
+              </div>
+            )}
             {(company.addressLine1 || company.city || company.postalCode) && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Address</p>
@@ -895,6 +905,22 @@ export default function CompanyDetail() {
                 placeholder="https://www.example.com"
                 data-testid="input-edit-company-website"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-employee-range">Number of Employees</Label>
+              <Select
+                value={editForm.employeeRange}
+                onValueChange={(v) => setEditForm({ ...editForm, employeeRange: v })}
+              >
+                <SelectTrigger id="edit-employee-range" data-testid="select-edit-employee-range">
+                  <SelectValue placeholder="Select a range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYEE_RANGES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-search-tag">Search Tag</Label>
