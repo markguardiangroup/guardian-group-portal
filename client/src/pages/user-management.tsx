@@ -949,7 +949,10 @@ export default function UserManagement() {
                         u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
                         u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" : ""
                       }
-                      onClick={u.status === "site_required" ? () => openEditDialog(u) : undefined}
+                      onClick={u.status === "site_required" ? () => {
+                        setUserNeedingSiteAssignment(u);
+                        setShowSiteAssignmentMessage(true);
+                      } : undefined}
                       data-testid={u.status === "site_required" ? `badge-status-clickable-${u.id}` : `badge-status-${u.id}`}
                     >
                       {u.status === "active" ? (
