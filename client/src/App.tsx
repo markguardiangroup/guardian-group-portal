@@ -364,6 +364,17 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/training-folders"], "/api/training-folders");
     p(["/api/training-courses"], "/api/training-courses");
 
+    // Support dashboard – default filter state is "all"/"all"
+    p(["/api/support-requests", "all", "all"], "/api/support-requests");
+
+    // Reports dashboard – default filter state is "all"/"all"
+    p(["/api/reports", { companyId: "all", siteId: "all" }], "/api/reports");
+
+    // Admin reports – users list
+    if (!isClientUser) {
+      p(["/api/users"], "/api/users");
+    }
+
     // Toolkit dashboard + browse – stats key includes activeCompany=null
     p(["/api/toolkit/stats", null], "/api/toolkit/stats");
     p(["/api/toolkit"], "/api/toolkit");
