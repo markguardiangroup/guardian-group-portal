@@ -38,6 +38,7 @@ import {
   Trash2,
   AlertTriangle,
   Users,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -184,7 +185,16 @@ export default function Companies() {
     postalCode: "",
     country: "",
   });
+  const [originalCompanyName, setOriginalCompanyName] = useState("");
   const [websiteError, setWebsiteError] = useState<string | null>(null);
+
+  const toTitleCase = (str: string): string => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
@@ -665,13 +675,42 @@ export default function Companies() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="company-name">Company Name <span className="text-destructive">*</span></Label>
-              <Input
-                id="company-name"
-                placeholder="e.g., Acme Manufacturing Ltd"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                data-testid="input-company-name"
-              />
+              <div className="flex gap-2 items-center">
+                <Input
+                  id="company-name"
+                  placeholder="e.g., Acme Manufacturing Ltd"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onBlur={(e) => {
+                    const value = e.target.value.trim();
+                    if (value && value !== originalCompanyName) {
+                      setOriginalCompanyName(value);
+                      const titleCased = toTitleCase(value);
+                      if (titleCased !== value) {
+                        setFormData({ ...formData, name: titleCased });
+                      }
+                    }
+                  }}
+                  data-testid="input-company-name"
+                  className="flex-1"
+                />
+                {formData.name && originalCompanyName && toTitleCase(originalCompanyName) !== originalCompanyName && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFormData({ ...formData, name: originalCompanyName });
+                      setOriginalCompanyName("");
+                    }}
+                    className="h-9 w-9 p-0"
+                    title="Undo capitalization"
+                    data-testid="button-undo-company-name"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-number">Company Number</Label>
