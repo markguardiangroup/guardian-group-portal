@@ -184,6 +184,7 @@ export default function Companies() {
     postalCode: "",
     country: "",
   });
+  const [websiteError, setWebsiteError] = useState<string | null>(null);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
@@ -306,6 +307,7 @@ export default function Companies() {
       postalCode: "",
       country: "",
     });
+    setWebsiteError(null);
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -684,9 +686,30 @@ export default function Companies() {
                 id="company-website"
                 placeholder="e.g., https://www.example.com"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, website: e.target.value });
+                  if (websiteError) setWebsiteError(null);
+                }}
+                onBlur={() => {
+                  const value = formData.website.trim();
+                  if (!value) { setWebsiteError(null); return; }
+                  let normalised = value;
+                  if (!/^https?:\/\//i.test(normalised)) normalised = "https://" + normalised;
+                  try {
+                    const url = new URL(normalised);
+                    if (!url.hostname.includes(".")) throw new Error();
+                    setFormData(prev => ({ ...prev, website: normalised }));
+                    setWebsiteError(null);
+                  } catch {
+                    setWebsiteError("Please enter a valid website URL (e.g. https://www.example.com)");
+                  }
+                }}
+                className={websiteError ? "border-destructive focus-visible:ring-destructive" : ""}
                 data-testid="input-company-website"
               />
+              {websiteError && (
+                <p className="text-sm text-destructive">{websiteError}</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-employee-range">Number of Employees</Label>
