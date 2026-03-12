@@ -332,18 +332,30 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     const p = (key: unknown[], url: string) =>
       queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
 
-    // Navigation data – used across sidebar/header on every page
-    p(["/api/sites"], "/api/sites");
-    p(["/api/companies"], "/api/companies");
-    p(["/api/support-requests/counts"], "/api/support-requests/counts");
+    const run = async () => {
+      // Navigation data – used across sidebar/header on every page
+      p(["/api/sites"], "/api/sites");
+      p(["/api/companies"], "/api/companies");
+      p(["/api/support-requests/counts"], "/api/support-requests/counts");
 
-    // Main dashboard
-    p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
+      // Main dashboard
+      p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
 
-    // Module dashboards
-    p(["/api/dashboard", "health_safety", null, null], "/api/dashboard/health_safety");
-    p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
-    p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
+      // Fetch module access first — skip prefetching dashboards for locked modules
+      let moduleAccess: Record<string, string> = {};
+      try {
+        moduleAccess = await f("/api/user/module-access");
+        queryClient.setQueryData(["/api/user/module-access"], moduleAccess);
+      } catch { /* fall through — all modules will be skipped safely */ }
+
+      const unlocked = (module: string) => moduleAccess[module] && moduleAccess[module] !== "locked";
+
+      if (unlocked("health_safety")) p(["/api/dashboard", "health_safety", null, null], "/api/dashboard/health_safety");
+      if (unlocked("human_resources")) p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
+      if (unlocked("employment_law")) p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
+    };
+
+    run();
 
     // All other pages (documents, cases, incidents, training, support, toolkit, reports)
     // load their own data on first visit and show skeleton states while fetching.
