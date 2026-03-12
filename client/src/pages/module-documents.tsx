@@ -515,22 +515,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return docType?.label || type.replace(/_/g, " ");
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`${themeClass}`}>
       {/* Module Header with tinted background */}
@@ -980,7 +964,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {filteredDocuments && filteredDocuments.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-3 p-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
