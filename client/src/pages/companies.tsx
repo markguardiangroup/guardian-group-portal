@@ -684,7 +684,7 @@ export default function Companies() {
               <Label htmlFor="company-website">Website</Label>
               <Input
                 id="company-website"
-                placeholder="e.g., https://www.example.com"
+                placeholder="e.g., www.example.com"
                 value={formData.website}
                 onChange={(e) => {
                   setFormData({ ...formData, website: e.target.value });
@@ -698,10 +698,9 @@ export default function Companies() {
                   try {
                     const url = new URL(normalised);
                     if (!url.hostname.includes(".")) throw new Error();
-                    setFormData(prev => ({ ...prev, website: normalised }));
                     setWebsiteError(null);
                   } catch {
-                    setWebsiteError("Please enter a valid website URL (e.g. https://www.example.com)");
+                    setWebsiteError("Please enter a valid website URL (e.g. www.example.com)");
                   }
                 }}
                 className={websiteError ? "border-destructive focus-visible:ring-destructive" : ""}
