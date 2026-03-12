@@ -1606,9 +1606,9 @@ export default function UserManagement() {
                     <Input
                       id="new-username"
                       value={newUser.username}
-                      onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                      readOnly
                       placeholder="firstname.surname"
-                      className="bg-muted/30"
+                      className="bg-muted"
                       data-testid="input-new-username"
                     />
                   </div>
