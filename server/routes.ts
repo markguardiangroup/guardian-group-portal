@@ -4485,7 +4485,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -4508,6 +4508,7 @@ export async function registerRoutes(
         county: county || null,
         postalCode: postalCode || null,
         country: country || null,
+        employeeRange: employeeRange || null,
       });
       
       await storage.createSite({
@@ -4544,7 +4545,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can update companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -4564,6 +4565,7 @@ export async function registerRoutes(
       if (postalCode !== undefined) updates.postalCode = postalCode || null;
       if (country !== undefined) updates.country = country || null;
       if (searchTag !== undefined) updates.searchTag = searchTag || null;
+      if (employeeRange !== undefined) updates.employeeRange = employeeRange || null;
       
       const company = await storage.updateCompany(req.params.id, updates);
       
