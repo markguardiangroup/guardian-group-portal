@@ -257,7 +257,7 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; contactEmail?: string | null; contactName?: string | null }[] }>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
     queryKey: ["/api/companies"],
     enabled: isAdmin || isConsultant,
   });
@@ -266,12 +266,14 @@ export default function UserManagement() {
     ? companies 
     : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
 
-  // Helper to check if a user is the primary contact for their company
+  // Helper to check if a user is a primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {
     if (u.role !== "client" || !u.companyId) return false;
     const company = companies.find(c => c.id === u.companyId);
-    if (!company?.contactEmail) return false;
-    return company.contactEmail.toLowerCase() === u.email.toLowerCase();
+    if (!company) return false;
+    if (company.contactUserId && company.contactUserId === u.id) return true;
+    if (company.contactEmail && u.email && company.contactEmail.toLowerCase() === u.email.toLowerCase()) return true;
+    return false;
   };
 
   const usersWithSiteInfo = allUsers.map((u) => {
