@@ -782,6 +782,12 @@ export default function Companies() {
                     id="address-line1"
                     value={formData.addressLine1}
                     onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
+                    onBlur={(e) => {
+                      const value = e.target.value.trim();
+                      if (value) {
+                        setFormData({ ...formData, addressLine1: toTitleCase(value) });
+                      }
+                    }}
                     placeholder="Street address"
                     data-testid="input-company-address-line1"
                   />
@@ -792,6 +798,12 @@ export default function Companies() {
                     id="address-line2"
                     value={formData.addressLine2}
                     onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
+                    onBlur={(e) => {
+                      const value = e.target.value.trim();
+                      if (value) {
+                        setFormData({ ...formData, addressLine2: toTitleCase(value) });
+                      }
+                    }}
                     placeholder="Suite, floor, building (optional)"
                     data-testid="input-company-address-line2"
                   />
@@ -803,6 +815,12 @@ export default function Companies() {
                       id="city"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        if (value) {
+                          setFormData({ ...formData, city: toTitleCase(value) });
+                        }
+                      }}
                       placeholder="City"
                       data-testid="input-company-city"
                     />
@@ -843,11 +861,17 @@ export default function Companies() {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="postal-code">Postal Code <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="postal-code">Post Code <span className="text-destructive">*</span></Label>
                     <Input
                       id="postal-code"
                       value={formData.postalCode}
-                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, postalCode: e.target.value.toUpperCase() })}
+                      onBlur={(e) => {
+                        const value = e.target.value.trim().toUpperCase();
+                        if (value) {
+                          setFormData({ ...formData, postalCode: value });
+                        }
+                      }}
                       placeholder={formData.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-company-postal-code"
                     />
