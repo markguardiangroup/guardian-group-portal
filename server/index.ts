@@ -84,7 +84,7 @@ app.use(
     cookie: {
       secure: isProduction, // HTTPS only in production
       httpOnly: true, // Prevent XSS attacks
-      sameSite: "strict", // Stricter CSRF protection
+      sameSite: "lax", // Lax allows cookies in iframe/preview environments
       maxAge: 24 * 60 * 60 * 1000, // 24 hour session timeout (increased from 1h)
     },
   })
