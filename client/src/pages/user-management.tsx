@@ -170,6 +170,8 @@ export default function UserManagement() {
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [mobileError, setMobileError] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -1612,8 +1614,13 @@ export default function UserManagement() {
                         }}
                         onBlur={async (e) => {
                           const email = e.target.value.trim();
-                          if (!email || !email.includes("@")) {
+                          if (!email) {
                             setEmailError(null);
+                            return;
+                          }
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (!emailRegex.test(email)) {
+                            setEmailError("Please enter a valid email address");
                             return;
                           }
                           try {
@@ -1682,23 +1689,61 @@ export default function UserManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="new-phone">Phone</Label>
-                    <Input
-                      id="new-phone"
-                      value={newUser.phone}
-                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                      placeholder="+44 123 456 7890"
-                      data-testid="input-new-phone"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="new-phone"
+                        value={newUser.phone}
+                        className={phoneError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => {
+                          setNewUser({ ...newUser, phone: e.target.value });
+                          if (phoneError) setPhoneError(null);
+                        }}
+                        onBlur={(e) => {
+                          const phone = e.target.value.trim();
+                          if (!phone) { setPhoneError(null); return; }
+                          const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+                          if (!phoneRegex.test(phone)) {
+                            setPhoneError("Please enter a valid phone number (at least 10 digits)");
+                          } else {
+                            setPhoneError(null);
+                          }
+                        }}
+                        placeholder="+44 123 456 7890"
+                        data-testid="input-new-phone"
+                      />
+                      {phoneError && (
+                        <p className="text-xs font-medium text-destructive">{phoneError}</p>
+                      )}
+                    </div>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="new-mobile">Mobile</Label>
-                    <Input
-                      id="new-mobile"
-                      value={newUser.mobile}
-                      onChange={(e) => setNewUser({ ...newUser, mobile: e.target.value })}
-                      placeholder="+44 7xx xxx xxxx"
-                      data-testid="input-new-mobile"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="new-mobile"
+                        value={newUser.mobile}
+                        className={mobileError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => {
+                          setNewUser({ ...newUser, mobile: e.target.value });
+                          if (mobileError) setMobileError(null);
+                        }}
+                        onBlur={(e) => {
+                          const mobile = e.target.value.trim();
+                          if (!mobile) { setMobileError(null); return; }
+                          const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+                          if (!phoneRegex.test(mobile)) {
+                            setMobileError("Please enter a valid mobile number (at least 10 digits)");
+                          } else {
+                            setMobileError(null);
+                          }
+                        }}
+                        placeholder="+44 7xx xxx xxxx"
+                        data-testid="input-new-mobile"
+                      />
+                      {mobileError && (
+                        <p className="text-xs font-medium text-destructive">{mobileError}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="grid gap-2">
