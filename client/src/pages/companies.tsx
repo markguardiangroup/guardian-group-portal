@@ -430,10 +430,26 @@ export default function Companies() {
       toast({ title: getPostcodeError(formData.country), variant: "destructive" });
       return;
     }
+    const submittedData = { ...formData };
+    if (submittedData.website.trim()) {
+      let websiteValue = submittedData.website.trim();
+      if (!/^https?:\/\//i.test(websiteValue)) {
+        websiteValue = "https://" + websiteValue;
+      }
+      try {
+        const url = new URL(websiteValue);
+        if (!url.hostname.includes(".")) throw new Error("Invalid hostname");
+        submittedData.website = websiteValue;
+        setFormData(prev => ({ ...prev, website: websiteValue }));
+      } catch {
+        toast({ title: "Please enter a valid website URL (e.g. https://www.example.com)", variant: "destructive" });
+        return;
+      }
+    }
     if (editingCompany) {
-      updateMutation.mutate({ id: editingCompany.id, data: formData });
+      updateMutation.mutate({ id: editingCompany.id, data: submittedData });
     } else {
-      setPendingCompanyData({ ...formData });
+      setPendingCompanyData({ ...submittedData });
       setIsAddOpen(false);
       setSiteData({
         name: "",
