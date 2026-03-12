@@ -219,6 +219,7 @@ export default function UserManagement() {
   } | null>(null);
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
+  const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
 
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -971,14 +972,14 @@ export default function UserManagement() {
                       variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" ? "outline" : u.status === "site_required" ? "outline" : "secondary"}
                       className={
                         u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
-                        u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                        u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" :
                         u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" : ""
                       }
                       onClick={u.status === "site_required" ? () => {
                         setUserNeedingSiteAssignment(u);
                         setShowSiteAssignmentMessage(true);
-                      } : undefined}
-                      data-testid={u.status === "site_required" ? `badge-status-clickable-${u.id}` : `badge-status-${u.id}`}
+                      } : u.status === "invite_required" ? () => setInviteConfirmUser(u) : undefined}
+                      data-testid={u.status === "site_required" ? `badge-status-clickable-${u.id}` : u.status === "invite_required" ? `badge-invite-required-${u.id}` : `badge-status-${u.id}`}
                     >
                       {u.status === "active" ? (
                         <><UserCheck className="h-3 w-3 mr-1" />Active</>
@@ -1994,6 +1995,61 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
+
+      {/* Send Invite Confirmation Dialog */}
+      <Dialog open={!!inviteConfirmUser} onOpenChange={(open) => { if (!open) setInviteConfirmUser(null); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Send Invitation
+            </DialogTitle>
+            <DialogDescription>
+              This will send an invitation email to the user so they can set up their account and log in.
+            </DialogDescription>
+          </DialogHeader>
+          {inviteConfirmUser && (
+            <div className="py-2 space-y-3">
+              <div className="rounded-lg bg-muted/60 p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium">{inviteConfirmUser.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email</span>
+                  <span className="font-medium">{inviteConfirmUser.email}</span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to send an invitation to this user?
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setInviteConfirmUser(null)} data-testid="button-cancel-invite">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (inviteConfirmUser) {
+                  resendInviteMutation.mutate(inviteConfirmUser.id, {
+                    onSuccess: () => setInviteConfirmUser(null),
+                    onError: () => setInviteConfirmUser(null),
+                  });
+                }
+              }}
+              disabled={resendInviteMutation.isPending}
+              data-testid="button-confirm-send-invite"
+            >
+              {resendInviteMutation.isPending ? (
+                <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+              ) : (
+                <><Mail className="h-4 w-4 mr-2" />Send Invitation</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Client Site Assignment Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {
