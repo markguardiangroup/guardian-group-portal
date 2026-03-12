@@ -909,8 +909,8 @@ export default function CompanyDetail() {
             <div className="space-y-2">
               <Label htmlFor="edit-employee-range">Number of Employees</Label>
               <Select
-                value={editForm.employeeRange}
-                onValueChange={(v) => setEditForm({ ...editForm, employeeRange: v })}
+                value={editForm.employeeRange || undefined}
+                onValueChange={(v) => setEditForm(prev => ({ ...prev, employeeRange: v }))}
               >
                 <SelectTrigger id="edit-employee-range" data-testid="select-edit-employee-range">
                   <SelectValue placeholder="Select a range" />

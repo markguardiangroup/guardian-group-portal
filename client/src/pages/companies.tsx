@@ -758,8 +758,8 @@ export default function Companies() {
             <div className="grid gap-2">
               <Label htmlFor="company-employee-range">Number of Employees</Label>
               <Select
-                value={formData.employeeRange}
-                onValueChange={(v) => setFormData({ ...formData, employeeRange: v })}
+                value={formData.employeeRange || undefined}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, employeeRange: v }))}
               >
                 <SelectTrigger id="company-employee-range" data-testid="select-company-employee-range">
                   <SelectValue placeholder="Select a range" />
