@@ -218,6 +218,7 @@ export default function UserManagement() {
     siteName: string;
   } | null>(null);
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
+  const [setPrimaryContact, setSetPrimaryContact] = useState(false);
 
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -464,6 +465,28 @@ export default function UserManagement() {
         variant: "destructive" 
       });
       setSiteAssignmentConfirm(null);
+    },
+  });
+
+  const setPrimaryContactMutation = useMutation({
+    mutationFn: async ({ companyId, userId }: { companyId: string; userId: string }) => {
+      const response = await apiRequest("PATCH", `/api/companies/${companyId}`, { contactUserId: userId });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to set primary contact");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      setShowSiteAssignmentMessage(false);
+      setUserNeedingSiteAssignment(null);
+      setSetPrimaryContact(false);
+      toast({ title: "Primary contact set", description: "User is now the primary contact and has been assigned to all company sites." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to set primary contact", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1973,7 +1996,7 @@ export default function UserManagement() {
       {/* Client Site Assignment Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {
         setShowSiteAssignmentMessage(open);
-        if (!open) setUserNeedingSiteAssignment(null);
+        if (!open) { setUserNeedingSiteAssignment(null); setSetPrimaryContact(false); setSelectedSiteToAdd(""); }
       }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -1982,77 +2005,130 @@ export default function UserManagement() {
               Assign Sites to {userNeedingSiteAssignment?.fullName}
             </DialogTitle>
             <DialogDescription>
-              Please assign at least one site to enable the invitation to be sent.
+              Please assign at least one site, or set this user as the primary contact for their company.
             </DialogDescription>
           </DialogHeader>
-          {userNeedingSiteAssignment && (
-            <div className="space-y-4">
-              {/* Current assignments */}
-              {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 ? (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {userNeedingSiteAssignment.siteAssignments.map((assignment) => (
-                      <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1">
-                        <span>{assignment.siteName}</span>
-                        <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
-                      </Badge>
-                    ))}
+          {userNeedingSiteAssignment && (() => {
+            const userCompany = companies.find(c => c.id === userNeedingSiteAssignment.companyId);
+            const companySites = sites ? sites.filter(s => s.companyId === userNeedingSiteAssignment.companyId) : [];
+            const unassignedSites = companySites.filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id));
+            return (
+              <div className="space-y-4">
+                {/* Primary Contact toggle */}
+                <div className={`rounded-lg border p-4 space-y-3 transition-colors ${setPrimaryContact ? "border-primary/50 bg-primary/5" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="primary-contact-check"
+                      checked={setPrimaryContact}
+                      onChange={e => { setSetPrimaryContact(e.target.checked); if (e.target.checked) setSelectedSiteToAdd(""); }}
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                      data-testid="checkbox-primary-contact"
+                    />
+                    <Label htmlFor="primary-contact-check" className="cursor-pointer font-medium">
+                      Set as primary contact
+                    </Label>
                   </div>
+                  {setPrimaryContact && userCompany && (
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/60 rounded-md p-3">
+                      <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                      <span>
+                        This will make <strong>{userNeedingSiteAssignment.fullName}</strong> the primary contact for{" "}
+                        <strong>{userCompany.name}</strong> and automatically grant access to all current and future sites within this company.
+                      </span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No sites assigned yet.</p>
-              )}
 
-              {/* Add new assignment */}
-              {sites && sites.filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id)).length > 0 && (
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 grid gap-2">
-                    <Label htmlFor="assign-site" className="text-xs text-muted-foreground">Add site</Label>
-                    <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
-                      <SelectTrigger id="assign-site" data-testid="select-assign-site">
-                        <SelectValue placeholder="Select a site to add" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sites
-                          .filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id))
-                          .map((site) => {
-                            const company = companies.find(c => c.id === site.companyId);
-                            return (
-                              <SelectItem key={site.id} value={site.id}>
-                                {site.name} {company ? `(${company.name})` : ""}
-                              </SelectItem>
-                            );
-                          })}
-                      </SelectContent>
-                    </Select>
+                {/* Site selection — only shown when not primary contact */}
+                {!setPrimaryContact && (
+                  <div className="space-y-3">
+                    {/* Currently assigned */}
+                    {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {userNeedingSiteAssignment.siteAssignments.map((assignment) => (
+                            <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span>{assignment.siteName}</span>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add from company's sites */}
+                    {unassignedSites.length > 0 ? (
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1 grid gap-1.5">
+                          <Label htmlFor="assign-site" className="text-xs text-muted-foreground">
+                            Add site {userCompany ? `(${userCompany.name})` : ""}
+                          </Label>
+                          <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
+                            <SelectTrigger id="assign-site" data-testid="select-assign-site">
+                              <SelectValue placeholder="Select a site to add" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unassignedSites.map((site) => (
+                                <SelectItem key={site.id} value={site.id}>
+                                  {site.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedSiteToAdd && userNeedingSiteAssignment) {
+                              setSiteAssignmentConfirm({
+                                type: "add",
+                                siteId: selectedSiteToAdd,
+                                siteName: sites?.find(s => s.id === selectedSiteToAdd)?.name || "",
+                              });
+                            }
+                          }}
+                          disabled={!selectedSiteToAdd}
+                          data-testid="button-assign-site"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    ) : companySites.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No sites exist for this company yet. Add a site first or set this user as primary contact.</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">All company sites have been assigned.</p>
+                    )}
+
+                    {(!userNeedingSiteAssignment.siteAssignments || userNeedingSiteAssignment.siteAssignments.length === 0) && companySites.length > 0 && !selectedSiteToAdd && (
+                      <p className="text-sm text-muted-foreground">No sites assigned yet. Select a site above.</p>
+                    )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (selectedSiteToAdd) {
-                        setSiteAssignmentConfirm({
-                          type: "add",
-                          siteId: selectedSiteToAdd,
-                          siteName: sites.find(s => s.id === selectedSiteToAdd)?.name || "",
-                        });
-                      }
-                    }}
-                    disabled={!selectedSiteToAdd}
-                    data-testid="button-assign-site"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={() => setShowSiteAssignmentMessage(false)} data-testid="button-close-site-assignment">
-              Done
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowSiteAssignmentMessage(false); setSetPrimaryContact(false); setSelectedSiteToAdd(""); }} data-testid="button-cancel-site-assignment">
+              Cancel
             </Button>
+            {setPrimaryContact && userNeedingSiteAssignment?.companyId && (
+              <Button
+                onClick={() => setPrimaryContactMutation.mutate({ companyId: userNeedingSiteAssignment!.companyId!, userId: userNeedingSiteAssignment!.id })}
+                disabled={setPrimaryContactMutation.isPending}
+                data-testid="button-confirm-primary-contact"
+              >
+                {setPrimaryContactMutation.isPending ? "Saving..." : "Set as Primary Contact"}
+              </Button>
+            )}
+            {!setPrimaryContact && (
+              <Button onClick={() => { setShowSiteAssignmentMessage(false); setUserNeedingSiteAssignment(null); setSelectedSiteToAdd(""); }} data-testid="button-done-site-assignment">
+                Done
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
