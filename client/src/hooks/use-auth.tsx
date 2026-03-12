@@ -130,7 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const { data: user, isLoading, isError } = useQuery<AuthUser>({
     queryKey: ["/api/auth/me"],
-    retry: false,
+    retry: (failureCount, error) => {
+      const msg = (error as Error)?.message ?? "";
+      if (msg.startsWith("401") || msg.startsWith("403")) return false;
+      return failureCount < 3;
+    },
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
     staleTime: 5 * 60 * 1000,
   });
 
