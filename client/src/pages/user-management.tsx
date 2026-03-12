@@ -1551,7 +1551,7 @@ export default function UserManagement() {
                   </div>
                   <div className="col-span-3 grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="new-firstname">First Name *</Label>
+                      <Label htmlFor="new-firstname">First Name <span className="text-destructive">*</span></Label>
                       <Input
                         id="new-firstname"
                         value={newUser.firstName}
@@ -1601,7 +1601,7 @@ export default function UserManagement() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="new-email">Email *</Label>
+                    <Label htmlFor="new-email">Email <span className="text-destructive">*</span></Label>
                     <div className="flex flex-col gap-1">
                       <Input
                         id="new-email"
@@ -1770,7 +1770,7 @@ export default function UserManagement() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="new-role">Role *</Label>
+                    <Label htmlFor="new-role">Role <span className="text-destructive">*</span></Label>
                     <Select
                       value={newUser.role}
                       onValueChange={(value: "admin" | "consultant" | "client") => setNewUser({ ...newUser, role: value })}
