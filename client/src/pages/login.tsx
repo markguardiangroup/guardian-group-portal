@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,8 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetUrl, setResetUrl] = useState<string | null>(null);
+  const [isAccountLocked, setIsAccountLocked] = useState(false);
+  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -87,16 +89,40 @@ export default function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginForm) => apiRequest("POST", "/api/auth/login", data),
+    mutationFn: async (data: LoginForm) => {
+      const res = await apiRequest("POST", "/api/auth/login", data);
+      return res;
+    },
     onSuccess: async () => {
       setIsLoadingPage(true);
+      setIsAccountLocked(false);
+      setAttemptsRemaining(null);
       queryClient.clear();
       const currentPath = window.location.pathname + window.location.search;
       const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
       window.location.href = redirectTo;
     },
-    onError: (error: Error) => {
-      toast({ title: "Login Failed", description: error.message || "Invalid username or password", variant: "destructive" });
+    onError: async (error: Error) => {
+      setIsAccountLocked(false);
+      setAttemptsRemaining(null);
+      const msg = error.message || "";
+      const statusCode = parseInt(msg.split(":")[0], 10);
+      try {
+        const jsonStr = msg.substring(msg.indexOf(":") + 1).trim();
+        const body = JSON.parse(jsonStr);
+        if (statusCode === 423 || body.code === "account_locked") {
+          setIsAccountLocked(true);
+          return;
+        }
+        if (typeof body.attemptsRemaining === "number") {
+          setAttemptsRemaining(body.attemptsRemaining);
+        }
+      } catch {
+        // not JSON — show generic toast
+      }
+      if (statusCode !== 423) {
+        toast({ title: "Login Failed", description: "Invalid username or password", variant: "destructive" });
+      }
     },
   });
 
@@ -224,7 +250,43 @@ export default function Login() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(d => loginMutation.mutate(d))} className="space-y-5">
+            <form onSubmit={form.handleSubmit(d => { setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-5">
+
+              {isAccountLocked && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
+                  <div className="flex items-start gap-3">
+                    <LockKeyhole className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-red-800">Account locked</p>
+                      <p className="text-sm text-red-700 mt-0.5">
+                        Your account has been locked due to too many failed login attempts.
+                      </p>
+                      <button
+                        type="button"
+                        className="mt-2 text-sm font-medium text-red-700 underline underline-offset-2 hover:text-red-900"
+                        onClick={() => { setIsAccountLocked(false); setShowForgotPassword(true); }}
+                        data-testid="button-locked-reset-password"
+                      >
+                        Reset your password to unlock your account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {attemptsRemaining !== null && attemptsRemaining > 0 && !isAccountLocked && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center gap-2.5" data-testid="alert-attempts-remaining">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-sm text-amber-800">
+                    Incorrect password.{" "}
+                    <span className="font-semibold">
+                      {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
+                    </span>{" "}
+                    before your account is locked.
+                  </p>
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="username"

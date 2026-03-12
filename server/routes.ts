@@ -203,6 +203,21 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
+      // Check if user account is locked by status (permanent lock requiring reset or admin unlock)
+      if (user.status === "locked") {
+        await storage.recordLoginAttempt({
+          username: loginIdentifier,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: "account_locked",
+        });
+        return res.status(423).json({ 
+          error: "Your account has been locked due to too many failed login attempts. Please reset your password using the Forgot Password link, or contact an administrator.",
+          code: "account_locked",
+        });
+      }
+
       // Check password - support both bcrypt hashed and legacy plain text (for migration)
       let passwordValid = false;
       if (user.password.startsWith("$2")) {
@@ -230,15 +245,33 @@ export async function registerRoutes(
         // Check if this failure triggers a lockout
         const nowLocked = await storage.isAccountLocked(loginIdentifier);
         if (nowLocked) {
+          // Permanently lock the user account (requires reset or admin unlock)
+          await storage.updateUser(user.id, { status: "locked" });
           await storage.createAuditLog({
             action: "account_locked",
             userId: user.id,
             userName: user.fullName,
             details: `Account locked after ${SECURITY_CONFIG.maxLoginAttempts} failed attempts from IP ${ipAddress}`,
           });
+          return res.status(423).json({ 
+            error: "Your account has been locked due to too many failed login attempts. Please reset your password using the Forgot Password link, or contact an administrator.",
+            code: "account_locked",
+          });
         }
         
-        return res.status(401).json({ error: "Invalid username or password" });
+        // Calculate remaining attempts before lockout
+        const recentAttempts = await storage.getRecentLoginAttempts(loginIdentifier, SECURITY_CONFIG.lockoutDurationMinutes);
+        let consecutiveFailed = 0;
+        for (const attempt of recentAttempts) {
+          if (attempt.success) break;
+          consecutiveFailed++;
+        }
+        const remaining = SECURITY_CONFIG.maxLoginAttempts - consecutiveFailed;
+        
+        return res.status(401).json({ 
+          error: "Invalid username or password",
+          attemptsRemaining: remaining > 0 ? remaining : 0,
+        });
       }
 
       // Successful login - record attempt

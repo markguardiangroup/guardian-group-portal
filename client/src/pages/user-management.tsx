@@ -78,6 +78,7 @@ import {
   Phone,
   Smartphone,
   Briefcase,
+  LockKeyhole,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -98,7 +99,7 @@ interface UserWithAssignments {
   fullName: string;
   role: UserRole;
   companyId: string | null;
-  status: "active" | "inactive" | "invited" | "site_required" | "invite_required";
+  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
   lastLogin: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
@@ -155,7 +156,7 @@ export default function UserManagement() {
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
@@ -669,6 +670,19 @@ export default function UserManagement() {
     },
   });
 
+  const unlockUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest("PATCH", `/api/users/${userId}`, { status: "active" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Account Unlocked", description: "The user account has been unlocked and set to active." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to unlock account. Please try again.", variant: "destructive" });
+    },
+  });
+
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
     setStatusConfirm({ user: targetUser, newStatus });
@@ -880,6 +894,7 @@ export default function UserManagement() {
             <SelectItem value="invite_required">Invite Required</SelectItem>
             <SelectItem value="invited">Invited</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="locked">Locked</SelectItem>
           </SelectContent>
         </Select>
 
@@ -969,11 +984,12 @@ export default function UserManagement() {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" ? "outline" : u.status === "site_required" ? "outline" : "secondary"}
+                      variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : "secondary"}
                       className={
                         u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
                         u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" :
-                        u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" : ""
+                        u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" :
+                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
                       }
                       onClick={u.status === "site_required" ? () => {
                         setUserNeedingSiteAssignment(u);
@@ -989,6 +1005,8 @@ export default function UserManagement() {
                         <><Mail className="h-3 w-3 mr-1" />Invite Required</>
                       ) : u.status === "site_required" ? (
                         <><MapPin className="h-3 w-3 mr-1" />Site Required</>
+                      ) : u.status === "locked" ? (
+                        <><LockKeyhole className="h-3 w-3 mr-1" />Locked</>
                       ) : (
                         <><UserX className="h-3 w-3 mr-1" />Inactive</>
                       )}
@@ -1030,7 +1048,17 @@ export default function UserManagement() {
                                 Resend Invitation
                               </DropdownMenuItem>
                             )}
-                            {u.status !== "invited" && u.status !== "site_required" && u.status !== "invite_required" && (
+                            {u.status === "locked" && (
+                              <DropdownMenuItem 
+                                onClick={() => unlockUserMutation.mutate(u.id)}
+                                data-testid={`button-unlock-${u.id}`}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <LockKeyhole className="h-4 w-4 mr-2" />
+                                Unlock Account
+                              </DropdownMenuItem>
+                            )}
+                            {u.status !== "invited" && u.status !== "site_required" && u.status !== "invite_required" && u.status !== "locked" && (
                               <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
                                 {u.status === "active" ? (
                                   <><UserX className="h-4 w-4 mr-2" />Deactivate</>
