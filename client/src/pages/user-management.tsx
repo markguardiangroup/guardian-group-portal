@@ -55,7 +55,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { CompanyCombobox } from "@/components/company-combobox";
 import {
   Users,
   Search,
@@ -173,6 +172,10 @@ export default function UserManagement() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [mobileError, setMobileError] = useState<string | null>(null);
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
+  const filteredCompanies = companySearchQuery.trim() === "" 
+    ? companies 
+    : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -1518,7 +1521,10 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+      <Dialog open={isAddUserOpen} onOpenChange={(open) => {
+        setIsAddUserOpen(open);
+        if (!open) setCompanySearchQuery("");
+      }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
@@ -1806,12 +1812,38 @@ export default function UserManagement() {
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
                       <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
-                      <CompanyCombobox
-                        companies={companies.map(c => ({ ...c, siteCount: 0 }))}
-                        value={newUser.companyId}
-                        onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
-                        testId="select-new-company"
+                      <input
+                        type="text"
+                        placeholder="Search company..."
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                        onChange={(e) => setCompanySearchQuery(e.target.value)}
+                        value={companySearchQuery}
+                        data-testid="input-company-search"
                       />
+                      <div className="max-h-48 overflow-y-auto border rounded-md bg-background">
+                        {filteredCompanies.map((company) => (
+                          <button
+                            key={company.id}
+                            type="button"
+                            onClick={() => {
+                              setNewUser({ ...newUser, companyId: company.id });
+                              setCompanySearchQuery("");
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center"
+                            data-testid={`button-select-company-${company.id}`}
+                          >
+                            <span>{company.name}</span>
+                            {newUser.companyId === company.id && (
+                              <span className="text-primary">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {newUser.companyId && (
+                        <div className="text-sm text-muted-foreground">
+                          Selected: {companies.find(c => c.id === newUser.companyId)?.name}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
