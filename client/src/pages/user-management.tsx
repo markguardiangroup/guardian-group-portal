@@ -169,7 +169,7 @@ export default function UserManagement() {
     department: string;
     phone: string;
     mobile: string;
-    preferredContactMethod: "email" | "phone" | "mobile";
+    preferredContactMethod: "email" | "phone" | "mobile" | "any";
     notes: string;
     role: "admin" | "consultant" | "client";
     companyId: string;
@@ -193,7 +193,7 @@ export default function UserManagement() {
     department: "",
     phone: "",
     mobile: "",
-    preferredContactMethod: "email" as "email" | "phone" | "mobile",
+    preferredContactMethod: "email" as "email" | "phone" | "mobile" | "any",
     notes: "",
     role: "client" as "admin" | "consultant" | "client",
     companyId: "",
@@ -1241,11 +1241,12 @@ export default function UserManagement() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="edit-preferred">Preferred Contact Method</Label>
-                    <Select value={editFormData.preferredContactMethod} onValueChange={(v: "email" | "phone" | "mobile") => setEditFormData({ ...editFormData, preferredContactMethod: v })}>
+                    <Select value={editFormData.preferredContactMethod} onValueChange={(v: "email" | "phone" | "mobile" | "any") => setEditFormData({ ...editFormData, preferredContactMethod: v })}>
                       <SelectTrigger id="edit-preferred" data-testid="select-edit-preferred">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="any">Any</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="phone">Phone</SelectItem>
                         <SelectItem value="mobile">Mobile</SelectItem>
@@ -1829,12 +1830,13 @@ export default function UserManagement() {
                   <Label htmlFor="new-preferred-contact">Preferred Contact Method</Label>
                   <Select
                     value={newUser.preferredContactMethod}
-                    onValueChange={(value: "email" | "phone" | "mobile") => setNewUser({ ...newUser, preferredContactMethod: value })}
+                    onValueChange={(value: "email" | "phone" | "mobile" | "any") => setNewUser({ ...newUser, preferredContactMethod: value })}
                   >
                     <SelectTrigger id="new-preferred-contact" data-testid="select-new-preferred-contact">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
                       <SelectItem value="email">Email</SelectItem>
                       <SelectItem value="phone">Phone</SelectItem>
                       <SelectItem value="mobile">Mobile</SelectItem>
