@@ -29,21 +29,28 @@ app.use(helmet({
 }));
 
 // Rate limiting for API endpoints
+// Note: generously sized because all Replit traffic shares one proxy IP
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per window
+  max: 2000,
   message: { error: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
-// Stricter rate limiting for authentication endpoints
+// Auth rate limiting – keyed by username (body) so each account gets its own bucket
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 50,
   message: { error: "Too many login attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const username = req.body?.username ?? req.ip ?? "unknown";
+    return String(username).toLowerCase();
+  },
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
 // Apply rate limiting
