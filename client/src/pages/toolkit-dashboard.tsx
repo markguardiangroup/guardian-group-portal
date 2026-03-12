@@ -101,13 +101,6 @@ export default function ToolkitDashboard() {
     },
   });
 
-  const [showSkeleton, setShowSkeleton] = useState(false);
-  useEffect(() => {
-    if (!isLoading) { setShowSkeleton(false); return; }
-    const t = setTimeout(() => setShowSkeleton(true), 200);
-    return () => clearTimeout(t);
-  }, [isLoading]);
-
   const contextName = activeCompany ?? null;
 
   async function handleRedownload(templateId: string, fileUrl: string, fileName: string) {
@@ -134,35 +127,6 @@ export default function ToolkitDashboard() {
       window.open(fileUrl, "_blank");
     }
   }
-
-  if (showSkeleton) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
-              <BookMarked className="h-7 w-7 text-module-accent-foreground" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold">Toolkit</h1>
-              <p className="text-muted-foreground">Template download overview</p>
-            </div>
-          </div>
-        </div>
-        <div className="p-8 space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            {[1, 2].map((i) => (
-              <Card key={i}>
-                <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
-                <CardContent><Skeleton className="h-10 w-20" /></CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (isLoading) return null;
 
   return (
     <div className="theme-toolkit">
@@ -212,7 +176,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-total-downloads">
-                <TickerNumber value={stats?.totalDownloads ?? 0} />
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <TickerNumber value={stats?.totalDownloads ?? 0} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {contextName ? `For ${contextName}` : "All time, all companies"}
@@ -227,7 +191,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-downloads-30days">
-                <TickerNumber value={stats?.downloadsLast30Days ?? 0} />
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <TickerNumber value={stats?.downloadsLast30Days ?? 0} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
             </CardContent>
@@ -243,7 +207,13 @@ export default function ToolkitDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {stats?.recentDownloads && stats.recentDownloads.length > 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : stats?.recentDownloads && stats.recentDownloads.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {stats.recentDownloads.map((item) => (
                   <div
