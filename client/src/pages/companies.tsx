@@ -498,22 +498,6 @@ export default function Companies() {
 
   const isInitialLoad = isLoading && page === 1 && !debouncedSearch && statusFilter === "all";
 
-  if (isInitialLoad) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 p-8 dash-animate">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -567,7 +551,13 @@ export default function Companies() {
         </Select>
       </div>
 
-      {companies.length > 0 ? (
+      {isInitialLoad ? (
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : companies.length > 0 ? (
         <>
           <div className="grid gap-4">
             {companies.map((company) => (
