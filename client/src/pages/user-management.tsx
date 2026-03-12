@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { CompanyCombobox } from "@/components/company-combobox";
 import {
   Users,
   Search,
@@ -1805,21 +1806,12 @@ export default function UserManagement() {
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
                       <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
-                      <Select
+                      <CompanyCombobox
+                        companies={companies.map(c => ({ ...c, siteCount: 0 }))}
                         value={newUser.companyId}
                         onValueChange={(value) => setNewUser({ ...newUser, companyId: value })}
-                      >
-                        <SelectTrigger id="new-company" data-testid="select-new-company">
-                          <SelectValue placeholder="Select company (required)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company.id} value={company.id}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        testId="select-new-company"
+                      />
                     </div>
                   )}
                 </div>
