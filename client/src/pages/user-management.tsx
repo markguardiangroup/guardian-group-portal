@@ -135,6 +135,14 @@ const roleLabels: Record<UserRole, string> = {
   client: "Client",
 };
 
+const toTitleCase = (str: string): string => {
+  return str
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
@@ -1180,6 +1188,12 @@ export default function UserManagement() {
                         id="edit-jobtitle"
                         value={editFormData.jobTitle}
                         onChange={(e) => setEditFormData({ ...editFormData, jobTitle: e.target.value })}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            setEditFormData({ ...editFormData, jobTitle: toTitleCase(value) });
+                          }
+                        }}
                         data-testid="input-edit-jobtitle"
                       />
                     </div>
@@ -1189,6 +1203,12 @@ export default function UserManagement() {
                         id="edit-department"
                         value={editFormData.department}
                         onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            setEditFormData({ ...editFormData, department: toTitleCase(value) });
+                          }
+                        }}
                         data-testid="input-edit-department"
                       />
                     </div>
@@ -1712,6 +1732,12 @@ export default function UserManagement() {
                       id="new-jobtitle"
                       value={newUser.jobTitle}
                       onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
+                      onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        if (value) {
+                          setNewUser({ ...newUser, jobTitle: toTitleCase(value) });
+                        }
+                      }}
                       placeholder="e.g., Safety Manager"
                       data-testid="input-new-jobtitle"
                     />
@@ -1722,6 +1748,12 @@ export default function UserManagement() {
                       id="new-department"
                       value={newUser.department}
                       onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
+                      onBlur={(e) => {
+                        const value = e.target.value.trim();
+                        if (value) {
+                          setNewUser({ ...newUser, department: toTitleCase(value) });
+                        }
+                      }}
                       placeholder="e.g., Operations"
                       data-testid="input-new-department"
                     />
