@@ -202,6 +202,7 @@ export default function UserManagement() {
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
+  const [userNeedingSiteAssignment, setUserNeedingSiteAssignment] = useState<UserWithAssignments | null>(null);
   
   // Site assignment state
   const [userSiteAssignments, setUserSiteAssignments] = useState<{
@@ -554,6 +555,7 @@ export default function UserManagement() {
         clientPermissionRole: "owner",
       });
       if (data.requiresSiteAssignment) {
+        setUserNeedingSiteAssignment(data);
         setShowSiteAssignmentMessage(true);
       } else {
         toast({
@@ -1965,39 +1967,88 @@ export default function UserManagement() {
       </Dialog>
 
 
-      {/* Client Site Assignment Required Message Dialog */}
-      <Dialog open={showSiteAssignmentMessage} onOpenChange={setShowSiteAssignmentMessage}>
-        <DialogContent className="sm:max-w-[480px]">
+      {/* Client Site Assignment Dialog */}
+      <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {
+        setShowSiteAssignmentMessage(open);
+        if (!open) setUserNeedingSiteAssignment(null);
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Site Assignment Required
+              <MapPin className="h-5 w-5 text-primary" />
+              Assign Sites to {userNeedingSiteAssignment?.fullName}
             </DialogTitle>
             <DialogDescription>
-              The client user has been created successfully, but an invitation cannot be sent yet.
+              Please assign at least one site to enable the invitation to be sent.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              Before an invitation link can be sent, the client must be either:
-            </p>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>Assigned to at least one site</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Building2 className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                <span>Added as the primary contact for a company</span>
-              </li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-4">
-              Once assigned, you can send the invitation from the Users page using the resend invite option.
-            </p>
-          </div>
+          {userNeedingSiteAssignment && (
+            <div className="space-y-4">
+              {/* Current assignments */}
+              {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 ? (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {userNeedingSiteAssignment.siteAssignments.map((assignment) => (
+                      <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1">
+                        <span>{assignment.siteName}</span>
+                        <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No sites assigned yet.</p>
+              )}
+
+              {/* Add new assignment */}
+              {sites && sites.filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id)).length > 0 && (
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 grid gap-2">
+                    <Label htmlFor="assign-site" className="text-xs text-muted-foreground">Add site</Label>
+                    <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
+                      <SelectTrigger id="assign-site" data-testid="select-assign-site">
+                        <SelectValue placeholder="Select a site to add" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sites
+                          .filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id))
+                          .map((site) => {
+                            const company = companies.find(c => c.id === site.companyId);
+                            return (
+                              <SelectItem key={site.id} value={site.id}>
+                                {site.name} {company ? `(${company.name})` : ""}
+                              </SelectItem>
+                            );
+                          })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedSiteToAdd) {
+                        setSiteAssignmentConfirm({
+                          type: "add",
+                          siteId: selectedSiteToAdd,
+                          siteName: sites.find(s => s.id === selectedSiteToAdd)?.name || "",
+                        });
+                      }
+                    }}
+                    disabled={!selectedSiteToAdd}
+                    data-testid="button-assign-site"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           <DialogFooter>
-            <Button onClick={() => setShowSiteAssignmentMessage(false)} data-testid="button-close-site-assignment-message">
-              Understood
+            <Button onClick={() => setShowSiteAssignmentMessage(false)} data-testid="button-close-site-assignment">
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
