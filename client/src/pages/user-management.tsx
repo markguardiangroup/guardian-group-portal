@@ -2033,7 +2033,7 @@ export default function UserManagement() {
                     <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/60 rounded-md p-3">
                       <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
                       <span>
-                        This will make <strong>{userNeedingSiteAssignment.fullName}</strong> the primary contact for{" "}
+                        This will make <strong>{userNeedingSiteAssignment.fullName}</strong> a primary contact for{" "}
                         <strong>{userCompany.name}</strong> and automatically grant access to all current and future sites within this company.
                       </span>
                     </div>
