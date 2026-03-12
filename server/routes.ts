@@ -467,6 +467,7 @@ export async function registerRoutes(
         purpose: invitation.purpose,
         email: user.email,
         fullName: user.fullName,
+        username: user.username,
         role: user.role,
         expiresAt: invitation.expiresAt,
       });
