@@ -173,9 +173,6 @@ export default function UserManagement() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
-  const filteredCompanies = companySearchQuery.trim() === "" 
-    ? companies 
-    : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -254,6 +251,9 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
   const companies = companiesResponse?.companies || [];
+  const filteredCompanies = companySearchQuery.trim() === "" 
+    ? companies 
+    : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
 
   // Helper to check if a user is the primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {
