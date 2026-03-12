@@ -1145,6 +1145,13 @@ export default function UserManagement() {
                           id="edit-firstname"
                           value={editFormData.firstName}
                           onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim();
+                            if (value) {
+                              const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                              setEditFormData({ ...editFormData, firstName: capitalized });
+                            }
+                          }}
                           data-testid="input-edit-firstname"
                         />
                       </div>
@@ -1154,6 +1161,13 @@ export default function UserManagement() {
                           id="edit-lastname"
                           value={editFormData.lastName}
                           onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim();
+                            if (value) {
+                              const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                              setEditFormData({ ...editFormData, lastName: capitalized });
+                            }
+                          }}
                           data-testid="input-edit-lastname"
                         />
                       </div>
@@ -1586,6 +1600,17 @@ export default function UserManagement() {
                             username: generateUsername(firstName, newUser.lastName)
                           });
                         }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                            setNewUser({ 
+                              ...newUser, 
+                              firstName: capitalized,
+                              username: generateUsername(capitalized, newUser.lastName)
+                            });
+                          }
+                        }}
                         placeholder="First name"
                         data-testid="input-new-firstname"
                       />
@@ -1602,6 +1627,17 @@ export default function UserManagement() {
                             lastName,
                             username: generateUsername(newUser.firstName, lastName)
                           });
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                            setNewUser({ 
+                              ...newUser, 
+                              lastName: capitalized,
+                              username: generateUsername(newUser.firstName, capitalized)
+                            });
+                          }
                         }}
                         placeholder="Surname"
                         data-testid="input-new-lastname"
