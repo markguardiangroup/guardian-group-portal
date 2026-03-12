@@ -173,6 +173,7 @@ export default function UserManagement() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
@@ -1523,7 +1524,10 @@ export default function UserManagement() {
 
       <Dialog open={isAddUserOpen} onOpenChange={(open) => {
         setIsAddUserOpen(open);
-        if (!open) setCompanySearchQuery("");
+        if (!open) {
+          setCompanySearchQuery("");
+          setIsCompanyDropdownOpen(false);
+        }
       }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1812,38 +1816,54 @@ export default function UserManagement() {
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
                       <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
-                      <input
-                        type="text"
-                        placeholder="Search company..."
-                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-                        onChange={(e) => setCompanySearchQuery(e.target.value)}
-                        value={companySearchQuery}
-                        data-testid="input-company-search"
-                      />
-                      <div className="max-h-48 overflow-y-auto border rounded-md bg-background">
-                        {filteredCompanies.map((company) => (
+                      <Popover open={isCompanyDropdownOpen} onOpenChange={setIsCompanyDropdownOpen}>
+                        <PopoverTrigger asChild>
                           <button
-                            key={company.id}
                             type="button"
-                            onClick={() => {
-                              setNewUser({ ...newUser, companyId: company.id });
-                              setCompanySearchQuery("");
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center"
-                            data-testid={`button-select-company-${company.id}`}
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm text-left hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                            data-testid="button-company-dropdown"
                           >
-                            <span>{company.name}</span>
-                            {newUser.companyId === company.id && (
-                              <span className="text-primary">✓</span>
-                            )}
+                            {newUser.companyId ? companies.find(c => c.id === newUser.companyId)?.name : "Select company..."}
                           </button>
-                        ))}
-                      </div>
-                      {newUser.companyId && (
-                        <div className="text-sm text-muted-foreground">
-                          Selected: {companies.find(c => c.id === newUser.companyId)?.name}
-                        </div>
-                      )}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                          <div className="p-2 border-b">
+                            <input
+                              type="text"
+                              placeholder="Search company..."
+                              className="w-full px-2 py-1 border border-input rounded text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring"
+                              onChange={(e) => setCompanySearchQuery(e.target.value)}
+                              value={companySearchQuery}
+                              autoFocus
+                              data-testid="input-company-search"
+                            />
+                          </div>
+                          <div className="max-h-48 overflow-y-auto">
+                            {filteredCompanies.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
+                            ) : (
+                              filteredCompanies.map((company) => (
+                                <button
+                                  key={company.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setNewUser({ ...newUser, companyId: company.id });
+                                    setCompanySearchQuery("");
+                                    setIsCompanyDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center text-sm"
+                                  data-testid={`button-select-company-${company.id}`}
+                                >
+                                  <span>{company.name}</span>
+                                  {newUser.companyId === company.id && (
+                                    <span className="text-primary">✓</span>
+                                  )}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   )}
                 </div>
