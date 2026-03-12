@@ -1143,12 +1143,24 @@ export default function UserManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-jobtitle">Job Title</Label>
-                      <Input
-                        id="edit-jobtitle"
-                        value={editFormData.jobTitle}
-                        onChange={(e) => setEditFormData({ ...editFormData, jobTitle: e.target.value })}
-                        data-testid="input-edit-jobtitle"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="edit-jobtitle"
+                          value={editFormData.jobTitle}
+                          onChange={(e) => setEditFormData({ ...editFormData, jobTitle: e.target.value })}
+                          data-testid="input-edit-jobtitle"
+                        />
+                        {editFormData.jobTitle && (
+                          <button
+                            type="button"
+                            onClick={() => setEditFormData({ ...editFormData, jobTitle: "" })}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            data-testid="button-clear-edit-jobtitle"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="edit-department">Department</Label>
@@ -1630,13 +1642,25 @@ export default function UserManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="new-jobtitle">Job Title</Label>
-                    <Input
-                      id="new-jobtitle"
-                      value={newUser.jobTitle}
-                      onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
-                      placeholder="e.g., Safety Manager"
-                      data-testid="input-new-jobtitle"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="new-jobtitle"
+                        value={newUser.jobTitle}
+                        onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
+                        placeholder="e.g., Safety Manager"
+                        data-testid="input-new-jobtitle"
+                      />
+                      {newUser.jobTitle && (
+                        <button
+                          type="button"
+                          onClick={() => setNewUser({ ...newUser, jobTitle: "" })}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid="button-clear-jobtitle"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="new-department">Department</Label>
