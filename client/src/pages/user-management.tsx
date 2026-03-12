@@ -1568,7 +1568,7 @@ export default function UserManagement() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="new-lastname">Surname *</Label>
+                      <Label htmlFor="new-lastname">Surname <span className="text-destructive">*</span></Label>
                       <Input
                         id="new-lastname"
                         value={newUser.lastName}
