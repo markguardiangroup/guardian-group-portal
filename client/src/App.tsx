@@ -332,53 +332,21 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     const p = (key: unknown[], url: string) =>
       queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
 
-    // Core shared data
+    // Navigation data – used across sidebar/header on every page
     p(["/api/sites"], "/api/sites");
     p(["/api/companies"], "/api/companies");
-    p(["/api/training-bookings"], "/api/training-bookings");
     p(["/api/support-requests/counts"], "/api/support-requests/counts");
-    p(["/api/incidents"], "/api/incidents");
 
-    // Main dashboard – keys include siteId=null, companySiteIdsKey=null, isClientUser
+    // Main dashboard
     p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
-    p(["/api/documents", null, null], "/api/documents");
-    p(["/api/cases", null], "/api/cases");
-    p(["/api/support-requests", null], "/api/support-requests");
 
-    // Module dashboards – keys include module, siteId=null, companySiteIdsKey=null
+    // Module dashboards
     p(["/api/dashboard", "health_safety", null, null], "/api/dashboard/health_safety");
     p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
-    p(["/api/documents/module", "health_safety"], "/api/documents/module/health_safety");
-    p(["/api/documents/module", "human_resources"], "/api/documents/module/human_resources");
-    p(["/api/documents/module", "employment_law"], "/api/documents/module/employment_law");
-
-    // Document hierarchies (folder view) – prefetch the default "all sites" view
-    p(["/api/sites/all/modules/health_safety/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/health_safety/documents-hierarchy?includeArchived=true");
-    p(["/api/sites/all/modules/human_resources/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/human_resources/documents-hierarchy?includeArchived=true");
-    p(["/api/sites/all/modules/employment_law/documents-hierarchy?includeArchived=true"], "/api/sites/all/modules/employment_law/documents-hierarchy?includeArchived=true");
-
-    // Employment law dashboard – single combined endpoint
     p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
-    p(["/api/cases", null, null], "/api/cases");
 
-    // Browse Courses page
-    p(["/api/training-folders"], "/api/training-folders");
-    p(["/api/training-courses"], "/api/training-courses");
-
-    // Support dashboard – default filter state is "all"/"all"
-    p(["/api/support-requests", "all", "all"], "/api/support-requests");
-
-    // Reports dashboard – default filter state is "all"/"all"
-    p(["/api/reports", { companyId: "all", siteId: "all" }], "/api/reports");
-
-    // Admin reports – users list
-    if (!isClientUser) {
-      p(["/api/users"], "/api/users");
-    }
-
-    // Toolkit dashboard + browse – stats key includes activeCompany=null
-    p(["/api/toolkit/stats", null], "/api/toolkit/stats");
-    p(["/api/toolkit"], "/api/toolkit");
+    // All other pages (documents, cases, incidents, training, support, toolkit, reports)
+    // load their own data on first visit and show skeleton states while fetching.
   }, [userId]);
 
   return null;
