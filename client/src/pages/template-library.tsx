@@ -1829,19 +1829,6 @@ export default function TemplateLibraryPage() {
   
   const isLoading = templatesLoading || foldersLoading || docTypesLoading;
   
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <div className="p-6 space-y-6 dash-animate">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -2001,7 +1988,13 @@ export default function TemplateLibraryPage() {
         
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
-          {searchQuery ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          ) : searchQuery ? (
             <Card>
               <CardHeader>
                 <CardTitle>Search Results</CardTitle>

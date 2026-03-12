@@ -330,19 +330,6 @@ export default function Sites() {
     return matchesSearch && matchesCompany && matchesCompliance;
   });
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 p-8 dash-animate">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -411,7 +398,13 @@ export default function Sites() {
         </Select>
       </div>
 
-      {filteredSites && filteredSites.length > 0 ? (
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      ) : filteredSites && filteredSites.length > 0 ? (
         <Card>
           <Table>
             <TableHeader>

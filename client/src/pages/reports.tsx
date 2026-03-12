@@ -231,22 +231,6 @@ export default function Reports() {
     ? allSites 
     : allSites.filter(site => site.companyId === companyFilter);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   const summary = data?.summary || {
     totalDocuments: 0,
     compliantDocuments: 0,
@@ -320,33 +304,43 @@ export default function Reports() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Documents"
-          value={summary.totalDocuments}
-          description="Across all entities and sites"
-          icon={FileText}
-        />
-        <StatCard
-          title="Compliant"
-          value={summary.compliantDocuments}
-          description="Documents up to date"
-          icon={CheckCircle}
-          variant="success"
-        />
-        <StatCard
-          title="Review Required"
-          value={summary.reviewRequired}
-          description="Pending review or approval"
-          icon={AlertTriangle}
-          variant="warning"
-        />
-        <StatCard
-          title="Overdue"
-          value={summary.overdueDocuments}
-          description="Require immediate attention"
-          icon={Clock}
-          variant="danger"
-        />
+        {isLoading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </>
+        ) : (
+          <>
+            <StatCard
+              title="Total Documents"
+              value={summary.totalDocuments}
+              description="Across all entities and sites"
+              icon={FileText}
+            />
+            <StatCard
+              title="Compliant"
+              value={summary.compliantDocuments}
+              description="Documents up to date"
+              icon={CheckCircle}
+              variant="success"
+            />
+            <StatCard
+              title="Review Required"
+              value={summary.reviewRequired}
+              description="Pending review or approval"
+              icon={AlertTriangle}
+              variant="warning"
+            />
+            <StatCard
+              title="Overdue"
+              value={summary.overdueDocuments}
+              description="Require immediate attention"
+              icon={Clock}
+              variant="danger"
+            />
+          </>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

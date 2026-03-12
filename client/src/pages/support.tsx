@@ -754,22 +754,6 @@ export default function Support() {
 
   const isLoading = sitesLoading || requestsLoading;
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 p-8 dash-animate">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -896,7 +880,13 @@ export default function Support() {
         </div>
 
         <TabsContent value={activeTab} className="mt-6">
-          {filteredRequests && filteredRequests.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          ) : filteredRequests && filteredRequests.length > 0 ? (
             <div className="space-y-4">
               {filteredRequests.map((request) => (
                 <SupportRequestCard 
