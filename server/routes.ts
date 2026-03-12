@@ -218,6 +218,12 @@ export async function registerRoutes(
         });
       }
 
+      // Inactive users are blocked by an administrator — only an admin/consultant can re-activate them.
+      // Return a generic 401 so the reason isn't revealed; do not count this toward lockout.
+      if (user.status === "inactive") {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
       // Check password - support both bcrypt hashed and legacy plain text (for migration)
       let passwordValid = false;
       if (user.password.startsWith("$2")) {
@@ -242,9 +248,10 @@ export async function registerRoutes(
           failureReason: "invalid_password",
         });
         
-        // Check if this failure triggers a lockout
+        // Check if this failure triggers a lockout — only lock active accounts.
+        // Inactive/invited/etc. users are already blocked above; we never change their status.
         const nowLocked = await storage.isAccountLocked(loginIdentifier);
-        if (nowLocked) {
+        if (nowLocked && user.status === "active") {
           // Permanently lock the user account (requires reset or admin unlock)
           await storage.updateUser(user.id, { status: "locked" });
           await storage.createAuditLog({
