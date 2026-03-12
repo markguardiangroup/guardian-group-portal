@@ -160,7 +160,7 @@ export default function SetPassword() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="justify-center">
-              <Button onClick={() => window.location.href = "/login"} data-testid="button-go-to-login">
+              <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
                 Go to Login
               </Button>
             </CardFooter>
@@ -206,7 +206,7 @@ export default function SetPassword() {
             <p className="text-sm text-muted-foreground text-center">
               Please contact your administrator to request a new invitation.
             </p>
-            <Button onClick={() => window.location.href = "/login"} data-testid="button-go-to-login">
+            <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
               Go to Login
             </Button>
           </CardFooter>
@@ -236,7 +236,7 @@ export default function SetPassword() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="justify-center">
-              <Button onClick={() => window.location.href = "/login"} data-testid="button-login-now">
+              <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
                 Log In Now
               </Button>
             </CardFooter>
