@@ -360,6 +360,10 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
     p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
     p(["/api/cases", null, null], "/api/cases");
 
+    // Browse Courses page
+    p(["/api/training-folders"], "/api/training-folders");
+    p(["/api/training-courses"], "/api/training-courses");
+
     // Toolkit dashboard + browse – stats key includes activeCompany=null
     p(["/api/toolkit/stats", null], "/api/toolkit/stats");
     p(["/api/toolkit"], "/api/toolkit");
