@@ -20,8 +20,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PdfViewer } from "@/components/pdf-viewer";
 import {
   Download,
+  Eye,
   FileText,
   FolderOpen,
   HardHat,
@@ -202,7 +204,7 @@ async function downloadTemplate(template: ToolkitTemplate) {
   }
 }
 
-function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnClass: string }) {
+function TemplateRow({ template, btnClass, onPreview }: { template: ToolkitTemplate; btnClass: string; onPreview?: () => void }) {
   const [popping, setPopping] = useState(false);
 
   const handleDownload = () => {
@@ -231,6 +233,18 @@ function TemplateRow({ template, btnClass }: { template: ToolkitTemplate; btnCla
           </Tooltip>
         )}
       </div>
+      {template.mimeType === "application/pdf" && onPreview && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onPreview}
+          data-testid={`button-preview-${template.id}`}
+          className="shrink-0"
+        >
+          <Eye className="h-3.5 w-3.5 mr-1.5" />
+          Preview
+        </Button>
+      )}
       <Button
         size="sm"
         onClick={handleDownload}
@@ -272,6 +286,9 @@ export default function ToolkitBrowse() {
   // Create folder dialog
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+
+  // PDF preview
+  const [previewToolkitTemplate, setPreviewToolkitTemplate] = useState<ToolkitTemplate | null>(null);
 
   const { data: toolkit, isLoading } = useQuery<ToolkitData>({
     queryKey: ["/api/toolkit"],
@@ -476,6 +493,7 @@ export default function ToolkitBrowse() {
                         key={template.id}
                         template={template}
                         btnClass={MODULE_CONFIG[selectedFolder.module as ModuleType].btnClass}
+                        onPreview={template.mimeType === "application/pdf" ? () => setPreviewToolkitTemplate(template) : undefined}
                       />
                     ))}
                   </div>
@@ -518,6 +536,35 @@ export default function ToolkitBrowse() {
               {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewToolkitTemplate} onOpenChange={(o) => { if (!o) setPreviewToolkitTemplate(null); }}>
+        <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+          <DialogHeader className="px-5 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{previewToolkitTemplate?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewToolkitTemplate?.fileUrl && (
+              <PdfViewer url={previewToolkitTemplate.fileUrl} />
+            )}
+          </div>
+          <div className="px-5 py-3 border-t shrink-0 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPreviewToolkitTemplate(null)} data-testid="button-close-pdf-preview">
+              Close
+            </Button>
+            <Button
+              onClick={() => previewToolkitTemplate && downloadTemplate(previewToolkitTemplate)}
+              data-testid="button-download-from-pdf-preview"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

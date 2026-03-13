@@ -81,6 +81,7 @@ import {
   Eye,
   Filter,
 } from "lucide-react";
+import { PdfViewer } from "@/components/pdf-viewer";
 import {
   Table,
   TableBody,
@@ -1236,7 +1237,7 @@ function IncidentDetailView({ id }: { id: string }) {
                             </p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {doc.fileUrl && (
+                            {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/")) && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1530,7 +1531,7 @@ function IncidentDetailView({ id }: { id: string }) {
 
       {/* Document Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
-        <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 gap-0">
+        <DialogContent className="h-[80vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ maxWidth: "860px" }}>
           <DialogHeader className="px-5 py-4 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -1554,21 +1555,7 @@ function IncidentDetailView({ id }: { id: string }) {
               }
               if (mime === "application/pdf") {
                 return (
-                  <object
-                    data={`${previewUrl}#toolbar=0`}
-                    type="application/pdf"
-                    className="w-full h-full"
-                    data-testid="preview-pdf"
-                  >
-                    <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center">
-                      <FileText className="h-14 w-14 text-muted-foreground" />
-                      <p className="text-base font-medium">Unable to display PDF in your browser</p>
-                      <Button onClick={() => downloadIncidentDocument(previewDoc.id, previewDoc.fileName)}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download to View
-                      </Button>
-                    </div>
-                  </object>
+                  <PdfViewer url={previewUrl} data-testid="preview-pdf" />
                 );
               }
               if (mime.startsWith("image/")) {

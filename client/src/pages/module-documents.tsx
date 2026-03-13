@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
@@ -1917,7 +1918,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {document.fileUrl && (
+              {document.fileUrl && (document.mimeType === "application/pdf" || document.mimeType?.startsWith("image/")) && (
                 <Button 
                   variant="outline" 
                   className="w-full justify-start" 
@@ -2218,12 +2219,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       </Dialog>
 
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-4xl h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              {document?.title}
-              {previewVersion ? ` (v${previewVersion})` : ` (v${document?.version})`}
+        <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+          <DialogHeader className="px-5 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">
+                {document?.title}
+                {previewVersion ? ` (v${previewVersion})` : ` (v${document?.version})`}
+              </span>
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0">
@@ -2236,30 +2239,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 
                 if (mimeType === "application/pdf") {
                   return (
-                    <object
-                      data={`${previewUrl}#toolbar=0`}
-                      type="application/pdf"
-                      className="w-full h-full rounded-md border"
-                      data-testid="preview-object"
-                    >
-                      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                        <p className="text-lg font-medium">Unable to display PDF directly in your browser.</p>
-                        <p className="text-sm text-muted-foreground mt-1 mb-4">
-                          {document.fileName}
-                        </p>
-                        <Button
-                          onClick={() => {
-                            downloadDocument(id, document.fileName, previewVersion || undefined);
-                            setShowPreviewDialog(false);
-                          }}
-                          data-testid="button-download-from-blocked-preview"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Download to View
-                        </Button>
-                      </div>
-                    </object>
+                    <PdfViewer url={previewUrl} data-testid="preview-pdf" />
                   );
                 }
                 

@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1656,13 +1657,15 @@ export default function TemplateLibraryPage() {
               <DropdownMenuContent align="end">
                 {template.fileUrl && (
                   <>
-                    <DropdownMenuItem onClick={() => {
-                      setPreviewTemplate(template);
-                      setIsPreviewDialogOpen(true);
-                    }} data-testid={`button-preview-template-${template.id}`}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </DropdownMenuItem>
+                    {template.mimeType === "application/pdf" && (
+                      <DropdownMenuItem onClick={() => {
+                        setPreviewTemplate(template);
+                        setIsPreviewDialogOpen(true);
+                      }} data-testid={`button-preview-template-${template.id}`}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => downloadFile(template.fileUrl, template.fileName)} data-testid={`link-download-template-${template.id}`}>
                       <Download className="h-4 w-4 mr-2" />
                       Download
@@ -2395,42 +2398,22 @@ export default function TemplateLibraryPage() {
       
       {/* Template Preview Dialog */}
       <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              {previewTemplate?.name}
+        <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+          <DialogHeader className="px-5 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{previewTemplate?.name}</span>
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               {decodeURIComponent(previewTemplate?.fileName || "")} • {formatFileSize(previewTemplate?.fileSize || 0)}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-4">
-            {previewTemplate?.mimeType === "application/pdf" ? (
-              <iframe
-                src={previewTemplate.fileUrl || ""}
-                className="w-full h-[60vh] border rounded-md"
-                title="Document Preview"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-8 border rounded-md bg-muted/30 min-h-[300px]">
-                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium mb-2">Preview not available</p>
-                <p className="text-sm text-muted-foreground mb-6 text-center">
-                  {previewTemplate?.mimeType?.includes("word") || previewTemplate?.mimeType?.includes("document")
-                    ? "Word documents cannot be previewed in the browser."
-                    : previewTemplate?.mimeType?.includes("excel") || previewTemplate?.mimeType?.includes("spreadsheet")
-                    ? "Excel spreadsheets cannot be previewed in the browser."
-                    : "This file type cannot be previewed in the browser."}
-                </p>
-                <Button onClick={() => previewTemplate && downloadFile(previewTemplate.fileUrl, previewTemplate.fileName)} data-testid="button-preview-download">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download to View
-                </Button>
-              </div>
+          <div className="flex-1 min-h-0">
+            {previewTemplate?.fileUrl && (
+              <PdfViewer url={previewTemplate.fileUrl} />
             )}
           </div>
-          <DialogFooter>
+          <div className="px-5 py-3 border-t shrink-0 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)} data-testid="button-close-preview">
               Close
             </Button>
@@ -2438,7 +2421,7 @@ export default function TemplateLibraryPage() {
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
