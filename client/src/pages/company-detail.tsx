@@ -49,7 +49,19 @@ import {
   Globe,
   Plus,
 } from "lucide-react";
-import type { Company, SiteWithDetails, ComplianceSummary, User } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
+
+interface DocumentTemplate {
+  id: string;
+  name: string;
+  module: string;
+  visibility: "public" | "private";
+  isActive: boolean;
+  isRequired: boolean;
+  folderTemplateId: string | null;
+}
 
 interface CompanyModuleAccess {
   healthSafety: boolean;
@@ -250,6 +262,160 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
         {!isAdmin && (
           <p className="text-xs text-muted-foreground mt-4">
             Only administrators can modify module access.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const MODULE_MAP: Record<string, { key: keyof CompanyModuleAccess; label: string }> = {
+  health_safety: { key: "healthSafety", label: "Health & Safety" },
+  human_resources: { key: "humanResources", label: "Human Resources" },
+  employment_law: { key: "employmentLaw", label: "Employment Law" },
+};
+
+function RequiredDocumentsCard({ companyId }: { companyId: string }) {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const { data: moduleAccess } = useQuery<CompanyModuleAccess>({
+    queryKey: ["/api/companies", companyId, "module-access"],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${companyId}/module-access`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch module access");
+      return response.json();
+    },
+  });
+
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates"],
+  });
+
+  const { data: requiredTemplates = [], isLoading: requiredLoading } = useQuery<CompanyRequiredTemplate[]>({
+    queryKey: ["/api/companies", companyId, "required-templates"],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${companyId}/required-templates`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch required templates");
+      return response.json();
+    },
+  });
+
+  const [pendingIds, setPendingIds] = useState<Set<string> | null>(null);
+
+  const saveMutation = useMutation({
+    mutationFn: async (templateIds: string[]) => {
+      const response = await apiRequest("PUT", `/api/companies/${companyId}/required-templates`, { templateIds });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      setPendingIds(null);
+    },
+    onError: () => {
+      setPendingIds(null);
+      toast({ title: "Error", description: "Failed to save required documents.", variant: "destructive" });
+    },
+  });
+
+  const serverIds = new Set(requiredTemplates.map(rt => rt.templateId));
+  const requiredIds = pendingIds ?? serverIds;
+
+  const handleToggle = (templateId: string, checked: boolean) => {
+    const newIds = new Set(requiredIds);
+    if (checked) {
+      newIds.add(templateId);
+    } else {
+      newIds.delete(templateId);
+    }
+    setPendingIds(newIds);
+    saveMutation.mutate(Array.from(newIds));
+  };
+
+  const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => moduleAccess?.[key]);
+  const privateTemplates = templates.filter(t => t.visibility === "private" && t.isActive);
+
+  if (templatesLoading || requiredLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Required Documents</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (enabledModules.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Required Documents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No modules are enabled for this company.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Required Documents</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Select which documents are required for compliance at this company's sites.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue={defaultTab}>
+          <TabsList className="mb-4">
+            {enabledModules.map(([mod, { label }]) => (
+              <TabsTrigger key={mod} value={mod} data-testid={`tab-required-${mod}`}>{label}</TabsTrigger>
+            ))}
+          </TabsList>
+          {enabledModules.map(([mod, { label }]) => {
+            const moduleTemplates = privateTemplates.filter(t => t.module === mod);
+            return (
+              <TabsContent key={mod} value={mod}>
+                {moduleTemplates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">
+                    No private templates available for {label}.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {moduleTemplates.map(template => (
+                      <div key={template.id} className="flex items-center gap-3">
+                        <Checkbox
+                          id={`req-${template.id}`}
+                          checked={requiredIds.has(template.id)}
+                          onCheckedChange={(checked) => handleToggle(template.id, !!checked)}
+                          disabled={!isAdmin || saveMutation.isPending}
+                          data-testid={`checkbox-required-${template.id}`}
+                        />
+                        <label
+                          htmlFor={`req-${template.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {template.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+        {!isAdmin && (
+          <p className="text-xs text-muted-foreground mt-4">
+            Only administrators can modify required documents.
           </p>
         )}
       </CardContent>
@@ -825,6 +991,8 @@ export default function CompanyDetail() {
       </div>
 
       <ModuleAccessCard companyId={companyId!} />
+
+      {isAdmin && <RequiredDocumentsCard companyId={companyId!} />}
 
       <div>
         <div className="flex items-center justify-between mb-4">

@@ -46,6 +46,8 @@ import {
   type Feedback, type InsertFeedback,
   type FeedbackComment, type InsertFeedbackComment,
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
+  type CompanyRequiredTemplate, type InsertCompanyRequiredTemplate,
+  companyRequiredTemplates as companyRequiredTemplatesTable,
   type ClientUploadFolder, type InsertClientUploadFolder,
   type ClientUploadFolderAccess, type InsertClientUploadFolderAccess,
   type ClientUpload, type InsertClientUpload,
@@ -376,6 +378,10 @@ export interface IStorage {
   deleteUserInvitation(id: string): Promise<boolean>;
   invalidateUserInvitations(userId: string, purpose?: InvitationPurpose): Promise<void>;
   getUserByEmail(email: string): Promise<User | undefined>;
+
+  // Company Required Templates
+  getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]>;
+  setCompanyRequiredTemplates(companyId: string, templateIds: string[], createdBy: string): Promise<CompanyRequiredTemplate[]>;
 
   // Client Upload Folders
   // Extended types used by client upload methods
@@ -709,13 +715,30 @@ export class MemStorage implements IStorage {
       .where(and(
         eq(documentsTable.siteId, siteId), 
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId) // Exclude case documents from metrics
+        isNull(documentsTable.caseId)
       ));
     const docs = allDocs;
-    const total = docs.length;
+
+    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+    let missingRequired = 0;
+    if (site?.companyId) {
+      const requiredTemplates = await this.getCompanyRequiredTemplates(site.companyId);
+      if (requiredTemplates.length > 0) {
+        const templates = await db.select().from(documentTemplatesTable)
+          .where(eq(documentTemplatesTable.isActive, true));
+        const templateMap = new Map(templates.map(t => [t.id, t]));
+        const uploadedTemplateIds = new Set(docs.map(d => d.templateId).filter(Boolean));
+        missingRequired = requiredTemplates.filter(rt => {
+          const tmpl = templateMap.get(rt.templateId);
+          return tmpl && tmpl.visibility === "private" && !uploadedTemplateIds.has(rt.templateId);
+        }).length;
+      }
+    }
+
+    const total = docs.length + missingRequired;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length;
+    const overdue = docs.filter(d => d.status === "overdue").length + missingRequired;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
@@ -3417,6 +3440,26 @@ export class MemStorage implements IStorage {
     }
 
     return fileCount;
+  }
+
+  async getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]> {
+    return db.select().from(companyRequiredTemplatesTable)
+      .where(eq(companyRequiredTemplatesTable.companyId, companyId));
+  }
+
+  async setCompanyRequiredTemplates(companyId: string, templateIds: string[], createdBy: string): Promise<CompanyRequiredTemplate[]> {
+    await db.delete(companyRequiredTemplatesTable)
+      .where(eq(companyRequiredTemplatesTable.companyId, companyId));
+
+    if (templateIds.length === 0) return [];
+
+    const values = templateIds.map(templateId => ({
+      companyId,
+      templateId,
+      createdBy,
+    }));
+
+    return db.insert(companyRequiredTemplatesTable).values(values).returning();
   }
 
   // Initialize default admin user in database if not exists

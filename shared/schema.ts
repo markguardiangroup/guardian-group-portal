@@ -1423,6 +1423,19 @@ export const feedbackReads = pgTable("feedback_reads", {
 
 export type FeedbackRead = typeof feedbackReads.$inferSelect;
 
+// Company Required Templates (which templates are required per company for compliance)
+export const companyRequiredTemplates = pgTable("company_required_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  templateId: varchar("template_id").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCompanyRequiredTemplateSchema = createInsertSchema(companyRequiredTemplates).omit({ id: true, createdAt: true });
+export type InsertCompanyRequiredTemplate = z.infer<typeof insertCompanyRequiredTemplateSchema>;
+export type CompanyRequiredTemplate = typeof companyRequiredTemplates.$inferSelect;
+
 // Toolkit Template Downloads (track when users download templates)
 export const toolkitDownloads = pgTable("toolkit_downloads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
