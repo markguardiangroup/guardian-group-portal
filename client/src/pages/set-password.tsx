@@ -69,10 +69,9 @@ export default function SetPassword() {
   });
 
   const isInvite = validation?.purpose === "invite";
-  const isClientUser = validation?.role === "client";
   const termsAvailable = termsInfo?.exists === true;
   const privacyAvailable = privacyInfo?.exists === true;
-  const legalAcceptanceRequired = isInvite && isClientUser && (termsAvailable || privacyAvailable);
+  const legalAcceptanceRequired = isInvite && (termsAvailable || privacyAvailable);
   const legalAccepted = (!termsAvailable || acceptedTerms) && (!privacyAvailable || acceptedPrivacy);
 
   const acceptMutation = useMutation({

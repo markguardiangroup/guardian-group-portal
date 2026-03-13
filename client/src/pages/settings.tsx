@@ -297,20 +297,18 @@ export default function Settings() {
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
-          {user?.role === "client" && (
-            <TabsTrigger value="legal-client" className="gap-2" data-testid="tab-legal-client">
-              <FileText className="h-4 w-4" />
-              Legal Documents
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="legal-client" className="gap-2" data-testid="tab-legal-client">
+            <FileText className="h-4 w-4" />
+            Legal Documents
+          </TabsTrigger>
           <TabsTrigger value="permissions" className="gap-2" data-testid="tab-permissions">
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
           {user?.role === "admin" && (
             <TabsTrigger value="legal" className="gap-2" data-testid="tab-legal">
-              <FileText className="h-4 w-4" />
-              Legal Documents
+              <Upload className="h-4 w-4" />
+              Manage Docs
             </TabsTrigger>
           )}
         </TabsList>
@@ -898,11 +896,9 @@ export default function Settings() {
           </div>
         </TabsContent>
 
-        {user?.role === "client" && (
-          <TabsContent value="legal-client">
-            <LegalClientTab />
-          </TabsContent>
-        )}
+        <TabsContent value="legal-client">
+          <LegalClientTab />
+        </TabsContent>
 
         {user?.role === "admin" && (
           <TabsContent value="legal">

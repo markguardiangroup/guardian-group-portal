@@ -390,16 +390,14 @@ export async function registerRoutes(
       }
     }
 
-    // Check if client user needs to re-accept legal documents
+    // Check if user needs to re-accept legal documents (applies to all roles)
     let legalAcceptanceRequired = false;
-    if (user.role === "client") {
-      const latestRevision = await getLatestLegalRevisionDate();
-      if (latestRevision) {
-        if (!user.legalAcceptedAt) {
-          legalAcceptanceRequired = true;
-        } else {
-          legalAcceptanceRequired = new Date(user.legalAcceptedAt) < latestRevision;
-        }
+    const latestRevision = await getLatestLegalRevisionDate();
+    if (latestRevision) {
+      if (!user.legalAcceptedAt) {
+        legalAcceptanceRequired = true;
+      } else {
+        legalAcceptanceRequired = new Date(user.legalAcceptedAt) < latestRevision;
       }
     }
 
@@ -505,10 +503,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
       }
 
-      // For new client user invitations, enforce legal document acceptance server-side
-      // Admin and consultant users are not required to accept legal documents
+      // For all new user invitations, enforce legal document acceptance server-side
       const invitedUser = await storage.getUser(invitation.userId);
-      if (invitation.purpose === "invite" && invitedUser?.role === "client") {
+      if (invitation.purpose === "invite") {
         const objectStorageService = new ObjectStorageService();
         const privateObjectDir = objectStorageService.getPrivateObjectDir();
 
