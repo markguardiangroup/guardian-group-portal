@@ -11,6 +11,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteFilterProvider } from "@/hooks/use-site-filter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -290,20 +291,7 @@ function LegalAcceptanceScreen() {
             </DialogHeader>
             <div className="flex-1 w-full bg-white min-h-0 relative">
               {previewDoc && (
-                <object
-                  data={`/api/legal-documents/${previewDoc}/view#toolbar=0`}
-                  type="application/pdf"
-                  className="w-full h-full"
-                >
-                  <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-                    <p className="mb-4">Unable to display PDF directly in your browser.</p>
-                    <Button 
-                      onClick={() => window.open(`/api/legal-documents/${previewDoc}/view`, "_blank")}
-                    >
-                      Open in New Tab
-                    </Button>
-                  </div>
-                </object>
+                <PdfViewer url={`/api/legal-documents/${previewDoc}/view`} />
               )}
             </div>
             <DialogFooter className="p-4 border-t">
