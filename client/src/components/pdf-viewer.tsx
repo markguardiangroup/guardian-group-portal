@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as pdfjsLib from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
@@ -15,10 +16,16 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
 
   const renderPdf = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     setError(false);
+
+    if (pdfDocRef.current) {
+      pdfDocRef.current.destroy();
+      pdfDocRef.current = null;
+    }
 
     try {
       const response = await fetch(url, { credentials: "include", signal });
@@ -33,6 +40,8 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
         return;
       }
 
+      pdfDocRef.current = pdfDoc;
+
       const container = containerRef.current;
       if (!container) return;
       container.innerHTML = "";
@@ -43,6 +52,7 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       for (let i = 1; i <= pdfDoc.numPages; i++) {
         if (signal.aborted) {
           pdfDoc.destroy();
+          pdfDocRef.current = null;
           return;
         }
         const page = await pdfDoc.getPage(i);
@@ -65,14 +75,16 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
         await page.render({ canvasContext: ctx, viewport }).promise;
         if (signal.aborted) {
           pdfDoc.destroy();
+          pdfDocRef.current = null;
           return;
         }
         container.appendChild(canvas);
       }
 
       setLoading(false);
-    } catch (err: any) {
-      if (err?.name === "AbortError" || signal.aborted) return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (signal.aborted) return;
       console.error("PdfViewer render error:", err);
       setError(true);
       setLoading(false);
@@ -84,6 +96,10 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
     renderPdf(controller.signal);
     return () => {
       controller.abort();
+      if (pdfDocRef.current) {
+        pdfDocRef.current.destroy();
+        pdfDocRef.current = null;
+      }
     };
   }, [renderPdf]);
 
