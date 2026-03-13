@@ -293,12 +293,6 @@ export default function Settings() {
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
-          {user?.role === "admin" && (
-            <TabsTrigger value="legal" className="gap-2" data-testid="tab-legal">
-              <Upload className="h-4 w-4" />
-              Manage Docs
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -885,14 +879,11 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="legal-client">
-          <LegalClientTab />
+          <div className="space-y-6">
+            <LegalClientTab />
+            {user?.role === "admin" && <LegalDocumentsTab />}
+          </div>
         </TabsContent>
-
-        {user?.role === "admin" && (
-          <TabsContent value="legal">
-            <LegalDocumentsTab />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );
