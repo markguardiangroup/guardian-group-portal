@@ -345,13 +345,16 @@ export default function Companies() {
       return response.json();
     },
     onSuccess: () => {
-      if (createdCompanyId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/companies", createdCompanyId, "required-templates"] });
+      const companyId = createdCompanyId;
+      if (companyId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
       }
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Required documents saved" });
       setIsRequiredDocsOpen(false);
       setCreatedCompanyId(null);
       setSelectedRequiredIds(new Set());
+      if (companyId) navigate(`/companies/${companyId}`);
     },
     onError: () => {
       toast({ title: "Failed to save required documents", variant: "destructive" });
@@ -359,9 +362,11 @@ export default function Companies() {
   });
 
   const handleSkipRequiredDocs = () => {
+    const companyId = createdCompanyId;
     setIsRequiredDocsOpen(false);
     setCreatedCompanyId(null);
     setSelectedRequiredIds(new Set());
+    if (companyId) navigate(`/companies/${companyId}`);
   };
 
   const handleSaveRequiredDocs = () => {
