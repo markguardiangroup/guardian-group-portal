@@ -1199,7 +1199,7 @@ export default function Companies() {
             </Button>
             <Button
               onClick={handleSaveRequiredDocs}
-              disabled={saveRequiredDocsMutation.isPending || selectedRequiredIds.size === 0}
+              disabled={saveRequiredDocsMutation.isPending}
               data-testid="button-save-required-docs"
             >
               {saveRequiredDocsMutation.isPending ? "Saving..." : "Save & Finish"}
