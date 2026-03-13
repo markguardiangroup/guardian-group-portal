@@ -49,6 +49,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Info } from "lucide-react";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User } from "@shared/schema";
 
 function CompanyCard({ 
@@ -199,6 +202,9 @@ export default function Companies() {
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
+  const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
+  const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
   const [myAssignedOnly, setMyAssignedOnly] = useState(false);
   const [siteData, setSiteData] = useState({
     name: "",
@@ -248,7 +254,7 @@ export default function Companies() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Company and site created successfully" });
@@ -264,6 +270,11 @@ export default function Companies() {
         postalCode: "",
         country: "",
       });
+      if (data?.id) {
+        setCreatedCompanyId(data.id);
+        setSelectedRequiredIds(new Set());
+        setIsRequiredDocsOpen(true);
+      }
     },
     onError: () => {
       toast({ title: "Failed to create company", variant: "destructive" });
@@ -303,6 +314,69 @@ export default function Companies() {
       toast({ title: "Failed to delete company", variant: "destructive" });
     },
   });
+
+  interface DocumentTemplate {
+    id: string;
+    name: string;
+    module: string;
+    visibility: "public" | "private";
+    isActive: boolean;
+    requiresApproval?: boolean;
+  }
+
+  const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates"],
+    enabled: isRequiredDocsOpen,
+  });
+
+  const { data: newCompanyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
+    queryKey: ["/api/companies", createdCompanyId, "module-access"],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/${createdCompanyId}/module-access`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch module access");
+      return response.json();
+    },
+    enabled: isRequiredDocsOpen && !!createdCompanyId,
+  });
+
+  const saveRequiredDocsMutation = useMutation({
+    mutationFn: async ({ companyId, templateIds }: { companyId: string; templateIds: string[] }) => {
+      const response = await apiRequest("PUT", `/api/companies/${companyId}/required-templates`, { templateIds });
+      return response.json();
+    },
+    onSuccess: () => {
+      if (createdCompanyId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", createdCompanyId, "required-templates"] });
+      }
+      toast({ title: "Required documents saved" });
+      setIsRequiredDocsOpen(false);
+      setCreatedCompanyId(null);
+      setSelectedRequiredIds(new Set());
+    },
+    onError: () => {
+      toast({ title: "Failed to save required documents", variant: "destructive" });
+    },
+  });
+
+  const handleSkipRequiredDocs = () => {
+    setIsRequiredDocsOpen(false);
+    setCreatedCompanyId(null);
+    setSelectedRequiredIds(new Set());
+  };
+
+  const handleSaveRequiredDocs = () => {
+    if (!createdCompanyId) return;
+    saveRequiredDocsMutation.mutate({
+      companyId: createdCompanyId,
+      templateIds: Array.from(selectedRequiredIds),
+    });
+  };
+
+  const MODULE_MAP: Record<string, { key: "healthSafety" | "humanResources" | "employmentLaw"; label: string }> = {
+    health_safety: { key: "healthSafety", label: "Health & Safety" },
+    human_resources: { key: "humanResources", label: "Human Resources" },
+    employment_law: { key: "employmentLaw", label: "Employment Law" },
+  };
 
   const resetForm = () => {
     setFormData({
@@ -1030,6 +1104,100 @@ export default function Companies() {
               data-testid="button-create-first-site"
             >
               {createCompanyWithSiteMutation.isPending ? "Creating..." : "Create Company & Site"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isRequiredDocsOpen} onOpenChange={(open) => {
+        if (!open) handleSkipRequiredDocs();
+      }}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Set Required Documents
+            </DialogTitle>
+            <DialogDescription>
+              Select which documents are required for compliance at this company's sites.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border bg-muted/50 p-3 flex gap-2">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              Any templates ticked here will affect the company's compliance score. You can change these at any time from the company details page.
+            </p>
+          </div>
+          {(() => {
+            const privateTemplates = allTemplates.filter(t => t.visibility === "private" && t.isActive);
+            const allModulesDisabled = newCompanyModuleAccess && !newCompanyModuleAccess.healthSafety && !newCompanyModuleAccess.humanResources && !newCompanyModuleAccess.employmentLaw;
+            const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => 
+              !newCompanyModuleAccess || allModulesDisabled || newCompanyModuleAccess[key]
+            );
+            if (enabledModules.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
+              );
+            }
+            const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
+            return (
+              <Tabs defaultValue={defaultTab}>
+                <TabsList className="mb-4">
+                  {enabledModules.map(([mod, { label }]) => (
+                    <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-required-${mod}`}>{label}</TabsTrigger>
+                  ))}
+                </TabsList>
+                {enabledModules.map(([mod, { label }]) => {
+                  const moduleTemplates = privateTemplates.filter(t => t.module === mod);
+                  return (
+                    <TabsContent key={mod} value={mod}>
+                      {moduleTemplates.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4">
+                          No private templates available for {label}.
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          {moduleTemplates.map(template => (
+                            <div key={template.id} className="flex items-center gap-3">
+                              <Checkbox
+                                id={`wizard-req-${template.id}`}
+                                checked={selectedRequiredIds.has(template.id)}
+                                onCheckedChange={(checked) => {
+                                  const newIds = new Set(selectedRequiredIds);
+                                  if (checked) { newIds.add(template.id); } else { newIds.delete(template.id); }
+                                  setSelectedRequiredIds(newIds);
+                                }}
+                                data-testid={`checkbox-wizard-required-${template.id}`}
+                              />
+                              <label
+                                htmlFor={`wizard-req-${template.id}`}
+                                className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                              >
+                                {template.name}
+                                {template.requiresApproval && (
+                                  <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                )}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            );
+          })()}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleSkipRequiredDocs} data-testid="button-skip-required-docs">
+              Skip
+            </Button>
+            <Button
+              onClick={handleSaveRequiredDocs}
+              disabled={saveRequiredDocsMutation.isPending || selectedRequiredIds.size === 0}
+              data-testid="button-save-required-docs"
+            >
+              {saveRequiredDocsMutation.isPending ? "Saving..." : "Save & Finish"}
             </Button>
           </DialogFooter>
         </DialogContent>
