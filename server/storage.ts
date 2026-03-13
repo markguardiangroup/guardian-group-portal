@@ -727,11 +727,18 @@ export class MemStorage implements IStorage {
         const templates = await db.select().from(documentTemplatesTable)
           .where(eq(documentTemplatesTable.isActive, true));
         const templateMap = new Map(templates.map(t => [t.id, t]));
-        const uploadedTemplateIds = new Set(docs.map(d => d.templateId).filter(Boolean));
-        missingRequired = requiredTemplates.filter(rt => {
+        for (const rt of requiredTemplates) {
           const tmpl = templateMap.get(rt.templateId);
-          return tmpl && tmpl.visibility === "private" && !uploadedTemplateIds.has(rt.templateId);
-        }).length;
+          if (!tmpl || tmpl.visibility !== "private") continue;
+          const matchingDocs = docs.filter(d => d.templateId === rt.templateId);
+          const isFulfilled = matchingDocs.some(d => {
+            if (d.status !== "compliant") return false;
+            if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+            if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+            return true;
+          });
+          if (!isFulfilled) missingRequired++;
+        }
       }
     }
 
@@ -1032,10 +1039,48 @@ export class MemStorage implements IStorage {
       const companySiteIds = companySites.map(s => s.id);
       docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
     }
-    const total = docs.length;
+    // Calculate missing required templates
+    let missingRequired = 0;
+    const relevantSiteIds = siteId 
+      ? [siteId]
+      : companyId 
+        ? (await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId))).map(s => s.id)
+        : (await db.select().from(sitesTable)).map(s => s.id);
+    
+    const allTemplates = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true));
+    const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+    const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
+    const siteList = await db.select().from(sitesTable);
+    const siteMap = new Map(siteList.map(s => [s.id, s]));
+    
+    for (const sid of relevantSiteIds) {
+      const site = siteMap.get(sid);
+      if (!site?.companyId) continue;
+      if (!companyReqCache.has(site.companyId)) {
+        companyReqCache.set(site.companyId, await this.getCompanyRequiredTemplates(site.companyId));
+      }
+      const requiredTemplates = companyReqCache.get(site.companyId)!;
+      const siteDocs = docs.filter(d => d.siteId === sid);
+      for (const rt of requiredTemplates) {
+        const tmpl = templateMap.get(rt.templateId);
+        if (!tmpl || tmpl.visibility !== "private") continue;
+        if (module && tmpl.module !== module) continue;
+        if (!module && tmpl.module === "training") continue;
+        const isFulfilled = siteDocs.some(d => {
+          if (d.templateId !== rt.templateId) return false;
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
+        if (!isFulfilled) missingRequired++;
+      }
+    }
+
+    const total = docs.length + missingRequired;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length;
+    const overdue = docs.filter(d => d.status === "overdue").length + missingRequired;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {

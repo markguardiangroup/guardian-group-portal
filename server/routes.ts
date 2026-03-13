@@ -904,11 +904,18 @@ export async function registerRoutes(
           }
           const requiredTemplates = companyRequiredCache.get(site.companyId)!;
           const siteDocs = allDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-          const uploadedTemplateIds = new Set(siteDocs.map(d => d.templateId).filter(Boolean));
-          missingRequiredCount += requiredTemplates.filter(rt => {
+          for (const rt of requiredTemplates) {
             const tmpl = templateMap.get(rt.templateId);
-            return tmpl && tmpl.module === module && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds.has(rt.templateId);
-          }).length;
+            if (!tmpl || tmpl.module !== module || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+            const isFulfilled = siteDocs.some(d => {
+              if (d.templateId !== rt.templateId) return false;
+              if (d.status !== "compliant") return false;
+              if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+              if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+              return true;
+            });
+            if (!isFulfilled) missingRequiredCount++;
+          }
         }
       }
 
@@ -1044,7 +1051,7 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
-      // Calculate missing required templates for this module across all accessible sites
+      // Calculate missing required templates across all accessible sites
       let missingRequiredCount2 = 0;
       {
         const allSites2 = await storage.getSites();
@@ -1061,11 +1068,18 @@ export async function registerRoutes(
           }
           const requiredTemplates2 = companyRequiredCache2.get(site.companyId)!;
           const siteDocs2 = allModuleDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-          const uploadedTemplateIds2 = new Set(siteDocs2.map(d => d.templateId).filter(Boolean));
-          missingRequiredCount2 += requiredTemplates2.filter(rt => {
+          for (const rt of requiredTemplates2) {
             const tmpl = templateMap2.get(rt.templateId);
-            return tmpl && (!module || tmpl.module === module) && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds2.has(rt.templateId);
-          }).length;
+            if (!tmpl || (!module ? false : tmpl.module !== module) || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+            const isFulfilled = siteDocs2.some(d => {
+              if (d.templateId !== rt.templateId) return false;
+              if (d.status !== "compliant") return false;
+              if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+              if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+              return true;
+            });
+            if (!isFulfilled) missingRequiredCount2++;
+          }
         }
       }
 
