@@ -890,6 +890,92 @@ export async function registerRoutes(
     return missing;
   }
 
+  interface MissingRequiredTemplateDetail {
+    templateId: string;
+    templateName: string;
+    module: string;
+    requiresApproval: boolean;
+    siteId: string;
+    siteName: string;
+    companyId: string;
+    companyName: string;
+  }
+
+  async function getMissingRequiredTemplateDetails(
+    user: any,
+    module: ModuleType | undefined,
+    siteFilter?: { siteId?: string; siteIds?: string }
+  ): Promise<MissingRequiredTemplateDetail[]> {
+    const results: MissingRequiredTemplateDetail[] = [];
+    const sites = await storage.getSites();
+    const templates = await storage.getDocumentTemplates();
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+    const docs = await storage.getDocuments(module);
+    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+    const companies = await storage.getCompanies();
+    const companyMap = new Map(companies.map(c => [c.id, c]));
+
+    for (const site of sites) {
+      if (!site.companyId) continue;
+      const canAccess = await canUserAccessSite(user, site.id);
+      if (!canAccess) continue;
+      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
+      if (siteFilter?.siteIds) {
+        const ids = siteFilter.siteIds.split(",");
+        if (!ids.includes(site.id)) continue;
+      }
+      if (!companyReqCache.has(site.companyId)) {
+        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+      }
+      const required = companyReqCache.get(site.companyId)!;
+      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      const company = companyMap.get(site.companyId);
+      for (const rt of required) {
+        const tmpl = templateMap.get(rt.templateId);
+        if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+        if (module && tmpl.module !== module) continue;
+        if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
+        const isFulfilled = siteDocs.some(d => {
+          if (d.templateId !== rt.templateId) return false;
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
+        if (!isFulfilled) {
+          results.push({
+            templateId: rt.templateId,
+            templateName: tmpl.name,
+            module: tmpl.module,
+            requiresApproval: tmpl.requiresApproval || false,
+            siteId: site.id,
+            siteName: site.name,
+            companyId: site.companyId,
+            companyName: company?.name || "Unknown",
+          });
+        }
+      }
+    }
+    return results;
+  }
+
+  app.get("/api/missing-required-templates", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      const module = req.query.module as ModuleType | undefined;
+      const siteId = req.query.siteId as string | undefined;
+      const siteIds = req.query.siteIds as string | undefined;
+      const details = await getMissingRequiredTemplateDetails(user, module, { siteId, siteIds });
+      res.json(details);
+    } catch (error) {
+      console.error("Error fetching missing required templates:", error);
+      res.status(500).json({ error: "Failed to fetch missing required templates" });
+    }
+  });
+
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
@@ -937,7 +1023,8 @@ export async function registerRoutes(
       const totalDocuments = documents.length + missingRequiredCount;
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const missingRequiredDocuments = missingRequiredCount;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
@@ -987,6 +1074,7 @@ export async function registerRoutes(
         compliantDocuments,
         reviewRequired,
         overdueDocuments,
+        missingRequiredDocuments,
         pendingApprovals,
         awaitingYourApproval,
         awaitingOthersApproval,
@@ -1072,7 +1160,8 @@ export async function registerRoutes(
       const totalDocuments = documents.length + missingRequiredCount;
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const missingRequiredDocuments = missingRequiredCount;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
@@ -1122,6 +1211,7 @@ export async function registerRoutes(
         compliantDocuments,
         reviewRequired,
         overdueDocuments,
+        missingRequiredDocuments,
         pendingApprovals,
         awaitingYourApproval,
         awaitingOthersApproval,

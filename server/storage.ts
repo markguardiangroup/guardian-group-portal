@@ -745,7 +745,7 @@ export class MemStorage implements IStorage {
     const total = docs.length + missingRequired;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length + missingRequired;
+    const overdue = docs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
@@ -753,6 +753,7 @@ export class MemStorage implements IStorage {
       compliantDocuments: compliant,
       reviewRequired: review,
       overdueDocuments: overdue,
+      missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
@@ -1080,7 +1081,7 @@ export class MemStorage implements IStorage {
     const total = docs.length + missingRequired;
     const compliant = docs.filter(d => d.status === "compliant").length;
     const review = docs.filter(d => d.status === "review_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length + missingRequired;
+    const overdue = docs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
@@ -1088,6 +1089,7 @@ export class MemStorage implements IStorage {
       compliantDocuments: compliant,
       reviewRequired: review,
       overdueDocuments: overdue,
+      missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
@@ -1149,6 +1151,7 @@ export class MemStorage implements IStorage {
         compliantDocuments: compliant,
         reviewRequired: review,
         overdueDocuments: overdue,
+        missingRequiredDocuments: 0,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,

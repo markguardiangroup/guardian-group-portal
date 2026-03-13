@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { 
@@ -26,6 +28,7 @@ import {
   BookOpen,
   Award,
   Briefcase,
+  FileQuestion,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
@@ -125,7 +128,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           />
         </div>
         
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className={`grid gap-4 text-center ${(summary.missingRequiredDocuments || 0) > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
@@ -147,6 +150,15 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
             </div>
             <p className="text-xs text-muted-foreground">Overdue</p>
           </div>
+          {(summary.missingRequiredDocuments || 0) > 0 && (
+            <div>
+              <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                <FileQuestion className="h-4 w-4" />
+                <span className="text-lg font-semibold">{summary.missingRequiredDocuments}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Missing</p>
+            </div>
+          )}
         </div>
 
         <Button className={`w-full mt-auto ${buttonClass}`} variant="outline" asChild>
@@ -415,29 +427,61 @@ interface SiteComplianceSummary {
   compliantDocuments: number;
   reviewRequired: number;
   overdueDocuments: number;
+  missingRequiredDocuments?: number;
   complianceScore: number;
   pendingApprovals?: number;
   awaitingYourApproval?: number;
   awaitingOthersApproval?: number;
 }
 
+interface MissingRequiredTemplateDetail {
+  templateId: string;
+  templateName: string;
+  module: string;
+  requiresApproval: boolean;
+  siteId: string;
+  siteName: string;
+  companyId: string;
+  companyName: string;
+}
+
 function OverallComplianceCard({ 
   summaries, 
-  siteComplianceSummary 
+  siteComplianceSummary,
+  missingRequiredDetails,
+  isMissingLoading,
 }: { 
   summaries: ModuleSummary[];
   siteComplianceSummary?: SiteComplianceSummary | null;
+  missingRequiredDetails?: MissingRequiredTemplateDetail[];
+  isMissingLoading?: boolean;
 }) {
-  // Use site compliance summary if available (more accurate, includes all document types)
-  // Otherwise fall back to aggregating module summaries
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
   const totalDocs = siteComplianceSummary?.totalDocuments ?? summaries.reduce((acc, s) => acc + s.totalDocuments, 0);
   const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
   const reviewDocs = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
+  const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
   const pendingApprovals = siteComplianceSummary?.pendingApprovals ?? summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
   const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
   const awaitingOthersApproval = siteComplianceSummary?.awaitingOthersApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
   const overallScore = siteComplianceSummary?.complianceScore ?? (totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 0);
+
+  const moduleLabels: Record<string, string> = {
+    health_safety: "Health & Safety",
+    human_resources: "Human Resources",
+    employment_law: "Employment Law",
+  };
+
+  const groupedMissing = useMemo(() => {
+    if (!missingRequiredDetails) return {};
+    const groups: Record<string, MissingRequiredTemplateDetail[]> = {};
+    for (const item of missingRequiredDetails) {
+      if (!groups[item.module]) groups[item.module] = [];
+      groups[item.module].push(item);
+    }
+    return groups;
+  }, [missingRequiredDetails]);
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -512,6 +556,74 @@ function OverallComplianceCard({
             <p className="text-xs text-muted-foreground">Overdue</p>
           </div>
         </div>
+
+        {missingDocs > 0 && (
+          <button
+            onClick={() => setShowMissingDialog(true)}
+            className="w-full rounded-md bg-orange-500/10 border border-orange-500/20 p-3 text-center cursor-pointer hover:bg-orange-500/15 transition-colors"
+            data-testid="button-missing-required"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FileQuestion className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <span className="text-lg font-semibold text-orange-600 dark:text-orange-400">{missingDocs}</span>
+              <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                required document{missingDocs > 1 ? "s" : ""} missing
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Click to view details</p>
+          </button>
+        )}
+
+        <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-missing-required">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileQuestion className="h-5 w-5 text-orange-500" />
+                Missing Required Documents
+              </DialogTitle>
+            </DialogHeader>
+            {isMissingLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : Object.keys(groupedMissing).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No missing required documents found.</p>
+            ) : (
+              <Tabs defaultValue={Object.keys(groupedMissing)[0]} className="w-full">
+                <TabsList className="w-full">
+                  {Object.keys(groupedMissing).map(mod => (
+                    <TabsTrigger key={mod} value={mod} className="flex-1 text-xs" data-testid={`tab-missing-${mod}`}>
+                      {moduleLabels[mod] || mod} ({groupedMissing[mod].length})
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {Object.entries(groupedMissing).map(([mod, items]) => (
+                  <TabsContent key={mod} value={mod} className="mt-4 space-y-2">
+                    {items.map((item, idx) => (
+                      <div
+                        key={`${item.templateId}-${item.siteId}-${idx}`}
+                        className="flex items-center justify-between rounded-md border p-3"
+                        data-testid={`row-missing-${item.templateId}-${item.siteId}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.templateName}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {item.siteName} — {item.companyName}
+                          </p>
+                        </div>
+                        {item.requiresApproval && (
+                          <Badge variant="outline" className="ml-2 shrink-0 text-xs">Approval Required</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {(awaitingYourApproval > 0 || awaitingOthersApproval > 0) && (
           <div className="space-y-2">
@@ -665,6 +777,20 @@ export default function Dashboard() {
     },
   });
   
+  const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
+    queryKey: ["/api/missing-required-templates", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      let url = "/api/missing-required-templates";
+      const params: string[] = [];
+      if (siteId) params.push(`siteId=${siteId}`);
+      else if (companySiteIds && companySiteIds.length > 0) params.push(`siteIds=${companySiteIds.join(",")}`);
+      if (params.length > 0) url += `?${params.join("&")}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch missing required templates");
+      return res.json();
+    },
+  });
+
   // Calculate renewal metrics across all documents
   const renewalMetrics = useMemo(() => {
     if (!allDocuments) return { overdue: 0, due30Days: 0, due60Days: 0, upcomingRenewals: [] as Document[] };
@@ -747,6 +873,7 @@ export default function Dashboard() {
         acc.compliantDocuments += summary.compliantDocuments || 0;
         acc.reviewRequired += summary.reviewRequired || 0;
         acc.overdueDocuments += summary.overdueDocuments || 0;
+        acc.missingRequiredDocuments += (summary as any).missingRequiredDocuments || 0;
         acc.pendingApprovals += summary.pendingApprovals || 0;
       }
       return acc;
@@ -755,6 +882,7 @@ export default function Dashboard() {
       compliantDocuments: 0, 
       reviewRequired: 0, 
       overdueDocuments: 0, 
+      missingRequiredDocuments: 0,
       pendingApprovals: 0,
       complianceScore: 0,
     });
@@ -846,6 +974,8 @@ export default function Dashboard() {
       <OverallComplianceCard 
         summaries={complianceSummaries} 
         siteComplianceSummary={selectedSiteComplianceSummary || aggregatedComplianceSummary}
+        missingRequiredDetails={missingRequiredDetails}
+        isMissingLoading={isMissingLoading}
       />
 
       {/* Renewal Compliance Section */}

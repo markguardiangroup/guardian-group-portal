@@ -17,6 +17,7 @@ import {
   HardHat,
   Users,
   Building2,
+  FileQuestion,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -287,6 +288,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     compliantDocuments: 0,
     reviewRequired: 0,
     overdueDocuments: 0,
+    missingRequiredDocuments: 0,
     pendingApprovals: 0,
     complianceScore: 0,
   };
@@ -396,6 +398,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               variant="danger"
               testId="card-module-overdue"
             />
+            {(summary.missingRequiredDocuments || 0) > 0 && (
+              <MetricCard
+                title="Missing Required"
+                value={summary.missingRequiredDocuments}
+                description="Not yet uploaded"
+                icon={FileQuestion}
+                variant="warning"
+                testId="card-module-missing"
+              />
+            )}
           </>
         )}
       </div>

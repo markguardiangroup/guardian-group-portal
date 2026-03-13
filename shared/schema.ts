@@ -859,6 +859,7 @@ export interface ComplianceSummary {
   compliantDocuments: number;
   reviewRequired: number;
   overdueDocuments: number;
+  missingRequiredDocuments: number;
   pendingApprovals: number;
   awaitingYourApproval: number;
   awaitingOthersApproval: number;
