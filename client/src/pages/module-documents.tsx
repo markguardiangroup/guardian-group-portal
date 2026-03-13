@@ -560,12 +560,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </div>
             )}
             
-            <Button className={`${moduleBgColors[module]} ${moduleColors[module]} border ${moduleBorderColors[module]} hover:opacity-90`} asChild>
-              <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Document
-              </Link>
-            </Button>
+            {isPrivilegedUser && (
+              <Button className={`${moduleBgColors[module]} ${moduleColors[module]} border ${moduleBorderColors[module]} hover:opacity-90`} asChild>
+                <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -762,12 +764,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                           ) : (
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
-                                              <Button variant="ghost" size="sm" asChild className="mt-1">
-                                                <Link href={`${basePath}/documents/upload`}>
-                                                  <Upload className="mr-2 h-3 w-3" />
-                                                  Upload
-                                                </Link>
-                                              </Button>
+                                              {isPrivilegedUser && (
+                                                <Button variant="ghost" size="sm" asChild className="mt-1">
+                                                  <Link href={`${basePath}/documents/upload`}>
+                                                    <Upload className="mr-2 h-3 w-3" />
+                                                    Upload
+                                                  </Link>
+                                                </Button>
+                                              )}
                                             </div>
                                           )}
                                         </div>
@@ -821,15 +825,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               </div>
                             )}
                             
-                            {/* Upload to parent folder option - always show */}
-                            <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
-                              <Button variant="ghost" size="sm" asChild>
-                                <Link href={`${basePath}/documents/upload`}>
-                                  <Upload className="mr-2 h-3 w-3" />
-                                  Upload to {folder.name}
-                                </Link>
-                              </Button>
-                            </div>
+                            {/* Upload to parent folder option - privileged only */}
+                            {isPrivilegedUser && (
+                              <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
+                                <Button variant="ghost" size="sm" asChild>
+                                  <Link href={`${basePath}/documents/upload`}>
+                                    <Upload className="mr-2 h-3 w-3" />
+                                    Upload to {folder.name}
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </AccordionContent>
                       </AccordionItem>
@@ -846,14 +852,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </div>
                 <h3 className="mt-4 text-lg font-medium">No folders yet</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upload documents to get started
+                  {isPrivilegedUser ? "Upload documents to get started" : "No documents have been added yet"}
                 </p>
-                <Button variant="outline" size="sm" asChild className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`}>
-                  <Link href={`${basePath}/documents/upload`}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
-                </Button>
+                {isPrivilegedUser && (
+                  <Button variant="outline" size="sm" asChild className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`}>
+                    <Link href={`${basePath}/documents/upload`}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Document
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : null}
@@ -1106,14 +1114,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <p className="mt-1 text-sm text-muted-foreground">
                 {searchQuery || typeFilter !== "all" || statusFilter !== "all" || renewalFilter !== "all"
                   ? "Try adjusting your search or filters"
-                  : `Upload your first ${config.shortName} document to get started`}
+                  : isPrivilegedUser
+                    ? `Upload your first ${config.shortName} document to get started`
+                    : "No documents have been added yet"}
               </p>
-              <Button className="mt-4" asChild>
-                <Link href={`${basePath}/documents/upload`}>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Document
-                </Link>
-              </Button>
+              {isPrivilegedUser && (
+                <Button className="mt-4" asChild>
+                  <Link href={`${basePath}/documents/upload`}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </Link>
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

@@ -150,6 +150,12 @@ export default function DocumentUpload() {
   const requiresApproval = form.watch("requiresApproval");
 
   useEffect(() => {
+    if (user && !isAdminOrConsultant) {
+      navigate("/");
+    }
+  }, [user, isAdminOrConsultant]);
+
+  useEffect(() => {
     setSelectedApproverId("");
   }, [selectedSiteId]);
 
