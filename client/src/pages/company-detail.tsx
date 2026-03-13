@@ -60,6 +60,7 @@ interface DocumentTemplate {
   visibility: "public" | "private";
   isActive: boolean;
   isRequired: boolean;
+  requiresApproval: boolean;
   folderTemplateId: string | null;
 }
 
@@ -401,9 +402,15 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         />
                         <label
                           htmlFor={`req-${template.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
                         >
                           {template.name}
+                          {template.isRequired && (
+                            <Badge variant="secondary" className="text-xs">Required</Badge>
+                          )}
+                          {template.requiresApproval && (
+                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                          )}
                         </label>
                       </div>
                     ))}
@@ -992,7 +999,7 @@ export default function CompanyDetail() {
 
       <ModuleAccessCard companyId={companyId!} />
 
-      {isAdmin && <RequiredDocumentsCard companyId={companyId!} />}
+      {(isAdmin || user?.role === "consultant") && <RequiredDocumentsCard companyId={companyId!} />}
 
       <div>
         <div className="flex items-center justify-between mb-4">

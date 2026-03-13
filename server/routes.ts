@@ -882,11 +882,33 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
+      // Calculate missing required templates for this module across accessible sites
+      let missingRequiredCount = 0;
+      {
+        const siteIds = [...new Set(documents.map(d => d.siteId))];
+        const allSites = await storage.getSites();
+        const processedCompanies = new Set<string>();
+        for (const siteId of siteIds) {
+          const site = allSites.find(s => s.id === siteId);
+          if (!site?.companyId || processedCompanies.has(site.companyId)) continue;
+          processedCompanies.add(site.companyId);
+          const requiredTemplates = await storage.getCompanyRequiredTemplates(site.companyId);
+          const allTemplates = await storage.getDocumentTemplates();
+          const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+          const siteDocs = documents.filter(d => d.siteId === siteId);
+          const uploadedTemplateIds = new Set(siteDocs.map(d => d.templateId).filter(Boolean));
+          missingRequiredCount += requiredTemplates.filter(rt => {
+            const tmpl = templateMap.get(rt.templateId);
+            return tmpl && tmpl.module === module && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds.has(rt.templateId);
+          }).length;
+        }
+      }
+
       // Calculate summary from accessible documents only
-      const totalDocuments = documents.length;
+      const totalDocuments = documents.length + missingRequiredCount;
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
@@ -1014,11 +1036,33 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
+      // Calculate missing required templates for this module across accessible sites
+      let missingRequiredCount2 = 0;
+      {
+        const siteIds2 = [...new Set(documents.map(d => d.siteId))];
+        const allSites2 = await storage.getSites();
+        const processedCompanies2 = new Set<string>();
+        for (const siteId of siteIds2) {
+          const site = allSites2.find(s => s.id === siteId);
+          if (!site?.companyId || processedCompanies2.has(site.companyId)) continue;
+          processedCompanies2.add(site.companyId);
+          const requiredTemplates2 = await storage.getCompanyRequiredTemplates(site.companyId);
+          const allTemplates2 = await storage.getDocumentTemplates();
+          const templateMap2 = new Map(allTemplates2.map(t => [t.id, t]));
+          const siteDocs2 = documents.filter(d => d.siteId === siteId);
+          const uploadedTemplateIds2 = new Set(siteDocs2.map(d => d.templateId).filter(Boolean));
+          missingRequiredCount2 += requiredTemplates2.filter(rt => {
+            const tmpl = templateMap2.get(rt.templateId);
+            return tmpl && tmpl.module === module && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds2.has(rt.templateId);
+          }).length;
+        }
+      }
+
       // Calculate summary from accessible documents only
-      const totalDocuments = documents.length;
+      const totalDocuments = documents.length + missingRequiredCount2;
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount2;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
@@ -6496,6 +6540,19 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
       const { companyId } = req.params;
+      const company = await storage.getCompany(companyId);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      if (user.role === "consultant" && !isProConsultant(user)) {
+        const sites = await storage.getSites();
+        const companySites = sites.filter(s => s.companyId === companyId);
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        if (!companySites.some(s => assignedSiteIds.has(s.id))) {
+          return res.status(403).json({ error: "Not authorized for this company" });
+        }
+      }
       const requiredTemplates = await storage.getCompanyRequiredTemplates(companyId);
       res.json(requiredTemplates);
     } catch (error) {
@@ -6518,6 +6575,15 @@ export async function registerRoutes(
       const company = await storage.getCompany(companyId);
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
+      }
+      if (user.role === "consultant" && !isProConsultant(user)) {
+        const sites = await storage.getSites();
+        const companySites = sites.filter(s => s.companyId === companyId);
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        if (!companySites.some(s => assignedSiteIds.has(s.id))) {
+          return res.status(403).json({ error: "Not authorized for this company" });
+        }
       }
       const uniqueIds = [...new Set(templateIds)];
       const result = await storage.setCompanyRequiredTemplates(companyId, uniqueIds, user.id);

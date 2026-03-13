@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1430,7 +1430,9 @@ export const companyRequiredTemplates = pgTable("company_required_templates", {
   templateId: varchar("template_id").notNull(),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  uniqueIndex("company_template_unique").on(table.companyId, table.templateId),
+]);
 
 export const insertCompanyRequiredTemplateSchema = createInsertSchema(companyRequiredTemplates).omit({ id: true, createdAt: true });
 export type InsertCompanyRequiredTemplate = z.infer<typeof insertCompanyRequiredTemplateSchema>;
