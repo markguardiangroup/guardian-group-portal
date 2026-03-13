@@ -720,8 +720,14 @@ export class MemStorage implements IStorage {
     const docs = allDocs;
 
     const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+
+    let slotTotal = 0;
+    let slotCompliant = 0;
+    let slotReview = 0;
+    let slotOverdue = 0;
     let missingRequired = 0;
-    const requiredTemplateIds = new Set<string>();
+    const consumedTemplateIds = new Set<string>();
+
     if (site?.companyId) {
       const requiredTemplates = await this.getCompanyRequiredTemplates(site.companyId);
       if (requiredTemplates.length > 0) {
@@ -731,27 +737,38 @@ export class MemStorage implements IStorage {
         for (const rt of requiredTemplates) {
           const tmpl = templateMap.get(rt.templateId);
           if (!tmpl || tmpl.visibility !== "private") continue;
-          requiredTemplateIds.add(rt.templateId);
+          consumedTemplateIds.add(rt.templateId);
+          slotTotal++;
           const matchingDocs = docs.filter(d => d.templateId === rt.templateId);
+          if (matchingDocs.length === 0) {
+            missingRequired++;
+            continue;
+          }
           const isFulfilled = matchingDocs.some(d => {
             if (d.status !== "compliant") return false;
             if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
             if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
             return true;
           });
-          if (!isFulfilled) missingRequired++;
+          if (isFulfilled) {
+            slotCompliant++;
+          } else {
+            const hasOverdue = matchingDocs.some(d => d.status === "overdue");
+            if (hasOverdue) slotOverdue++;
+            else slotReview++;
+          }
         }
       }
     }
 
-    const requiredDocs = docs.filter(d =>
-      d.isRequired || (d.templateId && requiredTemplateIds.has(d.templateId))
+    const manualRequired = docs.filter(d =>
+      d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
 
-    const total = requiredDocs.length + missingRequired;
-    const compliant = requiredDocs.filter(d => d.status === "compliant").length;
-    const review = requiredDocs.filter(d => d.status === "review_required").length;
-    const overdue = requiredDocs.filter(d => d.status === "overdue").length;
+    const total = slotTotal + manualRequired.length;
+    const compliant = slotCompliant + manualRequired.filter(d => d.status === "compliant").length;
+    const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
+    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {

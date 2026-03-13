@@ -845,8 +845,97 @@ export async function registerRoutes(
 
   // ==================== END AUTHENTICATED INVITATION ENDPOINTS ====================
 
-  // Shared helper: count missing required templates across accessible sites
+  // Shared helper: slot-based compliance calculation
   const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+
+  async function computeSlotBasedCompliance(
+    user: any,
+    documents: any[],
+    module: ModuleType | undefined,
+    siteFilter?: { siteId?: string; siteIds?: string }
+  ) {
+    const sites = await storage.getSites();
+    const templates = await storage.getDocumentTemplates();
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+
+    let slotTotal = 0;
+    let slotCompliant = 0;
+    let slotReview = 0;
+    let slotOverdue = 0;
+    let missingRequired = 0;
+    const consumedDocIds = new Set<string>();
+    const filteredSiteIds = new Set<string>();
+
+    for (const site of sites) {
+      if (!site.companyId) continue;
+      const canAccess = await canUserAccessSite(user, site.id);
+      if (!canAccess) continue;
+      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
+      if (siteFilter?.siteIds) {
+        const ids = siteFilter.siteIds.split(",");
+        if (!ids.includes(site.id)) continue;
+      }
+      filteredSiteIds.add(site.id);
+      if (!companyReqCache.has(site.companyId)) {
+        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+      }
+      const required = companyReqCache.get(site.companyId)!;
+      const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+
+      for (const rt of required) {
+        const tmpl = templateMap.get(rt.templateId);
+        if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+        if (module && tmpl.module !== module) continue;
+        if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
+
+        slotTotal++;
+        const matchingDocs = siteDocs.filter(d => d.templateId === rt.templateId);
+        matchingDocs.forEach(d => consumedDocIds.add(d.id));
+
+        if (matchingDocs.length === 0) {
+          missingRequired++;
+          continue;
+        }
+
+        const isFulfilled = matchingDocs.some(d => {
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
+        if (isFulfilled) {
+          slotCompliant++;
+        } else {
+          const hasOverdue = matchingDocs.some(d => d.status === "overdue");
+          if (hasOverdue) slotOverdue++;
+          else slotReview++;
+        }
+      }
+    }
+
+    // Manually-required docs not already consumed by a template slot
+    const manualRequired = documents.filter(d => {
+      if (!d.isRequired) return false;
+      if (consumedDocIds.has(d.id)) return false;
+      if (d.isArchived || d.caseId) return false;
+      if (!filteredSiteIds.has(d.siteId)) return false;
+      if (module && d.module !== module) return false;
+      if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
+      return true;
+    });
+
+    const totalDocuments = slotTotal + manualRequired.length;
+    const compliantDocuments = slotCompliant + manualRequired.filter(d => d.status === "compliant").length;
+    const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required").length;
+    const overdueDocuments = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const missingRequiredDocuments = missingRequired;
+    const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
+
+    return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore };
+  }
+
+  // Shared helper: count missing required templates across accessible sites
   async function countMissingRequiredTemplates(
     user: any,
     module: ModuleType | undefined,
@@ -1045,46 +1134,13 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
-      // Calculate missing required templates for this module across all accessible sites
-      const missingRequiredCount = await countMissingRequiredTemplates(
-        user, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
+      // Slot-based compliance calculation: each required template contributes exactly one slot
+      const complianceResult = await computeSlotBasedCompliance(
+        user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-
-      // Build per-company required template ID sets for compliance filtering
-      const sites = await storage.getSites();
-      const siteCompanyMap = new Map(sites.map(s => [s.id, s.companyId]));
-      const companyReqTemplateCache = new Map<string, Set<string>>();
-      const allTemplates = await storage.getDocumentTemplates();
-      const templateLookup = new Map(allTemplates.map(t => [t.id, t]));
-      for (const site of sites) {
-        if (!site.companyId || companyReqTemplateCache.has(site.companyId)) continue;
-        const reqs = await storage.getCompanyRequiredTemplates(site.companyId);
-        const reqIds = new Set<string>();
-        for (const r of reqs) {
-          const tmpl = templateLookup.get(r.templateId);
-          if (tmpl && tmpl.visibility === "private" && tmpl.isActive) reqIds.add(r.templateId);
-        }
-        companyReqTemplateCache.set(site.companyId, reqIds);
-      }
-
-      // Filter documents to required-only for compliance scoring
-      const requiredDocuments = documents.filter(d => {
-        if (d.isRequired) return true;
-        const companyId = siteCompanyMap.get(d.siteId);
-        if (!companyId) return false;
-        const reqIds = companyReqTemplateCache.get(companyId);
-        return reqIds ? d.templateId !== null && reqIds.has(d.templateId) : false;
-      });
-
-      // Compliance metrics from required documents only
-      const totalDocuments = requiredDocuments.length + missingRequiredCount;
-      const compliantDocuments = requiredDocuments.filter(d => d.status === "compliant").length;
-      const reviewRequired = requiredDocuments.filter(d => d.status === "review_required").length;
-      const overdueDocuments = requiredDocuments.filter(d => d.status === "overdue").length;
-      const missingRequiredDocuments = missingRequiredCount;
+      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
@@ -1202,44 +1258,11 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
-      // Calculate missing required templates across all accessible sites
-      const missingRequiredCount = await countMissingRequiredTemplates(user, module);
-
-      // Build per-company required template ID sets for compliance filtering
-      const dashSites = await storage.getSites();
-      const dashSiteCompanyMap = new Map(dashSites.map(s => [s.id, s.companyId]));
-      const dashCompanyReqCache = new Map<string, Set<string>>();
-      const dashTemplates = await storage.getDocumentTemplates();
-      const dashTemplateLookup = new Map(dashTemplates.map(t => [t.id, t]));
-      for (const site of dashSites) {
-        if (!site.companyId || dashCompanyReqCache.has(site.companyId)) continue;
-        const reqs = await storage.getCompanyRequiredTemplates(site.companyId);
-        const reqIds = new Set<string>();
-        for (const r of reqs) {
-          const tmpl = dashTemplateLookup.get(r.templateId);
-          if (tmpl && tmpl.visibility === "private" && tmpl.isActive) reqIds.add(r.templateId);
-        }
-        dashCompanyReqCache.set(site.companyId, reqIds);
-      }
-
-      // Filter documents to required-only for compliance scoring
-      const requiredDocuments = documents.filter(d => {
-        if (d.isRequired) return true;
-        const companyId = dashSiteCompanyMap.get(d.siteId);
-        if (!companyId) return false;
-        const reqIds = dashCompanyReqCache.get(companyId);
-        return reqIds ? d.templateId !== null && reqIds.has(d.templateId) : false;
-      });
-
-      // Compliance metrics from required documents only
-      const totalDocuments = requiredDocuments.length + missingRequiredCount;
-      const compliantDocuments = requiredDocuments.filter(d => d.status === "compliant").length;
-      const reviewRequired = requiredDocuments.filter(d => d.status === "review_required").length;
-      const overdueDocuments = requiredDocuments.filter(d => d.status === "overdue").length;
-      const missingRequiredDocuments = missingRequiredCount;
+      // Slot-based compliance calculation: each required template contributes exactly one slot
+      const complianceResult = await computeSlotBasedCompliance(user, documents, module);
+      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
