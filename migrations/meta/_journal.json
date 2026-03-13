@@ -8,6 +8,13 @@
       "when": 1769680468108,
       "tag": "0000_ordinary_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773609119000,
+      "tag": "0001_add_company_required_templates",
+      "breakpoints": true
     }
   ]
 }

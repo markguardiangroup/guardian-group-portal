@@ -844,6 +844,52 @@ export async function registerRoutes(
 
   // ==================== END AUTHENTICATED INVITATION ENDPOINTS ====================
 
+  // Shared helper: count missing required templates across accessible sites
+  const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+  async function countMissingRequiredTemplates(
+    user: any,
+    module: ModuleType | undefined,
+    siteFilter?: { siteId?: string; siteIds?: string }
+  ): Promise<number> {
+    let missing = 0;
+    const sites = await storage.getSites();
+    const templates = await storage.getDocumentTemplates();
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+    const docs = await storage.getDocuments(module);
+    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+
+    for (const site of sites) {
+      if (!site.companyId) continue;
+      const canAccess = await canUserAccessSite(user, site.id);
+      if (!canAccess) continue;
+      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
+      if (siteFilter?.siteIds) {
+        const ids = siteFilter.siteIds.split(",");
+        if (!ids.includes(site.id)) continue;
+      }
+      if (!companyReqCache.has(site.companyId)) {
+        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+      }
+      const required = companyReqCache.get(site.companyId)!;
+      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      for (const rt of required) {
+        const tmpl = templateMap.get(rt.templateId);
+        if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+        if (module && tmpl.module !== module) continue;
+        if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
+        const isFulfilled = siteDocs.some(d => {
+          if (d.templateId !== rt.templateId) return false;
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
+        if (!isFulfilled) missing++;
+      }
+    }
+    return missing;
+  }
+
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
@@ -883,41 +929,9 @@ export async function registerRoutes(
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
       // Calculate missing required templates for this module across all accessible sites
-      let missingRequiredCount = 0;
-      {
-        const allSites = await storage.getSites();
-        const allTemplates = await storage.getDocumentTemplates();
-        const templateMap = new Map(allTemplates.map(t => [t.id, t]));
-        const allDocs = await storage.getDocuments(module);
-        const companyRequiredCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
-        for (const site of allSites) {
-          if (!site.companyId) continue;
-          const canAccess = await canUserAccessSite(user, site.id);
-          if (!canAccess) continue;
-          if (requestedSiteId && requestedSiteId !== "all" && site.id !== requestedSiteId) continue;
-          if (requestedSiteIds) {
-            const siteIdList = requestedSiteIds.split(",");
-            if (!siteIdList.includes(site.id)) continue;
-          }
-          if (!companyRequiredCache.has(site.companyId)) {
-            companyRequiredCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
-          }
-          const requiredTemplates = companyRequiredCache.get(site.companyId)!;
-          const siteDocs = allDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-          for (const rt of requiredTemplates) {
-            const tmpl = templateMap.get(rt.templateId);
-            if (!tmpl || tmpl.module !== module || tmpl.visibility !== "private" || !tmpl.isActive) continue;
-            const isFulfilled = siteDocs.some(d => {
-              if (d.templateId !== rt.templateId) return false;
-              if (d.status !== "compliant") return false;
-              if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-              if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-              return true;
-            });
-            if (!isFulfilled) missingRequiredCount++;
-          }
-        }
-      }
+      const missingRequiredCount = await countMissingRequiredTemplates(
+        user, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
+      );
 
       // Calculate summary from accessible documents only
       const totalDocuments = documents.length + missingRequiredCount;
@@ -1052,42 +1066,13 @@ export async function registerRoutes(
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
       // Calculate missing required templates across all accessible sites
-      let missingRequiredCount2 = 0;
-      {
-        const allSites2 = await storage.getSites();
-        const allTemplates2 = await storage.getDocumentTemplates();
-        const templateMap2 = new Map(allTemplates2.map(t => [t.id, t]));
-        const allModuleDocs = await storage.getDocuments(module);
-        const companyRequiredCache2 = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
-        for (const site of allSites2) {
-          if (!site.companyId) continue;
-          const canAccess = await canUserAccessSite(user, site.id);
-          if (!canAccess) continue;
-          if (!companyRequiredCache2.has(site.companyId)) {
-            companyRequiredCache2.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
-          }
-          const requiredTemplates2 = companyRequiredCache2.get(site.companyId)!;
-          const siteDocs2 = allModuleDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-          for (const rt of requiredTemplates2) {
-            const tmpl = templateMap2.get(rt.templateId);
-            if (!tmpl || (!module ? false : tmpl.module !== module) || tmpl.visibility !== "private" || !tmpl.isActive) continue;
-            const isFulfilled = siteDocs2.some(d => {
-              if (d.templateId !== rt.templateId) return false;
-              if (d.status !== "compliant") return false;
-              if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-              if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-              return true;
-            });
-            if (!isFulfilled) missingRequiredCount2++;
-          }
-        }
-      }
+      const missingRequiredCount = await countMissingRequiredTemplates(user, module);
 
       // Calculate summary from accessible documents only
-      const totalDocuments = documents.length + missingRequiredCount2;
+      const totalDocuments = documents.length + missingRequiredCount;
       const compliantDocuments = documents.filter(d => d.status === "compliant").length;
       const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount2;
+      const overdueDocuments = documents.filter(d => d.status === "overdue").length + missingRequiredCount;
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
