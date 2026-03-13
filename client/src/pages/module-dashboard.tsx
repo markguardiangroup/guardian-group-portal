@@ -18,6 +18,7 @@ import {
   Users,
   Building2,
   FileQuestion,
+  ShieldCheck,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -360,50 +361,58 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       <div className="space-y-8 p-8 dash-animate">
 
         {/* Compliance Section */}
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{config.shortName} Compliance</h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card data-testid="card-compliance-summary">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              {config.shortName} Compliance
+            </CardTitle>
+            <CardDescription>Based on required documents only</CardDescription>
+          </CardHeader>
+          <CardContent>
             {isLoading ? (
-              [1, 2, 3, 4].map((i) => (
-                <Card key={i}>
-                  <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-16" />
-                    <Skeleton className="mt-2 h-3 w-32" />
-                  </CardContent>
-                </Card>
-              ))
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="rounded-md border p-3 text-center">
+                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
+              </div>
             ) : (
-              <>
-                <ComplianceScoreCard score={summary.complianceScore} moduleName={config.shortName} />
-                <MetricCard
-                  title="Compliant"
-                  value={summary.compliantDocuments}
-                  description="Required docs up to date"
-                  icon={CheckCircle}
-                  variant="success"
-                  testId="card-module-compliant"
-                />
-                <MetricCard
-                  title="Overdue"
-                  value={summary.overdueDocuments}
-                  description="Required docs overdue"
-                  icon={AlertTriangle}
-                  variant="danger"
-                  testId="card-module-overdue"
-                />
-                <MetricCard
-                  title="Missing Required"
-                  value={summary.missingRequiredDocuments || 0}
-                  description="Not yet uploaded"
-                  icon={FileQuestion}
-                  variant="warning"
-                  testId="card-module-missing"
-                />
-              </>
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                <div className="rounded-md border p-3 text-center" data-testid="card-module-score">
+                  <div className={`flex items-center justify-center gap-1 ${summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.complianceScore}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Score</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="card-module-compliant">
+                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.compliantDocuments}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="card-module-overdue">
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.overdueDocuments}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="card-module-missing">
+                  <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                    <FileQuestion className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.missingRequiredDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Missing Required</p>
+                </div>
+              </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Document Progress Section */}
         <Card data-testid="card-document-progress">
