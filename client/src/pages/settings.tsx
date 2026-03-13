@@ -1063,7 +1063,7 @@ function LegalDocumentsTab() {
         <CardHeader>
           <CardTitle>Replace Document</CardTitle>
           <CardDescription>
-            You can replace the legal docs here.
+            Replace the files below to update your legal documents. Replacing a file will require all users to accept the new terms on their next login.
           </CardDescription>
         </CardHeader>
       </Card>
