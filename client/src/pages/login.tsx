@@ -194,7 +194,7 @@ export default function Login() {
               </h1>
               <div className="mt-2 h-[3px] w-full rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 22%, #e879f9 45%, #f97316 70%, #a3e635 100%)" }} />
             </div>
-            <p className="text-white/60 text-base max-w-sm leading-relaxed">
+            <p className="text-white/60 text-base max-w-sm leading-relaxed mb-8">
               Your organisation deserves more than tick-box compliance. We turn HR, employment law, and health and safety into foundations for growth.
             </p>
           </div>
