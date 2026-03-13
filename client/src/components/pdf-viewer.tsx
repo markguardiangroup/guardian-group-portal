@@ -34,6 +34,10 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       if (signal.aborted) return;
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      if (signal.aborted) {
+        loadingTask.destroy();
+        return;
+      }
       const pdfDoc = await loadingTask.promise;
       if (signal.aborted) {
         pdfDoc.destroy();
