@@ -935,51 +935,6 @@ export async function registerRoutes(
     return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore };
   }
 
-  // Shared helper: count missing required templates across accessible sites
-  async function countMissingRequiredTemplates(
-    user: any,
-    module: ModuleType | undefined,
-    siteFilter?: { siteId?: string; siteIds?: string }
-  ): Promise<number> {
-    let missing = 0;
-    const sites = await storage.getSites();
-    const templates = await storage.getDocumentTemplates();
-    const templateMap = new Map(templates.map(t => [t.id, t]));
-    const docs = await storage.getDocuments(module);
-    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
-
-    for (const site of sites) {
-      if (!site.companyId) continue;
-      const canAccess = await canUserAccessSite(user, site.id);
-      if (!canAccess) continue;
-      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
-      if (siteFilter?.siteIds) {
-        const ids = siteFilter.siteIds.split(",");
-        if (!ids.includes(site.id)) continue;
-      }
-      if (!companyReqCache.has(site.companyId)) {
-        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
-      }
-      const required = companyReqCache.get(site.companyId)!;
-      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-      for (const rt of required) {
-        const tmpl = templateMap.get(rt.templateId);
-        if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
-        if (module && tmpl.module !== module) continue;
-        if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
-        const isFulfilled = siteDocs.some(d => {
-          if (d.templateId !== rt.templateId) return false;
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
-        });
-        if (!isFulfilled) missing++;
-      }
-    }
-    return missing;
-  }
-
   interface MissingRequiredTemplateDetail {
     templateId: string;
     templateName: string;
@@ -1343,69 +1298,40 @@ export async function registerRoutes(
       const siteId = req.query.siteId as string | undefined;
       const requestedCompanyId = req.query.companyId as string | undefined;
       const requestedSiteIds = req.query.siteIds as string | undefined;
-      
-      // Authorization: client users can only see data for their explicitly assigned sites
+
+      // Determine the set of accessible site IDs based on user role and filters
+      let accessibleSiteIds: string[] | undefined;
+
       if (user.role === "client") {
         if (!user.companyId) {
           return res.json([]);
         }
-        
-        // Get client's explicitly assigned sites
         const clientSiteAssignments = await storage.getClientSites(user.id);
         const assignedSiteIds = clientSiteAssignments.map(a => a.siteId);
-        
         if (assignedSiteIds.length === 0) {
           return res.json([]);
         }
-        
-        // If client requests a specific site, validate they have access
         if (siteId) {
           if (!assignedSiteIds.includes(siteId)) {
             return res.status(403).json({ error: "Not authorized to access this site" });
           }
-          const summaries = await storage.getModuleSummariesForSites([siteId]);
-          res.json(summaries);
-          return;
+          accessibleSiteIds = [siteId];
+        } else {
+          accessibleSiteIds = assignedSiteIds;
         }
-        
-        // Return data for all assigned sites
-        const summaries = await storage.getModuleSummariesForSites(assignedSiteIds);
-        res.json(summaries);
-        return;
-      }
-      
-      // Admin can see everything without restrictions
-      if (user.role === "admin") {
+      } else if (user.role === "admin") {
         if (requestedCompanyId) {
           const companySites = await storage.getSitesByCompanyId(requestedCompanyId);
-          if (companySites.length === 0) {
-            res.json([]);
-            return;
-          }
-          const siteIds = companySites.map(s => s.id);
-          const summaries = await storage.getModuleSummariesForSites(siteIds);
-          res.json(summaries);
-          return;
+          if (companySites.length === 0) return res.json([]);
+          accessibleSiteIds = companySites.map(s => s.id);
+        } else if (requestedSiteIds) {
+          accessibleSiteIds = requestedSiteIds.split(",");
+        } else if (siteId) {
+          accessibleSiteIds = [siteId];
         }
-        
-        if (requestedSiteIds) {
-          const siteIds = requestedSiteIds.split(",");
-          const summaries = await storage.getModuleSummariesForSites(siteIds);
-          res.json(summaries);
-          return;
-        }
-        
-        const summaries = await storage.getModuleSummaries(undefined, siteId);
-        res.json(summaries);
-        return;
-      }
-      
-      // Consultants need authorization for any sites they access
-      if (user.role === "consultant") {
+      } else if (user.role === "consultant") {
         if (requestedCompanyId) {
-          // Consultants can only access companies they have site assignments for
           const companySites = await storage.getSitesByCompanyId(requestedCompanyId);
-          // Filter to only sites the consultant has access to
           const accessibleSites = await Promise.all(
             companySites.map(async (site) => {
               const canAccess = await canUserAccessSite(user, site.id);
@@ -1413,66 +1339,86 @@ export async function registerRoutes(
             })
           );
           const filteredSites = accessibleSites.filter((s): s is NonNullable<typeof s> => s !== null);
-          if (filteredSites.length === 0) {
-            res.json([]);
-            return;
-          }
-          const siteIds = filteredSites.map(s => s.id);
-          const summaries = await storage.getModuleSummariesForSites(siteIds);
-          res.json(summaries);
-          return;
-        }
-        
-        if (requestedSiteIds) {
+          if (filteredSites.length === 0) return res.json([]);
+          accessibleSiteIds = filteredSites.map(s => s.id);
+        } else if (requestedSiteIds) {
           const siteIds = requestedSiteIds.split(",");
-          // Validate access to each site
-          const accessibleSiteIds = await Promise.all(
+          const accessChecks = await Promise.all(
             siteIds.map(async (id) => {
               const canAccess = await canUserAccessSite(user, id);
               return canAccess ? id : null;
             })
           );
-          const filteredSiteIds = accessibleSiteIds.filter((id): id is string => id !== null);
-          if (filteredSiteIds.length === 0) {
-            res.json([]);
-            return;
-          }
-          const summaries = await storage.getModuleSummariesForSites(filteredSiteIds);
-          res.json(summaries);
-          return;
-        }
-        
-        if (siteId) {
+          const filteredIds = accessChecks.filter((id): id is string => id !== null);
+          if (filteredIds.length === 0) return res.json([]);
+          accessibleSiteIds = filteredIds;
+        } else if (siteId) {
           const canAccess = await canUserAccessSite(user, siteId);
           if (!canAccess) {
             return res.status(403).json({ error: "Access denied to this site" });
           }
-          const summaries = await storage.getModuleSummaries(undefined, siteId);
-          res.json(summaries);
-          return;
+          accessibleSiteIds = [siteId];
+        } else if (!isProConsultant(user)) {
+          const assignments = await storage.getConsultantSites(user.id);
+          if (assignments.length === 0) return res.json([]);
+          accessibleSiteIds = assignments.map(a => a.siteId);
         }
-        
-        // Consultant without filters
-        if (isProConsultant(user)) {
-          // Pro consultants see all sites
-          const summaries = await storage.getModuleSummaries();
-          res.json(summaries);
-          return;
-        }
-        // Standard consultants see only their assigned sites
-        const assignments = await storage.getConsultantSites(user.id);
-        if (assignments.length === 0) {
-          res.json([]);
-          return;
-        }
-        const assignedSiteIds = assignments.map(a => a.siteId);
-        const summaries = await storage.getModuleSummariesForSites(assignedSiteIds);
-        res.json(summaries);
-        return;
       }
-      
-      // Fallback (shouldn't reach here)
-      const summaries = await storage.getModuleSummaries(undefined, siteId);
+
+      // Fetch all non-archived, non-case documents from accessible sites
+      const allDocs = await storage.getDocuments();
+      const filteredDocs = allDocs.filter(d =>
+        !d.isArchived && !d.caseId &&
+        (!accessibleSiteIds || (d.siteId && accessibleSiteIds.includes(d.siteId)))
+      );
+
+      const moduleNames: Record<string, string> = {
+        health_safety: "Health & Safety",
+        human_resources: "Human Resources",
+        employment_law: "Employment Law",
+        support: "Support",
+      };
+
+      const siteFilter = accessibleSiteIds
+        ? { siteIds: accessibleSiteIds.join(",") }
+        : undefined;
+
+      const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
+      const summaries = await Promise.all(modules.map(async (mod) => {
+        const moduleDocs = filteredDocs.filter(d => d.module === mod);
+
+        if (complianceModules.includes(mod)) {
+          const compliance = await computeSlotBasedCompliance(user, moduleDocs, mod, siteFilter);
+          const pendingApprovals = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+          return {
+            module: mod,
+            moduleName: moduleNames[mod],
+            ...compliance,
+            pendingApprovals,
+            awaitingYourApproval: 0,
+            awaitingOthersApproval: 0,
+          };
+        }
+        const total = moduleDocs.length;
+        const compliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const review = moduleDocs.filter(d => d.status === "review_required").length;
+        const overdue = moduleDocs.filter(d => d.status === "overdue").length;
+        const pending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+        return {
+          module: mod,
+          moduleName: moduleNames[mod],
+          totalDocuments: total,
+          compliantDocuments: compliant,
+          reviewRequired: review,
+          overdueDocuments: overdue,
+          missingRequiredDocuments: 0,
+          pendingApprovals: pending,
+          awaitingYourApproval: 0,
+          awaitingOthersApproval: 0,
+          complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+        };
+      }));
+
       res.json(summaries);
     } catch (error) {
       console.error("Module summaries error:", error);
