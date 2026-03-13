@@ -1050,16 +1050,43 @@ export async function registerRoutes(
         user, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
 
-      // Calculate summary from accessible documents only
-      const totalDocuments = documents.length + missingRequiredCount;
-      const compliantDocuments = documents.filter(d => d.status === "compliant").length;
-      const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      // Build per-company required template ID sets for compliance filtering
+      const sites = await storage.getSites();
+      const siteCompanyMap = new Map(sites.map(s => [s.id, s.companyId]));
+      const companyReqTemplateCache = new Map<string, Set<string>>();
+      const allTemplates = await storage.getDocumentTemplates();
+      const templateLookup = new Map(allTemplates.map(t => [t.id, t]));
+      for (const site of sites) {
+        if (!site.companyId || companyReqTemplateCache.has(site.companyId)) continue;
+        const reqs = await storage.getCompanyRequiredTemplates(site.companyId);
+        const reqIds = new Set<string>();
+        for (const r of reqs) {
+          const tmpl = templateLookup.get(r.templateId);
+          if (tmpl && tmpl.visibility === "private" && tmpl.isActive) reqIds.add(r.templateId);
+        }
+        companyReqTemplateCache.set(site.companyId, reqIds);
+      }
+
+      // Filter documents to required-only for compliance scoring
+      const requiredDocuments = documents.filter(d => {
+        if (d.isRequired) return true;
+        const companyId = siteCompanyMap.get(d.siteId);
+        if (!companyId) return false;
+        const reqIds = companyReqTemplateCache.get(companyId);
+        return reqIds ? d.templateId !== null && reqIds.has(d.templateId) : false;
+      });
+
+      // Compliance metrics from required documents only
+      const totalDocuments = requiredDocuments.length + missingRequiredCount;
+      const compliantDocuments = requiredDocuments.filter(d => d.status === "compliant").length;
+      const reviewRequired = requiredDocuments.filter(d => d.status === "review_required").length;
+      const overdueDocuments = requiredDocuments.filter(d => d.status === "overdue").length;
       const missingRequiredDocuments = missingRequiredCount;
+      // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
-      // Calculate split approval metrics based on user role
+      // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
       let awaitingOthersApproval = 0;
       
@@ -1075,26 +1102,17 @@ export async function registerRoutes(
         const uploadedByCurrentUser = doc.uploadedBy === user.id;
         
         if (user.role === "client") {
-          // For clients:
-          // - awaitingYourApproval: consultant-uploaded docs with status "pending" (need client sign-off)
-          // - awaitingOthersApproval: YOUR uploads pending consultant approval
           if (!uploaderIsClient && doc.approvalStatus === "pending") {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
-            // Only count documents YOU uploaded as "awaiting others"
             awaitingOthersApproval++;
           }
-          // Note: client_signed_off docs don't show for clients - they're waiting on consultant
         } else {
-          // For consultants/admins:
-          // - awaitingYourApproval: client-uploaded docs pending OR docs awaiting final approval
-          // - awaitingOthersApproval: YOUR uploads pending client sign-off
           if (uploaderIsClient && doc.approvalStatus === "pending") {
             awaitingYourApproval++;
           } else if (doc.approvalStatus === "client_signed_off") {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
-            // Only count documents YOU uploaded as "awaiting others"
             awaitingOthersApproval++;
           }
         }
@@ -1187,16 +1205,43 @@ export async function registerRoutes(
       // Calculate missing required templates across all accessible sites
       const missingRequiredCount = await countMissingRequiredTemplates(user, module);
 
-      // Calculate summary from accessible documents only
-      const totalDocuments = documents.length + missingRequiredCount;
-      const compliantDocuments = documents.filter(d => d.status === "compliant").length;
-      const reviewRequired = documents.filter(d => d.status === "review_required").length;
-      const overdueDocuments = documents.filter(d => d.status === "overdue").length;
+      // Build per-company required template ID sets for compliance filtering
+      const dashSites = await storage.getSites();
+      const dashSiteCompanyMap = new Map(dashSites.map(s => [s.id, s.companyId]));
+      const dashCompanyReqCache = new Map<string, Set<string>>();
+      const dashTemplates = await storage.getDocumentTemplates();
+      const dashTemplateLookup = new Map(dashTemplates.map(t => [t.id, t]));
+      for (const site of dashSites) {
+        if (!site.companyId || dashCompanyReqCache.has(site.companyId)) continue;
+        const reqs = await storage.getCompanyRequiredTemplates(site.companyId);
+        const reqIds = new Set<string>();
+        for (const r of reqs) {
+          const tmpl = dashTemplateLookup.get(r.templateId);
+          if (tmpl && tmpl.visibility === "private" && tmpl.isActive) reqIds.add(r.templateId);
+        }
+        dashCompanyReqCache.set(site.companyId, reqIds);
+      }
+
+      // Filter documents to required-only for compliance scoring
+      const requiredDocuments = documents.filter(d => {
+        if (d.isRequired) return true;
+        const companyId = dashSiteCompanyMap.get(d.siteId);
+        if (!companyId) return false;
+        const reqIds = dashCompanyReqCache.get(companyId);
+        return reqIds ? d.templateId !== null && reqIds.has(d.templateId) : false;
+      });
+
+      // Compliance metrics from required documents only
+      const totalDocuments = requiredDocuments.length + missingRequiredCount;
+      const compliantDocuments = requiredDocuments.filter(d => d.status === "compliant").length;
+      const reviewRequired = requiredDocuments.filter(d => d.status === "review_required").length;
+      const overdueDocuments = requiredDocuments.filter(d => d.status === "overdue").length;
       const missingRequiredDocuments = missingRequiredCount;
+      // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
       
-      // Calculate split approval metrics based on user role
+      // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
       let awaitingOthersApproval = 0;
       
@@ -1212,26 +1257,17 @@ export async function registerRoutes(
         const uploadedByCurrentUser = doc.uploadedBy === user.id;
         
         if (user.role === "client") {
-          // For clients:
-          // - awaitingYourApproval: consultant-uploaded docs with status "pending" (need client sign-off)
-          // - awaitingOthersApproval: YOUR uploads pending consultant approval
           if (!uploaderIsClient && doc.approvalStatus === "pending") {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
-            // Only count documents YOU uploaded as "awaiting others"
             awaitingOthersApproval++;
           }
-          // Note: client_signed_off docs don't show for clients - they're waiting on consultant
         } else {
-          // For consultants/admins:
-          // - awaitingYourApproval: client-uploaded docs pending OR docs awaiting final approval
-          // - awaitingOthersApproval: YOUR uploads pending client sign-off
           if (uploaderIsClient && doc.approvalStatus === "pending") {
             awaitingYourApproval++;
           } else if (doc.approvalStatus === "client_signed_off") {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
-            // Only count documents YOU uploaded as "awaiting others"
             awaitingOthersApproval++;
           }
         }

@@ -721,6 +721,7 @@ export class MemStorage implements IStorage {
 
     const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
     let missingRequired = 0;
+    const requiredTemplateIds = new Set<string>();
     if (site?.companyId) {
       const requiredTemplates = await this.getCompanyRequiredTemplates(site.companyId);
       if (requiredTemplates.length > 0) {
@@ -730,6 +731,7 @@ export class MemStorage implements IStorage {
         for (const rt of requiredTemplates) {
           const tmpl = templateMap.get(rt.templateId);
           if (!tmpl || tmpl.visibility !== "private") continue;
+          requiredTemplateIds.add(rt.templateId);
           const matchingDocs = docs.filter(d => d.templateId === rt.templateId);
           const isFulfilled = matchingDocs.some(d => {
             if (d.status !== "compliant") return false;
@@ -742,10 +744,14 @@ export class MemStorage implements IStorage {
       }
     }
 
-    const total = docs.length + missingRequired;
-    const compliant = docs.filter(d => d.status === "compliant").length;
-    const review = docs.filter(d => d.status === "review_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length;
+    const requiredDocs = docs.filter(d =>
+      d.isRequired || (d.templateId && requiredTemplateIds.has(d.templateId))
+    );
+
+    const total = requiredDocs.length + missingRequired;
+    const compliant = requiredDocs.filter(d => d.status === "compliant").length;
+    const review = requiredDocs.filter(d => d.status === "review_required").length;
+    const overdue = requiredDocs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
