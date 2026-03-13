@@ -72,7 +72,7 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
         const unscaledViewport = page.getViewport({ scale: 1 });
         const fitScale = Math.min(
           Math.max(containerWidth / unscaledViewport.width, 0.5),
-          1.1
+          1.2
         );
         const viewport = page.getViewport({ scale: fitScale });
 
