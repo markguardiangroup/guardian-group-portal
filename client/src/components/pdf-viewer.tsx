@@ -17,11 +17,16 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
+  const loadingTaskRef = useRef<ReturnType<typeof pdfjsLib.getDocument> | null>(null);
 
   const renderPdf = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     setError(false);
 
+    if (loadingTaskRef.current) {
+      loadingTaskRef.current.destroy();
+      loadingTaskRef.current = null;
+    }
     if (pdfDocRef.current) {
       pdfDocRef.current.destroy();
       pdfDocRef.current = null;
@@ -34,11 +39,14 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       if (signal.aborted) return;
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      loadingTaskRef.current = loadingTask;
       if (signal.aborted) {
         loadingTask.destroy();
+        loadingTaskRef.current = null;
         return;
       }
       const pdfDoc = await loadingTask.promise;
+      loadingTaskRef.current = null;
       if (signal.aborted) {
         pdfDoc.destroy();
         return;
@@ -101,6 +109,10 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
     renderPdf(controller.signal);
     return () => {
       controller.abort();
+      if (loadingTaskRef.current) {
+        loadingTaskRef.current.destroy();
+        loadingTaskRef.current = null;
+      }
       if (pdfDocRef.current) {
         pdfDocRef.current.destroy();
         pdfDocRef.current = null;
