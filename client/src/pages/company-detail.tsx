@@ -397,7 +397,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                           id={`req-${template.id}`}
                           checked={requiredIds.has(template.id)}
                           onCheckedChange={(checked) => handleToggle(template.id, !!checked)}
-                          disabled={!isAdmin || saveMutation.isPending}
+                          disabled={(!isAdmin && user?.role !== "consultant") || saveMutation.isPending}
                           data-testid={`checkbox-required-${template.id}`}
                         />
                         <label
@@ -405,9 +405,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
                         >
                           {template.name}
-                          {template.isRequired && (
-                            <Badge variant="secondary" className="text-xs">Required</Badge>
-                          )}
+                          <Badge variant="secondary" className="text-xs">{label}</Badge>
                           {template.requiresApproval && (
                             <Badge variant="outline" className="text-xs">Approval Required</Badge>
                           )}
@@ -420,11 +418,6 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
             );
           })}
         </Tabs>
-        {!isAdmin && (
-          <p className="text-xs text-muted-foreground mt-4">
-            Only administrators can modify required documents.
-          </p>
-        )}
       </CardContent>
     </Card>
   );

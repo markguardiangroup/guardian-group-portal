@@ -882,20 +882,28 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
-      // Calculate missing required templates for this module across accessible sites
+      // Calculate missing required templates for this module across all accessible sites
       let missingRequiredCount = 0;
       {
-        const siteIds = [...new Set(documents.map(d => d.siteId))];
         const allSites = await storage.getSites();
-        const processedCompanies = new Set<string>();
-        for (const siteId of siteIds) {
-          const site = allSites.find(s => s.id === siteId);
-          if (!site?.companyId || processedCompanies.has(site.companyId)) continue;
-          processedCompanies.add(site.companyId);
-          const requiredTemplates = await storage.getCompanyRequiredTemplates(site.companyId);
-          const allTemplates = await storage.getDocumentTemplates();
-          const templateMap = new Map(allTemplates.map(t => [t.id, t]));
-          const siteDocs = documents.filter(d => d.siteId === siteId);
+        const allTemplates = await storage.getDocumentTemplates();
+        const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+        const allDocs = await storage.getDocuments(module);
+        const companyRequiredCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+        for (const site of allSites) {
+          if (!site.companyId) continue;
+          const canAccess = await canUserAccessSite(user, site.id);
+          if (!canAccess) continue;
+          if (requestedSiteId && requestedSiteId !== "all" && site.id !== requestedSiteId) continue;
+          if (requestedSiteIds) {
+            const siteIdList = requestedSiteIds.split(",");
+            if (!siteIdList.includes(site.id)) continue;
+          }
+          if (!companyRequiredCache.has(site.companyId)) {
+            companyRequiredCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+          }
+          const requiredTemplates = companyRequiredCache.get(site.companyId)!;
+          const siteDocs = allDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
           const uploadedTemplateIds = new Set(siteDocs.map(d => d.templateId).filter(Boolean));
           missingRequiredCount += requiredTemplates.filter(rt => {
             const tmpl = templateMap.get(rt.templateId);
@@ -1036,24 +1044,27 @@ export async function registerRoutes(
       );
       const documents = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
-      // Calculate missing required templates for this module across accessible sites
+      // Calculate missing required templates for this module across all accessible sites
       let missingRequiredCount2 = 0;
       {
-        const siteIds2 = [...new Set(documents.map(d => d.siteId))];
         const allSites2 = await storage.getSites();
-        const processedCompanies2 = new Set<string>();
-        for (const siteId of siteIds2) {
-          const site = allSites2.find(s => s.id === siteId);
-          if (!site?.companyId || processedCompanies2.has(site.companyId)) continue;
-          processedCompanies2.add(site.companyId);
-          const requiredTemplates2 = await storage.getCompanyRequiredTemplates(site.companyId);
-          const allTemplates2 = await storage.getDocumentTemplates();
-          const templateMap2 = new Map(allTemplates2.map(t => [t.id, t]));
-          const siteDocs2 = documents.filter(d => d.siteId === siteId);
+        const allTemplates2 = await storage.getDocumentTemplates();
+        const templateMap2 = new Map(allTemplates2.map(t => [t.id, t]));
+        const allModuleDocs = await storage.getDocuments(module);
+        const companyRequiredCache2 = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+        for (const site of allSites2) {
+          if (!site.companyId) continue;
+          const canAccess = await canUserAccessSite(user, site.id);
+          if (!canAccess) continue;
+          if (!companyRequiredCache2.has(site.companyId)) {
+            companyRequiredCache2.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+          }
+          const requiredTemplates2 = companyRequiredCache2.get(site.companyId)!;
+          const siteDocs2 = allModuleDocs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
           const uploadedTemplateIds2 = new Set(siteDocs2.map(d => d.templateId).filter(Boolean));
           missingRequiredCount2 += requiredTemplates2.filter(rt => {
             const tmpl = templateMap2.get(rt.templateId);
-            return tmpl && tmpl.module === module && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds2.has(rt.templateId);
+            return tmpl && (!module || tmpl.module === module) && tmpl.visibility === "private" && tmpl.isActive && !uploadedTemplateIds2.has(rt.templateId);
           }).length;
         }
       }
