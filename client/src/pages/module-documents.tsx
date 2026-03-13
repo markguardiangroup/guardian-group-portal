@@ -602,16 +602,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setArchivedDialogOpen(true)}
-            data-testid="button-show-archived"
-            className="gap-2"
-          >
-            <Archive className="h-4 w-4" />
-            Archived Documents
-          </Button>
+          {isPrivilegedUser && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setArchivedDialogOpen(true)}
+              data-testid="button-show-archived"
+              className="gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              Archived Documents
+            </Button>
+          )}
           
           {/* Quick stats badge */}
         </div>
