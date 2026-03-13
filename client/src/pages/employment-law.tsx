@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { PdfViewer } from "@/components/pdf-viewer";
 import {
   Briefcase,
   Search,
@@ -809,6 +810,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
   const { data: caseData, isLoading } = useQuery<Case>({
     queryKey: ["/api/cases", id],
@@ -1312,6 +1314,18 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="font-medium">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">{doc.fileName}</p>
                       </div>
+                      {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/")) && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => setPreviewDoc(doc)}
+                          data-testid={`button-preview-doc-${doc.id}`}
+                          title="Preview document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
                         <Button size="icon" variant="ghost" data-testid={`button-download-${doc.id}`}>
                           <Download className="h-4 w-4" />
@@ -1573,6 +1587,40 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAccessDialog(false)}>Cancel</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
+        <DialogContent className="h-[80vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+          <DialogHeader className="px-5 py-4 border-b shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="truncate">{previewDoc?.title || previewDoc?.fileName}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {previewDoc && (() => {
+              const mime = previewDoc.mimeType || "";
+              const previewUrl = `/api/documents/${previewDoc.id}/preview`;
+              if (mime === "application/pdf") {
+                return <PdfViewer url={previewUrl} />;
+              }
+              if (mime.startsWith("image/")) {
+                return (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto p-4 bg-muted/20">
+                    <img
+                      src={previewUrl}
+                      alt={previewDoc.title}
+                      className="max-w-full max-h-full object-contain rounded"
+                      data-testid="preview-image"
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
