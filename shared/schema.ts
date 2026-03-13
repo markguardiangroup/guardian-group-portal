@@ -856,15 +856,22 @@ export interface DocumentTypeWithAccess {
 
 // Compliance summary (computed/cached data for dashboard)
 export interface ComplianceSummary {
+  // Slot-based compliance (required documents only)
   totalDocuments: number;
   compliantDocuments: number;
   reviewRequired: number;
   overdueDocuments: number;
   missingRequiredDocuments: number;
+  complianceScore: number;
+  // All-document progress stats (includes non-required docs)
+  allDocuments: number;
+  allCompliantDocuments: number;
+  allReviewRequired: number;
+  allOverdueDocuments: number;
+  // Approval workflow (all docs)
   pendingApprovals: number;
   awaitingYourApproval: number;
   awaitingOthersApproval: number;
-  complianceScore: number;
 }
 
 // Module summary for dashboard

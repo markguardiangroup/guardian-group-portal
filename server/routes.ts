@@ -1096,6 +1096,13 @@ export async function registerRoutes(
       const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+
+      // All-document progress stats (unrestricted by required scope)
+      const nonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId);
+      const allDocumentsCount = nonCaseDocs.length;
+      const allCompliantDocuments = nonCaseDocs.filter(d => d.status === "compliant").length;
+      const allReviewRequired = nonCaseDocs.filter(d => d.status === "review_required").length;
+      const allOverdueDocuments = nonCaseDocs.filter(d => d.status === "overdue").length;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
@@ -1135,10 +1142,14 @@ export async function registerRoutes(
         reviewRequired,
         overdueDocuments,
         missingRequiredDocuments,
+        complianceScore,
+        allDocuments: allDocumentsCount,
+        allCompliantDocuments,
+        allReviewRequired,
+        allOverdueDocuments,
         pendingApprovals,
         awaitingYourApproval,
         awaitingOthersApproval,
-        complianceScore,
       };
       
       const auditLogs = await storage.getAuditLogs(undefined, module);
@@ -1218,6 +1229,13 @@ export async function registerRoutes(
       const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+
+      // All-document progress stats (unrestricted by required scope)
+      const allNonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId);
+      const allDocsProgress = allNonCaseDocs.length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant").length;
+      const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required").length;
+      const allOverdueProgress = allNonCaseDocs.filter(d => d.status === "overdue").length;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
@@ -1257,10 +1275,14 @@ export async function registerRoutes(
         reviewRequired,
         overdueDocuments,
         missingRequiredDocuments,
+        complianceScore,
+        allDocuments: allDocsProgress,
+        allCompliantDocuments: allCompliantProgress,
+        allReviewRequired: allReviewProgress,
+        allOverdueDocuments: allOverdueProgress,
         pendingApprovals,
         awaitingYourApproval,
         awaitingOthersApproval,
-        complianceScore,
       };
       
       const auditLogs = await storage.getAuditLogs(undefined, module);
@@ -1386,36 +1408,43 @@ export async function registerRoutes(
       const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = filteredDocs.filter(d => d.module === mod);
+        const allDocs = moduleDocs.length;
+        const allCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const allReview = moduleDocs.filter(d => d.status === "review_required").length;
+        const allOverdue = moduleDocs.filter(d => d.status === "overdue").length;
+        const pending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
         if (complianceModules.includes(mod)) {
           const compliance = await computeSlotBasedCompliance(user, moduleDocs, mod, siteFilter);
-          const pendingApprovals = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
           return {
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
-            pendingApprovals,
+            allDocuments: allDocs,
+            allCompliantDocuments: allCompliant,
+            allReviewRequired: allReview,
+            allOverdueDocuments: allOverdue,
+            pendingApprovals: pending,
             awaitingYourApproval: 0,
             awaitingOthersApproval: 0,
           };
         }
-        const total = moduleDocs.length;
-        const compliant = moduleDocs.filter(d => d.status === "compliant").length;
-        const review = moduleDocs.filter(d => d.status === "review_required").length;
-        const overdue = moduleDocs.filter(d => d.status === "overdue").length;
-        const pending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
         return {
           module: mod,
           moduleName: moduleNames[mod],
-          totalDocuments: total,
-          compliantDocuments: compliant,
-          reviewRequired: review,
-          overdueDocuments: overdue,
+          totalDocuments: allDocs,
+          compliantDocuments: allCompliant,
+          reviewRequired: allReview,
+          overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
+          complianceScore: allDocs > 0 ? Math.round((allCompliant / allDocs) * 100) : 0,
+          allDocuments: allDocs,
+          allCompliantDocuments: allCompliant,
+          allReviewRequired: allReview,
+          allOverdueDocuments: allOverdue,
           pendingApprovals: pending,
           awaitingYourApproval: 0,
           awaitingOthersApproval: 0,
-          complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
         };
       }));
 

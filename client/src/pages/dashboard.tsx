@@ -127,8 +127,9 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
             style={{ width: `${summary.complianceScore}%` }}
           />
         </div>
-        
-        <div className={`grid gap-4 text-center ${(summary.missingRequiredDocuments || 0) > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
+
+        {/* Compliance stats: Compliant | Overdue | Missing Required (always shown) */}
+        <div className="grid grid-cols-3 gap-3 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
@@ -137,28 +138,38 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
             <p className="text-xs text-muted-foreground">Compliant</p>
           </div>
           <div>
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-              <Clock className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.reviewRequired}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Review</p>
-          </div>
-          <div>
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-lg font-semibold">{summary.overdueDocuments}</span>
             </div>
             <p className="text-xs text-muted-foreground">Overdue</p>
           </div>
-          {(summary.missingRequiredDocuments || 0) > 0 && (
-            <div>
-              <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                <FileQuestion className="h-4 w-4" />
-                <span className="text-lg font-semibold">{summary.missingRequiredDocuments}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Missing</p>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+              <FileQuestion className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.missingRequiredDocuments || 0}</span>
             </div>
-          )}
+            <p className="text-xs text-muted-foreground">Missing</p>
+          </div>
+        </div>
+
+        {/* Document Progress */}
+        <div className="rounded-md border bg-muted/30 px-3 py-2">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Document Progress</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <span className="text-sm font-semibold">{summary.allDocuments ?? summary.totalDocuments}</span>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">{summary.allReviewRequired ?? summary.reviewRequired}</span>
+              <p className="text-xs text-muted-foreground">Review</p>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-muted-foreground">{summary.pendingApprovals || 0}</span>
+              <p className="text-xs text-muted-foreground">Pending</p>
+            </div>
+          </div>
         </div>
 
         <Button className={`w-full mt-auto ${buttonClass}`} variant="outline" asChild>
@@ -429,6 +440,10 @@ interface SiteComplianceSummary {
   overdueDocuments: number;
   missingRequiredDocuments?: number;
   complianceScore: number;
+  allDocuments?: number;
+  allCompliantDocuments?: number;
+  allReviewRequired?: number;
+  allOverdueDocuments?: number;
   pendingApprovals?: number;
   awaitingYourApproval?: number;
   awaitingOthersApproval?: number;
@@ -460,15 +475,19 @@ function OverallComplianceCard({
   isMissingLoading?: boolean;
 }) {
   const [showMissingDialog, setShowMissingDialog] = useState(false);
-  const totalDocs = siteComplianceSummary?.totalDocuments ?? summaries.reduce((acc, s) => acc + s.totalDocuments, 0);
+  // Slot-based compliance (required docs)
   const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
-  const reviewDocs = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + s.reviewRequired, 0);
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
   const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
+  const overallScore = siteComplianceSummary?.complianceScore ?? summaries.reduce((acc, s) => acc + s.complianceScore, 0) / (summaries.length || 1);
+  // All-document progress stats
+  const allDocs = siteComplianceSummary?.allDocuments ?? summaries.reduce((acc, s) => acc + (s.allDocuments ?? s.totalDocuments), 0);
+  const allCompliant = siteComplianceSummary?.allCompliantDocuments ?? summaries.reduce((acc, s) => acc + (s.allCompliantDocuments ?? s.compliantDocuments), 0);
+  const reviewDocs = siteComplianceSummary?.allReviewRequired ?? summaries.reduce((acc, s) => acc + (s.allReviewRequired ?? s.reviewRequired), 0);
+  const allOverdue = siteComplianceSummary?.allOverdueDocuments ?? summaries.reduce((acc, s) => acc + (s.allOverdueDocuments ?? s.overdueDocuments), 0);
   const pendingApprovals = siteComplianceSummary?.pendingApprovals ?? summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
   const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
   const awaitingOthersApproval = siteComplianceSummary?.awaitingOthersApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingOthersApproval || 0), 0);
-  const overallScore = siteComplianceSummary?.complianceScore ?? (totalDocs > 0 ? Math.round((compliantDocs / totalDocs) * 100) : 0);
 
   const moduleLabels: Record<string, string> = {
     health_safety: "Health & Safety",
@@ -529,14 +548,8 @@ function OverallComplianceCard({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-md border p-3 text-center">
-            <div className="flex items-center justify-center gap-1">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-semibold">{totalDocs}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Total Documents</p>
-          </div>
+        {/* Compliance stats: required docs only */}
+        <div className="grid grid-cols-3 gap-4">
           <div className="rounded-md border p-3 text-center">
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
@@ -545,37 +558,62 @@ function OverallComplianceCard({
             <p className="text-xs text-muted-foreground">Compliant</p>
           </div>
           <div className="rounded-md border p-3 text-center">
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-              <Clock className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{reviewDocs}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Review Required</p>
-          </div>
-          <div className="rounded-md border p-3 text-center">
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-2xl font-semibold">{overdueDocs}</span>
             </div>
             <p className="text-xs text-muted-foreground">Overdue</p>
           </div>
+          <div className="rounded-md border p-3 text-center">
+            <button
+              onClick={() => missingDocs > 0 && setShowMissingDialog(true)}
+              className={`w-full h-full ${missingDocs > 0 ? "cursor-pointer" : "cursor-default"}`}
+              data-testid="button-missing-required"
+            >
+              <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                <FileQuestion className="h-4 w-4" />
+                <span className="text-2xl font-semibold">{missingDocs}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Missing Required</p>
+              {missingDocs > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
+            </button>
+          </div>
         </div>
 
-        {missingDocs > 0 && (
-          <button
-            onClick={() => setShowMissingDialog(true)}
-            className="w-full rounded-md bg-orange-500/10 border border-orange-500/20 p-3 text-center cursor-pointer hover:bg-orange-500/15 transition-colors"
-            data-testid="button-missing-required"
-          >
-            <div className="flex items-center justify-center gap-2">
-              <FileQuestion className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-              <span className="text-lg font-semibold text-orange-600 dark:text-orange-400">{missingDocs}</span>
-              <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                required document{missingDocs > 1 ? "s" : ""} missing
-              </span>
+        {/* Document Progress */}
+        <div className="rounded-md border bg-muted/30 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Document Progress</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-2xl font-semibold">{allDocs}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Total</p>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Click to view details</p>
-          </button>
-        )}
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-2xl font-semibold">{allCompliant}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Compliant</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                <Clock className="h-4 w-4" />
+                <span className="text-2xl font-semibold">{reviewDocs}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Review Required</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-2xl font-semibold">{allOverdue}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Overdue</p>
+            </div>
+          </div>
+        </div>
 
         <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-missing-required">

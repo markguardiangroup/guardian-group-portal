@@ -289,8 +289,14 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     reviewRequired: 0,
     overdueDocuments: 0,
     missingRequiredDocuments: 0,
-    pendingApprovals: 0,
     complianceScore: 0,
+    allDocuments: 0,
+    allCompliantDocuments: 0,
+    allReviewRequired: 0,
+    allOverdueDocuments: 0,
+    pendingApprovals: 0,
+    awaitingYourApproval: 0,
+    awaitingOthersApproval: 0,
   };
 
   const getDocTypeLabel = (type: string) => {
@@ -353,64 +359,105 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
       <div className="space-y-8 p-8 dash-animate">
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        {isLoading ? (
-          [1, 2, 3, 4, 5].map((i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-16" />
-                <Skeleton className="mt-2 h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <>
-            <ComplianceScoreCard score={summary.complianceScore} moduleName={config.shortName} />
-            <MetricCard
-              title="Total Documents"
-              value={summary.totalDocuments}
-              description="In this module"
-              icon={FileText}
-              testId="card-module-total-documents"
-            />
-            <MetricCard
-              title="Compliant"
-              value={summary.compliantDocuments}
-              description="Up to date"
-              icon={CheckCircle}
-              variant="success"
-              testId="card-module-compliant"
-            />
-            <MetricCard
-              title="Review Required"
-              value={summary.reviewRequired}
-              description="Pending review"
-              icon={Clock}
-              variant="warning"
-              testId="card-module-review"
-            />
-            <MetricCard
-              title="Overdue"
-              value={summary.overdueDocuments}
-              description="Action needed"
-              icon={AlertTriangle}
-              variant="danger"
-              testId="card-module-overdue"
-            />
-            {(summary.missingRequiredDocuments || 0) > 0 && (
-              <MetricCard
-                title="Missing Required"
-                value={summary.missingRequiredDocuments}
-                description="Not yet uploaded"
-                icon={FileQuestion}
-                variant="warning"
-                testId="card-module-missing"
-              />
+        {/* Compliance Section */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{config.shortName} Compliance</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {isLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="mt-2 h-3 w-32" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <>
+                <ComplianceScoreCard score={summary.complianceScore} moduleName={config.shortName} />
+                <MetricCard
+                  title="Compliant"
+                  value={summary.compliantDocuments}
+                  description="Required docs up to date"
+                  icon={CheckCircle}
+                  variant="success"
+                  testId="card-module-compliant"
+                />
+                <MetricCard
+                  title="Overdue"
+                  value={summary.overdueDocuments}
+                  description="Required docs overdue"
+                  icon={AlertTriangle}
+                  variant="danger"
+                  testId="card-module-overdue"
+                />
+                <MetricCard
+                  title="Missing Required"
+                  value={summary.missingRequiredDocuments || 0}
+                  description="Not yet uploaded"
+                  icon={FileQuestion}
+                  variant="warning"
+                  testId="card-module-missing"
+                />
+              </>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+
+        {/* Document Progress Section */}
+        <Card data-testid="card-document-progress">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Document Progress
+            </CardTitle>
+            <CardDescription>Status across all {config.shortName} documents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="rounded-md border p-3 text-center">
+                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                <div className="rounded-md border p-3 text-center" data-testid="progress-total">
+                  <div className="flex items-center justify-center gap-1">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-2xl font-semibold">{summary.allDocuments}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Total</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="progress-compliant">
+                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="progress-review">
+                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Review Required</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="progress-overdue">
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
       {/* Renewal Compliance Section */}
       <Card data-testid="card-renewal-compliance">
