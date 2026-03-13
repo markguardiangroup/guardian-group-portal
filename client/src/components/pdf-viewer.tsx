@@ -23,10 +23,6 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
     fetch(url, { credentials: "include", signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const contentType = res.headers.get("content-type") || "";
-        if (!contentType.includes("application/pdf")) {
-          throw new Error("Response is not a PDF");
-        }
         return res.blob();
       })
       .then((blob) => {
