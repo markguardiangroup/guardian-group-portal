@@ -753,6 +753,9 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                  {(doc as any).isRequired && (
+                                    <Badge variant="outline" className="text-xs text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hidden sm:inline-flex">Required</Badge>
+                                  )}
                                   <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                   <ApprovalBadge status={doc.approvalStatus as any} />
                                   <span className="text-sm text-muted-foreground">

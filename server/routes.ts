@@ -52,6 +52,7 @@ const createDocumentSchema = z.object({
   trainingCourseCode: z.string().optional(),
   trainingDate: z.string().optional(),
   requiresApproval: z.boolean().optional(),
+  isRequired: z.boolean().optional(),
   notifyUserIds: z.array(z.string()).optional(),
 });
 
@@ -899,6 +900,9 @@ export async function registerRoutes(
     siteName: string;
     companyId: string;
     companyName: string;
+    documentId?: string;
+    documentStatus?: string;
+    kind: "template_slot" | "required_document";
   }
 
   async function getMissingRequiredTemplateDetails(
@@ -952,8 +956,35 @@ export async function registerRoutes(
             siteName: site.name,
             companyId: site.companyId,
             companyName: company?.name || "Unknown",
+            kind: "template_slot" as const,
           });
         }
+      }
+
+      // Also include manually uploaded required documents that are not compliant
+      const requiredDocs = siteDocs.filter(d => {
+        if (!(d as any).isRequired) return false;
+        if (module && d.module !== module) return false;
+        if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
+        const isCompliant = d.status === "compliant" &&
+          (!d.expiryDate || new Date(d.expiryDate) >= new Date()) &&
+          d.approvalStatus === "approved";
+        return !isCompliant;
+      });
+      for (const doc of requiredDocs) {
+        results.push({
+          templateId: doc.id,
+          templateName: doc.title,
+          module: doc.module,
+          requiresApproval: false,
+          siteId: site.id,
+          siteName: site.name,
+          companyId: site.companyId || "",
+          companyName: company?.name || "Unknown",
+          documentId: doc.id,
+          documentStatus: doc.status,
+          kind: "required_document" as const,
+        });
       }
     }
     return results;
@@ -1871,6 +1902,7 @@ export async function registerRoutes(
         uploadedBy: user.id,
         assignedTo: null,
         isArchived: false,
+        isRequired: body.isRequired || false,
         source: body.source || "external",
         templateId: body.templateId || null,
         templateVersion: body.templateVersion ?? null,

@@ -656,6 +656,7 @@ export const documents = pgTable("documents", {
   uploadedBy: varchar("uploaded_by").notNull(),
   assignedTo: varchar("assigned_to"),
   isArchived: boolean("is_archived").notNull().default(false),
+  isRequired: boolean("is_required").notNull().default(false), // Marked as required for compliance
   // Template lineage tracking
   source: text("source").$type<DocumentSource>().notNull().default("external"), // "template" or "external"
   templateId: varchar("template_id"), // Reference to document template used

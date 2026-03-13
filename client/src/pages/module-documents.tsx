@@ -758,6 +758,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                       Archived
                                                     </Badge>
                                                   )}
+                                                  {(doc as any).isRequired && (
+                                                    <Badge variant="outline" className={`text-[10px] h-5 ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                                                  )}
                                                   <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                 </div>

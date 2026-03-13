@@ -40,7 +40,9 @@ import {
   ArrowRight,
   AlertTriangle,
   Users,
+  ShieldCheck,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { Site, ModuleType } from "@shared/schema";
 
@@ -52,6 +54,7 @@ const documentUploadSchema = z.object({
   siteId: z.string().optional(),
   folderId: z.string().min(1, "Please select a folder"),
   requiresApproval: z.boolean().default(true),
+  isRequired: z.boolean().default(false),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
 }).refine((data) => {
@@ -139,6 +142,7 @@ export default function DocumentUpload() {
       siteId: "",
       folderId: "",
       requiresApproval: true,
+      isRequired: false,
       reviewDate: "",
       expiryDate: "",
     },
@@ -351,6 +355,7 @@ export default function DocumentUpload() {
             siteId: site.id,
             folderId: siteFolderId,
             requiresApproval: data.requiresApproval,
+            isRequired: data.isRequired,
             reviewDate: data.reviewDate,
             expiryDate: data.expiryDate,
             type: "supporting_document",
@@ -371,6 +376,7 @@ export default function DocumentUpload() {
           siteId: data.siteId,
           folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
+          isRequired: data.isRequired,
           reviewDate: data.reviewDate,
           expiryDate: data.expiryDate,
           type: "supporting_document",
@@ -872,6 +878,40 @@ export default function DocumentUpload() {
                       )}
                     </div>
                   )}
+
+                  {/* Compliance Section */}
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Compliance</h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="isRequired"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1 flex-1">
+                              <FormLabel className="text-sm font-medium text-foreground">
+                                Required for Compliance
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground leading-snug">
+                                Mark this document as required. If it is not compliant and up to date, it will count against the compliance score for this site.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                data-testid="toggle-is-required"
+                                className="shrink-0 mt-0.5"
+                              />
+                            </FormControl>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormField

@@ -442,6 +442,9 @@ interface MissingRequiredTemplateDetail {
   siteId: string;
   siteName: string;
   companyId: string;
+  documentId?: string;
+  documentStatus?: string;
+  kind?: "template_slot" | "required_document";
   companyName: string;
 }
 
@@ -613,9 +616,17 @@ function OverallComplianceCard({
                             {item.siteName} — {item.companyName}
                           </p>
                         </div>
-                        {item.requiresApproval && (
-                          <Badge variant="outline" className="ml-2 shrink-0 text-xs">Approval Required</Badge>
-                        )}
+                        <div className="ml-2 shrink-0 flex items-center gap-1.5">
+                          {item.kind === "required_document" ? (
+                            <Badge variant="outline" className="text-xs text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 capitalize">
+                              {item.documentStatus?.replace("_", " ") || "Not Compliant"}
+                            </Badge>
+                          ) : item.requiresApproval ? (
+                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">Not Uploaded</Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </TabsContent>
