@@ -2,6 +2,7 @@ CREATE TABLE "company_required_templates" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"company_id" varchar NOT NULL,
 	"template_id" varchar NOT NULL,
+	"created_by" varchar NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
