@@ -46,7 +46,8 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       if (!container) return;
       container.innerHTML = "";
 
-      const containerWidth = container.clientWidth - 32;
+      const parentWidth = container.parentElement?.clientWidth ?? container.clientWidth;
+      const containerWidth = Math.max(parentWidth - 32, 200);
       const dpr = window.devicePixelRatio || 1;
 
       for (let i = 1; i <= pdfDoc.numPages; i++) {
