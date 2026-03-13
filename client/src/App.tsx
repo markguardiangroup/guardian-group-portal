@@ -280,7 +280,7 @@ function LegalAcceptanceScreen() {
         </Card>
 
         <Dialog open={previewDoc !== null} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-          <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "1000px" }}>
+          <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "860px" }}>
             <DialogHeader className="p-6 pb-2">
               <DialogTitle>
                 {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}

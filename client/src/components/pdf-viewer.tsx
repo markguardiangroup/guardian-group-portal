@@ -59,7 +59,7 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       container.innerHTML = "";
 
       const parentWidth = container.parentElement?.clientWidth ?? container.clientWidth;
-      const containerWidth = Math.max(parentWidth - 32, 200);
+      const containerWidth = Math.max(parentWidth - 16, 200);
       const dpr = window.devicePixelRatio || 1;
 
       for (let i = 1; i <= pdfDoc.numPages; i++) {
@@ -79,7 +79,7 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
         canvas.style.width = `${Math.floor(viewport.width)}px`;
         canvas.style.height = `${Math.floor(viewport.height)}px`;
         canvas.style.display = "block";
-        canvas.style.margin = "0 auto 16px auto";
+        canvas.style.margin = "0 auto 8px auto";
 
         const ctx = canvas.getContext("2d");
         if (!ctx) continue;
@@ -142,7 +142,7 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       )}
       <div
         ref={containerRef}
-        className="overflow-y-auto h-full p-4"
+        className="overflow-y-auto h-full p-2"
         style={{ display: loading || error ? "none" : "block" }}
         data-testid="pdf-canvas-container"
       />
