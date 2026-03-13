@@ -1061,9 +1061,9 @@ function LegalDocumentsTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Legal Documents</CardTitle>
+          <CardTitle>Replace Document</CardTitle>
           <CardDescription>
-            Manage Terms & Conditions and Privacy Policy documents. These documents are presented to new users during account setup and must be accepted before they can use the portal. When a document is replaced, all users will be required to re-accept the updated documents on their next login.
+            You can replace the legal docs here.
           </CardDescription>
         </CardHeader>
       </Card>
