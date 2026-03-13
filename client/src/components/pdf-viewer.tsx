@@ -70,7 +70,10 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
         }
         const page = await pdfDoc.getPage(i);
         const unscaledViewport = page.getViewport({ scale: 1 });
-        const fitScale = Math.max(containerWidth / unscaledViewport.width, 0.5);
+        const fitScale = Math.min(
+          Math.max(containerWidth / unscaledViewport.width, 0.5),
+          1.0
+        );
         const viewport = page.getViewport({ scale: fitScale });
 
         const canvas = document.createElement("canvas");
