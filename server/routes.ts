@@ -6596,15 +6596,10 @@ export async function registerRoutes(
         }
       }
       const uniqueIds = [...new Set(templateIds)];
-      if (uniqueIds.length > 0) {
-        const allTemplates = await storage.getDocumentTemplates();
-        const validIds = new Set(allTemplates.filter(t => t.isActive && t.visibility === "private").map(t => t.id));
-        const invalidIds = uniqueIds.filter(id => !validIds.has(id));
-        if (invalidIds.length > 0) {
-          return res.status(400).json({ error: "Some template IDs are not valid active private templates" });
-        }
-      }
-      const result = await storage.setCompanyRequiredTemplates(companyId, uniqueIds, user.id);
+      const allTemplates = await storage.getDocumentTemplates();
+      const validIds = new Set(allTemplates.filter(t => t.isActive && t.visibility === "private").map(t => t.id));
+      const filteredIds = uniqueIds.filter(id => validIds.has(id));
+      const result = await storage.setCompanyRequiredTemplates(companyId, filteredIds, user.id);
       res.json(result);
     } catch (error) {
       console.error("Set company required templates error:", error);
