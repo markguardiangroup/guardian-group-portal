@@ -851,9 +851,11 @@ export default function Dashboard() {
     const upcomingRenewals: Document[] = [];
     
     allDocuments.forEach((doc) => {
-      if (!doc.renewalDate) return;
+      // Use renewalDate if set, otherwise fall back to expiryDate
+      const trackingDate = doc.renewalDate || doc.expiryDate;
+      if (!trackingDate) return;
       
-      const renewalDate = new Date(doc.renewalDate);
+      const renewalDate = new Date(trackingDate);
       const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysUntilRenewal < 0) {
@@ -869,8 +871,10 @@ export default function Dashboard() {
     });
     
     upcomingRenewals.sort((a, b) => {
-      const dateA = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
-      const dateB = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
+      const trackA = a.renewalDate || a.expiryDate;
+      const trackB = b.renewalDate || b.expiryDate;
+      const dateA = trackA ? new Date(trackA).getTime() : Infinity;
+      const dateB = trackB ? new Date(trackB).getTime() : Infinity;
       return dateA - dateB;
     });
     
@@ -1074,7 +1078,8 @@ export default function Dashboard() {
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
               <div className="divide-y">
                 {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
-                  const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
+                  const trackingDate = doc.renewalDate || doc.expiryDate;
+                  const renewalDate = trackingDate ? new Date(trackingDate) : null;
                   const daysUntilRenewal = renewalDate 
                     ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                     : null;
@@ -1127,7 +1132,7 @@ export default function Dashboard() {
                             })()}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
+                            {doc.renewalDate ? "Renewal" : "Expires"}: {renewalDate && format(renewalDate, "MMM d, yyyy")}
                           </p>
                         </div>
                       </div>
