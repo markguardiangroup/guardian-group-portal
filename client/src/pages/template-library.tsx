@@ -1870,7 +1870,10 @@ export default function TemplateLibraryPage() {
                 Setup Wizard
               </Button>
               {(activeTab === "templates" || activeTab === "files") && (
-                <Button onClick={() => setIsTemplateDialogOpen(true)} data-testid="button-add-template">
+                <Button onClick={() => {
+                  setTemplateFormData({ ...defaultTemplateFormData, module: selectedModule === "all" ? "health_safety" : selectedModule });
+                  setIsTemplateDialogOpen(true);
+                }} data-testid="button-add-template">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Template
                 </Button>
