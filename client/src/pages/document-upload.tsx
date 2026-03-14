@@ -419,9 +419,9 @@ export default function DocumentUpload() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+      queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       const siteCount = variables.uploadScope === "company" && selectedCompany
         ? sites?.filter(s => s.companyName === selectedCompany).length || 0
         : 1;
