@@ -900,7 +900,13 @@ export async function registerRoutes(
 
         const isFulfilled = matchingDocs.some(d => {
           if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (d.expiryDate) {
+            const expiry = new Date(d.expiryDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            expiry.setHours(0, 0, 0, 0);
+            if (expiry < today) return false;
+          }
           if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
           return true;
         });
@@ -986,7 +992,13 @@ export async function registerRoutes(
         const isFulfilled = siteDocs.some(d => {
           if (d.templateId !== rt.templateId) return false;
           if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (d.expiryDate) {
+            const expiry = new Date(d.expiryDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            expiry.setHours(0, 0, 0, 0);
+            if (expiry < today) return false;
+          }
           if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
           return true;
         });
