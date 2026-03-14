@@ -254,7 +254,7 @@ export default function CreateFromTemplate() {
         setRenewalPeriodMonths(null);
       }
     }
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, selectedTemplate]);
 
   const templatePlaceholders: string[] = useMemo(() => {
     if (!selectedTemplate?.placeholders) return [];
