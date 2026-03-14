@@ -482,6 +482,7 @@ export default function CreateFromTemplate() {
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
       toast({

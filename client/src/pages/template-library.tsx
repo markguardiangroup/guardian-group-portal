@@ -699,6 +699,8 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       setIsDocTypeDialogOpen(false);
       setDocTypeFormData(defaultDocTypeFormData);
       toast({ title: "Template type created", description: "The template type has been created successfully." });
@@ -714,6 +716,8 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       setIsEditDocTypeDialogOpen(false);
       setSelectedDocType(null);
       toast({ title: "Template type updated", description: "The template type has been updated successfully." });
@@ -729,6 +733,8 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       toast({ title: "Template type deleted", description: "The template type has been removed." });
     },
     onError: (error: Error) => {
@@ -747,6 +753,8 @@ export default function TemplateLibraryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       setIsAssignFolderDialogOpen(false);
       setSelectedDocType(null);
       setSelectedFolderIdForAssign("");
@@ -1378,6 +1386,8 @@ export default function TemplateLibraryPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
       queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       setIsDocTypeDialogOpen(false);
       setDocTypeFormData(defaultDocTypeFormData);
       toast({ title: "Template type created", description: "The template type has been created and assigned to the folder." });
@@ -1522,6 +1532,8 @@ export default function TemplateLibraryPage() {
         });
         queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
         setWizardStep("template");
       } catch (error) {
         toast({ title: "Error", description: "Failed to create template type", variant: "destructive" });
