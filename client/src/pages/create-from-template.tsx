@@ -33,10 +33,8 @@ import {
   Briefcase,
   Clock,
   AlertTriangle,
-  Info,
   CheckCircle2,
   XCircle,
-  RefreshCw,
   Calendar,
   BookOpen,
   Flame,
@@ -207,6 +205,8 @@ export default function CreateFromTemplate() {
   const [reviewDate, setReviewDate] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
+  const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
+  const [renewalPeriodMonths, setRenewalPeriodMonths] = useState<number | null>(null);
   const [reviewDateInteracted, setReviewDateInteracted] = useState(false);
   const [reviewDateBlurred, setReviewDateBlurred] = useState(false);
   const [expiryDateInteracted, setExpiryDateInteracted] = useState(false);
@@ -243,6 +243,16 @@ export default function CreateFromTemplate() {
   useEffect(() => {
     if (selectedTemplate) {
       setRequiresApproval(selectedTemplate.requiresApproval !== false);
+      if (selectedTemplate.renewalPeriodMonths) {
+        setComplianceMode("renewal");
+        setRenewalPeriodMonths(selectedTemplate.renewalPeriodMonths);
+        setExpiryDate("");
+        setExpiryDateInteracted(false);
+        setExpiryDateBlurred(false);
+      } else {
+        setComplianceMode("none");
+        setRenewalPeriodMonths(null);
+      }
     }
   }, [selectedTemplateId]);
 
@@ -459,7 +469,10 @@ export default function CreateFromTemplate() {
         requiresApproval,
         notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
         reviewDate: reviewDate || undefined,
-        expiryDate: expiryDate || undefined,
+        expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
+        renewalDate: complianceMode === "renewal" && renewalPeriodMonths
+          ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
+          : undefined,
       };
 
       return apiRequest("POST", "/api/documents", formData);
@@ -562,13 +575,19 @@ export default function CreateFromTemplate() {
       toast({ title: "Invalid Review Date", description: "Review date must be today or in the future.", variant: "destructive" });
       return;
     }
-    if (expiryDateInteracted && expiryRefEmpty) {
-      setExpiryDateBlurred(true);
-      toast({ title: "Invalid Expiry Date", description: "Please enter a complete expiry date.", variant: "destructive" });
-      return;
+    if (complianceMode === "expiry") {
+      if (expiryDateInteracted && expiryRefEmpty) {
+        setExpiryDateBlurred(true);
+        toast({ title: "Invalid Expiry Date", description: "Please enter a complete expiry date.", variant: "destructive" });
+        return;
+      }
+      if (expiryDate && isDateInPast(expiryDate)) {
+        toast({ title: "Invalid Expiry Date", description: "Expiry date must be today or in the future.", variant: "destructive" });
+        return;
+      }
     }
-    if (expiryDate && isDateInPast(expiryDate)) {
-      toast({ title: "Invalid Expiry Date", description: "Expiry date must be today or in the future.", variant: "destructive" });
+    if (complianceMode === "renewal" && !renewalPeriodMonths) {
+      toast({ title: "Renewal Period Required", description: "Please select a renewal period.", variant: "destructive" });
       return;
     }
     if (!selectedFile) {
@@ -1164,82 +1183,95 @@ export default function CreateFromTemplate() {
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="expiryDate" className="text-sm font-medium">Expiry Date</Label>
-                <div className="relative mt-1">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    ref={expiryDateRef}
-                    id="expiryDate"
-                    type="date"
-                    className={`pl-10 ${expiryDate || expiryDateBlurred ? "pr-8" : ""} ${isExpiryDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                    value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    onKeyDown={() => setExpiryDateInteracted(true)}
-                    onInput={() => setExpiryDateInteracted(true)}
-                    onBlur={() => { if (expiryDateInteracted) setExpiryDateBlurred(true); }}
-                    data-testid="input-expiry-date"
-                  />
-                  {(expiryDate || expiryDateBlurred) && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setExpiryDate("");
-                        setExpiryDateInteracted(false);
-                        setExpiryDateBlurred(false);
-                        if (expiryDateRef.current) expiryDateRef.current.value = "";
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      data-testid="button-clear-expiry-date"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Compliance Tracking</Label>
+                <div className="space-y-2">
+                  <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-none">
+                    <input type="radio" name="complianceMode" value="none" checked={complianceMode === "none"}
+                      onChange={() => { setComplianceMode("none"); setRenewalPeriodMonths(null); setExpiryDate(""); setExpiryDateInteracted(false); setExpiryDateBlurred(false); }}
+                      className="accent-primary" />
+                    <span className="text-sm">No expiry or renewal</span>
+                  </label>
+                  <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "renewal" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-renewal">
+                    <input type="radio" name="complianceMode" value="renewal" checked={complianceMode === "renewal"}
+                      onChange={() => { setComplianceMode("renewal"); setExpiryDate(""); setExpiryDateInteracted(false); setExpiryDateBlurred(false); if (!renewalPeriodMonths && selectedTemplate?.renewalPeriodMonths) setRenewalPeriodMonths(selectedTemplate.renewalPeriodMonths); }}
+                      className="accent-primary mt-1" />
+                    <div className="flex-1 space-y-2">
+                      <span className="text-sm">Renewal period</span>
+                      {complianceMode === "renewal" && (
+                        <Select
+                          value={renewalPeriodMonths != null ? String(renewalPeriodMonths) : ""}
+                          onValueChange={(val) => setRenewalPeriodMonths(parseInt(val))}
+                        >
+                          <SelectTrigger className="h-9" data-testid="select-compliance-renewal-period">
+                            <SelectValue placeholder="Select period" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                              <SelectItem key={m} value={String(m)}>
+                                {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </label>
+                  <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "expiry" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-expiry">
+                    <input type="radio" name="complianceMode" value="expiry" checked={complianceMode === "expiry"}
+                      onChange={() => { setComplianceMode("expiry"); setRenewalPeriodMonths(null); }}
+                      className="accent-primary mt-1" />
+                    <div className="flex-1 space-y-2">
+                      <span className="text-sm">Expiry date</span>
+                      {complianceMode === "expiry" && (
+                        <div>
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                            <Input
+                              ref={expiryDateRef}
+                              id="expiryDate"
+                              type="date"
+                              className={`pl-10 h-9 ${expiryDate || expiryDateBlurred ? "pr-8" : ""} ${isExpiryDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                              value={expiryDate}
+                              onChange={(e) => setExpiryDate(e.target.value)}
+                              onKeyDown={() => setExpiryDateInteracted(true)}
+                              onInput={() => setExpiryDateInteracted(true)}
+                              onBlur={() => { if (expiryDateInteracted) setExpiryDateBlurred(true); }}
+                              data-testid="input-expiry-date"
+                            />
+                            {(expiryDate || expiryDateBlurred) && (
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setExpiryDate("");
+                                  setExpiryDateInteracted(false);
+                                  setExpiryDateBlurred(false);
+                                  if (expiryDateRef.current) expiryDateRef.current.value = "";
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                data-testid="button-clear-expiry-date"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          {expiryDateBlurred && !expiryDate ? (
+                            <p className="text-xs text-destructive mt-1">Expiry date is incomplete — please finish entering or clear it</p>
+                          ) : isDateInPast(expiryDate) ? (
+                            <p className="text-xs text-destructive mt-1">Expiry date must be today or in the future</p>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </label>
                 </div>
-                {expiryDateBlurred && !expiryDate ? (
-                  <p className="text-xs text-destructive mt-1">Expiry date is incomplete — please finish entering or clear it</p>
-                ) : isDateInPast(expiryDate) ? (
-                  <p className="text-xs text-destructive mt-1">Expiry date must be today or in the future</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-1">Optional — when does this document expire?</p>
-                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
         <div className="space-y-4">
-          {selectedTemplate && (
-            <Card className="border-muted bg-muted/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                  <Info className="h-4 w-4" />
-                  Compliance Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-2">
-                <div className="flex items-start gap-2.5 text-sm">
-                  <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                  <div>
-                    <span className="font-medium">
-                      {selectedTemplate.renewalPeriodMonths
-                        ? `Renews every ${selectedTemplate.renewalPeriodMonths} month${selectedTemplate.renewalPeriodMonths === 1 ? "" : "s"}`
-                        : "No renewal period"}
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {selectedTemplate.renewalPeriodMonths
-                        ? requiresApproval
-                          ? `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from final approval`
-                          : `Renewal date will be set to ${selectedTemplate.renewalPeriodMonths} months from today`
-                        : "This document does not have an automatic renewal schedule"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Download Template</CardTitle>

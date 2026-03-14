@@ -2577,12 +2577,23 @@ export default function TemplateLibraryPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period (months)</Label>
-                <Input id="bulk-renewal" type="number"
-                  value={bulkShared.renewalPeriodMonths ?? ""}
-                  onChange={(e) => setBulkShared({ ...bulkShared, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="e.g., 12 (leave blank for no renewal)"
-                  data-testid="input-bulk-renewal" />
+                <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
+                <Select
+                  value={bulkShared.renewalPeriodMonths != null ? String(bulkShared.renewalPeriodMonths) : "none"}
+                  onValueChange={(val) => setBulkShared({ ...bulkShared, renewalPeriodMonths: val === "none" ? null : parseInt(val) })}
+                >
+                  <SelectTrigger data-testid="select-bulk-renewal">
+                    <SelectValue placeholder="No renewal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No renewal</SelectItem>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                      <SelectItem key={m} value={String(m)}>
+                        {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
             </div>
@@ -2853,15 +2864,23 @@ export default function TemplateLibraryPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period (months)</Label>
-                <Input
-                  id="edit-template-renewal"
-                  type="number"
-                  value={templateFormData.renewalPeriodMonths ?? ""}
-                  onChange={(e) => setTemplateFormData({ ...templateFormData, renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null })}
-                  placeholder="e.g., 12 (leave blank for no renewal)"
-                  data-testid="input-edit-template-renewal"
-                />
+                <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period</Label>
+                <Select
+                  value={templateFormData.renewalPeriodMonths != null ? String(templateFormData.renewalPeriodMonths) : "none"}
+                  onValueChange={(val) => setTemplateFormData({ ...templateFormData, renewalPeriodMonths: val === "none" ? null : parseInt(val) })}
+                >
+                  <SelectTrigger data-testid="select-edit-template-renewal">
+                    <SelectValue placeholder="No renewal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No renewal</SelectItem>
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                      <SelectItem key={m} value={String(m)}>
+                        {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
             </div>
@@ -3363,19 +3382,26 @@ export default function TemplateLibraryPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doctype-renewal">Renewal Period (months)</Label>
-              <Input
-                id="doctype-renewal"
-                type="number"
-                min="1"
-                value={docTypeFormData.renewalPeriodMonths ?? ""}
-                onChange={(e) => setDocTypeFormData({
+              <Label htmlFor="doctype-renewal">Renewal Period</Label>
+              <Select
+                value={docTypeFormData.renewalPeriodMonths != null ? String(docTypeFormData.renewalPeriodMonths) : "none"}
+                onValueChange={(val) => setDocTypeFormData({
                   ...docTypeFormData,
-                  renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null,
+                  renewalPeriodMonths: val === "none" ? null : parseInt(val),
                 })}
-                placeholder="Leave empty if no renewal required"
-                data-testid="input-doctype-renewal"
-              />
+              >
+                <SelectTrigger data-testid="select-doctype-renewal">
+                  <SelectValue placeholder="No renewal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No renewal</SelectItem>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="doctype-isRequired">Required document</Label>
@@ -3424,18 +3450,26 @@ export default function TemplateLibraryPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-doctype-renewal">Renewal Period (months)</Label>
-              <Input
-                id="edit-doctype-renewal"
-                type="number"
-                min="1"
-                value={docTypeFormData.renewalPeriodMonths ?? ""}
-                onChange={(e) => setDocTypeFormData({
+              <Label htmlFor="edit-doctype-renewal">Renewal Period</Label>
+              <Select
+                value={docTypeFormData.renewalPeriodMonths != null ? String(docTypeFormData.renewalPeriodMonths) : "none"}
+                onValueChange={(val) => setDocTypeFormData({
                   ...docTypeFormData,
-                  renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null,
+                  renewalPeriodMonths: val === "none" ? null : parseInt(val),
                 })}
-                data-testid="input-edit-doctype-renewal"
-              />
+              >
+                <SelectTrigger data-testid="select-edit-doctype-renewal">
+                  <SelectValue placeholder="No renewal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No renewal</SelectItem>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="edit-doctype-isRequired">Required document</Label>
@@ -3691,19 +3725,26 @@ export default function TemplateLibraryPage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="wizard-doctype-renewal">Renewal Period (months)</Label>
-                    <Input
-                      id="wizard-doctype-renewal"
-                      type="number"
-                      min="1"
-                      value={wizardData.renewalPeriodMonths ?? ""}
-                      onChange={(e) => setWizardData(prev => ({
+                    <Label htmlFor="wizard-doctype-renewal">Renewal Period</Label>
+                    <Select
+                      value={wizardData.renewalPeriodMonths != null ? String(wizardData.renewalPeriodMonths) : "none"}
+                      onValueChange={(val) => setWizardData(prev => ({
                         ...prev,
-                        renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null,
+                        renewalPeriodMonths: val === "none" ? null : parseInt(val),
                       }))}
-                      placeholder="Leave empty if none"
-                      data-testid="wizard-input-doctype-renewal"
-                    />
+                    >
+                      <SelectTrigger data-testid="select-wizard-doctype-renewal">
+                        <SelectValue placeholder="No renewal" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No renewal</SelectItem>
+                        {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                          <SelectItem key={m} value={String(m)}>
+                            {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex items-center gap-2 pt-6">
                     <Switch

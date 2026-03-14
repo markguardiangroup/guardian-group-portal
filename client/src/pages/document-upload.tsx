@@ -57,8 +57,9 @@ const documentUploadSchema = z.object({
   isRequired: z.boolean().default(false),
   reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
+  complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
+  renewalPeriodMonths: z.number().nullable().optional(),
 }).refine((data) => {
-  // If scope is "site", require siteId
   if (data.uploadScope === "site" && !data.siteId) {
     return false;
   }
@@ -66,6 +67,22 @@ const documentUploadSchema = z.object({
 }, {
   message: "Please select a site",
   path: ["siteId"],
+}).refine((data) => {
+  if (data.complianceMode === "renewal" && !data.renewalPeriodMonths) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select a renewal period",
+  path: ["renewalPeriodMonths"],
+}).refine((data) => {
+  if (data.complianceMode === "expiry" && !data.expiryDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select an expiry date",
+  path: ["expiryDate"],
 });
 
 type DocumentUploadForm = z.infer<typeof documentUploadSchema>;
@@ -145,6 +162,8 @@ export default function DocumentUpload() {
       isRequired: false,
       reviewDate: "",
       expiryDate: "",
+      complianceMode: "none",
+      renewalPeriodMonths: null,
     },
   });
 
@@ -152,6 +171,8 @@ export default function DocumentUpload() {
   const selectedSiteId = form.watch("siteId");
   const uploadScope = form.watch("uploadScope");
   const requiresApproval = form.watch("requiresApproval");
+  const complianceMode = form.watch("complianceMode");
+  const renewalPeriodMonths = form.watch("renewalPeriodMonths");
 
   useEffect(() => {
     if (user && !isAdminOrConsultant) {
@@ -348,7 +369,7 @@ export default function DocumentUpload() {
             console.error(`Failed to fetch folders for site ${site.id}:`, e);
           }
           
-          const formData = {
+          const formData: Record<string, any> = {
             title: data.title,
             description: data.description,
             module: data.module,
@@ -357,7 +378,10 @@ export default function DocumentUpload() {
             requiresApproval: data.requiresApproval,
             isRequired: data.isRequired,
             reviewDate: data.reviewDate,
-            expiryDate: data.expiryDate,
+            expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
+            renewalDate: data.complianceMode === "renewal" && data.renewalPeriodMonths
+              ? new Date(new Date().setMonth(new Date().getMonth() + data.renewalPeriodMonths)).toISOString()
+              : undefined,
             type: "supporting_document",
             fileName: selectedFile.name,
             fileUrl,
@@ -369,7 +393,7 @@ export default function DocumentUpload() {
         }
         return results;
       } else {
-        const formData = {
+        const formData: Record<string, any> = {
           title: data.title,
           description: data.description,
           module: data.module,
@@ -378,7 +402,10 @@ export default function DocumentUpload() {
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
           reviewDate: data.reviewDate,
-          expiryDate: data.expiryDate,
+          expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
+          renewalDate: data.complianceMode === "renewal" && data.renewalPeriodMonths
+            ? new Date(new Date().setMonth(new Date().getMonth() + data.renewalPeriodMonths)).toISOString()
+            : undefined,
           type: "supporting_document",
           fileName: selectedFile.name,
           fileUrl,
@@ -931,23 +958,68 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="expiryDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Expiry Date</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input type="date" className="pl-10" {...field} data-testid="input-expiry-date" />
-                            </div>
-                          </FormControl>
-                          <FormDescription>When does this document expire?</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Compliance Tracking</Label>
+                    <div className="space-y-2">
+                      <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-none">
+                        <input type="radio" name="complianceModeRadio" value="none" checked={complianceMode === "none"}
+                          onChange={() => { form.setValue("complianceMode", "none"); form.setValue("renewalPeriodMonths", null); form.setValue("expiryDate", ""); }}
+                          className="accent-primary" />
+                        <span className="text-sm">No expiry or renewal</span>
+                      </label>
+                      <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "renewal" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-renewal">
+                        <input type="radio" name="complianceModeRadio" value="renewal" checked={complianceMode === "renewal"}
+                          onChange={() => { form.setValue("complianceMode", "renewal"); form.setValue("expiryDate", ""); }}
+                          className="accent-primary mt-1" />
+                        <div className="flex-1 space-y-2">
+                          <span className="text-sm">Renewal period</span>
+                          {complianceMode === "renewal" && (
+                            <Select
+                              value={renewalPeriodMonths != null ? String(renewalPeriodMonths) : ""}
+                              onValueChange={(val) => form.setValue("renewalPeriodMonths", parseInt(val))}
+                            >
+                              <SelectTrigger className="h-9" data-testid="select-compliance-renewal-period">
+                                <SelectValue placeholder="Select period" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                                  <SelectItem key={m} value={String(m)}>
+                                    {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </label>
+                      <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${complianceMode === "expiry" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-compliance-expiry">
+                        <input type="radio" name="complianceModeRadio" value="expiry" checked={complianceMode === "expiry"}
+                          onChange={() => { form.setValue("complianceMode", "expiry"); form.setValue("renewalPeriodMonths", null); }}
+                          className="accent-primary mt-1" />
+                        <div className="flex-1 space-y-2">
+                          <span className="text-sm">Expiry date</span>
+                          {complianceMode === "expiry" && (
+                            <FormField
+                              control={form.control}
+                              name="expiryDate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                      <Input type="date" className="pl-10 h-9" {...field} data-testid="input-expiry-date" />
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                        </div>
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
