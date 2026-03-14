@@ -2587,7 +2587,7 @@ export default function TemplateLibraryPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No renewal</SelectItem>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
                       <SelectItem key={m} value={String(m)}>
                         {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
                       </SelectItem>
@@ -2874,7 +2874,7 @@ export default function TemplateLibraryPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No renewal</SelectItem>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
                       <SelectItem key={m} value={String(m)}>
                         {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
                       </SelectItem>
@@ -3395,7 +3395,7 @@ export default function TemplateLibraryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No renewal</SelectItem>
-                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
                     <SelectItem key={m} value={String(m)}>
                       {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
                     </SelectItem>
@@ -3463,7 +3463,7 @@ export default function TemplateLibraryPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No renewal</SelectItem>
-                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
                     <SelectItem key={m} value={String(m)}>
                       {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
                     </SelectItem>
@@ -3738,7 +3738,7 @@ export default function TemplateLibraryPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">No renewal</SelectItem>
-                        {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,30,36,48,60].map(m => (
+                        {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
                           <SelectItem key={m} value={String(m)}>
                             {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
                           </SelectItem>
