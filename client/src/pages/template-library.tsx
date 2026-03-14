@@ -1871,7 +1871,8 @@ export default function TemplateLibraryPage() {
               </Button>
               {(activeTab === "templates" || activeTab === "files") && (
                 <Button onClick={() => {
-                  setTemplateFormData({ ...defaultTemplateFormData, module: selectedModule === "all" ? "health_safety" : selectedModule });
+                  const module = selectedModule === "all" ? "health_safety" : selectedModule;
+                  setBulkShared({ ...defaultBulkSharedSettings, module });
                   setIsTemplateDialogOpen(true);
                 }} data-testid="button-add-template">
                   <Plus className="h-4 w-4 mr-2" />
