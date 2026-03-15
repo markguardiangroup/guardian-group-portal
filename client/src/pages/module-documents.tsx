@@ -77,6 +77,9 @@ import {
   RefreshCw,
   UserCheck,
   Trash2,
+  ShieldCheck,
+  Calendar,
+  Save,
 } from "lucide-react";
 import {
   Accordion,
@@ -1257,6 +1260,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
+  const [editComplianceMode, setEditComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
+  const [editRenewalPeriodMonths, setEditRenewalPeriodMonths] = useState<number | null>(null);
+  const [editExpiryDate, setEditExpiryDate] = useState<string>("");
+  const [complianceDirty, setComplianceDirty] = useState(false);
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
@@ -1278,6 +1285,55 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     if (!siteUsers) return [];
     return siteUsers.filter(u => u.role === "client");
   }, [siteUsers]);
+
+  useEffect(() => {
+    if (document) {
+      if (document.expiryDate) {
+        setEditComplianceMode("expiry");
+        setEditExpiryDate(format(new Date(document.expiryDate), "yyyy-MM-dd"));
+        setEditRenewalPeriodMonths(null);
+      } else if (document.renewalDate) {
+        setEditComplianceMode("renewal");
+        setEditExpiryDate("");
+        setEditRenewalPeriodMonths(null);
+      } else {
+        setEditComplianceMode("none");
+        setEditExpiryDate("");
+        setEditRenewalPeriodMonths(null);
+      }
+      setComplianceDirty(false);
+    }
+  }, [document?.id]);
+
+  const complianceUpdateMutation = useMutation({
+    mutationFn: async () => {
+      const body: Record<string, any> = {};
+      if (editComplianceMode === "none") {
+        body.expiryDate = null;
+        body.renewalDate = null;
+      } else if (editComplianceMode === "renewal" && editRenewalPeriodMonths) {
+        body.expiryDate = null;
+        const renewalDate = new Date();
+        renewalDate.setMonth(renewalDate.getMonth() + editRenewalPeriodMonths);
+        body.renewalDate = renewalDate.toISOString();
+      } else if (editComplianceMode === "expiry" && editExpiryDate) {
+        body.renewalDate = null;
+        body.expiryDate = editExpiryDate;
+      }
+      return apiRequest("PATCH", `/api/documents/${id}`, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
+      setComplianceDirty(false);
+      toast({ title: "Compliance tracking updated", description: "The document compliance settings have been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update compliance tracking", variant: "destructive" });
+    },
+  });
 
   const approvalNotifications = useMemo(() => {
     if (!auditLogs) return [];
@@ -2013,6 +2069,101 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               )}
             </CardContent>
           </Card>
+
+          {isPrivilegedUser && !document.isArchived && (
+            <Card data-testid="card-compliance-tracking">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  Compliance Tracking
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-none">
+                  <input
+                    type="radio"
+                    name={`complianceModeEdit-${id}`}
+                    value="none"
+                    checked={editComplianceMode === "none"}
+                    onChange={() => { setEditComplianceMode("none"); setEditRenewalPeriodMonths(null); setEditExpiryDate(""); setComplianceDirty(true); }}
+                    className="accent-primary"
+                  />
+                  <span className="text-sm">No expiry or renewal</span>
+                </label>
+                <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "renewal" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-renewal">
+                  <input
+                    type="radio"
+                    name={`complianceModeEdit-${id}`}
+                    value="renewal"
+                    checked={editComplianceMode === "renewal"}
+                    onChange={() => { setEditComplianceMode("renewal"); setEditExpiryDate(""); setComplianceDirty(true); }}
+                    className="accent-primary mt-1"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <span className="text-sm">Renewal period</span>
+                    {editComplianceMode === "renewal" && (
+                      <Select
+                        value={editRenewalPeriodMonths != null ? String(editRenewalPeriodMonths) : ""}
+                        onValueChange={(val) => { setEditRenewalPeriodMonths(parseInt(val)); setComplianceDirty(true); }}
+                      >
+                        <SelectTrigger className="h-9" data-testid="select-edit-renewal-period">
+                          <SelectValue placeholder="Select period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
+                            <SelectItem key={m} value={String(m)}>
+                              {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "expiry" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-expiry">
+                  <input
+                    type="radio"
+                    name={`complianceModeEdit-${id}`}
+                    value="expiry"
+                    checked={editComplianceMode === "expiry"}
+                    onChange={() => { setEditComplianceMode("expiry"); setEditRenewalPeriodMonths(null); setComplianceDirty(true); }}
+                    className="accent-primary mt-1"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <span className="text-sm">Expiry date</span>
+                    {editComplianceMode === "expiry" && (
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="date"
+                          className="pl-10 h-9"
+                          value={editExpiryDate}
+                          onChange={(e) => { setEditExpiryDate(e.target.value); setComplianceDirty(true); }}
+                          data-testid="input-edit-expiry-date"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </label>
+                {complianceDirty && (
+                  <Button
+                    className="w-full mt-2"
+                    size="sm"
+                    onClick={() => complianceUpdateMutation.mutate()}
+                    disabled={
+                      complianceUpdateMutation.isPending ||
+                      (editComplianceMode === "renewal" && !editRenewalPeriodMonths) ||
+                      (editComplianceMode === "expiry" && !editExpiryDate)
+                    }
+                    data-testid="button-save-compliance"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {complianceUpdateMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {document.versions && document.versions.length > 0 && (
             <Card>

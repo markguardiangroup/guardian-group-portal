@@ -2355,7 +2355,18 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const updated = await storage.updateDocument(id, req.body);
+      const body = { ...req.body };
+      if ("expiryDate" in body) {
+        body.expiryDate = body.expiryDate ? new Date(body.expiryDate) : null;
+      }
+      if ("renewalDate" in body) {
+        body.renewalDate = body.renewalDate ? new Date(body.renewalDate) : null;
+      }
+      if ("reviewDate" in body) {
+        body.reviewDate = body.reviewDate ? new Date(body.reviewDate) : null;
+      }
+
+      const updated = await storage.updateDocument(id, body);
       
       // Log the change
       await storage.createAuditLog({
