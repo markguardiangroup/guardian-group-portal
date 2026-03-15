@@ -455,7 +455,7 @@ export default function CreateFromTemplate() {
 
       const formData = {
         title: documentTitle || selectedTemplate.name,
-        description: documentComments || null,
+        comments: documentComments || null,
         module: selectedTemplate.module,
         documentTypeId: selectedTemplate.documentTypeId,
         siteId: selectedSiteId,

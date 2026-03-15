@@ -30,7 +30,7 @@ function hashToken(token: string): string {
 
 const createDocumentSchema = z.object({
   title: z.string().min(1),
-  description: z.string().optional(),
+  comments: z.string().optional().nullable(),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   type: z.string().min(1),
   documentTypeId: z.string().nullable().optional(),
@@ -1929,7 +1929,7 @@ export async function registerRoutes(
       
       const document = await storage.createDocument({
         title: body.title,
-        description: body.description || null,
+        comments: body.comments || null,
         module: body.module,
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,
@@ -6246,7 +6246,7 @@ export async function registerRoutes(
       // Create the document linked to the case
       const document = await storage.createDocument({
         title,
-        description: `Case document for ${caseData.caseReference}`,
+        comments: `Case document for ${caseData.caseReference}`,
         module: "employment_law",
         type: "case_document",
         entityId: caseData.entityId,
@@ -8905,7 +8905,7 @@ export async function registerRoutes(
       } else {
         const doc = await storage.createDocument({
           title: `Original Incident Report – ${incident.incidentReference}`,
-          description: `Automatically generated incident report for ${incident.incidentReference}. Contains all details as submitted.`,
+          comments: `Automatically generated incident report for ${incident.incidentReference}. Contains all details as submitted.`,
           module: "health_safety",
           type: "incident_report",
           entityId: incident.entityId,
@@ -9191,7 +9191,7 @@ export async function registerRoutes(
 
       const document = await storage.createDocument({
         title,
-        description: req.body.description ?? null,
+        comments: req.body.comments ?? null,
         module: "health_safety",
         type: "incident_report",
         entityId: incident.entityId,

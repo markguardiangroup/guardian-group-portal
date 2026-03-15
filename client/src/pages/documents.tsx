@@ -367,7 +367,7 @@ function DocumentsListView() {
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     const matchesSite = selectedSiteId === "all" || doc.siteId === selectedSiteId;
@@ -1120,6 +1120,11 @@ function DocumentDetailView({ id }: { id: string }) {
     queryKey: ["/api/documents", id, "audit"],
   });
 
+  const { data: templates } = useQuery<any[]>({
+    queryKey: ["/api/document-templates"],
+    enabled: !!document?.templateId,
+  });
+
   useEffect(() => {
     if (document) {
       if (document.expiryDate) {
@@ -1330,10 +1335,19 @@ function DocumentDetailView({ id }: { id: string }) {
               <CardTitle>Document Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {document.description && (
+              {document.templateId && (() => {
+                const template = templates?.find((t: any) => t.id === document.templateId);
+                return template ? (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground">Template</h4>
+                    <p className="mt-1">{template.name}</p>
+                  </div>
+                ) : null;
+              })()}
+              {document.comments && (
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
-                  <p className="mt-1">{document.description}</p>
+                  <h4 className="text-sm font-medium text-muted-foreground">Comments</h4>
+                  <p className="mt-1">{document.comments}</p>
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">

@@ -630,7 +630,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const openEditDialog = (doc: any) => {
     setEditingDoc(doc);
     setEditTitle(doc.title || "");
-    setEditNotes(doc.description || "");
+    setEditNotes(doc.comments || "");
   };
 
   const saveDocEdit = async () => {
@@ -639,11 +639,11 @@ function IncidentDetailView({ id }: { id: string }) {
     try {
       await apiRequest("PATCH", `/api/documents/${editingDoc.id}`, {
         title: editTitle.trim() || editingDoc.title,
-        description: editNotes,
+        comments: editNotes,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
       if (lightboxPhoto?.id === editingDoc.id) {
-        setLightboxPhoto({ ...lightboxPhoto, title: editTitle.trim() || editingDoc.title, description: editNotes });
+        setLightboxPhoto({ ...lightboxPhoto, title: editTitle.trim() || editingDoc.title, comments: editNotes });
       }
       toast({ title: "Saved" });
       setEditingDoc(null);
@@ -685,7 +685,7 @@ function IncidentDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
       toast({ title: "Document uploaded" });
-      if (created) openEditDialog({ ...created, description: "" });
+      if (created) openEditDialog({ ...created, comments: "" });
     } catch {
       toast({ title: "Upload failed", description: "Could not upload the document.", variant: "destructive" });
     } finally {
@@ -735,7 +735,7 @@ function IncidentDetailView({ id }: { id: string }) {
     if (successCount > 0) {
       toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded`, description: "You can add a title and notes by clicking the edit button." });
       if (successCount === 1 && lastDoc) {
-        openEditDialog({ ...lastDoc, description: "" });
+        openEditDialog({ ...lastDoc, comments: "" });
       }
     }
     setIsUploadingPhoto(false);
@@ -1224,10 +1224,10 @@ function IncidentDetailView({ id }: { id: string }) {
                           <FileText className="h-4 w-4 shrink-0 text-muted-foreground mt-1" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{doc.title || doc.fileName}</p>
-                            {doc.description ? (
+                            {doc.comments ? (
                               <p className="text-xs text-muted-foreground mt-0.5 flex items-start gap-1">
                                 <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" />
-                                <span className="line-clamp-2">{doc.description}</span>
+                                <span className="line-clamp-2">{doc.comments}</span>
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground/60 truncate">{doc.fileName}</p>
@@ -1514,8 +1514,8 @@ function IncidentDetailView({ id }: { id: string }) {
               />
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium text-white">{lightboxPhoto.title || lightboxPhoto.fileName}</p>
-                {lightboxPhoto.description && (
-                  <p className="text-xs text-white/60 max-w-md">{lightboxPhoto.description}</p>
+                {lightboxPhoto.comments && (
+                  <p className="text-xs text-white/60 max-w-md">{lightboxPhoto.comments}</p>
                 )}
               </div>
               <Button size="sm" variant="secondary" asChild>

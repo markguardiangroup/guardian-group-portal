@@ -633,7 +633,7 @@ export type DocumentSource = "template" | "external";
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
-  description: text("description"),
+  comments: text("comments"),
   module: text("module").$type<ModuleType>().notNull(),
   type: text("type").$type<DocumentType>().notNull(),
   entityId: varchar("entity_id").notNull(), // Company ID - required

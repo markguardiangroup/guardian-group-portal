@@ -47,7 +47,7 @@ const trainingCertificateSchema = z.object({
   trainingDate: z.string().min(1, "Certificate date is required"),
   renewalRequired: z.boolean().default(false),
   renewalPeriodMonths: z.number().min(1).max(120).optional(),
-  description: z.string().optional(),
+  comments: z.string().optional(),
   siteId: z.string().min(1, "Please select a site"),
 }).refine((data) => {
   if (data.renewalRequired && !data.renewalPeriodMonths) {
@@ -150,7 +150,7 @@ export default function TrainingCertificateUpload() {
       trainingDate: "",
       renewalRequired: false,
       renewalPeriodMonths: undefined,
-      description: "",
+      comments: "",
       siteId: preselectedSiteId || "",
     },
   });
@@ -210,7 +210,7 @@ export default function TrainingCertificateUpload() {
       
       const documentData = {
         title: `${data.course.title} - Certificate`,
-        description: data.description || `Training certificate for ${data.course.title}`,
+        comments: data.comments || `Training certificate for ${data.course.title}`,
         module: "training",
         type: "training_certificate",
         siteId: data.siteId,
@@ -560,7 +560,7 @@ export default function TrainingCertificateUpload() {
 
               <FormField
                 control={form.control}
-                name="description"
+                name="comments"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notes (Optional)</FormLabel>

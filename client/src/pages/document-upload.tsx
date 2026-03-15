@@ -49,7 +49,7 @@ import type { Site, ModuleType } from "@shared/schema";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
-  description: z.string().optional(),
+  comments: z.string().optional(),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   uploadScope: z.enum(["site", "company"]),
   siteId: z.string().optional(),
@@ -154,7 +154,7 @@ export default function DocumentUpload() {
     resolver: zodResolver(documentUploadSchema),
     defaultValues: {
       title: "",
-      description: "",
+      comments: "",
       module: initialModule,
       uploadScope: "site",
       siteId: "",
@@ -372,7 +372,7 @@ export default function DocumentUpload() {
           
           const formData: Record<string, any> = {
             title: data.title,
-            description: data.description,
+            comments: data.comments,
             module: data.module,
             siteId: site.id,
             folderId: siteFolderId,
@@ -396,7 +396,7 @@ export default function DocumentUpload() {
       } else {
         const formData: Record<string, any> = {
           title: data.title,
-          description: data.description,
+          comments: data.comments,
           module: data.module,
           siteId: data.siteId,
           folderId: data.folderId || undefined,
@@ -565,7 +565,7 @@ export default function DocumentUpload() {
 
                   <FormField
                     control={form.control}
-                    name="description"
+                    name="comments"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Comments</FormLabel>
@@ -573,7 +573,7 @@ export default function DocumentUpload() {
                           <Textarea
                             placeholder="Add any comments about this document"
                             {...field}
-                            data-testid="textarea-description"
+                            data-testid="textarea-comments"
                           />
                         </FormControl>
                         <FormMessage />

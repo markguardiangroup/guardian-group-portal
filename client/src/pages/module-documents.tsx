@@ -448,7 +448,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
@@ -1276,6 +1276,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryKey: ["/api/documents", id, "audit"],
   });
 
+  const { data: templates } = useQuery<any[]>({
+    queryKey: ["/api/document-templates"],
+    enabled: !!document?.templateId,
+  });
+
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
     enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
@@ -1647,10 +1652,19 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   <p>{getDocTypeLabel(document.type, (document as any).documentTypeId)}</p>
                 </div>
               </div>
-              {document.description && (
+              {document.templateId && (() => {
+                const template = templates?.find((t: any) => t.id === document.templateId);
+                return template ? (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Template</p>
+                    <p className="mt-1">{template.name}</p>
+                  </div>
+                ) : null;
+              })()}
+              {document.comments && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Description</p>
-                  <p className="mt-1">{document.description}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Comments</p>
+                  <p className="mt-1">{document.comments}</p>
                 </div>
               )}
             </CardContent>
