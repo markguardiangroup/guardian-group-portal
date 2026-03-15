@@ -1150,7 +1150,7 @@ function DocumentDetailView({ id }: { id: string }) {
       } else if (document.renewalDate) {
         setEditComplianceMode("renewal");
         setEditExpiryDate("");
-        setEditRenewalPeriodMonths(null);
+        setEditRenewalPeriodMonths((document as any).renewalPeriodMonths ?? null);
       } else {
         setEditComplianceMode("none");
         setEditExpiryDate("");
@@ -1168,7 +1168,8 @@ function DocumentDetailView({ id }: { id: string }) {
         body.renewalDate = null;
       } else if (editComplianceMode === "renewal" && editRenewalPeriodMonths) {
         body.expiryDate = null;
-        const renewalDate = new Date();
+        const baseDate = document.lastApprovedAt ? new Date(document.lastApprovedAt) : new Date();
+        const renewalDate = new Date(baseDate);
         renewalDate.setMonth(renewalDate.getMonth() + editRenewalPeriodMonths);
         body.renewalDate = renewalDate.toISOString();
       } else if (editComplianceMode === "expiry" && editExpiryDate) {
@@ -1482,6 +1483,9 @@ function DocumentDetailView({ id }: { id: string }) {
                           {document.renewalDate && (
                             <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80">Renewal due {format(new Date(document.renewalDate), "d MMM yyyy")}</span>
                           )}
+                          {document.lastApprovedAt && (
+                            <span className="text-xs text-emerald-600/60 dark:text-emerald-400/60 mt-0.5">Approved {format(new Date(document.lastApprovedAt), "d MMM yyyy")}</span>
+                          )}
                         </div>
                       );
                     }
@@ -1541,21 +1545,28 @@ function DocumentDetailView({ id }: { id: string }) {
                     <div className="flex-1 space-y-2">
                       <span className="text-sm">Renewal period</span>
                       {editComplianceMode === "renewal" && (
-                        <Select
-                          value={editRenewalPeriodMonths != null ? String(editRenewalPeriodMonths) : ""}
-                          onValueChange={(val) => { setEditRenewalPeriodMonths(parseInt(val)); setComplianceDirty(true); }}
-                        >
-                          <SelectTrigger className="h-9" data-testid="select-edit-renewal-period">
-                            <SelectValue placeholder="Select period" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
-                              <SelectItem key={m} value={String(m)}>
-                                {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <>
+                          <Select
+                            value={editRenewalPeriodMonths != null ? String(editRenewalPeriodMonths) : ""}
+                            onValueChange={(val) => { setEditRenewalPeriodMonths(parseInt(val)); setComplianceDirty(true); }}
+                          >
+                            <SelectTrigger className="h-9" data-testid="select-edit-renewal-period">
+                              <SelectValue placeholder="Select period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
+                                <SelectItem key={m} value={String(m)}>
+                                  {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            {document.lastApprovedAt
+                              ? `Renewal date calculated from last approval date (${format(new Date(document.lastApprovedAt), "d MMM yyyy")}).`
+                              : "Renewal date will be calculated from today as no approval date is recorded."}
+                          </p>
+                        </>
                       )}
                     </div>
                   </label>

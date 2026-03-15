@@ -2366,6 +2366,20 @@ export async function registerRoutes(
         body.reviewDate = body.reviewDate ? new Date(body.reviewDate) : null;
       }
 
+      // Recalculate compliance status when dates are changed
+      if (("expiryDate" in body || "renewalDate" in body) && doc.approvalStatus === "approved") {
+        const now = new Date();
+        const newExpiryDate = "expiryDate" in body ? body.expiryDate : doc.expiryDate;
+        const newRenewalDate = "renewalDate" in body ? body.renewalDate : doc.renewalDate;
+        if (newExpiryDate && new Date(newExpiryDate) < now) {
+          body.status = "overdue";
+        } else if (newRenewalDate && new Date(newRenewalDate) < now) {
+          body.status = "review_required";
+        } else {
+          body.status = "compliant";
+        }
+      }
+
       const updated = await storage.updateDocument(id, body);
       
       // Log the change
