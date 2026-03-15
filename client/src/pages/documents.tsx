@@ -1456,6 +1456,61 @@ function DocumentDetailView({ id }: { id: string }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {(() => {
+                  const now = new Date();
+                  let label = "", subLabel = "", colorClass = "", bgClass = "", isCompliant = false;
+                  let Icon = AlertTriangle;
+                  if (document.status === "compliant") {
+                    label = "Compliant"; Icon = CheckCircle;
+                    colorClass = "text-emerald-700 dark:text-emerald-400";
+                    bgClass = "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800";
+                    isCompliant = true;
+                  } else if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
+                    label = "Expired"; Icon = XCircle;
+                    subLabel = document.expiryDate ? `Expired ${format(new Date(document.expiryDate), "d MMM yyyy")}` : "";
+                    colorClass = "text-red-700 dark:text-red-400";
+                    bgClass = "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
+                  } else if (document.renewalDate && new Date(document.renewalDate) < now) {
+                    label = "Renewal Overdue"; Icon = XCircle;
+                    subLabel = `Was due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                    colorClass = "text-red-700 dark:text-red-400";
+                    bgClass = "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
+                  } else if (document.renewalDate) {
+                    label = "Renewal Required"; Icon = AlertTriangle;
+                    subLabel = `Due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                    colorClass = "text-amber-700 dark:text-amber-400";
+                    bgClass = "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800";
+                  } else if (document.approvalStatus === "pending") {
+                    label = "Awaiting Sign-Off"; Icon = Clock;
+                    colorClass = "text-slate-600 dark:text-slate-400";
+                    bgClass = "bg-slate-50 border-slate-200 dark:bg-slate-950/30 dark:border-slate-700";
+                  } else if (document.approvalStatus === "client_signed_off") {
+                    label = "Awaiting Final Approval"; Icon = Clock;
+                    colorClass = "text-blue-700 dark:text-blue-400";
+                    bgClass = "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800";
+                  } else if (document.approvalStatus === "rejected") {
+                    label = "Rejected"; Icon = XCircle;
+                    colorClass = "text-red-700 dark:text-red-400";
+                    bgClass = "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800";
+                  } else if (document.approvalStatus === "changes_requested") {
+                    label = "Changes Requested"; Icon = AlertTriangle;
+                    colorClass = "text-amber-700 dark:text-amber-400";
+                    bgClass = "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800";
+                  } else {
+                    label = "Review Required"; Icon = AlertTriangle;
+                    colorClass = "text-amber-700 dark:text-amber-400";
+                    bgClass = "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800";
+                  }
+                  return (
+                    <div className={`flex flex-col items-center justify-center gap-0.5 p-3 rounded-md border-2 mb-1 ${isCompliant ? "border-dashed" : ""} ${bgClass}`} data-testid="compliance-status-indicator">
+                      <div className={`flex items-center gap-2 ${colorClass}`}>
+                        <Icon className="h-5 w-5" />
+                        <span className="font-semibold text-sm">{label}</span>
+                      </div>
+                      {subLabel && <span className={`text-xs ${colorClass} opacity-75`}>{subLabel}</span>}
+                    </div>
+                  );
+                })()}
                 {isRequiredTemplate && requiredTemplateName && (
                   <div className="flex items-center justify-between px-1 pb-2 mb-1 border-b" data-testid="compliance-required-template">
                     <span className="text-sm text-muted-foreground">Template</span>

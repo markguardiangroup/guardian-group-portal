@@ -57,6 +57,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Clock,
   ArrowLeft,
   History,
   HardHat,
@@ -2109,6 +2110,55 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {(() => {
+                  const now = new Date();
+                  type StatusVariant = "compliant" | "expired" | "renewal-overdue" | "renewal-required" | "pending" | "client-signed-off" | "rejected" | "changes-requested" | "review-required";
+                  let variant: StatusVariant = "review-required";
+                  let label = "Review Required";
+                  let subLabel = "";
+                  let Icon = AlertTriangle;
+                  if (document.status === "compliant") {
+                    variant = "compliant"; label = "Compliant"; Icon = CheckCircle;
+                  } else if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
+                    variant = "expired"; label = "Expired"; Icon = XCircle;
+                    subLabel = document.expiryDate ? `Expired ${format(new Date(document.expiryDate), "d MMM yyyy")}` : "";
+                  } else if (document.renewalDate && new Date(document.renewalDate) < now) {
+                    variant = "renewal-overdue"; label = "Renewal Overdue"; Icon = XCircle;
+                    subLabel = `Was due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                  } else if (document.renewalDate) {
+                    variant = "renewal-required"; label = "Renewal Required"; Icon = AlertTriangle;
+                    subLabel = `Due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                  } else if (document.approvalStatus === "pending") {
+                    variant = "pending"; label = "Awaiting Sign-Off"; Icon = Clock;
+                  } else if (document.approvalStatus === "client_signed_off") {
+                    variant = "client-signed-off"; label = "Awaiting Final Approval"; Icon = Clock;
+                  } else if (document.approvalStatus === "rejected") {
+                    variant = "rejected"; label = "Rejected"; Icon = XCircle;
+                  } else if (document.approvalStatus === "changes_requested") {
+                    variant = "changes-requested"; label = "Changes Requested"; Icon = AlertTriangle;
+                  }
+                  const styles: Record<StatusVariant, { wrapper: string; text: string; dashed: boolean }> = {
+                    "compliant":        { wrapper: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-400", dashed: true },
+                    "expired":          { wrapper: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",               text: "text-red-700 dark:text-red-400",         dashed: false },
+                    "renewal-overdue":  { wrapper: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",               text: "text-red-700 dark:text-red-400",         dashed: false },
+                    "renewal-required": { wrapper: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",       text: "text-amber-700 dark:text-amber-400",     dashed: false },
+                    "pending":          { wrapper: "bg-slate-50 border-slate-200 dark:bg-slate-900/30 dark:border-slate-700",       text: "text-slate-600 dark:text-slate-400",     dashed: false },
+                    "client-signed-off":{ wrapper: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",          text: "text-blue-700 dark:text-blue-400",       dashed: false },
+                    "rejected":         { wrapper: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",               text: "text-red-700 dark:text-red-400",         dashed: false },
+                    "changes-requested":{ wrapper: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",       text: "text-amber-700 dark:text-amber-400",     dashed: false },
+                    "review-required":  { wrapper: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",       text: "text-amber-700 dark:text-amber-400",     dashed: false },
+                  };
+                  const s = styles[variant];
+                  return (
+                    <div className={`flex flex-col items-center justify-center gap-0.5 p-3 rounded-md border-2 mb-1 ${s.dashed ? "border-dashed" : ""} ${s.wrapper}`} data-testid="compliance-status-indicator">
+                      <div className={`flex items-center gap-2 ${s.text}`}>
+                        <Icon className="h-5 w-5" />
+                        <span className="font-semibold text-sm">{label}</span>
+                      </div>
+                      {subLabel && <span className={`text-xs opacity-75 ${s.text}`}>{subLabel}</span>}
+                    </div>
+                  );
+                })()}
                 {isRequiredTemplate && requiredTemplateName && (
                   <div className="flex items-center justify-between px-1 pb-2 mb-1 border-b" data-testid="compliance-required-template">
                     <span className="text-sm text-muted-foreground">Template</span>
