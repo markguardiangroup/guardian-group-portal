@@ -568,10 +568,10 @@ export default function DocumentUpload() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>Comments</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Brief description of the document"
+                            placeholder="Add any comments about this document"
                             {...field}
                             data-testid="textarea-description"
                           />

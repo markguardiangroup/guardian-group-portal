@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -207,6 +208,7 @@ export default function CreateFromTemplate() {
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [renewalPeriodMonths, setRenewalPeriodMonths] = useState<number | null>(null);
+  const [documentComments, setDocumentComments] = useState<string>("");
   const [reviewDateInteracted, setReviewDateInteracted] = useState(false);
   const [reviewDateBlurred, setReviewDateBlurred] = useState(false);
   const [expiryDateInteracted, setExpiryDateInteracted] = useState(false);
@@ -453,7 +455,7 @@ export default function CreateFromTemplate() {
 
       const formData = {
         title: documentTitle || selectedTemplate.name,
-        description: `Created from template: ${selectedTemplate.name}`,
+        description: documentComments || null,
         module: selectedTemplate.module,
         documentTypeId: selectedTemplate.documentTypeId,
         siteId: selectedSiteId,
@@ -1002,6 +1004,27 @@ export default function CreateFromTemplate() {
                 <p className="text-xs text-muted-foreground mt-1">Required - select a folder to organize this document</p>
               </div>
             )}
+
+            {selectedTemplate?.description && (
+              <div>
+                <Label className="text-sm font-medium">Template Description</Label>
+                <div className="mt-1 rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground" data-testid="text-template-description">
+                  {selectedTemplate.description}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="documentComments">Comments</Label>
+              <Textarea
+                id="documentComments"
+                value={documentComments}
+                onChange={(e) => setDocumentComments(e.target.value)}
+                placeholder="Add any comments about this document"
+                className="mt-1"
+                data-testid="textarea-comments"
+              />
+            </div>
 
             <div className="pt-2">
               <Label className="text-sm font-medium">Approval Process</Label>
