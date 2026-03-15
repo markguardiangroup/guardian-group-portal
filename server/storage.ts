@@ -842,7 +842,7 @@ export class MemStorage implements IStorage {
       entityId, // Company ID - required
       module: insertDocument.module as any,
       type: insertDocument.type as any,
-      description: insertDocument.description ?? null,
+      comments: insertDocument.comments ?? null,
       siteId: insertDocument.siteId ?? null,
       caseId: insertDocument.caseId ?? null,
       documentTypeId: insertDocument.documentTypeId ?? null,
@@ -2895,7 +2895,7 @@ export class MemStorage implements IStorage {
           await db.insert(documentsTable).values({
             id: doc.id,
             title: doc.title,
-            description: doc.description ?? null,
+            comments: (doc as any).comments ?? null,
             module: doc.module as any,
             type: doc.type as any,
             entityId: doc.entityId,
