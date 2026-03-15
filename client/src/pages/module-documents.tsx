@@ -1281,6 +1281,22 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     enabled: !!document?.templateId,
   });
 
+  const { data: companyRequiredTemplates } = useQuery<any[]>({
+    queryKey: ["/api/companies", document?.entityId, "required-templates"],
+    enabled: !!document?.entityId && !!document?.templateId && isPrivilegedUser,
+  });
+
+  const isRequiredTemplate = useMemo(() => {
+    if (!document?.templateId || !companyRequiredTemplates) return false;
+    return companyRequiredTemplates.some((rt: any) => rt.templateId === document.templateId);
+  }, [document?.templateId, companyRequiredTemplates]);
+
+  const requiredTemplateName = useMemo(() => {
+    if (!isRequiredTemplate || !templates || !document?.templateId) return null;
+    const tmpl = templates.find((t: any) => t.id === document.templateId);
+    return tmpl?.name ?? null;
+  }, [isRequiredTemplate, templates, document?.templateId]);
+
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
     enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
@@ -2093,6 +2109,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {isRequiredTemplate && requiredTemplateName && (
+                  <div className="flex items-center gap-2 p-3 rounded-md border border-primary/20 bg-primary/5 mb-1" data-testid="compliance-required-template">
+                    <FileCheck className="h-4 w-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Required Template</p>
+                      <p className="text-sm font-medium truncate" data-testid="text-required-template-name">{requiredTemplateName}</p>
+                    </div>
+                  </div>
+                )}
                 <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-none">
                   <input
                     type="radio"
