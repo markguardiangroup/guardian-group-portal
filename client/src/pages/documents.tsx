@@ -1466,44 +1466,12 @@ function DocumentDetailView({ id }: { id: string }) {
                 {/* Section 1: Document Status */}
                 <div className="space-y-1.5">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Document Status</p>
-                  {document.approvalStatus === "approved" ? (
-                    <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" data-testid="compliance-status-indicator">
-                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle className="h-4 w-4" />
-                        <span className="font-bold text-xs tracking-wider">COMPLIANT</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700" data-testid="compliance-status-indicator">
-                      <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                        <XCircle className="h-4 w-4" />
-                        <span className="font-bold text-xs tracking-wider">NOT COMPLIANT</span>
-                      </div>
-                      <span className="text-xs text-center text-red-600/80 dark:text-red-400/80">
-                        {document.approvalStatus === "pending" ? "Awaiting client sign-off" :
-                         document.approvalStatus === "client_signed_off" ? "Awaiting final approval" :
-                         document.approvalStatus === "rejected" ? "Document has been rejected" :
-                         document.approvalStatus === "changes_requested" ? "Changes have been requested" :
-                         "Review required"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Section 2: Renewal & Expiry */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewal & Expiry</p>
                   {(() => {
                     const now = new Date();
-                    const hasTracking = !!(document.expiryDate || document.renewalDate);
-                    if (!hasTracking) {
-                      return <p className="text-xs text-muted-foreground text-center py-1" data-testid="renewal-no-tracking">No expiry or renewal tracking set</p>;
-                    }
-                    if (document.status === "compliant") {
+                    const isFullyCompliant = document.approvalStatus === "approved" && document.status === "compliant";
+                    if (isFullyCompliant) {
                       return (
-                        <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" data-testid="renewal-status-stamp">
+                        <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" data-testid="compliance-status-indicator">
                           <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
                             <CheckCircle className="h-4 w-4" />
                             <span className="font-bold text-xs tracking-wider">COMPLIANT</span>
@@ -1517,26 +1485,39 @@ function DocumentDetailView({ id }: { id: string }) {
                         </div>
                       );
                     }
-                    let renewalReason = "";
-                    if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
-                      renewalReason = document.expiryDate ? `Expired ${format(new Date(document.expiryDate), "d MMM yyyy")}` : "Document has expired";
+                    let reason = "";
+                    if (document.approvalStatus !== "approved") {
+                      reason = document.approvalStatus === "pending" ? "Awaiting client sign-off" :
+                               document.approvalStatus === "client_signed_off" ? "Awaiting final approval" :
+                               document.approvalStatus === "rejected" ? "Document has been rejected" :
+                               document.approvalStatus === "changes_requested" ? "Changes have been requested" :
+                               "Review required";
+                    } else if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
+                      reason = document.expiryDate ? `Expired ${format(new Date(document.expiryDate), "d MMM yyyy")}` : "Document has expired";
                     } else if (document.renewalDate && new Date(document.renewalDate) < now) {
-                      renewalReason = `Renewal was due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                      reason = `Renewal was due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
                     } else if (document.renewalDate) {
-                      renewalReason = `Renewal due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
+                      reason = `Renewal due ${format(new Date(document.renewalDate), "d MMM yyyy")}`;
                     } else {
-                      renewalReason = "Review required";
+                      reason = "Review required";
                     }
                     return (
-                      <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700" data-testid="renewal-status-stamp">
+                      <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700" data-testid="compliance-status-indicator">
                         <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
                           <XCircle className="h-4 w-4" />
                           <span className="font-bold text-xs tracking-wider">NOT COMPLIANT</span>
                         </div>
-                        <span className="text-xs text-center text-red-600/80 dark:text-red-400/80">{renewalReason}</span>
+                        <span className="text-xs text-center text-red-600/80 dark:text-red-400/80">{reason}</span>
                       </div>
                     );
                   })()}
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Section 2: Renewal & Expiry */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewal & Expiry</p>
                   <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-none">
                     <input
                       type="radio"
