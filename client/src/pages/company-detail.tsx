@@ -833,6 +833,7 @@ export default function CompanyDetail() {
 
   return (
     <div className="space-y-6 p-8 dash-animate">
+      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />
@@ -873,164 +874,191 @@ export default function CompanyDetail() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Company Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {company.website && (
-              <div className="flex items-center gap-2 text-sm">
-                <Globe className="h-4 w-4 text-muted-foreground" />
-                <a 
-                  href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {company.website}
-                </a>
-              </div>
-            )}
-            {company.employeeRange && (
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
-              </div>
-            )}
-            {(company.addressLine1 || company.city || company.postalCode) && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Address</p>
-                <div className="flex items-start gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    {company.addressLine1 && <p>{company.addressLine1}</p>}
-                    {company.addressLine2 && <p>{company.addressLine2}</p>}
-                    {(company.city || company.county) && (
-                      <p>{[company.city, company.county].filter(Boolean).join(", ")}</p>
-                    )}
-                    {company.postalCode && <p>{company.postalCode}</p>}
-                    {company.country && <p>{company.country}</p>}
-                  </div>
-                </div>
-              </div>
-            )}
-            {(company.contactName || company.contactPhone || company.contactEmail) && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
-                <div className="space-y-1.5 text-sm">
-                  {company.contactName && (
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
-                    </div>
-                  )}
-                  {company.contactPhone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.contactPhone}</span>
-                    </div>
-                  )}
-                  {company.contactEmail && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{company.contactEmail}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {!company.addressLine1 && !company.city && !company.contactName && !company.contactPhone && !company.contactEmail && (
-              <p className="text-sm text-muted-foreground">No contact details available</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Compliance Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {aggregatedCompliance.totalDocuments > 0 ? (
-              <>
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-medium">Overall Compliance</span>
-                  <span className="text-sm text-muted-foreground">{complianceScore}%</span>
-                </div>
-                <Progress value={complianceScore} className="h-2 mb-4" />
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div>
-                    <p className="text-xl font-semibold">{aggregatedCompliance.totalDocuments}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                      {aggregatedCompliance.compliantDocuments}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Compliant</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-amber-600 dark:text-amber-400">
-                      {aggregatedCompliance.reviewRequired}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Review</p>
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-red-600 dark:text-red-400">
-                      {aggregatedCompliance.overdueDocuments}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Overdue</p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No compliance data available</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <ModuleAccessCard companyId={companyId!} />
-
-      {(isAdmin || user?.role === "consultant") && <RequiredDocumentsCard companyId={companyId!} />}
-
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
-          {isAdmin && (
-            <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Site
-            </Button>
+      {/* Tabs */}
+      <Tabs defaultValue="details">
+        <TabsList>
+          <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
+          <TabsTrigger value="module-access" data-testid="tab-module-access">Module Access</TabsTrigger>
+          {(isAdmin || user?.role === "consultant") && (
+            <TabsTrigger value="required-documents" data-testid="tab-required-documents">Required Documents</TabsTrigger>
           )}
-        </div>
-        
-        {sites.length > 0 ? (
-          <div className="space-y-3">
-            {sites.map((site) => (
-              <SiteCard key={site.id} site={site} onManage={handleManageSite} />
-            ))}
+          <TabsTrigger value="sites" data-testid="tab-sites">
+            Sites {sites.length > 0 && `(${sites.length})`}
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Details Tab */}
+        <TabsContent value="details" className="mt-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Company Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {company.website && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <a
+                      href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {company.website}
+                    </a>
+                  </div>
+                )}
+                {company.employeeRange && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
+                  </div>
+                )}
+                {(company.addressLine1 || company.city || company.postalCode) && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Address</p>
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        {company.addressLine1 && <p>{company.addressLine1}</p>}
+                        {company.addressLine2 && <p>{company.addressLine2}</p>}
+                        {(company.city || company.county) && (
+                          <p>{[company.city, company.county].filter(Boolean).join(", ")}</p>
+                        )}
+                        {company.postalCode && <p>{company.postalCode}</p>}
+                        {company.country && <p>{company.country}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {(company.contactName || company.contactPhone || company.contactEmail) && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
+                    <div className="space-y-1.5 text-sm">
+                      {company.contactName && (
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                          <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
+                        </div>
+                      )}
+                      {company.contactPhone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{company.contactPhone}</span>
+                        </div>
+                      )}
+                      {company.contactEmail && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span>{company.contactEmail}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {!company.addressLine1 && !company.city && !company.contactName && !company.contactPhone && !company.contactEmail && (
+                  <p className="text-sm text-muted-foreground">No contact details available</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Compliance Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {aggregatedCompliance.totalDocuments > 0 ? (
+                  <>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm font-medium">Overall Compliance</span>
+                      <span className="text-sm text-muted-foreground">{complianceScore}%</span>
+                    </div>
+                    <Progress value={complianceScore} className="h-2 mb-4" />
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                      <div>
+                        <p className="text-xl font-semibold">{aggregatedCompliance.totalDocuments}</p>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+                          {aggregatedCompliance.compliantDocuments}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Compliant</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-amber-600 dark:text-amber-400">
+                          {aggregatedCompliance.reviewRequired}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Review</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-red-600 dark:text-red-400">
+                          {aggregatedCompliance.overdueDocuments}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Overdue</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No compliance data available</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <MapPin className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-base font-medium">No sites</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This company doesn't have any sites yet
-              </p>
+        </TabsContent>
+
+        {/* Module Access Tab */}
+        <TabsContent value="module-access" className="mt-6">
+          <ModuleAccessCard companyId={companyId!} />
+        </TabsContent>
+
+        {/* Required Documents Tab */}
+        {(isAdmin || user?.role === "consultant") && (
+          <TabsContent value="required-documents" className="mt-6">
+            <RequiredDocumentsCard companyId={companyId!} />
+          </TabsContent>
+        )}
+
+        {/* Sites Tab */}
+        <TabsContent value="sites" className="mt-6">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
               {isAdmin && (
-                <Button className="mt-4" size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-first-site">
+                <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
                   <Plus className="mr-2 h-4 w-4" />
-                  Add First Site
+                  Add Site
                 </Button>
               )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+            {sites.length > 0 ? (
+              <div className="space-y-3">
+                {sites.map((site) => (
+                  <SiteCard key={site.id} site={site} onManage={handleManageSite} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <MapPin className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="mt-4 text-base font-medium">No sites</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This company doesn't have any sites yet
+                  </p>
+                  {isAdmin && (
+                    <Button className="mt-4" size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-first-site">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add First Site
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
