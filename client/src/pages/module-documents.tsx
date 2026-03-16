@@ -1330,14 +1330,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
     queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-    if (document?.siteId) {
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey;
-          return Array.isArray(key) && typeof key[0] === "string" && key[0].includes(`/api/sites/${document.siteId}/modules/${module}/documents-hierarchy`);
-        },
-      });
-    }
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        return Array.isArray(key) && typeof key[0] === "string" && key[0].includes("documents-hierarchy");
+      },
+    });
   };
 
   const isRequiredMutation = useMutation({

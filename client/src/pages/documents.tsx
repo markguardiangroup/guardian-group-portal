@@ -1174,6 +1174,12 @@ function DocumentDetailView({ id }: { id: string }) {
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
     queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        return Array.isArray(key) && typeof key[0] === "string" && key[0].includes("documents-hierarchy");
+      },
+    });
   };
 
   const isRequiredMutation = useMutation({
