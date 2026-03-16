@@ -1242,7 +1242,7 @@ export default function SiteDetail() {
           </TabsTrigger>
           <TabsTrigger value="compliance" data-testid="tab-compliance">
             <FileText className="mr-2 h-4 w-4" />
-            Compliance
+            Required Documents
           </TabsTrigger>
         </TabsList>
 
