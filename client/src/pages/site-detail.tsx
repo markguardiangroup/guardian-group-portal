@@ -808,10 +808,28 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [moduleFilter, setModuleFilter] = useState<string | null>(null);
 
   const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
   });
+
+  const { data: companyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
+    queryKey: ["/api/companies", companyId, "module-access"],
+    queryFn: async () => {
+      if (!companyId) return { healthSafety: false, humanResources: false, employmentLaw: false };
+      const res = await fetch(`/api/companies/${companyId}/module-access`, { credentials: "include" });
+      if (!res.ok) return { healthSafety: false, humanResources: false, employmentLaw: false };
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const enabledModules = [
+    companyModuleAccess?.healthSafety && "health_safety",
+    companyModuleAccess?.humanResources && "human_resources",
+    companyModuleAccess?.employmentLaw && "employment_law",
+  ].filter(Boolean) as string[];
 
   const { data: companyRequired = [] } = useQuery<Array<{ id: string; templateId: string; companyId: string }>>({
     queryKey: ["/api/companies", companyId, "required-templates"],
@@ -851,7 +869,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const addOverrideMutation = useMutation({
     mutationFn: async ({ templateId, action }: { templateId: string; action: "include" | "exclude" }) =>
       apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId, action }),
-    onSuccess: () => { invalidateSiteData(); setAddOpen(false); setSearch(""); },
+    onSuccess: () => { invalidateSiteData(); setAddOpen(false); setSearch(""); setModuleFilter(null); },
     onError: () => toast({ title: "Failed to update requirements", variant: "destructive" }),
   });
 
@@ -878,18 +896,21 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     }
     setAddOpen(false);
     setSearch("");
+    setModuleFilter(null);
   };
 
   const availableToAdd = allTemplates.filter(t => {
-    if (!t.isActive) return false;
+    if (!t.isActive || t.visibility !== "private") return false;
     if (companyRequiredIds.has(t.id) && !excludedIds.has(t.id)) return false;
     if (includedIds.has(t.id)) return false;
     return true;
   });
 
-  const filteredAvailable = availableToAdd.filter(t =>
-    !search || t.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredAvailable = availableToAdd.filter(t => {
+    if (moduleFilter && t.module !== moduleFilter) return false;
+    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -898,7 +919,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
           <h3 className="text-base font-semibold">Required Documents</h3>
           <p className="text-sm text-muted-foreground">Documents required for compliance at this site</p>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
@@ -909,9 +930,35 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
             <DialogHeader>
               <DialogTitle>Add Required Document</DialogTitle>
               <DialogDescription>
-                Select a document template to require at this site.
+                Select a private document template to require at this site.
               </DialogDescription>
             </DialogHeader>
+            {enabledModules.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 mb-1">
+                <button
+                  onClick={() => setModuleFilter(null)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${moduleFilter === null ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
+                  data-testid="filter-module-all"
+                >
+                  All
+                </button>
+                {enabledModules.map(mod => {
+                  const ModIcon = MODULE_ICON[mod] || FileText;
+                  const isActive = moduleFilter === mod;
+                  return (
+                    <button
+                      key={mod}
+                      onClick={() => setModuleFilter(isActive ? null : mod)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${isActive ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
+                      data-testid={`filter-module-${mod}`}
+                    >
+                      <ModIcon className="h-3 w-3" />
+                      {MODULE_LABELS[mod] || mod}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
