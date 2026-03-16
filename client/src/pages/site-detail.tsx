@@ -917,7 +917,9 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold">Required Documents</h3>
-          <p className="text-sm text-muted-foreground">Documents required for compliance at this site</p>
+          <p className="text-sm text-muted-foreground">
+            This list overrides the company-level requirements for this site. Adding a document here requires it only at this site; removing a company requirement excludes it from this site's compliance score only.
+          </p>
         </div>
         <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
           <DialogTrigger asChild>
@@ -930,7 +932,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
             <DialogHeader>
               <DialogTitle>Add Required Document</DialogTitle>
               <DialogDescription>
-                Select a private document template to require at this site.
+                Choose a document template to require at this site only. This overrides the company-level selection and will affect this site's compliance score until uploaded.
               </DialogDescription>
             </DialogHeader>
             {enabledModules.length > 1 && (

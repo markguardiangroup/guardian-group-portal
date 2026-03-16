@@ -385,7 +385,9 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-base font-semibold">Required Documents</h3>
-          <p className="text-sm text-muted-foreground">Documents required for compliance at all sites in this company</p>
+          <p className="text-sm text-muted-foreground">
+            These documents will be required for compliance across every site in this company. Each document affects the compliance score for its site until it is uploaded. Individual sites can override this list to add or remove specific requirements.
+          </p>
         </div>
         <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
           <DialogTrigger asChild>
@@ -398,7 +400,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
             <DialogHeader>
               <DialogTitle>Add Required Document</DialogTitle>
               <DialogDescription>
-                Select a private document template to require at all sites in this company.
+                Choose a document template to require across all sites. This will count towards each site's compliance score until the document is uploaded. Sites can individually override this requirement.
               </DialogDescription>
             </DialogHeader>
             {enabledModules.length > 1 && (
