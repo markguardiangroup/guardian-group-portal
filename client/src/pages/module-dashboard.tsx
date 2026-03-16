@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
@@ -304,6 +305,53 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     awaitingOthersApproval: 0,
   };
 
+  type DocsDialogFilter = "req_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
+  const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
+
+  const filteredModuleDocs = useMemo(() => {
+    if (!documents) return [];
+    return documents.filter(doc => {
+      if (doc.isArchived) return false;
+      if (siteId) return doc.siteId === siteId;
+      if (companySiteIds && companySiteIds.length > 0) return companySiteIds.includes(doc.siteId);
+      return true;
+    });
+  }, [documents, siteId, companySiteIds]);
+
+  const docsDialogDocs = useMemo((): Document[] => {
+    if (!docsDialogFilter) return [];
+    switch (docsDialogFilter) {
+      case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
+      case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
+      case "total": return filteredModuleDocs;
+      case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
+      case "all_review": return filteredModuleDocs.filter(d => d.status === "review_required");
+      case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
+      default: return [];
+    }
+  }, [docsDialogFilter, filteredModuleDocs]);
+
+  const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
+    req_compliant: { title: "Compliant (Required Documents)" },
+    req_overdue: { title: "Overdue (Required Documents)" },
+    total: { title: "All Documents" },
+    all_compliant: { title: "All Compliant Documents" },
+    all_review: { title: "Review Required" },
+    all_overdue: { title: "All Overdue Documents" },
+  };
+
+  const statusColorMap: Record<string, string> = {
+    compliant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    review_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  };
+
+  const siteNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (sites) sites.forEach(s => { map[s.id] = `${s.name}${s.companyName ? ` — ${s.companyName}` : ""}`; });
+    return map;
+  }, [sites]);
+
   const getDocTypeLabel = (type: string) => {
     const docType = config.documentTypes.find(dt => dt.value === type);
     return docType?.label || type.replace(/_/g, " ");
@@ -392,20 +440,30 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Score</p>
                 </div>
-                <div className="rounded-md border p-3 text-center" data-testid="card-module-compliant">
+                <button
+                  onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-module-compliant"
+                >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.compliantDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Compliant</p>
-                </div>
-                <div className="rounded-md border p-3 text-center" data-testid="card-module-overdue">
+                  {summary.compliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => summary.overdueDocuments > 0 && setDocsDialogFilter("req_overdue")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.overdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-module-overdue"
+                >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.overdueDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Overdue</p>
-                </div>
+                  {summary.overdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                </button>
                 <div className="rounded-md border p-3 text-center" data-testid="card-module-missing">
                   <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
                     <FileQuestion className="h-4 w-4" />
@@ -439,34 +497,54 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               </div>
             ) : (
               <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-                <div className="rounded-md border p-3 text-center" data-testid="progress-total">
+                <button
+                  onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-total"
+                >
                   <div className="flex items-center justify-center gap-1">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <span className="text-2xl font-semibold">{summary.allDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Total</p>
-                </div>
-                <div className="rounded-md border p-3 text-center" data-testid="progress-compliant">
+                  {summary.allDocuments > 0 && <p className="text-xs text-muted-foreground/60 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-compliant"
+                >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Compliant</p>
-                </div>
-                <div className="rounded-md border p-3 text-center" data-testid="progress-review">
+                  {summary.allCompliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-review"
+                >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                     <Clock className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Review Required</p>
-                </div>
-                <div className="rounded-md border p-3 text-center" data-testid="progress-overdue">
+                  {summary.allReviewRequired > 0 && <p className="text-xs text-amber-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-overdue"
+                >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Overdue</p>
-                </div>
+                  {summary.allOverdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                </button>
               </div>
             )}
           </CardContent>
@@ -728,6 +806,44 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardContent>
         </Card>
       )}
+      {/* Document list dialog */}
+      <Dialog open={docsDialogFilter !== null} onOpenChange={(open) => { if (!open) setDocsDialogFilter(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col" data-testid="dialog-module-docs-list">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {docsDialogFilter ? docsDialogMeta[docsDialogFilter].title : ""} ({docsDialogDocs.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {docsDialogDocs.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
+            ) : (
+              docsDialogDocs.map((doc) => {
+                const siteName = doc.siteId ? siteNameMap[doc.siteId] : null;
+                const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
+                return (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
+                    onClick={() => { setDocsDialogFilter(null); navigate(`${basePath}/documents/${doc.id}`); }}
+                    data-testid={`row-module-doc-${doc.id}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{doc.title}</p>
+                      {siteName && <p className="text-xs text-muted-foreground truncate">{siteName}</p>}
+                    </div>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   );
