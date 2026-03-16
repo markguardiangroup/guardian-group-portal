@@ -1481,7 +1481,7 @@ function DocumentDetailView({ id }: { id: string }) {
                   {isRequiredTemplate ? (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
                       <span className="text-sm text-muted-foreground">Required</span>
-                      <Badge variant="secondary" className="text-xs" data-testid="badge-required-template">Required by template</Badge>
+                      <Badge variant="secondary" className="text-xs" data-testid="badge-required-template">Required (via template)</Badge>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
