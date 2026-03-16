@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -1106,6 +1107,7 @@ function DocumentDetailView({ id }: { id: string }) {
   const [editComplianceMode, setEditComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [editRenewalPeriodMonths, setEditRenewalPeriodMonths] = useState<number | null>(null);
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
+  const [editIsRequired, setEditIsRequired] = useState(false);
   const [complianceDirty, setComplianceDirty] = useState(false);
 
   const { data: document, isLoading } = useQuery<Document>({
@@ -1141,6 +1143,8 @@ function DocumentDetailView({ id }: { id: string }) {
     return tmpl?.name ?? null;
   }, [isRequiredTemplate, templates, document?.templateId]);
 
+  const effectivelyRequired = editIsRequired || isRequiredTemplate;
+
   useEffect(() => {
     if (document) {
       if (document.expiryDate) {
@@ -1156,13 +1160,17 @@ function DocumentDetailView({ id }: { id: string }) {
         setEditExpiryDate("");
         setEditRenewalPeriodMonths(null);
       }
+      setEditIsRequired(document.isRequired);
       setComplianceDirty(false);
     }
-  }, [document?.id]);
+  }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const complianceUpdateMutation = useMutation({
     mutationFn: async () => {
       const body: Record<string, any> = {};
+      if (!isRequiredTemplate) {
+        body.isRequired = editIsRequired;
+      }
       if (editComplianceMode === "none") {
         body.expiryDate = null;
         body.renewalDate = null;
@@ -1467,10 +1475,43 @@ function DocumentDetailView({ id }: { id: string }) {
                   </div>
                 )}
 
-                {/* Section 1: Document Status */}
+                {/* Section 1: Required for Compliance */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Required for Compliance</p>
+                  {isRequiredTemplate ? (
+                    <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
+                      <span className="text-sm text-muted-foreground">Required</span>
+                      <Badge variant="secondary" className="text-xs" data-testid="badge-required-template">Required by template</Badge>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
+                      <span className="text-sm text-muted-foreground">Required</span>
+                      <Switch
+                        checked={editIsRequired}
+                        onCheckedChange={(checked) => { setEditIsRequired(checked); setComplianceDirty(true); }}
+                        data-testid="switch-is-required"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Section 2: Document Status */}
                 <div className="space-y-1.5">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Document Status</p>
                   {(() => {
+                    if (!effectivelyRequired) {
+                      return (
+                        <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-gray-300 bg-gray-50 dark:bg-gray-900/20 dark:border-gray-700" data-testid="compliance-status-indicator">
+                          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                            <ShieldCheck className="h-4 w-4" />
+                            <span className="font-bold text-xs tracking-wider">NOT REQUIRED</span>
+                          </div>
+                          <span className="text-xs text-center text-gray-500/80 dark:text-gray-400/80">Excluded from compliance metrics</span>
+                        </div>
+                      );
+                    }
                     const now = new Date();
                     const isFullyCompliant = document.approvalStatus === "approved" && document.status === "compliant";
                     if (isFullyCompliant) {
@@ -1522,7 +1563,7 @@ function DocumentDetailView({ id }: { id: string }) {
 
                 <div className="border-t border-border" />
 
-                {/* Section 2: Renewal & Expiry */}
+                {/* Section 3: Renewal & Expiry */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewal & Expiry</p>
                   <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-none">
