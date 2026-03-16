@@ -1167,6 +1167,34 @@ function DocumentDetailView({ id }: { id: string }) {
     }
   }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
+  const invalidateComplianceCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
+    queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+  };
+
+  const isRequiredMutation = useMutation({
+    mutationFn: async (checked: boolean) => {
+      return apiRequest("PATCH", `/api/documents/${id}`, { isRequired: checked });
+    },
+    onMutate: (checked: boolean) => {
+      const previous = editIsRequired;
+      setEditIsRequired(checked);
+      return { previous };
+    },
+    onSuccess: () => {
+      invalidateComplianceCaches();
+      toast({ title: "Compliance updated", description: "Required for compliance setting has been saved." });
+    },
+    onError: (error: Error, _vars, context) => {
+      if (context) setEditIsRequired(context.previous);
+      toast({ title: "Error", description: error.message || "Failed to update compliance setting", variant: "destructive" });
+    },
+  });
+
   const complianceUpdateMutation = useMutation({
     mutationFn: async () => {
       const body: Record<string, any> = {};
@@ -1192,10 +1220,7 @@ function DocumentDetailView({ id }: { id: string }) {
       return apiRequest("PATCH", `/api/documents/${id}`, body);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
-      queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
+      invalidateComplianceCaches();
       setComplianceDirty(false);
       toast({ title: "Compliance tracking updated", description: "The document compliance settings have been saved." });
     },
@@ -1490,7 +1515,8 @@ function DocumentDetailView({ id }: { id: string }) {
                       <span className="text-sm text-muted-foreground">Required</span>
                       <Switch
                         checked={editIsRequired}
-                        onCheckedChange={(checked) => { setEditIsRequired(checked); setComplianceDirty(true); }}
+                        disabled={isRequiredMutation.isPending}
+                        onCheckedChange={(checked) => { isRequiredMutation.mutate(checked); }}
                         data-testid="switch-is-required"
                       />
                     </div>
