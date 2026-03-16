@@ -463,18 +463,26 @@ interface MissingRequiredTemplateDetail {
   companyName: string;
 }
 
+type DocsDialogType = "compliant" | "overdue" | "total" | "all_compliant" | "all_review" | "all_overdue" | null;
+
 function OverallComplianceCard({ 
   summaries, 
   siteComplianceSummary,
   missingRequiredDetails,
   isMissingLoading,
+  allDocuments,
+  sites,
 }: { 
   summaries: ModuleSummary[];
   siteComplianceSummary?: SiteComplianceSummary | null;
   missingRequiredDetails?: MissingRequiredTemplateDetail[];
   isMissingLoading?: boolean;
+  allDocuments?: Document[];
+  sites?: Array<{ id: string; name: string; companyName?: string | null }>;
 }) {
   const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [docsDialog, setDocsDialog] = useState<DocsDialogType>(null);
+  const [, navigate] = useLocation();
   // Slot-based compliance (required docs)
   const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
@@ -504,6 +512,71 @@ function OverallComplianceCard({
     }
     return groups;
   }, [missingRequiredDetails]);
+
+  const siteNameMap = useMemo(() => {
+    const map: Record<string, { name: string; companyName?: string | null }> = {};
+    if (sites) sites.forEach(s => { map[s.id] = { name: s.name, companyName: s.companyName }; });
+    return map;
+  }, [sites]);
+
+  const modulePathMap: Record<string, string> = {
+    health_safety: "/health-safety",
+    human_resources: "/human-resources",
+    employment_law: "/employment-law",
+    training: "/training",
+    support: "/support",
+  };
+
+  const moduleColorMap: Record<string, string> = {
+    health_safety: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    human_resources: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    employment_law: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+    training: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    support: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  };
+
+  const statusColorMap: Record<string, string> = {
+    compliant: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+    review_required: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    overdue: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  };
+
+  const dialogMeta: Record<NonNullable<DocsDialogType>, { title: string; filter: (d: Document) => boolean }> = {
+    compliant: {
+      title: "Compliant Documents",
+      filter: (d) => d.status === "compliant" && d.approvalStatus === "approved",
+    },
+    overdue: {
+      title: "Overdue Documents",
+      filter: (d) => d.status === "overdue",
+    },
+    total: {
+      title: "All Documents",
+      filter: () => true,
+    },
+    all_compliant: {
+      title: "Compliant Documents",
+      filter: (d) => d.status === "compliant",
+    },
+    all_review: {
+      title: "Review Required Documents",
+      filter: (d) => d.status === "review_required",
+    },
+    all_overdue: {
+      title: "Overdue Documents",
+      filter: (d) => d.status === "overdue",
+    },
+  };
+
+  const docsDialogDocs = useMemo(() => {
+    if (!docsDialog || !allDocuments) return [];
+    return allDocuments.filter(dialogMeta[docsDialog].filter);
+  }, [docsDialog, allDocuments]);
+
+  function openDocs(type: DocsDialogType) {
+    if (!allDocuments || allDocuments.length === 0) return;
+    setDocsDialog(type);
+  }
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -550,20 +623,30 @@ function OverallComplianceCard({
 
         {/* Compliance stats: required docs only */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-md border p-3 text-center">
+          <button
+            onClick={() => openDocs("compliant")}
+            className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && compliantDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-compliant"
+          >
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
               <span className="text-2xl font-semibold">{compliantDocs}</span>
             </div>
             <p className="text-xs text-muted-foreground">Compliant</p>
-          </div>
-          <div className="rounded-md border p-3 text-center">
+            {compliantDocs > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+          </button>
+          <button
+            onClick={() => openDocs("overdue")}
+            className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && overdueDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-overdue"
+          >
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-2xl font-semibold">{overdueDocs}</span>
             </div>
             <p className="text-xs text-muted-foreground">Overdue</p>
-          </div>
+            {overdueDocs > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+          </button>
           <div className="rounded-md border p-3 text-center">
             <button
               onClick={() => missingDocs > 0 && setShowMissingDialog(true)}
@@ -584,36 +667,99 @@ function OverallComplianceCard({
         <div className="rounded-md border bg-muted/30 p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Document Progress</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="text-center">
+            <button
+              onClick={() => openDocs("total")}
+              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+              data-testid="button-stat-total"
+            >
               <div className="flex items-center justify-center gap-1">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <span className="text-2xl font-semibold">{allDocs}</span>
               </div>
               <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button
+              onClick={() => openDocs("all_compliant")}
+              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && allCompliant > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+              data-testid="button-stat-all-compliant"
+            >
               <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-2xl font-semibold">{allCompliant}</span>
               </div>
               <p className="text-xs text-muted-foreground">Compliant</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button
+              onClick={() => openDocs("all_review")}
+              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && reviewDocs > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+              data-testid="button-stat-review"
+            >
               <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                 <Clock className="h-4 w-4" />
                 <span className="text-2xl font-semibold">{reviewDocs}</span>
               </div>
               <p className="text-xs text-muted-foreground">Review Required</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button
+              onClick={() => openDocs("all_overdue")}
+              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && allOverdue > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+              data-testid="button-stat-all-overdue"
+            >
               <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-2xl font-semibold">{allOverdue}</span>
               </div>
               <p className="text-xs text-muted-foreground">Overdue</p>
-            </div>
+            </button>
           </div>
         </div>
+
+        {/* Shared document-list dialog */}
+        <Dialog open={docsDialog !== null} onOpenChange={(open) => { if (!open) setDocsDialog(null); }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col" data-testid="dialog-docs-list">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {docsDialog ? dialogMeta[docsDialog].title : ""} ({docsDialogDocs.length})
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {docsDialogDocs.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
+              ) : (
+                docsDialogDocs.map((doc) => {
+                  const site = doc.siteId ? siteNameMap[doc.siteId] : null;
+                  const modulePath = modulePathMap[doc.module] || "/";
+                  const modLabel = moduleLabels[doc.module] || doc.module;
+                  const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
+                  return (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
+                      onClick={() => { setDocsDialog(null); navigate(modulePath); }}
+                      data-testid={`row-doc-${doc.id}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {site ? `${site.name}${site.companyName ? ` — ${site.companyName}` : ""}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${moduleColorMap[doc.module] || "bg-muted text-muted-foreground"}`}>
+                          {modLabel}
+                        </span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-missing-required">
@@ -1029,6 +1175,8 @@ export default function Dashboard() {
         siteComplianceSummary={selectedSiteComplianceSummary || aggregatedComplianceSummary}
         missingRequiredDetails={missingRequiredDetails}
         isMissingLoading={isMissingLoading}
+        allDocuments={allDocuments}
+        sites={sites}
       />
 
       {/* Renewal Compliance Section */}
