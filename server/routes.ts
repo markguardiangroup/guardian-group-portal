@@ -1024,6 +1024,7 @@ export async function registerRoutes(
         if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
         const isCompliant = d.status === "compliant" &&
           (!d.expiryDate || new Date(d.expiryDate) >= new Date()) &&
+          (!d.renewalDate || new Date(d.renewalDate) >= new Date()) &&
           d.approvalStatus === "approved";
         return !isCompliant;
       });

@@ -747,6 +747,7 @@ export class MemStorage implements IStorage {
           const isFulfilled = matchingDocs.some(d => {
             if (d.status !== "compliant") return false;
             if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+            if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
             if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
             return true;
           });
@@ -1094,6 +1095,7 @@ export class MemStorage implements IStorage {
           if (d.templateId !== rt.templateId) return false;
           if (d.status !== "compliant") return false;
           if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
           if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
           return true;
         });

@@ -652,7 +652,8 @@ export const documents = pgTable("documents", {
   reviewDate: timestamp("review_date"),
   expiryDate: timestamp("expiry_date"),
   lastApprovedAt: timestamp("last_approved_at"), // When document was last approved
-  renewalDate: timestamp("renewal_date"), // Calculated: lastApprovedAt + renewalPeriodMonths - 30 days
+  renewalDate: timestamp("renewal_date"), // Calculated: lastApprovedAt + renewalPeriodMonths
+  renewalPeriodMonths: integer("renewal_period_months"), // Stored when admin manually sets renewal tracking
   uploadedBy: varchar("uploaded_by").notNull(),
   assignedTo: varchar("assigned_to"),
   isArchived: boolean("is_archived").notNull().default(false),
