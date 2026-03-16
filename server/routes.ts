@@ -6868,6 +6868,47 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { companyId } = req.params;
+      const { templateId } = req.body as { templateId: string };
+      if (!templateId || typeof templateId !== "string") {
+        return res.status(400).json({ error: "templateId is required" });
+      }
+      const company = await storage.getCompany(companyId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+      const allTemplates = await storage.getDocumentTemplates();
+      const template = allTemplates.find(t => t.id === templateId && t.isActive && t.visibility === "private");
+      if (!template) return res.status(400).json({ error: "Template not found or not available" });
+      const result = await storage.addCompanyRequiredTemplate(companyId, templateId, user.id);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Add company required template error:", error);
+      res.status(500).json({ error: "Failed to add required template" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/required-templates/:templateId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { companyId, templateId } = req.params;
+      const company = await storage.getCompany(companyId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+      await storage.removeCompanyRequiredTemplate(companyId, templateId);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Remove company required template error:", error);
+      res.status(500).json({ error: "Failed to remove required template" });
+    }
+  });
+
   // Site Template Overrides — per-site required document additions/exclusions
   app.get("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
     try {

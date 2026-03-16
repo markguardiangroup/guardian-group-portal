@@ -17,6 +17,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -48,8 +49,9 @@ import {
   Pencil,
   Globe,
   Plus,
+  Search,
+  X,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
 
@@ -276,10 +278,29 @@ const MODULE_MAP: Record<string, { key: keyof CompanyModuleAccess; label: string
   employment_law: { key: "employmentLaw", label: "Employment Law" },
 };
 
+const MODULE_LABELS: Record<string, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
+};
+
+const MODULE_ICON: Record<string, typeof Shield> = {
+  health_safety: Shield,
+  human_resources: Users,
+  employment_law: Briefcase,
+};
+
+const MODULE_COLOR: Record<string, string> = {
+  health_safety: "text-emerald-600 dark:text-emerald-400",
+  human_resources: "text-blue-600 dark:text-blue-400",
+  employment_law: "text-pink-600 dark:text-pink-400",
+};
+
 function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const [addOpen, setAddOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [moduleFilter, setModuleFilter] = useState<string | null>(null);
 
   const { data: moduleAccess } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
@@ -290,7 +311,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     },
   });
 
-  const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
+  const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
   });
 
@@ -303,123 +324,189 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     },
   });
 
-  const [pendingIds, setPendingIds] = useState<Set<string> | null>(null);
+  const enabledModules = Object.entries(MODULE_MAP)
+    .filter(([, { key }]) => moduleAccess?.[key])
+    .map(([mod]) => mod);
 
-  const saveMutation = useMutation({
-    mutationFn: async (templateIds: string[]) => {
-      const response = await apiRequest("PUT", `/api/companies/${companyId}/required-templates`, { templateIds });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      setPendingIds(null);
-    },
-    onError: () => {
-      setPendingIds(null);
-      toast({ title: "Error", description: "Failed to save required documents.", variant: "destructive" });
-    },
-  });
+  const requiredIds = new Set(requiredTemplates.map(rt => rt.templateId));
+  const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
-  const serverIds = new Set(requiredTemplates.map(rt => rt.templateId));
-  const requiredIds = pendingIds ?? serverIds;
-
-  const handleToggle = (templateId: string, checked: boolean) => {
-    const newIds = new Set(requiredIds);
-    if (checked) {
-      newIds.add(templateId);
-    } else {
-      newIds.delete(templateId);
-    }
-    setPendingIds(newIds);
-    saveMutation.mutate(Array.from(newIds));
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
   };
 
-  const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => moduleAccess?.[key]);
-  const privateTemplates = templates.filter(t => t.visibility === "private" && t.isActive);
+  const addMutation = useMutation({
+    mutationFn: async (templateId: string) =>
+      apiRequest("POST", `/api/companies/${companyId}/required-templates`, { templateId }),
+    onSuccess: () => { invalidate(); setAddOpen(false); setSearch(""); setModuleFilter(null); },
+    onError: () => toast({ title: "Failed to add requirement", variant: "destructive" }),
+  });
 
-  if (templatesLoading || requiredLoading) {
+  const removeMutation = useMutation({
+    mutationFn: async (templateId: string) =>
+      apiRequest("DELETE", `/api/companies/${companyId}/required-templates/${templateId}`),
+    onSuccess: () => invalidate(),
+    onError: () => toast({ title: "Failed to remove requirement", variant: "destructive" }),
+  });
+
+  const availableToAdd = allTemplates.filter(t => {
+    if (!t.isActive || t.visibility !== "private") return false;
+    if (requiredIds.has(t.id)) return false;
+    return true;
+  });
+
+  const filteredAvailable = availableToAdd.filter(t => {
+    if (moduleFilter && t.module !== moduleFilter) return false;
+    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const isPending = addMutation.isPending || removeMutation.isPending;
+
+  if (requiredLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Required Documents</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
-
-  if (enabledModules.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Required Documents</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No modules are enabled for this company.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Required Documents</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Select which documents are required for compliance at this company's sites.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue={defaultTab}>
-          <TabsList className="mb-4">
-            {enabledModules.map(([mod, { label }]) => (
-              <TabsTrigger key={mod} value={mod} data-testid={`tab-required-${mod}`}>{label}</TabsTrigger>
-            ))}
-          </TabsList>
-          {enabledModules.map(([mod, { label }]) => {
-            const moduleTemplates = privateTemplates.filter(t => t.module === mod);
-            return (
-              <TabsContent key={mod} value={mod}>
-                {moduleTemplates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4">
-                    No private templates available for {label}.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {moduleTemplates.map(template => (
-                      <div key={template.id} className="flex items-center gap-3">
-                        <Checkbox
-                          id={`req-${template.id}`}
-                          checked={requiredIds.has(template.id)}
-                          onCheckedChange={(checked) => handleToggle(template.id, !!checked)}
-                          disabled={(!isAdmin && user?.role !== "consultant") || saveMutation.isPending}
-                          data-testid={`checkbox-required-${template.id}`}
-                        />
-                        <label
-                          htmlFor={`req-${template.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
-                        >
-                          {template.name}
-                          <Badge variant="secondary" className="text-xs">{label}</Badge>
-                          {template.requiresApproval && (
-                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                          )}
-                        </label>
-                      </div>
-                    ))}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-semibold">Required Documents</h3>
+          <p className="text-sm text-muted-foreground">Documents required for compliance at all sites in this company</p>
+        </div>
+        <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
+          <DialogTrigger asChild>
+            <Button size="sm" data-testid="button-add-requirement">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Requirement
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Add Required Document</DialogTitle>
+              <DialogDescription>
+                Select a private document template to require at all sites in this company.
+              </DialogDescription>
+            </DialogHeader>
+            {enabledModules.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 mb-1">
+                <button
+                  onClick={() => setModuleFilter(null)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${moduleFilter === null ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
+                  data-testid="filter-module-all"
+                >
+                  All
+                </button>
+                {enabledModules.map(mod => {
+                  const ModIcon = MODULE_ICON[mod] || FileText;
+                  const isActive = moduleFilter === mod;
+                  return (
+                    <button
+                      key={mod}
+                      onClick={() => setModuleFilter(isActive ? null : mod)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${isActive ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
+                      data-testid={`filter-module-${mod}`}
+                    >
+                      <ModIcon className="h-3 w-3" />
+                      {MODULE_LABELS[mod] || mod}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+                data-testid="input-template-search-add"
+              />
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+              {filteredAvailable.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No templates available</p>
+              ) : filteredAvailable.map(t => {
+                const ModIcon = MODULE_ICON[t.module] || FileText;
+                return (
+                  <button
+                    key={t.id}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted transition-colors"
+                    onClick={() => addMutation.mutate(t.id)}
+                    disabled={isPending}
+                    data-testid={`option-template-${t.id}`}
+                  >
+                    <ModIcon className={`h-4 w-4 shrink-0 ${MODULE_COLOR[t.module] || "text-muted-foreground"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{MODULE_LABELS[t.module] || t.module}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {requiredIds.size === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
+              <p className="text-sm font-medium text-muted-foreground">No required documents</p>
+              <p className="text-xs text-muted-foreground mt-1">Add requirements using the button above.</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {[...requiredIds].map(templateId => {
+                const tmpl = templateMap.get(templateId);
+                if (!tmpl) return null;
+                const ModIcon = MODULE_ICON[tmpl.module] || FileText;
+                return (
+                  <div key={templateId} className="flex items-center gap-3 px-4 py-3" data-testid={`row-required-${templateId}`}>
+                    <div className="p-1.5 rounded-md bg-muted shrink-0">
+                      <ModIcon className={`h-4 w-4 ${MODULE_COLOR[tmpl.module] || ""}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{tmpl.name}</p>
+                      <p className={`text-xs ${MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
+                        {MODULE_LABELS[tmpl.module] || tmpl.module}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeMutation.mutate(templateId)}
+                      disabled={isPending}
+                      title="Remove requirement"
+                      data-testid={`button-remove-requirement-${templateId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      </CardContent>
-    </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

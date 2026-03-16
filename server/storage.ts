@@ -384,6 +384,8 @@ export interface IStorage {
   // Company Required Templates
   getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]>;
   setCompanyRequiredTemplates(companyId: string, templateIds: string[], createdBy: string): Promise<CompanyRequiredTemplate[]>;
+  addCompanyRequiredTemplate(companyId: string, templateId: string, createdBy: string): Promise<CompanyRequiredTemplate>;
+  removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean>;
 
   // Site Template Overrides
   getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]>;
@@ -3558,6 +3560,22 @@ export class MemStorage implements IStorage {
     }));
 
     return db.insert(companyRequiredTemplatesTable).values(values).returning();
+  }
+
+  async addCompanyRequiredTemplate(companyId: string, templateId: string, createdBy: string): Promise<CompanyRequiredTemplate> {
+    const [existing] = await db.select().from(companyRequiredTemplatesTable)
+      .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
+    if (existing) return existing;
+    const [result] = await db.insert(companyRequiredTemplatesTable)
+      .values({ companyId, templateId, createdBy })
+      .returning();
+    return result;
+  }
+
+  async removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean> {
+    const result = await db.delete(companyRequiredTemplatesTable)
+      .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]> {
