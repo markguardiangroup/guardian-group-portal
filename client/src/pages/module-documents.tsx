@@ -90,7 +90,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
-import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord } from "@shared/schema";
+import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord, DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -179,12 +179,12 @@ interface HierarchyDocument {
   title: string;
   fileName: string;
   type: string;
-  status: string;
+  status: DocumentStatus;
   version: number;
-  approvalStatus: string;
+  approvalStatus: ApprovalStatus;
   updatedAt: string;
   documentTypeId?: string | null;
-  isRequired?: boolean;
+  isRequired: boolean;
   isArchived?: boolean;
   renewalPeriodMonths?: number | null;
   lastApprovedAt?: string | null;
@@ -763,8 +763,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                       Archived
                                                     </Badge>
                                                   )}
-                                                  <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                                  <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                  <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                 </div>
                                               </Link>
@@ -822,8 +822,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
@@ -898,8 +898,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -1030,7 +1030,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
@@ -1047,7 +1047,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "MMM d, yyyy")}

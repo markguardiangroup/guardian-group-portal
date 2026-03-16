@@ -707,8 +707,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </div>
                   </div>
                 ))}

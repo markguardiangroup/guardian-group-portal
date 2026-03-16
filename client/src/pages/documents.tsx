@@ -90,15 +90,16 @@ import {
   Save,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType } from "@shared/schema";
+import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
 
 // Type for the documents hierarchy API response
 interface DocumentHierarchyDocument {
   id: string;
   title: string;
   fileName: string;
-  status: string;
-  approvalStatus: string;
+  status: DocumentStatus;
+  approvalStatus: ApprovalStatus;
+  isRequired: boolean;
   source: string;
   templateId: string | null;
   expiryDate: string | null;
@@ -757,8 +758,8 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                  <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                  <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                                   </span>
@@ -813,8 +814,8 @@ function DocumentsListView() {
                                             <span className="text-sm">{doc.title}</span>
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                            <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                           </div>
                                         </Link>
                                       ))}
@@ -873,8 +874,8 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                        <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                        <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                        <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                         </span>

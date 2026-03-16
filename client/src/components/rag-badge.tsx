@@ -66,7 +66,7 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
     label = "Overdue";
     Icon = XCircle;
     statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
-  } else if (status === "review_required" && approvalStatus === "approved") {
+  } else if (status === "review_required") {
     label = "Review Required";
     Icon = AlertTriangle;
     statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
