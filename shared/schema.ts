@@ -1448,6 +1448,22 @@ export const insertCompanyRequiredTemplateSchema = createInsertSchema(companyReq
 export type InsertCompanyRequiredTemplate = z.infer<typeof insertCompanyRequiredTemplateSchema>;
 export type CompanyRequiredTemplate = typeof companyRequiredTemplates.$inferSelect;
 
+// Site-level required template overrides (add or exclude per-site requirements)
+export const siteTemplateOverrides = pgTable("site_template_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  siteId: varchar("site_id").notNull(),
+  templateId: varchar("template_id").notNull(),
+  action: text("action").$type<"include" | "exclude">().notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("site_template_unique").on(table.siteId, table.templateId),
+]);
+
+export const insertSiteTemplateOverrideSchema = createInsertSchema(siteTemplateOverrides).omit({ id: true, createdAt: true });
+export type InsertSiteTemplateOverride = z.infer<typeof insertSiteTemplateOverrideSchema>;
+export type SiteTemplateOverride = typeof siteTemplateOverrides.$inferSelect;
+
 // Toolkit Template Downloads (track when users download templates)
 export const toolkitDownloads = pgTable("toolkit_downloads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

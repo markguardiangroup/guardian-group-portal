@@ -48,6 +48,8 @@ import {
   type UserInvitation, type InsertUserInvitation, type InvitationPurpose,
   type CompanyRequiredTemplate, type InsertCompanyRequiredTemplate,
   companyRequiredTemplates as companyRequiredTemplatesTable,
+  type SiteTemplateOverride,
+  siteTemplateOverrides as siteTemplateOverridesTable,
   type ClientUploadFolder, type InsertClientUploadFolder,
   type ClientUploadFolderAccess, type InsertClientUploadFolderAccess,
   type ClientUpload, type InsertClientUpload,
@@ -382,6 +384,11 @@ export interface IStorage {
   // Company Required Templates
   getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]>;
   setCompanyRequiredTemplates(companyId: string, templateIds: string[], createdBy: string): Promise<CompanyRequiredTemplate[]>;
+
+  // Site Template Overrides
+  getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]>;
+  setSiteTemplateOverride(siteId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<SiteTemplateOverride>;
+  removeSiteTemplateOverride(siteId: string, templateId: string): Promise<boolean>;
 
   // Client Upload Folders
   // Extended types used by client upload methods
@@ -729,35 +736,45 @@ export class MemStorage implements IStorage {
     const consumedTemplateIds = new Set<string>();
 
     if (site?.companyId) {
-      const requiredTemplates = await this.getCompanyRequiredTemplates(site.companyId);
-      if (requiredTemplates.length > 0) {
-        const templates = await db.select().from(documentTemplatesTable)
-          .where(eq(documentTemplatesTable.isActive, true));
-        const templateMap = new Map(templates.map(t => [t.id, t]));
-        for (const rt of requiredTemplates) {
-          const tmpl = templateMap.get(rt.templateId);
-          if (!tmpl || tmpl.visibility !== "private") continue;
-          consumedTemplateIds.add(rt.templateId);
-          slotTotal++;
-          const matchingDocs = docs.filter(d => d.templateId === rt.templateId);
-          if (matchingDocs.length === 0) {
-            missingRequired++;
-            continue;
-          }
-          const isFulfilled = matchingDocs.some(d => {
-            if (d.status !== "compliant") return false;
-            if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-            if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
-            if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-            return true;
-          });
-          if (isFulfilled) {
-            slotCompliant++;
-          } else {
-            const hasOverdue = matchingDocs.some(d => d.status === "overdue");
-            if (hasOverdue) slotOverdue++;
-            else slotReview++;
-          }
+      const [companyRequired, siteOverrides] = await Promise.all([
+        this.getCompanyRequiredTemplates(site.companyId),
+        this.getSiteTemplateOverrides(siteId),
+      ]);
+      const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+      const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
+
+      const templates = await db.select().from(documentTemplatesTable)
+        .where(eq(documentTemplatesTable.isActive, true));
+      const templateMap = new Map(templates.map(t => [t.id, t]));
+
+      const effectiveTemplateIds = [
+        ...companyRequired.map(r => r.templateId).filter(id => !excludedIds.has(id)),
+        ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
+      ];
+
+      for (const templateId of effectiveTemplateIds) {
+        const tmpl = templateMap.get(templateId);
+        if (!tmpl || tmpl.visibility !== "private") continue;
+        consumedTemplateIds.add(templateId);
+        slotTotal++;
+        const matchingDocs = docs.filter(d => d.templateId === templateId);
+        if (matchingDocs.length === 0) {
+          missingRequired++;
+          continue;
+        }
+        const isFulfilled = matchingDocs.some(d => {
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
+        if (isFulfilled) {
+          slotCompliant++;
+        } else {
+          const hasOverdue = matchingDocs.some(d => d.status === "overdue");
+          if (hasOverdue) slotOverdue++;
+          else slotReview++;
         }
       }
     }
@@ -1084,15 +1101,23 @@ export class MemStorage implements IStorage {
       if (!companyReqCache.has(site.companyId)) {
         companyReqCache.set(site.companyId, await this.getCompanyRequiredTemplates(site.companyId));
       }
-      const requiredTemplates = companyReqCache.get(site.companyId)!;
+      const companyRequired = companyReqCache.get(site.companyId)!;
+      const siteOverrides = await this.getSiteTemplateOverrides(sid);
+      const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+      const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
+      const effectiveTemplateIds = [
+        ...companyRequired.map(r => r.templateId).filter(id => !excludedIds.has(id)),
+        ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
+      ];
+
       const siteDocs = docs.filter(d => d.siteId === sid);
-      for (const rt of requiredTemplates) {
-        const tmpl = templateMap.get(rt.templateId);
+      for (const templateId of effectiveTemplateIds) {
+        const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (module && tmpl.module !== module) continue;
         if (!module && tmpl.module === "training") continue;
         const isFulfilled = siteDocs.some(d => {
-          if (d.templateId !== rt.templateId) return false;
+          if (d.templateId !== templateId) return false;
           if (d.status !== "compliant") return false;
           if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
           if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
@@ -3533,6 +3558,31 @@ export class MemStorage implements IStorage {
     }));
 
     return db.insert(companyRequiredTemplatesTable).values(values).returning();
+  }
+
+  async getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]> {
+    return db.select().from(siteTemplateOverridesTable)
+      .where(eq(siteTemplateOverridesTable.siteId, siteId));
+  }
+
+  async setSiteTemplateOverride(siteId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<SiteTemplateOverride> {
+    const [result] = await db.insert(siteTemplateOverridesTable)
+      .values({ siteId, templateId, action, createdBy })
+      .onConflictDoUpdate({
+        target: [siteTemplateOverridesTable.siteId, siteTemplateOverridesTable.templateId],
+        set: { action, createdBy },
+      })
+      .returning();
+    return result;
+  }
+
+  async removeSiteTemplateOverride(siteId: string, templateId: string): Promise<boolean> {
+    const result = await db.delete(siteTemplateOverridesTable)
+      .where(and(
+        eq(siteTemplateOverridesTable.siteId, siteId),
+        eq(siteTemplateOverridesTable.templateId, templateId),
+      ));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Initialize default admin user in database if not exists

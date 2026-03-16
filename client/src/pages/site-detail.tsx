@@ -59,6 +59,9 @@ import {
   MoreHorizontal,
   Pencil,
   Shield,
+  Briefcase,
+  Search,
+  X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -67,7 +70,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Site, User, ConsultantAssignment, ClientSiteAssignment, Company } from "@shared/schema";
+import type { Site, User, ConsultantAssignment, ClientSiteAssignment, Company, DocumentTemplate, SiteTemplateOverride } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 
 type ClientAssignmentWithDetails = ClientSiteAssignment & {
@@ -776,81 +779,228 @@ interface SiteWithCompliance {
   };
 }
 
-function ComplianceTab({ siteId }: { siteId: string }) {
-  // Fetch from /api/sites to get consistent compliance data (same as sites list)
-  const { data: sites = [] } = useQuery<SiteWithCompliance[]>({
-    queryKey: ["/api/sites"],
+const MODULE_LABELS: Record<string, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
+  training: "Training",
+};
+
+const MODULE_ICON: Record<string, typeof Shield> = {
+  health_safety: Shield,
+  human_resources: Users,
+  employment_law: Briefcase,
+};
+
+const MODULE_COLOR: Record<string, string> = {
+  health_safety: "text-emerald-600 dark:text-emerald-400",
+  human_resources: "text-blue-600 dark:text-blue-400",
+  employment_law: "text-pink-600 dark:text-pink-400",
+};
+
+const MODULE_BORDER: Record<string, string> = {
+  health_safety: "border-emerald-200 dark:border-emerald-800",
+  human_resources: "border-blue-200 dark:border-blue-800",
+  employment_law: "border-pink-200 dark:border-pink-800",
+};
+
+function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: string }) {
+  const { toast } = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates"],
   });
 
-  // Find the current site's compliance summary
-  const site = sites.find((s) => s.id === siteId);
-  const summary = site?.complianceSummary;
-  
-  const compliantDocs = summary?.compliantDocuments || 0;
-  const reviewDocs = summary?.reviewRequired || 0;
-  const overdueDocs = summary?.overdueDocuments || 0;
-  const complianceScore = summary?.complianceScore || 0;
+  const { data: companyRequired = [] } = useQuery<Array<{ id: string; templateId: string; companyId: string }>>({
+    queryKey: ["/api/companies", companyId, "required-templates"],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const res = await fetch(`/api/companies/${companyId}/required-templates`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!companyId,
+  });
+
+  const { data: siteOverrides = [] } = useQuery<SiteTemplateOverride[]>({
+    queryKey: ["/api/sites", siteId, "template-overrides"],
+    queryFn: async () => {
+      const res = await fetch(`/api/sites/${siteId}/template-overrides`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const companyRequiredIds = new Set(companyRequired.map(r => r.templateId));
+  const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+  const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
+  const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+
+  const effectiveRows: Array<{ templateId: string; source: "company" | "site" }> = [
+    ...[...companyRequiredIds].filter(id => !excludedIds.has(id)).map(id => ({ templateId: id, source: "company" as const })),
+    ...[...includedIds].filter(id => !companyRequiredIds.has(id)).map(id => ({ templateId: id, source: "site" as const })),
+  ];
+
+  const invalidateSiteData = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
+  };
+
+  const addOverrideMutation = useMutation({
+    mutationFn: async ({ templateId, action }: { templateId: string; action: "include" | "exclude" }) =>
+      apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId, action }),
+    onSuccess: () => { invalidateSiteData(); setAddOpen(false); setSearch(""); },
+    onError: () => toast({ title: "Failed to update requirements", variant: "destructive" }),
+  });
+
+  const removeOverrideMutation = useMutation({
+    mutationFn: async (templateId: string) =>
+      apiRequest("DELETE", `/api/sites/${siteId}/template-overrides/${templateId}`),
+    onSuccess: () => invalidateSiteData(),
+    onError: () => toast({ title: "Failed to update requirements", variant: "destructive" }),
+  });
+
+  const handleRemove = (templateId: string, source: "company" | "site") => {
+    if (source === "company") {
+      addOverrideMutation.mutate({ templateId, action: "exclude" });
+    } else {
+      removeOverrideMutation.mutate(templateId);
+    }
+  };
+
+  const handleAdd = (templateId: string) => {
+    if (excludedIds.has(templateId)) {
+      removeOverrideMutation.mutate(templateId);
+    } else {
+      addOverrideMutation.mutate({ templateId, action: "include" });
+    }
+    setAddOpen(false);
+    setSearch("");
+  };
+
+  const availableToAdd = allTemplates.filter(t => {
+    if (!t.isActive) return false;
+    if (companyRequiredIds.has(t.id) && !excludedIds.has(t.id)) return false;
+    if (includedIds.has(t.id)) return false;
+    return true;
+  });
+
+  const filteredAvailable = availableToAdd.filter(t =>
+    !search || t.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Compliance Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Overall Compliance Score</span>
-              <span className="text-2xl font-bold">{complianceScore}%</span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-semibold">Required Documents</h3>
+          <p className="text-sm text-muted-foreground">Documents required for compliance at this site</p>
+        </div>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" data-testid="button-add-requirement">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Requirement
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Add Required Document</DialogTitle>
+              <DialogDescription>
+                Select a document template to require at this site.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search templates..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+                data-testid="input-template-search-add"
+              />
             </div>
-            <Progress value={complianceScore} className="h-2" />
-          </div>
+            <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+              {filteredAvailable.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No templates available</p>
+              ) : filteredAvailable.map(t => {
+                const ModIcon = MODULE_ICON[t.module] || FileText;
+                const isRestoring = excludedIds.has(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted transition-colors"
+                    onClick={() => handleAdd(t.id)}
+                    data-testid={`option-template-${t.id}`}
+                  >
+                    <ModIcon className={`h-4 w-4 shrink-0 ${MODULE_COLOR[t.module] || "text-muted-foreground"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{MODULE_LABELS[t.module] || t.module}</p>
+                    </div>
+                    {isRestoring && (
+                      <Badge variant="outline" className="text-xs shrink-0">Restore</Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {effectiveRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
+              <p className="text-sm font-medium text-muted-foreground">No required documents</p>
+              <p className="text-xs text-muted-foreground mt-1">Add requirements above or configure them at the company level.</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {effectiveRows.map(({ templateId, source }) => {
+                const tmpl = templateMap.get(templateId);
+                if (!tmpl) return null;
+                const ModIcon = MODULE_ICON[tmpl.module] || FileText;
+                const isPending = addOverrideMutation.isPending || removeOverrideMutation.isPending;
+                return (
+                  <div key={templateId} className="flex items-center gap-3 px-4 py-3" data-testid={`row-required-${templateId}`}>
+                    <div className="p-1.5 rounded-md bg-muted shrink-0">
+                      <ModIcon className={`h-4 w-4 ${MODULE_COLOR[tmpl.module] || ""}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{tmpl.name}</p>
+                      <p className={`text-xs ${MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
+                        {MODULE_LABELS[tmpl.module] || tmpl.module}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs shrink-0 ${source === "company" ? "text-muted-foreground" : "text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"}`}
+                    >
+                      {source === "company" ? "Company" : "Site Only"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemove(templateId, source)}
+                      disabled={isPending}
+                      title={source === "company" ? "Remove from this site" : "Remove requirement"}
+                      data-testid={`button-remove-requirement-${templateId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{compliantDocs}</p>
-                <p className="text-sm text-muted-foreground">Compliant</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{reviewDocs}</p>
-                <p className="text-sm text-muted-foreground">Review Required</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
-                <XCircle className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{overdueDocs}</p>
-                <p className="text-sm text-muted-foreground">Overdue</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
@@ -1062,7 +1212,7 @@ export default function SiteDetail() {
         </TabsContent>
 
         <TabsContent value="compliance">
-          <ComplianceTab siteId={siteId!} />
+          <ComplianceTab siteId={siteId!} companyId={entity.companyId} />
         </TabsContent>
       </Tabs>
 

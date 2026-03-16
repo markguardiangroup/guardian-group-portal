@@ -6868,6 +6868,57 @@ export async function registerRoutes(
     }
   });
 
+  // Site Template Overrides — per-site required document additions/exclusions
+  app.get("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { siteId } = req.params;
+      const overrides = await storage.getSiteTemplateOverrides(siteId);
+      res.json(overrides);
+    } catch (error) {
+      console.error("Get site template overrides error:", error);
+      res.status(500).json({ error: "Failed to fetch site template overrides" });
+    }
+  });
+
+  app.post("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { siteId } = req.params;
+      const { templateId, action } = req.body;
+      if (!templateId || !action || (action !== "include" && action !== "exclude")) {
+        return res.status(400).json({ error: "templateId and action ('include'|'exclude') are required" });
+      }
+      const result = await storage.setSiteTemplateOverride(siteId, templateId, action, user.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Set site template override error:", error);
+      res.status(500).json({ error: "Failed to set site template override" });
+    }
+  });
+
+  app.delete("/api/sites/:siteId/template-overrides/:templateId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { siteId, templateId } = req.params;
+      const removed = await storage.removeSiteTemplateOverride(siteId, templateId);
+      if (!removed) return res.status(404).json({ error: "Override not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove site template override error:", error);
+      res.status(500).json({ error: "Failed to remove site template override" });
+    }
+  });
+
   // Get documents hierarchy for a site module (folder-based view with compliance stats)
   app.get("/api/sites/:siteId/modules/:module/documents-hierarchy", requireAuth, async (req, res) => {
     try {
