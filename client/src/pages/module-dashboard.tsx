@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { 
@@ -707,8 +707,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
-                      <ApprovalBadge status={doc.approvalStatus} />
+                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                     </div>
                   </div>
                 ))}

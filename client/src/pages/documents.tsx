@@ -50,7 +50,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -757,11 +757,8 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  {(doc as any).isRequired && (
-                                    <Badge variant="outline" className="text-xs text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 hidden sm:inline-flex">Required</Badge>
-                                  )}
-                                  <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
-                                  <ApprovalBadge status={doc.approvalStatus as any} />
+                                  <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                  <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                                   </span>
@@ -815,7 +812,10 @@ function DocumentsListView() {
                                             <FileText className="h-4 w-4 text-muted-foreground" />
                                             <span className="text-sm">{doc.title}</span>
                                           </div>
-                                          <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                          <div className="flex items-center gap-2">
+                                            <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                            <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                          </div>
                                         </Link>
                                       ))}
                                     </div>
@@ -873,7 +873,8 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                        <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                        <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                         </span>
@@ -957,8 +958,8 @@ function DocumentsListView() {
                 <TableRow>
                   <TableHead>Document</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Compliance</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Approval</TableHead>
                   <TableHead>Last Modified</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -985,10 +986,10 @@ function DocumentsListView() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell>
-                      <ApprovalBadge status={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -1274,8 +1275,8 @@ function DocumentDetailView({ id }: { id: string }) {
             <h1 className="text-3xl font-semibold">{document.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
-              <RAGBadge status={document.status} approvalStatus={document.approvalStatus} />
-              <ApprovalBadge status={document.approvalStatus} />
+              <ComplianceBadge isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} />
+              <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
               <span className="text-sm text-muted-foreground">Version {document.version}</span>
             </div>
           </div>

@@ -39,7 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RAGBadge, ApprovalBadge } from "@/components/rag-badge";
+import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
@@ -763,10 +763,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                       Archived
                                                     </Badge>
                                                   )}
-                                                  {(doc as any).isRequired && (
-                                                    <Badge variant="outline" className={`text-[10px] h-5 ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
-                                                  )}
-                                                  <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                                  <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                                  <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                 </div>
                                               </Link>
@@ -813,9 +811,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               Archived
                                             </Badge>
                                           )}
-                                          {doc.isRequired && (
-                                            <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
-                                          )}
                                           {doc.renewalPeriodMonths && (
                                             <Badge variant="secondary" className="text-xs">{doc.renewalPeriodMonths}mo</Badge>
                                           )}
@@ -827,7 +822,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
@@ -902,7 +898,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <RAGBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
+                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -995,11 +992,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <TableRow>
                   <TableHead>Document</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Required</TableHead>
+                  <TableHead>Compliance</TableHead>
                   <TableHead>Renewal Period</TableHead>
                   <TableHead>Renewal Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Approval</TableHead>
                   <TableHead>Last Modified</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
@@ -1034,11 +1030,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {(doc as any).isRequired ? (
-                        <Badge variant="outline" className={`${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Optional</span>
-                      )}
+                      <ComplianceBadge isRequired={(doc as any).isRequired} status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
@@ -1055,10 +1047,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <RAGBadge status={doc.status} approvalStatus={doc.approvalStatus} />
-                    </TableCell>
-                    <TableCell>
-                      <ApprovalBadge status={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status as any} approvalStatus={doc.approvalStatus as any} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -1632,8 +1621,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <RAGBadge status={document.status} approvalStatus={document.approvalStatus} />
-          <ApprovalBadge status={document.approvalStatus} />
+          <ComplianceBadge isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} />
+          <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
         </div>
       </div>
 
