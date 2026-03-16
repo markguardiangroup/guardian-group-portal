@@ -1047,6 +1047,37 @@ export async function registerRoutes(
     return results;
   }
 
+  app.get("/api/required-template-ids", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const allSites = await storage.getSites();
+      const accessChecks = await Promise.all(allSites.map(s => canUserAccessSite(user, s.id)));
+      const accessibleSites = allSites.filter((_, i) => accessChecks[i]);
+
+      const uniqueCompanyIds = [...new Set(accessibleSites.map(s => s.companyId))];
+      const companyReqArrays = await Promise.all(
+        uniqueCompanyIds.map(cid => storage.getCompanyRequiredTemplates(cid))
+      );
+
+      const requiredIds = new Set<string>();
+      for (const arr of companyReqArrays) {
+        for (const r of arr) requiredIds.add(r.templateId);
+      }
+
+      const allTemplates = await storage.getDocumentTemplates();
+      for (const t of allTemplates) {
+        if (t.isRequired) requiredIds.add(t.id);
+      }
+
+      res.json([...requiredIds]);
+    } catch (error) {
+      console.error("Error fetching required template IDs:", error);
+      res.status(500).json({ error: "Failed to fetch required template IDs" });
+    }
+  });
+
   app.get("/api/missing-required-templates", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);

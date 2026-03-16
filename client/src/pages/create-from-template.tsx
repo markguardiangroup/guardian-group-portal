@@ -226,6 +226,12 @@ export default function CreateFromTemplate() {
     queryKey: ["/api/document-templates"],
   });
 
+  const { data: requiredTemplateIds = [] } = useQuery<string[]>({
+    queryKey: ["/api/required-template-ids"],
+  });
+
+  const requiredTemplateIdSet = useMemo(() => new Set(requiredTemplateIds), [requiredTemplateIds]);
+
   const { data: folderTemplates = [] } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
   });
@@ -728,6 +734,7 @@ export default function CreateFromTemplate() {
               const folderName = template.folderTemplateId ? folderTemplateMap.get(template.folderTemplateId) : null;
               const FolderIcon = folderName ? getFolderIcon(folderName) : Folder;
               const showModuleBadge = selectedModule === "all";
+              const isRequired = requiredTemplateIdSet.has(template.id);
 
               return (
                 <Card
@@ -770,6 +777,12 @@ export default function CreateFromTemplate() {
                     ) : null}
 
                     <div className="flex flex-wrap items-center gap-1 mt-auto">
+                      {isRequired && (
+                        <Badge className="text-xs bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                          <Shield className="h-3 w-3 mr-1 shrink-0" />
+                          Required
+                        </Badge>
+                      )}
                       {folderName && (
                         <Badge variant="outline" className="text-xs">
                           <FolderIcon className="h-3 w-3 mr-1 shrink-0" />
