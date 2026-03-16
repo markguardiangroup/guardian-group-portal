@@ -1149,13 +1149,23 @@ export async function registerRoutes(
         }
       }
       
+      // When no required documents are configured, fall back to all-docs stats so the
+      // score reflects actual document health instead of defaulting to 0%.
+      const effectiveCompliant = totalDocuments > 0 ? compliantDocuments : allCompliantDocuments;
+      const effectiveReview = totalDocuments > 0 ? reviewRequired : allReviewRequired;
+      const effectiveOverdue = totalDocuments > 0 ? overdueDocuments : allOverdueDocuments;
+      const effectiveTotal = totalDocuments > 0 ? totalDocuments : allDocumentsCount;
+      const effectiveScore = totalDocuments > 0
+        ? complianceScore
+        : (allDocumentsCount > 0 ? Math.round((allCompliantDocuments / allDocumentsCount) * 100) : 100);
+
       const summary = {
-        totalDocuments,
-        compliantDocuments,
-        reviewRequired,
-        overdueDocuments,
+        totalDocuments: effectiveTotal,
+        compliantDocuments: effectiveCompliant,
+        reviewRequired: effectiveReview,
+        overdueDocuments: effectiveOverdue,
         missingRequiredDocuments,
-        complianceScore,
+        complianceScore: effectiveScore,
         allDocuments: allDocumentsCount,
         allCompliantDocuments,
         allReviewRequired,
@@ -1282,13 +1292,21 @@ export async function registerRoutes(
         }
       }
       
+      const effCompliant2 = totalDocuments > 0 ? compliantDocuments : allCompliantProgress;
+      const effReview2 = totalDocuments > 0 ? reviewRequired : allReviewProgress;
+      const effOverdue2 = totalDocuments > 0 ? overdueDocuments : allOverdueProgress;
+      const effTotal2 = totalDocuments > 0 ? totalDocuments : allDocsProgress;
+      const effScore2 = totalDocuments > 0
+        ? complianceScore
+        : (allDocsProgress > 0 ? Math.round((allCompliantProgress / allDocsProgress) * 100) : 100);
+
       const summary = {
-        totalDocuments,
-        compliantDocuments,
-        reviewRequired,
-        overdueDocuments,
+        totalDocuments: effTotal2,
+        compliantDocuments: effCompliant2,
+        reviewRequired: effReview2,
+        overdueDocuments: effOverdue2,
         missingRequiredDocuments,
-        complianceScore,
+        complianceScore: effScore2,
         allDocuments: allDocsProgress,
         allCompliantDocuments: allCompliantProgress,
         allReviewRequired: allReviewProgress,
@@ -1429,10 +1447,18 @@ export async function registerRoutes(
 
         if (complianceModules.includes(mod)) {
           const compliance = await computeSlotBasedCompliance(user, moduleDocs, mod, siteFilter);
+          const noRequired = compliance.totalDocuments === 0;
           return {
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
+            totalDocuments: noRequired ? allDocs : compliance.totalDocuments,
+            compliantDocuments: noRequired ? allCompliant : compliance.compliantDocuments,
+            reviewRequired: noRequired ? allReview : compliance.reviewRequired,
+            overdueDocuments: noRequired ? allOverdue : compliance.overdueDocuments,
+            complianceScore: noRequired
+              ? (allDocs > 0 ? Math.round((allCompliant / allDocs) * 100) : 100)
+              : compliance.complianceScore,
             allDocuments: allDocs,
             allCompliantDocuments: allCompliant,
             allReviewRequired: allReview,
