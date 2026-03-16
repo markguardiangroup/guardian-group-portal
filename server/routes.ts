@@ -1485,6 +1485,17 @@ export async function registerRoutes(
       
       // Get document templates to enrich documents with isRequired/renewalPeriodMonths
       const docTemplates = await storage.getDocumentTemplates(module);
+
+      // Build company required-templates lookup so documents required via company
+      // configuration show the correct compliance badge (not "Not Required")
+      const allSitesForModule = await storage.getSites();
+      const siteToCompanyModule = new Map(allSitesForModule.map(s => [s.id, s.companyId]));
+      const uniqueCompanyIdsModule = [...new Set(allDocuments.map(d => siteToCompanyModule.get(d.siteId)).filter(Boolean) as string[])];
+      const companyReqCacheModule = new Map<string, Set<string>>();
+      await Promise.all(uniqueCompanyIdsModule.map(async (companyId) => {
+        const reqs = await storage.getCompanyRequiredTemplates(companyId);
+        companyReqCacheModule.set(companyId, new Set(reqs.map(r => r.templateId)));
+      }));
       
       // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
@@ -1493,11 +1504,15 @@ export async function registerRoutes(
           const canAccess = await canUserAccessSite(user, doc.siteId);
           if (!canAccess) return null;
           
-          // Enrich document with template properties
+          // Enrich document with template properties + company required-template check
           const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
+          const companyId = siteToCompanyModule.get(doc.siteId);
+          const isRequiredViaCompanyTemplate = companyId && doc.templateId
+            ? (companyReqCacheModule.get(companyId)?.has(doc.templateId) ?? false)
+            : false;
           return {
             ...doc,
-            isRequired: docTemplate?.isRequired || false,
+            isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
             renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
           };
         })
@@ -1524,12 +1539,33 @@ export async function registerRoutes(
       const includeArchived = req.query.includeArchived === "true";
       
       const allDocuments = await storage.getDocuments(module, includeArchived);
+
+      // Build company required-templates lookup for effective isRequired enrichment
+      const allSitesForDocs = await storage.getSites();
+      const siteToCompanyDocs = new Map(allSitesForDocs.map(s => [s.id, s.companyId]));
+      const allDocTemplates = await storage.getDocumentTemplates();
+      const docTemplateMap = new Map(allDocTemplates.map(dt => [dt.id, dt]));
+      const uniqueCompanyIdsDocs = [...new Set(allDocuments.map(d => siteToCompanyDocs.get(d.siteId)).filter(Boolean) as string[])];
+      const companyReqCacheDocs = new Map<string, Set<string>>();
+      await Promise.all(uniqueCompanyIdsDocs.map(async (companyId) => {
+        const reqs = await storage.getCompanyRequiredTemplates(companyId);
+        companyReqCacheDocs.set(companyId, new Set(reqs.map(r => r.templateId)));
+      }));
       
       // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
           const canAccess = await canUserAccessSite(user, doc.siteId);
-          return canAccess ? doc : null;
+          if (!canAccess) return null;
+          const docTemplate = doc.templateId ? docTemplateMap.get(doc.templateId) : undefined;
+          const companyId = siteToCompanyDocs.get(doc.siteId);
+          const isRequiredViaCompanyTemplate = companyId && doc.templateId
+            ? (companyReqCacheDocs.get(companyId)?.has(doc.templateId) ?? false)
+            : false;
+          return {
+            ...doc,
+            isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
+          };
         })
       );
       
@@ -6870,7 +6906,25 @@ export async function registerRoutes(
       const includeArchived = req.query.includeArchived === "true";
       const allDocuments = await storage.getDocuments(module as any, includeArchived);
       const siteDocuments = allDocuments.filter(d => targetSiteIds.includes(d.siteId));
-      
+
+      // Build company required-templates lookup so hierarchy document badges reflect
+      // effective compliance requirement (isRequired via company config OR per-document flag)
+      const allSitesHierarchy = await storage.getSites();
+      const siteToCompanyHierarchy = new Map(allSitesHierarchy.map(s => [s.id, s.companyId]));
+      const uniqueCompanyIdsHierarchy = [...new Set(targetSiteIds.map(id => siteToCompanyHierarchy.get(id)).filter(Boolean) as string[])];
+      const companyReqCacheHierarchy = new Map<string, Set<string>>();
+      await Promise.all(uniqueCompanyIdsHierarchy.map(async (companyId) => {
+        const reqs = await storage.getCompanyRequiredTemplates(companyId);
+        companyReqCacheHierarchy.set(companyId, new Set(reqs.map(r => r.templateId)));
+      }));
+      const getEffectiveIsRequired = (doc: { isRequired: boolean; templateId?: string | null; siteId: string }, docTmpl?: { isRequired?: boolean } | null) => {
+        const companyId = siteToCompanyHierarchy.get(doc.siteId);
+        const isRequiredViaCompanyTemplate = companyId && doc.templateId
+          ? (companyReqCacheHierarchy.get(companyId)?.has(doc.templateId) ?? false)
+          : false;
+        return doc.isRequired || docTmpl?.isRequired || isRequiredViaCompanyTemplate;
+      };
+
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
         .filter(ft => !ft.parentId) // Only top-level folders
@@ -6948,7 +7002,7 @@ export async function registerRoutes(
                   expiryDate: d.expiryDate,
                   updatedAt: d.updatedAt,
                   isArchived: d.isArchived,
-                  isRequired: docTemplate?.isRequired || false,
+                  isRequired: getEffectiveIsRequired(d, docTemplate),
                   renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
                 };
               }),
@@ -6994,7 +7048,7 @@ export async function registerRoutes(
                     expiryDate: d.expiryDate,
                     updatedAt: d.updatedAt,
                     isArchived: d.isArchived,
-                    isRequired: docTemplate?.isRequired || false,
+                    isRequired: getEffectiveIsRequired(d, docTemplate),
                     renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
                   };
                 }),
@@ -7040,7 +7094,7 @@ export async function registerRoutes(
                 expiryDate: d.expiryDate,
                 updatedAt: d.updatedAt,
                 isArchived: d.isArchived,
-                isRequired: docTemplate?.isRequired || false,
+                isRequired: getEffectiveIsRequired(d, docTemplate),
                 renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
               };
             }),
