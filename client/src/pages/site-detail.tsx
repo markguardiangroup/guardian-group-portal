@@ -62,6 +62,8 @@ import {
   Briefcase,
   Search,
   X,
+  UserCheck,
+  Clock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -504,11 +506,20 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     },
   });
 
+  // Fetch consultants assigned to this site (reuse same query as ConsultantsTab)
+  const { data: consultantAssignments = [] } = useQuery<ConsultantWithDetails[]>({
+    queryKey: ["/api/sites", siteId, "consultants"],
+  });
+
+  // Filter to non-pro consultants only
+  const nonProConsultants = consultantAssignments.filter(a => a.consultantTier !== "pro");
+
   const roleLabels: Record<string, string> = {
     owner: "Owner",
     approver: "Approver",
     editor: "Editor",
     viewer: "Viewer",
+    manager: "Manager",
   };
 
   const handleEditUser = (user: UserWithoutPassword) => {
@@ -536,93 +547,138 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     );
   }
 
+  const hasAnyUsers = nonProConsultants.length > 0 || users.length > 0;
+
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-base">Client Users ({users.length})</CardTitle>
-            <CardDescription>Users with access to this entity's portal</CardDescription>
-          </div>
-          <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {users.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No users registered for this entity.</p>
-          ) : (
-            <div className="space-y-3">
-              {users.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between rounded-md border p-3"
-                  data-testid={`user-${user.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {user.fullName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{user.fullName}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Users ({nonProConsultants.length + users.length})</h2>
+        <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Client User
+        </Button>
+      </div>
+      {hasAnyUsers ? (
+        <Card>
+          {/* Consultants section */}
+          {nonProConsultants.length > 0 && (
+            <>
+              <div className="px-4 py-2 bg-muted/40 border-b">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Consultants ({nonProConsultants.length})
+                </p>
+              </div>
+              <div className="divide-y">
+                {nonProConsultants.map((a) => (
+                  <div key={a.consultantId} className="flex items-center gap-4 px-4 py-3" data-testid={`row-consultant-${a.consultantId}`}>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                      {a.consultantName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium truncate">{a.consultantName}</span>
+                        {a.isPrimary && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
+                            Primary
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{a.consultantEmail}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
+                        {a.consultantTier ? (a.consultantTier.charAt(0).toUpperCase() + a.consultantTier.slice(1)) : "Standard"}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">
-                      {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
-                    </Badge>
-                    {assignedClientIds.has(user.id) ? (
-                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
-                        <Shield className="mr-1 h-3 w-3" />
-                        Site Access
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">
-                        All Sites
-                      </Badge>
-                    )}
-                    <Badge
-                      variant={user.status === "active" ? "secondary" : "outline"}
-                      className={user.status === "active" ? "bg-emerald-500/10 text-emerald-600" : ""}
-                    >
-                      {user.status}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          data-testid={`button-user-menu-${user.id}`}
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => toggleClientSiteAccess(user.id)}
-                          data-testid={`toggle-site-access-${user.id}`}
-                        >
-                          <Shield className="mr-2 h-4 w-4" />
-                          {assignedClientIds.has(user.id) ? "Remove Site Access" : "Grant Site Access"}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
-        </CardContent>
-      </Card>
+
+          {/* Clients section */}
+          {nonProConsultants.length > 0 && users.length > 0 && <div className="border-t" />}
+          {users.length > 0 && (
+            <>
+              <div className="px-4 py-2 bg-muted/40 border-b">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Clients ({users.length})
+                </p>
+              </div>
+              <div className="divide-y">
+                {users.map((user) => (
+                  <div key={user.id} className="flex items-center gap-4 px-4 py-3" data-testid={`user-${user.id}`}>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                      {user.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium truncate block">{user.fullName}</span>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                        {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
+                      </Badge>
+                      <Badge
+                        variant={user.status === "active" ? "default" : "outline"}
+                        className={
+                          user.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                          user.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                        }
+                      >
+                        {user.status === "active" ? (
+                          <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                        ) : user.status === "invited" ? (
+                          <><Clock className="h-3 w-3 mr-1" />Invited</>
+                        ) : (
+                          <><XCircle className="h-3 w-3 mr-1" />{user.status}</>
+                        )}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={assignedClientIds.has(user.id)
+                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700"
+                          : "text-muted-foreground"}
+                      >
+                        {assignedClientIds.has(user.id) ? "Site Access" : "All Sites"}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-user-menu-${user.id}`}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => toggleClientSiteAccess(user.id)} data-testid={`toggle-site-access-${user.id}`}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            {assignedClientIds.has(user.id) ? "Remove Site Access" : "Grant Site Access"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <Users className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="mt-4 text-base font-medium">No users</h3>
+            <p className="mt-1 text-sm text-muted-foreground text-center">
+              No consultants or clients are currently assigned to this site
+            </p>
+            <Button className="mt-4" size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-first-user">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Client User
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <DialogContent>

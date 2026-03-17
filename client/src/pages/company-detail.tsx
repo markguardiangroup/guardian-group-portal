@@ -624,13 +624,15 @@ export default function CompanyDetail() {
     (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive"
   );
 
-  // All users tab: clients in this company + consultants assigned to any of this company's sites
+  // All users tab: clients in this company + non-pro consultants assigned to any of this company's sites
   const companySiteIds = new Set((company?.sites || []).map((s: SiteWithDetails) => s.id));
-  const companyTabUsers = allUsers.filter(u => {
-    if (u.role === "client") return u.companyId === companyId;
-    if (u.role === "consultant") return (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId));
-    return false;
-  });
+  const tabConsultants = allUsers.filter(u =>
+    u.role === "consultant" &&
+    u.consultantTier !== "pro" &&
+    (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId))
+  );
+  const tabClients = allUsers.filter(u => u.role === "client" && u.companyId === companyId);
+  const companyTabUsers = [...tabConsultants, ...tabClients];
 
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
@@ -1285,99 +1287,155 @@ export default function CompanyDetail() {
               </div>
               {companyTabUsers.length > 0 ? (
                 <Card>
-                  <div className="divide-y">
-                    {companyTabUsers.map((u) => {
-                      const isExpanded = expandedUserId === u.id;
-                      const siteCount = (u.siteAssignments || []).filter(a => u.role === "client" ? companySiteIds.has(a.siteId) : true).length;
-                      const relevantAssignments = u.role === "consultant"
-                        ? (u.siteAssignments || []).filter(a => companySiteIds.has(a.siteId))
-                        : (u.siteAssignments || []);
-                      const isPrimary = company?.contactUserId === u.id;
-                      return (
-                        <div key={u.id} data-testid={`row-user-${u.id}`}>
-                          <div className="flex items-center gap-4 px-4 py-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                              {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium truncate">{u.fullName}</span>
-                                {isPrimary && (
-                                  <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
-                                    Primary Contact
+                  {/* Consultants section */}
+                  {tabConsultants.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-muted/40 border-b">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Consultants ({tabConsultants.length})
+                        </p>
+                      </div>
+                      <div className="divide-y">
+                        {tabConsultants.map((u) => {
+                          const isExpanded = expandedUserId === u.id;
+                          const relevantAssignments = (u.siteAssignments || []).filter(a => companySiteIds.has(a.siteId));
+                          return (
+                            <div key={u.id} data-testid={`row-consultant-${u.id}`}>
+                              <div className="flex items-center gap-4 px-4 py-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                                  {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-medium truncate block">{u.fullName}</span>
+                                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
+                                    {u.consultantTier ? (u.consultantTier.charAt(0).toUpperCase() + u.consultantTier.slice(1)) : "Standard"}
                                   </Badge>
-                                )}
+                                  {relevantAssignments.length > 0 ? (
+                                    <button
+                                      onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                      data-testid={`button-expand-user-${u.id}`}
+                                    >
+                                      <span className="font-medium">{relevantAssignments.length} {relevantAssignments.length === 1 ? "site" : "sites"}</span>
+                                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                    </button>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No sites</span>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <Badge
-                                variant="outline"
-                                className={
-                                  u.role === "consultant"
-                                    ? "bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700"
-                                    : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700"
-                                }
-                              >
-                                {u.role === "consultant" ? "Consultant" : "Client"}
-                              </Badge>
-                              <Badge
-                                variant={u.status === "active" ? "default" : "outline"}
-                                className={
-                                  u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
-                                  u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
-                                  u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
-                                  u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
-                                }
-                              >
-                                {u.status === "active" ? (
-                                  <><UserCheck className="h-3 w-3 mr-1" />Active</>
-                                ) : u.status === "invited" ? (
-                                  <><Clock className="h-3 w-3 mr-1" />Invited</>
-                                ) : u.status === "invite_required" ? (
-                                  <><Mail className="h-3 w-3 mr-1" />Invite Required</>
-                                ) : u.status === "site_required" ? (
-                                  <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
-                                ) : u.status === "locked" ? (
-                                  <><XCircle className="h-3 w-3 mr-1" />Locked</>
-                                ) : (
-                                  <><XCircle className="h-3 w-3 mr-1" />Inactive</>
-                                )}
-                              </Badge>
-                              {siteCount > 0 ? (
-                                <button
-                                  onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
-                                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                  data-testid={`button-expand-user-${u.id}`}
-                                >
-                                  <span className="font-medium">{siteCount} {siteCount === 1 ? "site" : "sites"}</span>
-                                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                                </button>
-                              ) : (
-                                <span className="text-sm text-muted-foreground">No sites</span>
+                              {isExpanded && relevantAssignments.length > 0 && (
+                                <div className="px-4 pb-3 bg-muted/30 border-t">
+                                  <p className="text-xs font-semibold text-muted-foreground mb-2 mt-2 uppercase tracking-wide">Site Access</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {relevantAssignments.map(a => (
+                                      <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                        {a.isPrimary && <Shield className="h-3 w-3 text-amber-500 shrink-0" />}
+                                        <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                        <span className="font-medium">{a.siteName}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </div>
-                          </div>
-                          {isExpanded && relevantAssignments.length > 0 && (
-                            <div className="px-4 pb-3 pt-0 bg-muted/30 border-t">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2 mt-2 uppercase tracking-wide">Site Access</p>
-                              <div className="flex flex-wrap gap-2">
-                                {relevantAssignments.map(a => (
-                                  <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
-                                    {u.role === "consultant" && a.isPrimary && (
-                                      <Shield className="h-3 w-3 text-amber-500 shrink-0" />
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Clients section */}
+                  {tabConsultants.length > 0 && tabClients.length > 0 && <div className="border-t" />}
+                  {tabClients.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-muted/40 border-b">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Clients ({tabClients.length})
+                        </p>
+                      </div>
+                      <div className="divide-y">
+                        {tabClients.map((u) => {
+                          const isExpanded = expandedUserId === u.id;
+                          const clientSites = u.siteAssignments || [];
+                          const isPrimary = company?.contactUserId === u.id;
+                          return (
+                            <div key={u.id} data-testid={`row-client-${u.id}`}>
+                              <div className="flex items-center gap-4 px-4 py-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                                  {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium truncate">{u.fullName}</span>
+                                    {isPrimary && (
+                                      <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
+                                        Primary Contact
+                                      </Badge>
                                     )}
-                                    <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                                    <span className="font-medium">{a.siteName}</span>
                                   </div>
-                                ))}
+                                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Badge
+                                    variant={u.status === "active" ? "default" : "outline"}
+                                    className={
+                                      u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                                      u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                                      u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
+                                      u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                                    }
+                                  >
+                                    {u.status === "active" ? (
+                                      <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                                    ) : u.status === "invited" ? (
+                                      <><Clock className="h-3 w-3 mr-1" />Invited</>
+                                    ) : u.status === "invite_required" ? (
+                                      <><Mail className="h-3 w-3 mr-1" />Invite Required</>
+                                    ) : u.status === "site_required" ? (
+                                      <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
+                                    ) : u.status === "locked" ? (
+                                      <><XCircle className="h-3 w-3 mr-1" />Locked</>
+                                    ) : (
+                                      <><XCircle className="h-3 w-3 mr-1" />Inactive</>
+                                    )}
+                                  </Badge>
+                                  {clientSites.length > 0 ? (
+                                    <button
+                                      onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                      data-testid={`button-expand-user-${u.id}`}
+                                    >
+                                      <span className="font-medium">{clientSites.length} {clientSites.length === 1 ? "site" : "sites"}</span>
+                                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                    </button>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No sites</span>
+                                  )}
+                                </div>
                               </div>
+                              {isExpanded && clientSites.length > 0 && (
+                                <div className="px-4 pb-3 bg-muted/30 border-t">
+                                  <p className="text-xs font-semibold text-muted-foreground mb-2 mt-2 uppercase tracking-wide">Site Access</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {clientSites.map(a => (
+                                      <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                        <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                        <span className="font-medium">{a.siteName}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </Card>
               ) : (
                 <Card>
