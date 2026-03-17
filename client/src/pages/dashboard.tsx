@@ -676,7 +676,7 @@ function OverallComplianceCard({
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-2xl font-semibold">{allCompliant}</span>
               </div>
-              <p className="text-xs text-muted-foreground">Compliant</p>
+              <p className="text-xs text-muted-foreground">Complete</p>
             </button>
             <button
               onClick={() => openDocs("all_review")}
