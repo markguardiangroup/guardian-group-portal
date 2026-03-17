@@ -2184,8 +2184,7 @@ function EmploymentLawDashboardView() {
         {(() => {
           const score = summary?.complianceScore || 0;
           const compliantCount = summary?.compliantDocuments || 0;
-          const overdueCount = summary?.overdueDocuments || 0;
-          const missingCount = summary?.missingRequiredDocuments || 0;
+          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.reviewRequired || 0) + (summary?.missingRequiredDocuments || 0);
           const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = score >= 90 ? "bg-emerald-500" : score >= 70 ? "bg-amber-500" : "bg-red-500";
           return (
@@ -2202,8 +2201,8 @@ function EmploymentLawDashboardView() {
                   <div className="space-y-4">
                     <Skeleton className="h-16 w-32" />
                     <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-3 gap-4">
-                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+                    <div className="grid grid-cols-2 gap-4">
+                      {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
                     </div>
                     <div className="rounded-md border bg-muted/30 p-4">
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2229,7 +2228,7 @@ function EmploymentLawDashboardView() {
                     </div>
 
                     {/* Compliance stats: required docs only */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
                         className={`rounded-md border p-3 text-center w-full transition-colors ${compliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
@@ -2243,31 +2242,17 @@ function EmploymentLawDashboardView() {
                         {compliantCount > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
                       </button>
                       <button
-                        onClick={() => overdueCount > 0 && setDocsDialogFilter("req_overdue")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${overdueCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                        data-testid="card-el-overdue"
+                        onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-el-non-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="text-2xl font-semibold">{overdueCount}</span>
+                          <XCircle className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{nonCompliantCount}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">Overdue</p>
-                        {overdueCount > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                        <p className="text-xs text-muted-foreground">Not Compliant</p>
+                        {nonCompliantCount > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
                       </button>
-                      <div className="rounded-md border p-3 text-center">
-                        <button
-                          onClick={() => missingCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                          className={`w-full h-full ${missingCount > 0 ? "cursor-pointer" : "cursor-default"}`}
-                          data-testid="card-el-missing"
-                        >
-                          <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                            <FileQuestion className="h-4 w-4" />
-                            <span className="text-2xl font-semibold">{missingCount}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Missing Required</p>
-                          {missingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
-                        </button>
-                      </div>
                     </div>
 
                     {/* Document Progress */}

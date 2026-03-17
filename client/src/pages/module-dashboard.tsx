@@ -447,7 +447,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         {(() => {
           const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
-          const missingCount = summary.missingRequiredDocuments || 0;
+          const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0) + (summary.missingRequiredDocuments || 0);
           return (
             <Card data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
@@ -462,8 +462,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <div className="space-y-4">
                     <Skeleton className="h-16 w-32" />
                     <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-3 gap-4">
-                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+                    <div className="grid grid-cols-2 gap-4">
+                      {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
                     </div>
                     <div className="rounded-md border bg-muted/30 p-4">
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -489,7 +489,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     </div>
 
                     {/* Compliance stats: required docs only */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
                         className={`rounded-md border p-3 text-center w-full transition-colors ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
@@ -503,31 +503,17 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                         {summary.compliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
                       </button>
                       <button
-                        onClick={() => summary.overdueDocuments > 0 && setDocsDialogFilter("req_overdue")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${summary.overdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                        data-testid="card-module-overdue"
+                        onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-module-non-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="text-2xl font-semibold">{summary.overdueDocuments}</span>
+                          <XCircle className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{nonCompliantCount}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">Overdue</p>
-                        {summary.overdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                        <p className="text-xs text-muted-foreground">Not Compliant</p>
+                        {nonCompliantCount > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
                       </button>
-                      <div className="rounded-md border p-3 text-center">
-                        <button
-                          onClick={() => missingCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                          className={`w-full h-full ${missingCount > 0 ? "cursor-pointer" : "cursor-default"}`}
-                          data-testid="card-module-missing"
-                        >
-                          <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                            <FileQuestion className="h-4 w-4" />
-                            <span className="text-2xl font-semibold">{missingCount}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Missing Required</p>
-                          {missingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
-                        </button>
-                      </div>
                     </div>
 
                     {/* Document Progress */}

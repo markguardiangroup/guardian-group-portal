@@ -29,6 +29,7 @@ import {
   Award,
   Briefcase,
   FileQuestion,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
@@ -128,8 +129,8 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           />
         </div>
 
-        {/* Compliance stats: Compliant | Overdue | Missing Required (always shown) */}
-        <div className="grid grid-cols-3 gap-3 text-center">
+        {/* Compliance stats: Compliant | Not Compliant */}
+        <div className="grid grid-cols-2 gap-3 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
@@ -139,17 +140,10 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.overdueDocuments}</span>
+              <XCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.overdueDocuments + (summary.reviewRequired || 0) + (summary.missingRequiredDocuments || 0)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Overdue</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-              <FileQuestion className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.missingRequiredDocuments || 0}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Missing</p>
+            <p className="text-xs text-muted-foreground">Not Compliant</p>
           </div>
         </div>
 
@@ -463,7 +457,7 @@ interface MissingRequiredTemplateDetail {
   companyName: string;
 }
 
-type DocsDialogType = "compliant" | "overdue" | "total" | "all_compliant" | "all_review" | "all_overdue" | null;
+type DocsDialogType = "compliant" | "non_compliant" | "overdue" | "total" | "all_compliant" | "all_review" | "all_overdue" | null;
 
 function OverallComplianceCard({ 
   summaries, 
@@ -546,6 +540,10 @@ function OverallComplianceCard({
       title: "Compliant Documents",
       filter: (d) => d.status === "compliant" && d.approvalStatus === "approved",
     },
+    non_compliant: {
+      title: "Not Compliant (Required Documents)",
+      filter: (d) => d.isRequired && (d.status === "overdue" || d.status === "review_required"),
+    },
     overdue: {
       title: "Overdue Documents",
       filter: (d) => d.status === "overdue",
@@ -622,46 +620,37 @@ function OverallComplianceCard({
         </div>
 
         {/* Compliance stats: required docs only */}
-        <div className="grid grid-cols-3 gap-4">
-          <button
-            onClick={() => openDocs("compliant")}
-            className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && compliantDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-            data-testid="button-stat-compliant"
-          >
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{compliantDocs}</span>
+        {(() => {
+          const nonCompliantDocs = overdueDocs + missingDocs;
+          return (
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => openDocs("compliant")}
+                className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && compliantDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                data-testid="button-stat-compliant"
+              >
+                <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-2xl font-semibold">{compliantDocs}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Compliant</p>
+                {compliantDocs > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+              </button>
+              <button
+                onClick={() => nonCompliantDocs > 0 && openDocs("non_compliant")}
+                className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && nonCompliantDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                data-testid="button-stat-non-compliant"
+              >
+                <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                  <XCircle className="h-4 w-4" />
+                  <span className="text-2xl font-semibold">{nonCompliantDocs}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Not Compliant</p>
+                {nonCompliantDocs > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground">Compliant</p>
-            {compliantDocs > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
-          </button>
-          <button
-            onClick={() => openDocs("overdue")}
-            className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && overdueDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-            data-testid="button-stat-overdue"
-          >
-            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{overdueDocs}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">Overdue</p>
-            {overdueDocs > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
-          </button>
-          <div className="rounded-md border p-3 text-center">
-            <button
-              onClick={() => missingDocs > 0 && setShowMissingDialog(true)}
-              className={`w-full h-full ${missingDocs > 0 ? "cursor-pointer" : "cursor-default"}`}
-              data-testid="button-missing-required"
-            >
-              <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                <FileQuestion className="h-4 w-4" />
-                <span className="text-2xl font-semibold">{missingDocs}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Missing Required</p>
-              {missingDocs > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
-            </button>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Document Progress */}
         <div className="rounded-md border bg-muted/30 p-4">
