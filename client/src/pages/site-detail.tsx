@@ -1026,12 +1026,24 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                         {MODULE_LABELS[tmpl.module] || tmpl.module}
                       </p>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs shrink-0 ${source === "company" ? "text-muted-foreground" : "text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"}`}
-                    >
-                      {source === "company" ? "Company" : "Site Only"}
-                    </Badge>
+                    {source === "company" ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                        data-testid={`badge-inherited-${templateId}`}
+                      >
+                        <Building2 className="h-3 w-3" />
+                        Inherited
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                        data-testid={`badge-site-only-${templateId}`}
+                      >
+                        Site Only
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
