@@ -1304,10 +1304,6 @@ export default function SiteDetail() {
             <Building2 className="mr-2 h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="consultants" data-testid="tab-consultants">
-            <UserCog className="mr-2 h-4 w-4" />
-            Consultants
-          </TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">
             <Users className="mr-2 h-4 w-4" />
             Users
@@ -1320,10 +1316,6 @@ export default function SiteDetail() {
 
         <TabsContent value="overview">
           <OverviewTab entity={entity} onEditSite={handleEditSite} companyId={entity.companyId} companyName={parentCompany?.name} />
-        </TabsContent>
-
-        <TabsContent value="consultants">
-          <ConsultantsTab siteId={siteId!} />
         </TabsContent>
 
         <TabsContent value="users">

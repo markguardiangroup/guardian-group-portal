@@ -1073,25 +1073,15 @@ export default function CompanyDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="details">
-        <TabsList>
-          <TabsTrigger value="details" data-testid="tab-details">
+      <Tabs defaultValue="overview">
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview" data-testid="tab-overview">
             <Building2 className="mr-2 h-4 w-4" />
-            Details
+            Overview
           </TabsTrigger>
           <TabsTrigger value="module-access" data-testid="tab-module-access">
             <Settings className="mr-2 h-4 w-4" />
             Module Access
-          </TabsTrigger>
-          {(isAdmin || user?.role === "consultant") && (
-            <TabsTrigger value="required-documents" data-testid="tab-required-documents">
-              <FileText className="mr-2 h-4 w-4" />
-              Required Documents
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="sites" data-testid="tab-sites">
-            <MapPin className="mr-2 h-4 w-4" />
-            Sites {sites.length > 0 && `(${sites.length})`}
           </TabsTrigger>
           {(isAdmin || user?.role === "consultant") && (
             <TabsTrigger value="users" data-testid="tab-users">
@@ -1099,10 +1089,20 @@ export default function CompanyDetail() {
               Users {companyTabUsers.length > 0 && `(${companyTabUsers.length})`}
             </TabsTrigger>
           )}
+          <TabsTrigger value="sites" data-testid="tab-sites">
+            <MapPin className="mr-2 h-4 w-4" />
+            Sites {sites.length > 0 && `(${sites.length})`}
+          </TabsTrigger>
+          {(isAdmin || user?.role === "consultant") && (
+            <TabsTrigger value="required-documents" data-testid="tab-required-documents">
+              <FileText className="mr-2 h-4 w-4" />
+              Required Documents
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        {/* Details Tab */}
-        <TabsContent value="details" className="mt-6">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
