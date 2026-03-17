@@ -2230,7 +2230,7 @@ function EmploymentLawDashboardView() {
                     <Skeleton className="h-12 flex-1 rounded-lg" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center gap-3">
                     {/* Compliant tile — left */}
                     <button
                       onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
