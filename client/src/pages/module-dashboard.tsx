@@ -481,33 +481,35 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <p className="text-[11px] text-muted-foreground">Compliant</p>
                     </button>
 
-                    {/* Solid pie chart with score — centre */}
-                    <div className="relative shrink-0" data-testid="card-module-score">
-                      <PieChart width={160} height={160}>
-                        <Pie
-                          data={chartData}
-                          cx={78}
-                          cy={78}
-                          innerRadius={0}
-                          outerRadius={72}
-                          startAngle={90}
-                          endAngle={-270}
-                          dataKey="value"
-                          stroke="none"
-                          isAnimationActive={false}
-                        >
-                          {totalRequired > 0 ? (
-                            <>
-                              <Cell fill="#10b981" />
-                              <Cell fill="#ef4444" />
-                            </>
-                          ) : (
-                            <Cell fill="#e2e8f0" />
-                          )}
-                        </Pie>
-                      </PieChart>
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-2xl font-bold text-white leading-none drop-shadow">{summary.complianceScore}%</span>
+                    {/* 3D pie chart with score above — centre */}
+                    <div className="flex flex-col items-center gap-1 shrink-0" data-testid="card-module-score">
+                      <span className={`text-2xl font-bold leading-none ${scoreColor}`}>{summary.complianceScore}%</span>
+                      <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
+                        <div style={{ transform: "perspective(140px) rotateX(28deg)", transformOrigin: "center bottom" }}>
+                          <PieChart width={160} height={130}>
+                            <Pie
+                              data={chartData}
+                              cx={78}
+                              cy={68}
+                              innerRadius={0}
+                              outerRadius={62}
+                              startAngle={90}
+                              endAngle={-270}
+                              dataKey="value"
+                              stroke="none"
+                              isAnimationActive={false}
+                            >
+                              {totalRequired > 0 ? (
+                                <>
+                                  <Cell fill="#10b981" />
+                                  <Cell fill="#ef4444" />
+                                </>
+                              ) : (
+                                <Cell fill="#e2e8f0" />
+                              )}
+                            </Pie>
+                          </PieChart>
+                        </div>
                       </div>
                     </div>
 
