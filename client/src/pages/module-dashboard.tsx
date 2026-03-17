@@ -509,11 +509,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <span className={`text-2xl font-bold leading-none ${scoreColor}`}>{summary.complianceScore}%</span>
                       <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
                         <div style={{ transform: "perspective(160px) rotateX(30deg)", transformOrigin: "center center" }}>
-                          <PieChart width={160} height={116}>
+                          <PieChart width={160} height={145}>
                             <Pie
                               data={chartData}
                               cx={78}
-                              cy={58}
+                              cy={68}
                               innerRadius={0}
                               outerRadius={62}
                               startAngle={90}
