@@ -510,6 +510,32 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
                         <div style={{ transform: "perspective(200px) rotateX(55deg)", transformOrigin: "center center" }}>
                           <PieChart width={160} height={145}>
+                            {/* Side wall — darker, shifted down to create depth */}
+                            <Pie
+                              data={chartData}
+                              cx={78}
+                              cy={82}
+                              innerRadius={0}
+                              outerRadius={62}
+                              startAngle={90}
+                              endAngle={-270}
+                              dataKey="value"
+                              paddingAngle={totalRequired > 0 ? 4 : 0}
+                              stroke="none"
+                              isAnimationActive={false}
+                              activeIndex={hoveredTile === "compliant" ? 0 : hoveredTile === "non_compliant" ? 1 : undefined}
+                              activeShape={renderActiveSlice}
+                            >
+                              {totalRequired > 0 ? (
+                                <>
+                                  <Cell fill="#047857" />
+                                  <Cell fill="#b91c1c" />
+                                </>
+                              ) : (
+                                <Cell fill="#94a3b8" />
+                              )}
+                            </Pie>
+                            {/* Top face — bright colours */}
                             <Pie
                               data={chartData}
                               cx={78}
