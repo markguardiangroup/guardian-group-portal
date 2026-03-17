@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
@@ -37,6 +38,20 @@ interface SiteWithCompany {
   address: string | null;
   siteManager: string | null;
   contactPhone: string | null;
+}
+
+interface MissingRequiredTemplateDetail {
+  templateId: string;
+  templateName: string;
+  module: string;
+  requiresApproval: boolean;
+  siteId: string;
+  siteName: string;
+  companyId: string;
+  companyName: string;
+  documentId?: string;
+  documentStatus?: string;
+  kind?: "template_slot" | "required_document";
 }
 
 interface ModuleDashboardData {
@@ -205,6 +220,20 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // Fetch documents for renewal date calculations
   const { data: documents } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
+  });
+
+  // Fetch missing required template details for this module
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
+    queryKey: ["/api/missing-required-templates", module, siteId, companySiteIdsKey],
+    queryFn: async () => {
+      const params: string[] = [`module=${module}`];
+      if (siteId) params.push(`siteId=${siteId}`);
+      else if (companySiteIds && companySiteIds.length > 0) params.push(`siteIds=${companySiteIds.join(",")}`);
+      const res = await fetch(`/api/missing-required-templates?${params.join("&")}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch missing required templates");
+      return res.json();
+    },
   });
   
   // Calculate renewal compliance metrics
@@ -464,13 +493,18 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-xs text-muted-foreground mt-1">Overdue</p>
                   {summary.overdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
                 </button>
-                <div className="rounded-md border p-3 text-center" data-testid="card-module-missing">
+                <button
+                  onClick={() => (summary.missingRequiredDocuments || 0) > 0 && setShowMissingDialog(true)}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary.missingRequiredDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-module-missing"
+                >
                   <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
                     <FileQuestion className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{summary.missingRequiredDocuments || 0}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Missing Required</p>
-                </div>
+                  {(summary.missingRequiredDocuments || 0) > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
+                </button>
               </div>
             )}
           </CardContent>
@@ -841,6 +875,53 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               })
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing Required Documents dialog */}
+      <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-missing-required">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileQuestion className="h-5 w-5 text-orange-500" />
+              Missing Required Documents ({missingRequiredDetails.length})
+            </DialogTitle>
+          </DialogHeader>
+          {isMissingLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+            </div>
+          ) : missingRequiredDetails.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No missing required documents found.</p>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {missingRequiredDetails.map((item, idx) => (
+                <div
+                  key={`${item.templateId}-${item.siteId}-${idx}`}
+                  className="flex items-center justify-between rounded-md border p-3"
+                  data-testid={`row-missing-${item.templateId}-${item.siteId}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.templateName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}
+                    </p>
+                  </div>
+                  <div className="ml-2 shrink-0">
+                    {item.kind === "required_document" ? (
+                      <Badge variant="outline" className="text-xs text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 capitalize">
+                        {item.documentStatus?.replace("_", " ") || "Not Compliant"}
+                      </Badge>
+                    ) : item.requiresApproval ? (
+                      <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Not Uploaded</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
