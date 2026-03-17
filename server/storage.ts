@@ -226,6 +226,7 @@ export interface IStorage {
   // Site Module Access (deprecated - use company-level access)
   getSiteModuleAccess(siteId: string): Promise<SiteModuleAccess[]>;
   getSiteModuleAccessByModule(siteId: string, module: ModuleType): Promise<SiteModuleAccess | undefined>;
+  getActiveSiteIdsForModule(module: ModuleType): Promise<Set<string>>;
   setSiteModuleAccess(siteId: string, module: ModuleType, status: ModuleAccessStatus, grantedBy?: string, notes?: string): Promise<SiteModuleAccess>;
   
   // Company Module Access (new - company-level module access)
@@ -1540,6 +1541,16 @@ export class MemStorage implements IStorage {
         eq(siteModuleAccessTable.module, module)
       ));
     return result;
+  }
+
+  async getActiveSiteIdsForModule(module: ModuleType): Promise<Set<string>> {
+    const results = await db.select({ siteId: siteModuleAccessTable.siteId })
+      .from(siteModuleAccessTable)
+      .where(and(
+        eq(siteModuleAccessTable.module, module),
+        eq(siteModuleAccessTable.status, "active")
+      ));
+    return new Set(results.map(r => r.siteId));
   }
 
   async setSiteModuleAccess(

@@ -859,6 +859,7 @@ export async function registerRoutes(
     const templateMap = new Map(templates.map(t => [t.id, t]));
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
     const siteExcludedCache = new Map<string, Set<string>>();
+    const activeSiteIds = module ? await storage.getActiveSiteIdsForModule(module) : null;
 
     let slotTotal = 0;
     let slotCompliant = 0;
@@ -872,6 +873,7 @@ export async function registerRoutes(
       if (!site.companyId) continue;
       const canAccess = await canUserAccessSite(user, site.id);
       if (!canAccess) continue;
+      if (module && activeSiteIds && !activeSiteIds.has(site.id)) continue;
       if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
       if (siteFilter?.siteIds) {
         const ids = siteFilter.siteIds.split(",");
@@ -976,11 +978,13 @@ export async function registerRoutes(
     const siteExcludedCache = new Map<string, Set<string>>();
     const companies = await storage.getCompanies();
     const companyMap = new Map(companies.map(c => [c.id, c]));
+    const activeSiteIds = module ? await storage.getActiveSiteIdsForModule(module) : null;
 
     for (const site of sites) {
       if (!site.companyId) continue;
       const canAccess = await canUserAccessSite(user, site.id);
       if (!canAccess) continue;
+      if (module && activeSiteIds && !activeSiteIds.has(site.id)) continue;
       if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
       if (siteFilter?.siteIds) {
         const ids = siteFilter.siteIds.split(",");
