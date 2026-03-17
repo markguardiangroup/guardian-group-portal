@@ -1,6 +1,7 @@
 import { Link, useLocation, useSearch } from "wouter";
 import { ChevronRight, Home } from "lucide-react";
 import { Fragment } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const routeLabels: Record<string, string> = {
   "": "Overview",
@@ -32,17 +33,24 @@ function isIdSegment(segment: string): boolean {
   return /^\d+$/.test(segment) || /^[0-9a-f-]{36}$/i.test(segment);
 }
 
-function buildCrumbs(path: string): { label: string; href: string }[] {
+function buildCrumbs(
+  path: string,
+  entityNames: Record<string, string>
+): { label: string; href: string }[] {
   const segments = path.split("/").filter(Boolean);
   const crumbs: { label: string; href: string }[] = [];
   let currentPath = "";
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
     currentPath += `/${segment}`;
-    if (isIdSegment(segment)) {
+    if (entityNames[segment]) {
+      crumbs.push({ label: entityNames[segment], href: currentPath });
+    } else if (isIdSegment(segment)) {
       crumbs.push({ label: "Details", href: currentPath });
     } else {
-      const label = routeLabels[segment] || segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      const label =
+        routeLabels[segment] ||
+        segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       crumbs.push({ label, href: currentPath });
     }
   }
@@ -52,25 +60,53 @@ function buildCrumbs(path: string): { label: string; href: string }[] {
 export function BreadcrumbNav() {
   const [location] = useLocation();
   const searchString = useSearch();
+  const queryClient = useQueryClient();
+
+  const entityNames: Record<string, string> = {};
+
+  const companiesData = queryClient.getQueryData<{
+    companies: Array<{ id: string; name: string }>;
+  }>(["/api/companies"]);
+  companiesData?.companies?.forEach((c) => {
+    entityNames[c.id] = c.name;
+  });
+
+  const sitesData = queryClient.getQueryData<Array<{ id: string; name: string }>>(["/api/sites"]);
+  sitesData?.forEach((s) => {
+    entityNames[s.id] = s.name;
+  });
 
   if (location === "/") return null;
 
+  const params = new URLSearchParams(searchString);
   let crumbs: { label: string; href: string }[];
 
   if (location === "/create-from-template") {
-    const params = new URLSearchParams(searchString);
     const returnTo = params.get("returnTo");
     if (returnTo) {
-      const parentCrumbs = buildCrumbs(returnTo);
+      const parentCrumbs = buildCrumbs(returnTo, entityNames);
       crumbs = [
         ...parentCrumbs,
         { label: "Create from Template", href: `/create-from-template?${searchString}` },
       ];
     } else {
-      crumbs = buildCrumbs(location);
+      crumbs = buildCrumbs(location, entityNames);
     }
   } else {
-    crumbs = buildCrumbs(location);
+    const fromParam = params.get("from");
+    if (fromParam) {
+      const fromCrumbs = buildCrumbs(fromParam, entityNames);
+      const currentSegments = location.split("/").filter(Boolean);
+      const lastSegment = currentSegments[currentSegments.length - 1] ?? "";
+      const currentLabel = entityNames[lastSegment]
+        || (isIdSegment(lastSegment) ? "Details" : routeLabels[lastSegment] || lastSegment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+      crumbs = [
+        ...fromCrumbs,
+        { label: currentLabel, href: `${location}?from=${encodeURIComponent(fromParam)}` },
+      ];
+    } else {
+      crumbs = buildCrumbs(location, entityNames);
+    }
   }
 
   return (
@@ -88,7 +124,7 @@ export function BreadcrumbNav() {
           <Fragment key={crumb.href}>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
             {isLast ? (
-              <span className="font-medium text-foreground truncate max-w-[200px]" data-testid={`breadcrumb-current`}>
+              <span className="font-medium text-foreground truncate max-w-[200px]" data-testid="breadcrumb-current">
                 {crumb.label}
               </span>
             ) : (

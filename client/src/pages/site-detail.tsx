@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useLocation, Link } from "wouter";
+import { useParams, useLocation, useSearch, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1057,8 +1057,10 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
 export default function SiteDetail() {
   const params = useParams<{ siteId: string }>();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
   const siteId = params.siteId;
+  const fromParam = new URLSearchParams(searchString).get("from");
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
   const [editSiteData, setEditSiteData] = useState({
     name: "",
@@ -1201,7 +1203,7 @@ export default function SiteDetail() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/sites")}
+          onClick={() => navigate(fromParam || "/sites")}
           data-testid="button-back"
         >
           <ArrowLeft className="h-5 w-5" />

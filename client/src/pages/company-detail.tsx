@@ -634,7 +634,7 @@ export default function CompanyDetail() {
   };
 
   const handleManageSite = (siteId: string) => {
-    navigate(`/sites/${siteId}`);
+    navigate(`/sites/${siteId}?from=/companies/${companyId}`);
   };
 
   const updateCompanyMutation = useMutation({
