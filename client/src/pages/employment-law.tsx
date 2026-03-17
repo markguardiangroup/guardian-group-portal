@@ -2247,12 +2247,12 @@ function EmploymentLawDashboardView() {
                     <div className="flex flex-col items-center gap-0 shrink-0" data-testid="card-el-score">
                       <span className={`text-2xl font-bold leading-none ${scoreColor}`}>{score}%</span>
                       <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
-                        <div style={{ transform: "perspective(140px) rotateX(28deg)", transformOrigin: "center bottom" }}>
-                          <PieChart width={160} height={130}>
+                        <div style={{ transform: "perspective(160px) rotateX(30deg)", transformOrigin: "center center" }}>
+                          <PieChart width={160} height={116}>
                             <Pie
                               data={chartData}
                               cx={78}
-                              cy={68}
+                              cy={58}
                               innerRadius={0}
                               outerRadius={62}
                               startAngle={90}
