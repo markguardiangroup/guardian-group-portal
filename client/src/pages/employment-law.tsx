@@ -2204,32 +2204,31 @@ function EmploymentLawDashboardView() {
               <CardContent>
                 {isLoading ? (
                   <div className="flex items-center gap-3">
-                    <Skeleton className="h-16 flex-1 rounded-lg" />
-                    <Skeleton className="h-[120px] w-[120px] rounded-full shrink-0" />
-                    <Skeleton className="h-16 flex-1 rounded-lg" />
+                    <Skeleton className="h-12 flex-1 rounded-lg" />
+                    <Skeleton className="h-[160px] w-[160px] rounded-full shrink-0" />
+                    <Skeleton className="h-12 flex-1 rounded-lg" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     {/* Compliant tile — left */}
                     <button
                       onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
-                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 rounded-lg border transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
+                      className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
                       data-testid="card-el-compliant"
                     >
-                      <CheckCircle className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{compliantCount}</p>
-                      <p className="text-xs text-muted-foreground">Compliant</p>
+                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{compliantCount}</p>
+                      <p className="text-[11px] text-muted-foreground">Compliant</p>
                     </button>
 
                     {/* Solid pie chart with score — centre */}
                     <div className="relative shrink-0" data-testid="card-el-score">
-                      <PieChart width={120} height={120}>
+                      <PieChart width={160} height={160}>
                         <Pie
                           data={chartData}
-                          cx={58}
-                          cy={58}
+                          cx={78}
+                          cy={78}
                           innerRadius={0}
-                          outerRadius={54}
+                          outerRadius={72}
                           startAngle={90}
                           endAngle={-270}
                           dataKey="value"
@@ -2247,19 +2246,18 @@ function EmploymentLawDashboardView() {
                         </Pie>
                       </PieChart>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-xl font-bold text-white leading-none drop-shadow">{score}%</span>
+                        <span className="text-2xl font-bold text-white leading-none drop-shadow">{score}%</span>
                       </div>
                     </div>
 
                     {/* Not Compliant tile — right */}
                     <button
                       onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
+                      className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
                       data-testid="card-el-non-compliant"
                     >
-                      <XCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
-                      <p className="text-2xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
-                      <p className="text-xs text-muted-foreground">Not Compliant</p>
+                      <p className="text-xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
+                      <p className="text-[11px] text-muted-foreground">Not Compliant</p>
                     </button>
                   </div>
                 )}
