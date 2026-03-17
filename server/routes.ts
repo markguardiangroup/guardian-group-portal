@@ -989,20 +989,10 @@ export async function registerRoutes(
         if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
         if (module && tmpl.module !== module) continue;
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
-        const isFulfilled = siteDocs.some(d => {
-          if (d.templateId !== rt.templateId) return false;
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate) {
-            const expiry = new Date(d.expiryDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expiry.setHours(0, 0, 0, 0);
-            if (expiry < today) return false;
-          }
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
-        });
-        if (!isFulfilled) {
+        // Only count as "missing" when no document has been uploaded at all for this slot
+        // (docs that exist but are overdue/review-required are counted in those other stats)
+        const matchingDocs = siteDocs.filter(d => d.templateId === rt.templateId);
+        if (matchingDocs.length === 0) {
           results.push({
             templateId: rt.templateId,
             templateName: tmpl.name,
@@ -1015,33 +1005,6 @@ export async function registerRoutes(
             kind: "template_slot" as const,
           });
         }
-      }
-
-      // Also include manually uploaded required documents that are not compliant
-      const requiredDocs = siteDocs.filter(d => {
-        if (!(d as any).isRequired) return false;
-        if (module && d.module !== module) return false;
-        if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
-        const isCompliant = d.status === "compliant" &&
-          (!d.expiryDate || new Date(d.expiryDate) >= new Date()) &&
-          (!d.renewalDate || new Date(d.renewalDate) >= new Date()) &&
-          d.approvalStatus === "approved";
-        return !isCompliant;
-      });
-      for (const doc of requiredDocs) {
-        results.push({
-          templateId: doc.id,
-          templateName: doc.title,
-          module: doc.module,
-          requiresApproval: false,
-          siteId: site.id,
-          siteName: site.name,
-          companyId: site.companyId || "",
-          companyName: company?.name || "Unknown",
-          documentId: doc.id,
-          documentStatus: doc.status,
-          kind: "required_document" as const,
-        });
       }
     }
     return results;
