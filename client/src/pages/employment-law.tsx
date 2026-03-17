@@ -2221,14 +2221,14 @@ function EmploymentLawDashboardView() {
                       <p className="text-xs text-muted-foreground">Compliant</p>
                     </button>
 
-                    {/* Donut chart with score — centre */}
+                    {/* Solid pie chart with score — centre */}
                     <div className="relative shrink-0" data-testid="card-el-score">
                       <PieChart width={120} height={120}>
                         <Pie
                           data={chartData}
                           cx={58}
                           cy={58}
-                          innerRadius={36}
+                          innerRadius={0}
                           outerRadius={54}
                           startAngle={90}
                           endAngle={-270}
@@ -2247,10 +2247,7 @@ function EmploymentLawDashboardView() {
                         </Pie>
                       </PieChart>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-center">
-                          <span className={`text-xl font-bold leading-none ${scoreColor}`}>{score}%</span>
-                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Score</p>
-                        </div>
+                        <span className="text-xl font-bold text-white leading-none drop-shadow">{score}%</span>
                       </div>
                     </div>
 
