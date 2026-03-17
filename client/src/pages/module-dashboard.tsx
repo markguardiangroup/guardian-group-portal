@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
-import { PieChart, Pie, Cell, Sector } from "recharts";
 import { 
   FileText, 
   Clock, 
@@ -338,28 +337,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
-  const [hoveredTile, setHoveredTile] = useState<"compliant" | "non_compliant" | null>(null);
-
-  const renderActiveSlice = (props: any) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
-    const RADIAN = Math.PI / 180;
-    const midAngle = (startAngle + endAngle) / 2;
-    const offset = 10;
-    const ox = Math.cos(-midAngle * RADIAN) * offset;
-    const oy = Math.sin(-midAngle * RADIAN) * offset;
-    return (
-      <Sector
-        cx={cx + ox}
-        cy={cy + oy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 4}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-    );
-  };
-
   const filteredModuleDocs = useMemo(() => {
     if (!documents) return [];
     return documents.filter(doc => {
@@ -468,12 +445,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
         {/* Compliance Section */}
         {(() => {
-          const totalRequired = summary.totalDocuments;
-          const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0) + (summary.missingRequiredDocuments || 0);
           const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-          const chartData = totalRequired > 0
-            ? [{ name: "Compliant", value: summary.compliantDocuments }, { name: "Not Compliant", value: nonCompliantCount }]
-            : [{ name: "Empty", value: 1 }];
+          const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
+          const missingCount = summary.missingRequiredDocuments || 0;
           return (
             <Card data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
@@ -483,179 +457,135 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </CardTitle>
                 <CardDescription>Based on required documents only</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
                 {isLoading ? (
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-12 flex-1 rounded-lg" />
-                    <Skeleton className="h-[160px] w-[160px] rounded-full shrink-0" />
-                    <Skeleton className="h-12 flex-1 rounded-lg" />
+                  <div className="space-y-4">
+                    <Skeleton className="h-16 w-32" />
+                    <Skeleton className="h-3 w-full rounded-full" />
+                    <div className="grid grid-cols-3 gap-4">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+                    </div>
+                    <div className="rounded-md border bg-muted/30 p-4">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center gap-6">
-                    {/* Compliant tile — left */}
-                    <button
-                      onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
-                      onMouseEnter={() => setHoveredTile("compliant")}
-                      onMouseLeave={() => setHoveredTile(null)}
-                      className={`w-20 flex flex-col items-center gap-0.5 py-3 px-2 rounded-lg border transition-colors ${summary.compliantDocuments > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
-                      data-testid="card-module-compliant"
-                    >
-                      <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{summary.compliantDocuments}</p>
-                      <p className="text-[11px] text-muted-foreground">Compliant</p>
-                    </button>
+                  <>
+                    {/* Score */}
+                    <div>
+                      <span className={`text-6xl font-bold ${scoreColor}`} data-testid="card-module-score">
+                        {summary.complianceScore}%
+                      </span>
+                    </div>
 
-                    {/* 3D pie chart with score above — centre */}
-                    <div className="flex flex-col items-center gap-0 shrink-0" data-testid="card-module-score">
-                      <span className={`text-2xl font-bold leading-none ${scoreColor}`}>{summary.complianceScore}%</span>
-                      <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
-                        <div style={{ transform: "perspective(200px) rotateX(55deg)", transformOrigin: "center center" }}>
-                          <PieChart width={160} height={145}>
-                            {/* Side wall — darker, shifted down to create depth */}
-                            <Pie
-                              data={chartData}
-                              cx={78}
-                              cy={82}
-                              innerRadius={0}
-                              outerRadius={62}
-                              startAngle={90}
-                              endAngle={-270}
-                              dataKey="value"
-                              paddingAngle={totalRequired > 0 ? 4 : 0}
-                              stroke="none"
-                              isAnimationActive={false}
-                              activeIndex={hoveredTile === "compliant" ? 0 : hoveredTile === "non_compliant" ? 1 : undefined}
-                              activeShape={renderActiveSlice}
-                            >
-                              {totalRequired > 0 ? (
-                                <>
-                                  <Cell fill="#047857" />
-                                  <Cell fill="#b91c1c" />
-                                </>
-                              ) : (
-                                <Cell fill="#94a3b8" />
-                              )}
-                            </Pie>
-                            {/* Top face — bright colours */}
-                            <Pie
-                              data={chartData}
-                              cx={78}
-                              cy={68}
-                              innerRadius={0}
-                              outerRadius={62}
-                              startAngle={90}
-                              endAngle={-270}
-                              dataKey="value"
-                              paddingAngle={totalRequired > 0 ? 4 : 0}
-                              stroke="none"
-                              isAnimationActive={false}
-                              activeIndex={hoveredTile === "compliant" ? 0 : hoveredTile === "non_compliant" ? 1 : undefined}
-                              activeShape={renderActiveSlice}
-                            >
-                              {totalRequired > 0 ? (
-                                <>
-                                  <Cell fill="#10b981" />
-                                  <Cell fill="#ef4444" />
-                                </>
-                              ) : (
-                                <Cell fill="#e2e8f0" />
-                              )}
-                            </Pie>
-                          </PieChart>
+                    {/* Progress bar */}
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full transition-all ${scoreBg}`}
+                        style={{ width: `${summary.complianceScore}%` }}
+                      />
+                    </div>
+
+                    {/* Compliance stats: required docs only */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <button
+                        onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-module-compliant"
+                      >
+                        <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{summary.compliantDocuments}</span>
                         </div>
+                        <p className="text-xs text-muted-foreground">Compliant</p>
+                        {summary.compliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                      </button>
+                      <button
+                        onClick={() => summary.overdueDocuments > 0 && setDocsDialogFilter("req_overdue")}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${summary.overdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-module-overdue"
+                      >
+                        <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{summary.overdueDocuments}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Overdue</p>
+                        {summary.overdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                      </button>
+                      <div className="rounded-md border p-3 text-center">
+                        <button
+                          onClick={() => missingCount > 0 && setDocsDialogFilter("req_non_compliant")}
+                          className={`w-full h-full ${missingCount > 0 ? "cursor-pointer" : "cursor-default"}`}
+                          data-testid="card-module-missing"
+                        >
+                          <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                            <FileQuestion className="h-4 w-4" />
+                            <span className="text-2xl font-semibold">{missingCount}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Missing Required</p>
+                          {missingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
+                        </button>
                       </div>
                     </div>
 
-                    {/* Not Compliant tile — right */}
-                    <button
-                      onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                      onMouseEnter={() => setHoveredTile("non_compliant")}
-                      onMouseLeave={() => setHoveredTile(null)}
-                      className={`w-20 flex flex-col items-center gap-0.5 py-3 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
-                      data-testid="card-module-non-compliant"
-                    >
-                      <p className="text-xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
-                      <p className="text-[11px] text-muted-foreground">Not Compliant</p>
-                    </button>
-                  </div>
+                    {/* Document Progress */}
+                    <div className="rounded-md border bg-muted/30 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Document Progress</p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <button
+                          onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
+                          className={`text-center rounded-md p-1 transition-colors ${summary.allDocuments > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+                          data-testid="progress-total"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-2xl font-semibold">{summary.allDocuments}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Total</p>
+                        </button>
+                        <button
+                          onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
+                          className={`text-center rounded-md p-1 transition-colors ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+                          data-testid="progress-compliant"
+                        >
+                          <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Compliant</p>
+                        </button>
+                        <button
+                          onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
+                          className={`text-center rounded-md p-1 transition-colors ${summary.allReviewRequired > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+                          data-testid="progress-review"
+                        >
+                          <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Review Required</p>
+                        </button>
+                        <button
+                          onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
+                          className={`text-center rounded-md p-1 transition-colors ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
+                          data-testid="progress-overdue"
+                        >
+                          <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Overdue</p>
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
           );
         })()}
-
-        {/* Document Progress Section */}
-        <Card data-testid="card-document-progress">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Document Progress
-            </CardTitle>
-            <CardDescription>Status across all {config.shortName} documents</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="rounded-md border p-3 text-center">
-                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
-                    <Skeleton className="h-3 w-16 mx-auto" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-                <button
-                  onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="progress-total"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-2xl font-semibold">{summary.allDocuments}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Total</p>
-                  {summary.allDocuments > 0 && <p className="text-xs text-muted-foreground/60 mt-0.5">Click to view</p>}
-                </button>
-                <button
-                  onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="progress-compliant"
-                >
-                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
-                  {summary.allCompliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
-                </button>
-                <button
-                  onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="progress-review"
-                >
-                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-                    <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Review Required</p>
-                  {summary.allReviewRequired > 0 && <p className="text-xs text-amber-500/70 mt-0.5">Click to view</p>}
-                </button>
-                <button
-                  onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="progress-overdue"
-                >
-                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
-                  {summary.allOverdueDocuments > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
       {/* Renewal Compliance Section */}
       <Card data-testid="card-renewal-compliance">
