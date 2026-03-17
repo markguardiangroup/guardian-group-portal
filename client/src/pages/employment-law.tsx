@@ -2047,10 +2047,10 @@ function EmploymentLawDashboardView() {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
       case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "review_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
-      case "total": return filteredModuleDocs;
-      case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
-      case "all_review": return filteredModuleDocs.filter(d => d.status === "review_required");
-      case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
+      case "total": return filteredModuleDocs.filter(d => !!d.isRequired);
+      case "all_compliant": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "compliant");
+      case "all_review": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "review_required");
+      case "all_overdue": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "overdue");
       default: return [];
     }
   }, [docsDialogFilter, filteredModuleDocs]);

@@ -945,7 +945,7 @@ export async function registerRoutes(
     const missingRequiredDocuments = missingRequired;
     const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
 
-    return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore };
+    return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
 
   interface MissingRequiredTemplateDetail {
@@ -1114,12 +1114,12 @@ export async function registerRoutes(
       const complianceResult = await computeSlotBasedCompliance(
         user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
+      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // All-document progress stats (unrestricted by required scope)
-      const nonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId);
+      // Required-document progress stats (matching compliance scope: template-slot docs + manually required)
+      const nonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId && (d.isRequired || consumedDocIds.has(d.id)));
       const allDocumentsCount = nonCaseDocs.length;
       const allCompliantDocuments = nonCaseDocs.filter(d => d.status === "compliant").length;
       const allReviewRequired = nonCaseDocs.filter(d => d.status === "review_required").length;
@@ -1247,12 +1247,12 @@ export async function registerRoutes(
       
       // Slot-based compliance calculation: each required template contributes exactly one slot
       const complianceResult = await computeSlotBasedCompliance(user, documents, module);
-      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore } = complianceResult;
+      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // All-document progress stats (unrestricted by required scope)
-      const allNonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId);
+      // Required-document progress stats (matching compliance scope: template-slot docs + manually required)
+      const allNonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId && (d.isRequired || consumedDocIds.has(d.id)));
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant").length;
       const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required").length;

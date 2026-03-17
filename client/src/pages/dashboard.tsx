@@ -537,32 +537,32 @@ function OverallComplianceCard({
 
   const dialogMeta: Record<NonNullable<DocsDialogType>, { title: string; filter: (d: Document) => boolean }> = {
     compliant: {
-      title: "Compliant Documents",
-      filter: (d) => d.status === "compliant" && d.approvalStatus === "approved",
+      title: "Compliant Required Documents",
+      filter: (d) => !!d.isRequired && d.status === "compliant",
     },
     non_compliant: {
       title: "Not Compliant (Required Documents)",
-      filter: (d) => d.isRequired && (d.status === "overdue" || d.status === "review_required"),
+      filter: (d) => !!d.isRequired && (d.status === "overdue" || d.status === "review_required"),
     },
     overdue: {
-      title: "Overdue Documents",
-      filter: (d) => d.status === "overdue",
+      title: "Overdue Required Documents",
+      filter: (d) => !!d.isRequired && d.status === "overdue",
     },
     total: {
-      title: "All Documents",
-      filter: () => true,
+      title: "Required Documents",
+      filter: (d) => !!d.isRequired,
     },
     all_compliant: {
-      title: "Compliant Documents",
-      filter: (d) => d.status === "compliant",
+      title: "Complete Required Documents",
+      filter: (d) => !!d.isRequired && d.status === "compliant",
     },
     all_review: {
       title: "Review Required Documents",
-      filter: (d) => d.status === "review_required",
+      filter: (d) => !!d.isRequired && d.status === "review_required",
     },
     all_overdue: {
-      title: "Overdue Documents",
-      filter: (d) => d.status === "overdue",
+      title: "Overdue Required Documents",
+      filter: (d) => !!d.isRequired && d.status === "overdue",
     },
   };
 
