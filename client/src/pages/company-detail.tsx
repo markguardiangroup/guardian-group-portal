@@ -61,6 +61,9 @@ import {
   Plus,
   Search,
   X,
+  ChevronDown,
+  UserCheck,
+  Clock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
@@ -87,6 +90,32 @@ interface CompanyModuleAccess {
 type CompanyWithSites = Company & {
   sites: SiteWithDetails[];
 };
+
+interface SiteAssignment {
+  siteId: string;
+  siteName: string;
+  companyName: string;
+  isPrimary: boolean;
+}
+
+interface UserWithAssignments {
+  id: string;
+  referenceNumber?: string | null;
+  username: string;
+  email: string;
+  fullName: string;
+  role: "admin" | "consultant" | "client";
+  companyId: string | null;
+  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
+  lastLogin: string | null;
+  consultantTier?: string | null;
+  clientPermissionRole?: string | null;
+  siteAssignments?: SiteAssignment[];
+  jobTitle?: string | null;
+  department?: string | null;
+  phone?: string | null;
+  mobile?: string | null;
+}
 
 function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
@@ -585,15 +614,25 @@ export default function CompanyDetail() {
   });
 
   // Fetch all users to filter for company users (clients in this company)
-  const { data: allUsers = [] } = useQuery<User[]>({
+  const { data: allUsers = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
     enabled: !!companyId,
   });
 
-  // Filter to get only client users from this company
+  // Filter to get only client users from this company (used for contact dropdowns)
   const companyUsers = allUsers.filter(
     (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive"
   );
+
+  // All users tab: clients in this company + consultants assigned to any of this company's sites
+  const companySiteIds = new Set((company?.sites || []).map((s: SiteWithDetails) => s.id));
+  const companyTabUsers = allUsers.filter(u => {
+    if (u.role === "client") return u.companyId === companyId;
+    if (u.role === "consultant") return (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId));
+    return false;
+  });
+
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   // Handler to select a user as site contact
   const handleSelectSiteContactUser = (userId: string) => {
@@ -1042,6 +1081,11 @@ export default function CompanyDetail() {
           <TabsTrigger value="sites" data-testid="tab-sites">
             Sites {sites.length > 0 && `(${sites.length})`}
           </TabsTrigger>
+          {(isAdmin || user?.role === "consultant") && (
+            <TabsTrigger value="users" data-testid="tab-users">
+              Users {companyTabUsers.length > 0 && `(${companyTabUsers.length})`}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Details Tab */}
@@ -1231,6 +1275,126 @@ export default function CompanyDetail() {
             )}
           </div>
         </TabsContent>
+
+        {/* Users Tab */}
+        {(isAdmin || user?.role === "consultant") && (
+          <TabsContent value="users" className="mt-6">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Users ({companyTabUsers.length})</h2>
+              </div>
+              {companyTabUsers.length > 0 ? (
+                <Card>
+                  <div className="divide-y">
+                    {companyTabUsers.map((u) => {
+                      const isExpanded = expandedUserId === u.id;
+                      const siteCount = (u.siteAssignments || []).filter(a => u.role === "client" ? companySiteIds.has(a.siteId) : true).length;
+                      const relevantAssignments = u.role === "consultant"
+                        ? (u.siteAssignments || []).filter(a => companySiteIds.has(a.siteId))
+                        : (u.siteAssignments || []);
+                      const isPrimary = company?.contactUserId === u.id;
+                      return (
+                        <div key={u.id} data-testid={`row-user-${u.id}`}>
+                          <div className="flex items-center gap-4 px-4 py-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                              {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium truncate">{u.fullName}</span>
+                                {isPrimary && (
+                                  <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
+                                    Primary Contact
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  u.role === "consultant"
+                                    ? "bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700"
+                                    : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700"
+                                }
+                              >
+                                {u.role === "consultant" ? "Consultant" : "Client"}
+                              </Badge>
+                              <Badge
+                                variant={u.status === "active" ? "default" : "outline"}
+                                className={
+                                  u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                                  u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                                  u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
+                                  u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                                }
+                              >
+                                {u.status === "active" ? (
+                                  <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                                ) : u.status === "invited" ? (
+                                  <><Clock className="h-3 w-3 mr-1" />Invited</>
+                                ) : u.status === "invite_required" ? (
+                                  <><Mail className="h-3 w-3 mr-1" />Invite Required</>
+                                ) : u.status === "site_required" ? (
+                                  <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
+                                ) : u.status === "locked" ? (
+                                  <><XCircle className="h-3 w-3 mr-1" />Locked</>
+                                ) : (
+                                  <><XCircle className="h-3 w-3 mr-1" />Inactive</>
+                                )}
+                              </Badge>
+                              {siteCount > 0 ? (
+                                <button
+                                  onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                  data-testid={`button-expand-user-${u.id}`}
+                                >
+                                  <span className="font-medium">{siteCount} {siteCount === 1 ? "site" : "sites"}</span>
+                                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                                </button>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No sites</span>
+                              )}
+                            </div>
+                          </div>
+                          {isExpanded && relevantAssignments.length > 0 && (
+                            <div className="px-4 pb-3 pt-0 bg-muted/30 border-t">
+                              <p className="text-xs font-semibold text-muted-foreground mb-2 mt-2 uppercase tracking-wide">Site Access</p>
+                              <div className="flex flex-wrap gap-2">
+                                {relevantAssignments.map(a => (
+                                  <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                    {u.role === "consultant" && a.isPrimary && (
+                                      <Shield className="h-3 w-3 text-amber-500 shrink-0" />
+                                    )}
+                                    <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                    <span className="font-medium">{a.siteName}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                      <Users className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="mt-4 text-base font-medium">No users</h3>
+                    <p className="mt-1 text-sm text-muted-foreground text-center">
+                      No client users or consultants are currently assigned to this company
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
