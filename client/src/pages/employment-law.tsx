@@ -92,6 +92,8 @@ import {
   Shield,
   Archive,
   ArchiveRestore,
+  ShieldCheck,
+  FileQuestion,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -1848,6 +1850,17 @@ function ELComplianceScoreCard({ score, loading = false }: { score: number; load
   );
 }
 
+interface MissingRequiredTemplateDetail {
+  templateId: string;
+  templateName: string;
+  module: string;
+  requiresApproval: boolean;
+  siteId: string;
+  siteName: string;
+  companyId: string;
+  companyName: string;
+}
+
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
@@ -1855,6 +1868,9 @@ function EmploymentLawDashboardView() {
   const [, navigate] = useLocation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+  type DocsDialogFilter = "req_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -1926,6 +1942,20 @@ function EmploymentLawDashboardView() {
     },
   });
 
+  const companySiteIdsKey = companySiteIds?.join(",") || null;
+
+  const { data: missingRequiredDetails = [] } = useQuery<MissingRequiredTemplateDetail[]>({
+    queryKey: ["/api/missing-required-templates", "employment_law", siteId, companySiteIdsKey],
+    queryFn: async () => {
+      const params: string[] = ["module=employment_law"];
+      if (siteId) params.push(`siteId=${siteId}`);
+      else if (companySiteIds && companySiteIds.length > 0) params.push(`siteIds=${companySiteIds.join(",")}`);
+      const res = await fetch(`/api/missing-required-templates?${params.join("&")}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch missing required templates");
+      return res.json();
+    },
+  });
+
   const summary = dashboardData?.summary;
   const cases = dashboardData?.cases;
   const recentDocuments = dashboardData?.allDocuments;
@@ -1991,7 +2021,51 @@ function EmploymentLawDashboardView() {
 
     return { overdue, due30Days, due60Days, upcomingRenewals };
   }, [recentDocuments]);
-  
+
+  const filteredModuleDocs = useMemo(() => {
+    if (!recentDocuments) return [];
+    return recentDocuments.filter(doc => {
+      if (doc.isArchived) return false;
+      if (siteId) return doc.siteId === siteId;
+      if (companySiteIds && companySiteIds.length > 0) return companySiteIds.includes(doc.siteId);
+      return true;
+    });
+  }, [recentDocuments, siteId, companySiteIds]);
+
+  const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
+    req_compliant: { title: "Compliant (Required Documents)" },
+    req_overdue: { title: "Overdue (Required Documents)" },
+    total: { title: "All Documents" },
+    all_compliant: { title: "All Compliant Documents" },
+    all_review: { title: "Review Required" },
+    all_overdue: { title: "All Overdue Documents" },
+  };
+
+  const docsDialogDocs = useMemo((): Document[] => {
+    if (!docsDialogFilter) return [];
+    switch (docsDialogFilter) {
+      case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
+      case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
+      case "total": return filteredModuleDocs;
+      case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
+      case "all_review": return filteredModuleDocs.filter(d => d.status === "review_required");
+      case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
+      default: return [];
+    }
+  }, [docsDialogFilter, filteredModuleDocs]);
+
+  const statusColorMap: Record<string, string> = {
+    compliant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    review_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  };
+
+  const siteNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (sites) sites.forEach(s => { map[s.id] = `${s.name}${s.companyName ? ` — ${s.companyName}` : ""}`; });
+    return map;
+  }, [sites]);
+
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -2104,54 +2178,206 @@ function EmploymentLawDashboardView() {
       </div>
       
       <div className="space-y-8 p-8 dash-animate">
-        {/* Metrics Grid - 5 columns like other module dashboards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-          <ELComplianceScoreCard score={complianceScore} loading={dashboardLoading} />
-          <ELMetricCard
-            title="Total Documents"
-            value={summary?.totalDocuments || 0}
-            description="In this module"
-            icon={FileText}
-            testId="card-el-total-documents"
-            loading={dashboardLoading}
-          />
-          <ELMetricCard
-            title="Compliant"
-            value={summary?.compliantDocuments || 0}
-            description="Up to date"
-            icon={CheckCircle}
-            variant="success"
-            testId="card-el-compliant"
-            loading={dashboardLoading}
-          />
-          <ELMetricCard
-            title="Active Cases"
-            value={openCases}
-            description="Currently being managed"
-            icon={Briefcase}
-            variant="warning"
-            testId="card-el-active-cases"
-            loading={dashboardLoading}
-          />
-          <ELMetricCard
-            title="Urgent Deadlines"
-            value={urgentCases}
-            description="Within 7 days"
-            icon={AlertTriangle}
-            variant="danger"
-            testId="card-el-urgent"
-            loading={dashboardLoading}
-          />
-        </div>
 
-        {/* Document Renewals Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-module-accent" />
-              Document Renewals
+        {/* Compliance Section */}
+        <Card data-testid="card-compliance-summary">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              EL Compliance
             </CardTitle>
-            <CardDescription>Track upcoming document renewals and compliance deadlines</CardDescription>
+            <CardDescription>Based on required documents only</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="rounded-md border p-3 text-center">
+                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                <div className="rounded-md border p-3 text-center" data-testid="card-el-score">
+                  <div className={`flex items-center justify-center gap-1 ${(summary?.complianceScore || 0) >= 90 ? "text-emerald-600 dark:text-emerald-400" : (summary?.complianceScore || 0) >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.complianceScore || 0}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Score</p>
+                </div>
+                <button
+                  onClick={() => (summary?.compliantDocuments || 0) > 0 && setDocsDialogFilter("req_compliant")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.compliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-el-compliant"
+                >
+                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.compliantDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
+                  {(summary?.compliantDocuments || 0) > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => (summary?.overdueDocuments || 0) > 0 && setDocsDialogFilter("req_overdue")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.overdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-el-overdue"
+                >
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.overdueDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                  {(summary?.overdueDocuments || 0) > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => (summary?.missingRequiredDocuments || 0) > 0 && setShowMissingDialog(true)}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.missingRequiredDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="card-el-missing"
+                >
+                  <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                    <FileQuestion className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.missingRequiredDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Missing Required</p>
+                  {(summary?.missingRequiredDocuments || 0) > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Document Progress Section */}
+        <Card data-testid="card-document-progress">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Document Progress
+            </CardTitle>
+            <CardDescription>Status across all Employment Law documents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="rounded-md border p-3 text-center">
+                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+                <button
+                  onClick={() => (summary?.allDocuments || 0) > 0 && setDocsDialogFilter("total")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.allDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-total"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-2xl font-semibold">{summary?.allDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Total</p>
+                  {(summary?.allDocuments || 0) > 0 && <p className="text-xs text-muted-foreground/60 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => (summary?.allCompliantDocuments || 0) > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.allCompliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-compliant"
+                >
+                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allCompliantDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
+                  {(summary?.allCompliantDocuments || 0) > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => (summary?.allReviewRequired || 0) > 0 && setDocsDialogFilter("all_review")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-review"
+                >
+                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allReviewRequired || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Review Required</p>
+                  {(summary?.allReviewRequired || 0) > 0 && <p className="text-xs text-amber-500/70 mt-0.5">Click to view</p>}
+                </button>
+                <button
+                  onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-overdue"
+                >
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allOverdueDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                  {(summary?.allOverdueDocuments || 0) > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Case Overview Section */}
+        <Card data-testid="card-case-overview">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Case Overview
+            </CardTitle>
+            <CardDescription>Active employment law case status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid gap-4 grid-cols-2">
+                {[1, 2].map(i => (
+                  <div key={i} className="rounded-md border p-3 text-center">
+                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
+                    <Skeleton className="h-3 w-16 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-2">
+                <div className="rounded-md border p-3 text-center" data-testid="card-el-active-cases">
+                  <div className="flex items-center justify-center gap-1 text-pink-600 dark:text-pink-400">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{openCases}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Active Cases</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="card-el-urgent">
+                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{urgentCases}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Urgent Deadlines</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Renewal Compliance Section */}
+        <Card data-testid="card-renewal-compliance">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Renewal Compliance
+              </CardTitle>
+              <CardDescription>Documents approaching or past renewal dates</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`${viewDocumentsUrl}${viewDocumentsUrl.includes("?") ? "&" : "?"}renewal=30days`} data-testid="link-view-renewals-el">
+                View All Renewals
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-3">
@@ -2161,7 +2387,7 @@ function EmploymentLawDashboardView() {
                 </div>
                 <div>
                   <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{dashboardLoading ? "–" : renewalMetrics.overdue}</p>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
+                  <p className="text-sm text-muted-foreground">Overdue Renewals</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
@@ -2335,6 +2561,60 @@ function EmploymentLawDashboardView() {
           </Card>
         </div>
       </div>
+
+      {/* Missing Required Dialog */}
+      <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-el-missing-required">
+          <DialogHeader>
+            <DialogTitle>Missing Required Documents</DialogTitle>
+          </DialogHeader>
+          {missingRequiredDetails.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No missing required documents.</p>
+          ) : (
+            <div className="divide-y">
+              {missingRequiredDetails.map((item, i) => (
+                <div key={`${item.templateId}-${item.siteId}-${i}`} className="py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{item.templateName}</p>
+                      <p className="text-xs text-muted-foreground">{item.siteName} — {item.companyName}</p>
+                    </div>
+                    <Badge variant="outline" className="text-orange-600 border-orange-300 shrink-0 text-xs">
+                      {item.requiresApproval ? "Approval Required" : "Not Uploaded"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Drill-down Dialog */}
+      <Dialog open={!!docsDialogFilter} onOpenChange={(open) => !open && setDocsDialogFilter(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-el-docs">
+          <DialogHeader>
+            <DialogTitle>{docsDialogFilter ? docsDialogMeta[docsDialogFilter].title : ""}</DialogTitle>
+          </DialogHeader>
+          {docsDialogDocs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No documents.</p>
+          ) : (
+            <div className="divide-y">
+              {docsDialogDocs.map((doc) => (
+                <div key={doc.id} className="py-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground">{siteNameMap[doc.siteId] || doc.siteId}</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColorMap[doc.status] || ""}`}>
+                    {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review Required" : "Overdue"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2366,9 +2646,5 @@ export default function EmploymentLawPage() {
   }
 
   // Dashboard view (default)
-  return (
-    <div className="p-6">
-      <EmploymentLawDashboardView />
-    </div>
-  );
+  return <EmploymentLawDashboardView />;
 }
