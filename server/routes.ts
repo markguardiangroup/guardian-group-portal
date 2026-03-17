@@ -858,6 +858,7 @@ export async function registerRoutes(
     const templates = await storage.getDocumentTemplates();
     const templateMap = new Map(templates.map(t => [t.id, t]));
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+    const siteExcludedCache = new Map<string, Set<string>>();
 
     let slotTotal = 0;
     let slotCompliant = 0;
@@ -881,9 +882,15 @@ export async function registerRoutes(
         companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
       }
       const required = companyReqCache.get(site.companyId)!;
+      if (!siteExcludedCache.has(site.id)) {
+        const overrides = await storage.getSiteTemplateOverrides(site.id);
+        siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
+      }
+      const siteExcluded = siteExcludedCache.get(site.id)!;
       const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
 
       for (const rt of required) {
+        if (siteExcluded.has(rt.templateId)) continue;
         const tmpl = templateMap.get(rt.templateId);
         if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
         if (module && tmpl.module !== module) continue;
@@ -966,6 +973,7 @@ export async function registerRoutes(
     const templateMap = new Map(templates.map(t => [t.id, t]));
     const docs = await storage.getDocuments(module);
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+    const siteExcludedCache = new Map<string, Set<string>>();
     const companies = await storage.getCompanies();
     const companyMap = new Map(companies.map(c => [c.id, c]));
 
@@ -982,9 +990,15 @@ export async function registerRoutes(
         companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
       }
       const required = companyReqCache.get(site.companyId)!;
+      if (!siteExcludedCache.has(site.id)) {
+        const overrides = await storage.getSiteTemplateOverrides(site.id);
+        siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
+      }
+      const siteExcluded = siteExcludedCache.get(site.id)!;
       const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
       const company = companyMap.get(site.companyId);
       for (const rt of required) {
+        if (siteExcluded.has(rt.templateId)) continue;
         const tmpl = templateMap.get(rt.templateId);
         if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
         if (module && tmpl.module !== module) continue;
