@@ -480,6 +480,7 @@ function OverallComplianceCard({
   // Slot-based compliance (required docs)
   const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
+  const reviewRequiredSlots = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + (s.reviewRequired || 0), 0);
   const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
   const overallScore = siteComplianceSummary?.complianceScore ?? summaries.reduce((acc, s) => acc + s.complianceScore, 0) / (summaries.length || 1);
   // All-document progress stats
@@ -621,7 +622,7 @@ function OverallComplianceCard({
 
         {/* Compliance stats: required docs only */}
         {(() => {
-          const nonCompliantDocs = overdueDocs + missingDocs;
+          const nonCompliantDocs = overdueDocs + reviewRequiredSlots + missingDocs;
           return (
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -709,42 +710,66 @@ function OverallComplianceCard({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                {docsDialog ? dialogMeta[docsDialog].title : ""} ({docsDialogDocs.length})
+                {docsDialog ? dialogMeta[docsDialog].title : ""} ({docsDialogDocs.length + (docsDialog === "non_compliant" ? (missingRequiredDetails?.length ?? 0) : 0)})
               </DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {docsDialogDocs.length === 0 ? (
+              {docsDialogDocs.length === 0 && (docsDialog !== "non_compliant" || !missingRequiredDetails?.length) ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
               ) : (
-                docsDialogDocs.map((doc) => {
-                  const site = doc.siteId ? siteNameMap[doc.siteId] : null;
-                  const modulePath = modulePathMap[doc.module] || "/";
-                  const modLabel = moduleLabels[doc.module] || doc.module;
-                  const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
-                  return (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
-                      onClick={() => { setDocsDialog(null); navigate(modulePath); }}
-                      data-testid={`row-doc-${doc.id}`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{doc.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {site ? `${site.name}${site.companyName ? ` — ${site.companyName}` : ""}` : ""}
-                        </p>
+                <>
+                  {docsDialogDocs.map((doc) => {
+                    const site = doc.siteId ? siteNameMap[doc.siteId] : null;
+                    const modulePath = modulePathMap[doc.module] || "/";
+                    const modLabel = moduleLabels[doc.module] || doc.module;
+                    const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
+                    return (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
+                        onClick={() => { setDocsDialog(null); navigate(modulePath); }}
+                        data-testid={`row-doc-${doc.id}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{doc.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {site ? `${site.name}${site.companyName ? ` — ${site.companyName}` : ""}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${moduleColorMap[doc.module] || "bg-muted text-muted-foreground"}`}>
+                            {modLabel}
+                          </span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
+                            {statusLabel}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${moduleColorMap[doc.module] || "bg-muted text-muted-foreground"}`}>
-                          {modLabel}
-                        </span>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                  {docsDialog === "non_compliant" && missingRequiredDetails && missingRequiredDetails.length > 0 && (
+                    <>
+                      {docsDialogDocs.length > 0 && (
+                        <div className="pt-1 pb-1 px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Not Uploaded</div>
+                      )}
+                      {missingRequiredDetails.map((item, idx) => (
+                        <div
+                          key={`missing-${item.templateId}-${item.siteId}-${idx}`}
+                          className="flex items-center justify-between rounded-md border p-3 gap-3"
+                          data-testid={`row-missing-noncomp-${item.templateId}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{item.templateName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}</p>
+                          </div>
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                            Not Uploaded
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
               )}
             </div>
           </DialogContent>
