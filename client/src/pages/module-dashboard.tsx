@@ -497,7 +497,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
                       onMouseEnter={() => setHoveredTile("compliant")}
                       onMouseLeave={() => setHoveredTile(null)}
-                      className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${summary.compliantDocuments > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
+                      className={`w-16 flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg border transition-colors ${summary.compliantDocuments > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
                       data-testid="card-module-compliant"
                     >
                       <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{summary.compliantDocuments}</p>
@@ -544,7 +544,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
                       onMouseEnter={() => setHoveredTile("non_compliant")}
                       onMouseLeave={() => setHoveredTile(null)}
-                      className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
+                      className={`w-16 flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
                       data-testid="card-module-non-compliant"
                     >
                       <p className="text-xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
