@@ -373,6 +373,8 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
     queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
   };
 
   const addMutation = useMutation({

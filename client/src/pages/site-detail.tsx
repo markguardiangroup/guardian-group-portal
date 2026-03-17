@@ -920,6 +920,8 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const invalidateSiteData = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
     queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
   };
 
   const addOverrideMutation = useMutation({
