@@ -1075,16 +1075,27 @@ export default function CompanyDetail() {
       {/* Tabs */}
       <Tabs defaultValue="details">
         <TabsList>
-          <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
-          <TabsTrigger value="module-access" data-testid="tab-module-access">Module Access</TabsTrigger>
+          <TabsTrigger value="details" data-testid="tab-details">
+            <Building2 className="mr-2 h-4 w-4" />
+            Details
+          </TabsTrigger>
+          <TabsTrigger value="module-access" data-testid="tab-module-access">
+            <Settings className="mr-2 h-4 w-4" />
+            Module Access
+          </TabsTrigger>
           {(isAdmin || user?.role === "consultant") && (
-            <TabsTrigger value="required-documents" data-testid="tab-required-documents">Required Documents</TabsTrigger>
+            <TabsTrigger value="required-documents" data-testid="tab-required-documents">
+              <FileText className="mr-2 h-4 w-4" />
+              Required Documents
+            </TabsTrigger>
           )}
           <TabsTrigger value="sites" data-testid="tab-sites">
+            <MapPin className="mr-2 h-4 w-4" />
             Sites {sites.length > 0 && `(${sites.length})`}
           </TabsTrigger>
           {(isAdmin || user?.role === "consultant") && (
             <TabsTrigger value="users" data-testid="tab-users">
+              <Users className="mr-2 h-4 w-4" />
               Users {companyTabUsers.length > 0 && `(${companyTabUsers.length})`}
             </TabsTrigger>
           )}
