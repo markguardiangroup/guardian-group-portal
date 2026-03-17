@@ -482,7 +482,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     </button>
 
                     {/* 3D pie chart with score above — centre */}
-                    <div className="flex flex-col items-center gap-1 shrink-0" data-testid="card-module-score">
+                    <div className="flex flex-col items-center gap-0 shrink-0" data-testid="card-module-score">
                       <span className={`text-2xl font-bold leading-none ${scoreColor}`}>{summary.complianceScore}%</span>
                       <div style={{ filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.35))" }}>
                         <div style={{ transform: "perspective(140px) rotateX(28deg)", transformOrigin: "center bottom" }}>
@@ -496,6 +496,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                               startAngle={90}
                               endAngle={-270}
                               dataKey="value"
+                              paddingAngle={totalRequired > 0 ? 4 : 0}
                               stroke="none"
                               isAnimationActive={false}
                             >
