@@ -55,6 +55,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PdfViewer } from "@/components/pdf-viewer";
+import { PieChart, Pie, Cell } from "recharts";
 import {
   Briefcase,
   Search,
@@ -1868,7 +1869,7 @@ function EmploymentLawDashboardView() {
   const [, navigate] = useLocation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  type DocsDialogFilter = "req_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
+  type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [showMissingDialog, setShowMissingDialog] = useState(false);
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
   
@@ -2034,6 +2035,7 @@ function EmploymentLawDashboardView() {
 
   const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
     req_compliant: { title: "Compliant (Required Documents)" },
+    req_non_compliant: { title: "Not Compliant (Required Documents)" },
     req_overdue: { title: "Overdue (Required Documents)" },
     total: { title: "All Documents" },
     all_compliant: { title: "All Compliant Documents" },
@@ -2045,6 +2047,7 @@ function EmploymentLawDashboardView() {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
+      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "review_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
       case "total": return filteredModuleDocs;
       case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
@@ -2180,73 +2183,106 @@ function EmploymentLawDashboardView() {
       <div className="space-y-8 p-8 dash-animate">
 
         {/* Compliance Section */}
-        <Card data-testid="card-compliance-summary">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              EL Compliance
-            </CardTitle>
-            <CardDescription>Based on required documents only</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="rounded-md border p-3 text-center">
-                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
-                    <Skeleton className="h-3 w-16 mx-auto" />
+        {(() => {
+          const score = summary?.complianceScore || 0;
+          const compliantCount = summary?.compliantDocuments || 0;
+          const totalRequired = summary?.totalDocuments || 0;
+          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.reviewRequired || 0) + (summary?.missingRequiredDocuments || 0);
+          const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+          const chartData = totalRequired > 0
+            ? [{ name: "Compliant", value: compliantCount }, { name: "Not Compliant", value: nonCompliantCount }]
+            : [{ name: "Empty", value: 1 }];
+          return (
+            <Card data-testid="card-compliance-summary">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  EL Compliance
+                </CardTitle>
+                <CardDescription>Based on required documents only</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex items-center gap-6">
+                    <Skeleton className="h-[140px] w-[140px] rounded-full shrink-0" />
+                    <div className="flex-1 space-y-3">
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-                <div className="rounded-md border p-3 text-center" data-testid="card-el-score">
-                  <div className={`flex items-center justify-center gap-1 ${(summary?.complianceScore || 0) >= 90 ? "text-emerald-600 dark:text-emerald-400" : (summary?.complianceScore || 0) >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
-                    <ShieldCheck className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary?.complianceScore || 0}%</span>
+                ) : (
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Donut chart with score in centre */}
+                    <div className="relative shrink-0" data-testid="card-el-score">
+                      <PieChart width={140} height={140}>
+                        <Pie
+                          data={chartData}
+                          cx={65}
+                          cy={65}
+                          innerRadius={44}
+                          outerRadius={62}
+                          startAngle={90}
+                          endAngle={-270}
+                          dataKey="value"
+                          stroke="none"
+                          isAnimationActive={false}
+                        >
+                          {totalRequired > 0 ? (
+                            <>
+                              <Cell fill="#10b981" />
+                              <Cell fill="#ef4444" />
+                            </>
+                          ) : (
+                            <Cell fill="#e2e8f0" />
+                          )}
+                        </Pie>
+                      </PieChart>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <span className={`text-2xl font-bold ${scoreColor}`}>{score}%</span>
+                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Score</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compliant / Not Compliant stats */}
+                    <div className="flex-1 w-full grid gap-3">
+                      <button
+                        onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
+                        className={`flex items-center gap-3 p-3 rounded-lg border w-full text-left transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
+                        data-testid="card-el-compliant"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                          <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{compliantCount}</p>
+                          <p className="text-sm text-muted-foreground">Compliant</p>
+                        </div>
+                        {compliantCount > 0 && <span className="text-xs text-muted-foreground/60 shrink-0">View</span>}
+                      </button>
+
+                      <button
+                        onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
+                        className={`flex items-center gap-3 p-3 rounded-lg border w-full text-left transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
+                        data-testid="card-el-non-compliant"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center shrink-0">
+                          <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-2xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
+                          <p className="text-sm text-muted-foreground">Not Compliant</p>
+                        </div>
+                        {nonCompliantCount > 0 && <span className="text-xs text-muted-foreground/60 shrink-0">View</span>}
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Score</p>
-                </div>
-                <button
-                  onClick={() => (summary?.compliantDocuments || 0) > 0 && setDocsDialogFilter("req_compliant")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.compliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="card-el-compliant"
-                >
-                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary?.compliantDocuments || 0}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Compliant</p>
-                  {(summary?.compliantDocuments || 0) > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
-                </button>
-                <button
-                  onClick={() => (summary?.overdueDocuments || 0) > 0 && setDocsDialogFilter("req_overdue")}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.overdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="card-el-overdue"
-                >
-                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary?.overdueDocuments || 0}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
-                  {(summary?.overdueDocuments || 0) > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
-                </button>
-                <button
-                  onClick={() => (summary?.missingRequiredDocuments || 0) > 0 && setShowMissingDialog(true)}
-                  className={`rounded-md border p-3 text-center w-full transition-colors ${(summary?.missingRequiredDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="card-el-missing"
-                >
-                  <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                    <FileQuestion className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary?.missingRequiredDocuments || 0}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Missing Required</p>
-                  {(summary?.missingRequiredDocuments || 0) > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Document Progress Section */}
         <Card data-testid="card-document-progress">
@@ -2592,27 +2628,45 @@ function EmploymentLawDashboardView() {
 
       {/* Document Drill-down Dialog */}
       <Dialog open={!!docsDialogFilter} onOpenChange={(open) => !open && setDocsDialogFilter(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto" data-testid="dialog-el-docs">
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col" data-testid="dialog-el-docs">
           <DialogHeader>
             <DialogTitle>{docsDialogFilter ? docsDialogMeta[docsDialogFilter].title : ""}</DialogTitle>
           </DialogHeader>
-          {docsDialogDocs.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No documents.</p>
-          ) : (
-            <div className="divide-y">
-              {docsDialogDocs.map((doc) => (
-                <div key={doc.id} className="py-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.title}</p>
-                    <p className="text-xs text-muted-foreground">{siteNameMap[doc.siteId] || doc.siteId}</p>
+          <div className="flex-1 overflow-y-auto divide-y">
+            {docsDialogDocs.length === 0 && (docsDialogFilter !== "req_non_compliant" || missingRequiredDetails.length === 0) ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No documents.</p>
+            ) : (
+              <>
+                {docsDialogDocs.map((doc) => (
+                  <div key={doc.id} className="py-3 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground">{siteNameMap[doc.siteId] || doc.siteId}</p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColorMap[doc.status] || ""}`}>
+                      {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review Required" : "Overdue"}
+                    </span>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColorMap[doc.status] || ""}`}>
-                    {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review Required" : "Overdue"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+                {docsDialogFilter === "req_non_compliant" && missingRequiredDetails.length > 0 && (
+                  <>
+                    {docsDialogDocs.length > 0 && <div className="pt-2 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Not Uploaded</div>}
+                    {missingRequiredDetails.map((item, idx) => (
+                      <div key={`missing-${item.templateId}-${item.siteId}-${idx}`} className="py-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{item.templateName}</p>
+                          <p className="text-xs text-muted-foreground">{item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}</p>
+                        </div>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                          Not Uploaded
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
