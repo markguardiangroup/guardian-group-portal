@@ -55,7 +55,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PdfViewer } from "@/components/pdf-viewer";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell, Sector } from "recharts";
 import {
   Briefcase,
   Search,
@@ -1872,7 +1872,28 @@ function EmploymentLawDashboardView() {
   type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [showMissingDialog, setShowMissingDialog] = useState(false);
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
-  
+  const [hoveredTile, setHoveredTile] = useState<"compliant" | "non_compliant" | null>(null);
+
+  const renderActiveSlice = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+    const RADIAN = Math.PI / 180;
+    const midAngle = (startAngle + endAngle) / 2;
+    const offset = 10;
+    const ox = Math.cos(-midAngle * RADIAN) * offset;
+    const oy = Math.sin(-midAngle * RADIAN) * offset;
+    return (
+      <Sector
+        cx={cx + ox}
+        cy={cy + oy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 4}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    );
+  };
+
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
@@ -2213,6 +2234,8 @@ function EmploymentLawDashboardView() {
                     {/* Compliant tile — left */}
                     <button
                       onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
+                      onMouseEnter={() => setHoveredTile("compliant")}
+                      onMouseLeave={() => setHoveredTile(null)}
                       className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
                       data-testid="card-el-compliant"
                     >
@@ -2238,6 +2261,8 @@ function EmploymentLawDashboardView() {
                               paddingAngle={totalRequired > 0 ? 4 : 0}
                               stroke="none"
                               isAnimationActive={false}
+                              activeIndex={hoveredTile === "compliant" ? 0 : hoveredTile === "non_compliant" ? 1 : undefined}
+                              activeShape={renderActiveSlice}
                             >
                               {totalRequired > 0 ? (
                                 <>
@@ -2256,6 +2281,8 @@ function EmploymentLawDashboardView() {
                     {/* Not Compliant tile — right */}
                     <button
                       onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
+                      onMouseEnter={() => setHoveredTile("non_compliant")}
+                      onMouseLeave={() => setHoveredTile(null)}
                       className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
                       data-testid="card-el-non-compliant"
                     >
