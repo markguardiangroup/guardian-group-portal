@@ -2203,24 +2203,33 @@ function EmploymentLawDashboardView() {
               </CardHeader>
               <CardContent>
                 {isLoading ? (
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-[72px] w-[72px] rounded-full shrink-0" />
-                    <Skeleton className="h-10 w-24 shrink-0" />
-                    <div className="h-8 w-px bg-border shrink-0" />
-                    <Skeleton className="h-14 flex-1 rounded-lg" />
-                    <Skeleton className="h-14 flex-1 rounded-lg" />
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-16 flex-1 rounded-lg" />
+                    <Skeleton className="h-[120px] w-[120px] rounded-full shrink-0" />
+                    <Skeleton className="h-16 flex-1 rounded-lg" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4" data-testid="card-el-score">
-                    {/* Small pie chart */}
-                    <div className="relative shrink-0">
-                      <PieChart width={72} height={72}>
+                  <div className="flex items-center gap-4">
+                    {/* Compliant tile — left */}
+                    <button
+                      onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
+                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 rounded-lg border transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
+                      data-testid="card-el-compliant"
+                    >
+                      <CheckCircle className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{compliantCount}</p>
+                      <p className="text-xs text-muted-foreground">Compliant</p>
+                    </button>
+
+                    {/* Donut chart with score — centre */}
+                    <div className="relative shrink-0" data-testid="card-el-score">
+                      <PieChart width={120} height={120}>
                         <Pie
                           data={chartData}
-                          cx={34}
-                          cy={34}
-                          innerRadius={20}
-                          outerRadius={33}
+                          cx={58}
+                          cy={58}
+                          innerRadius={36}
+                          outerRadius={54}
                           startAngle={90}
                           endAngle={-270}
                           dataKey="value"
@@ -2237,32 +2246,21 @@ function EmploymentLawDashboardView() {
                           )}
                         </Pie>
                       </PieChart>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <span className={`text-xl font-bold leading-none ${scoreColor}`}>{score}%</span>
+                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Score</p>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Score text beside the chart */}
-                    <div className="shrink-0">
-                      <p className={`text-3xl font-bold leading-none ${scoreColor}`}>{score}%</p>
-                      <p className="text-xs text-muted-foreground mt-1">Compliance Score</p>
-                    </div>
-
-                    <div className="h-10 w-px bg-border shrink-0" />
-
-                    {/* Compliant tile */}
-                    <button
-                      onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-lg border transition-colors ${compliantCount > 0 ? "cursor-pointer bg-emerald-50/60 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/20" : "cursor-default border-border"}`}
-                      data-testid="card-el-compliant"
-                    >
-                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none">{compliantCount}</p>
-                      <p className="text-xs text-muted-foreground">Compliant</p>
-                    </button>
-
-                    {/* Not Compliant tile */}
+                    {/* Not Compliant tile — right */}
                     <button
                       onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                      className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
+                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 rounded-lg border transition-colors ${nonCompliantCount > 0 ? "cursor-pointer bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/20" : "cursor-default border-border"}`}
                       data-testid="card-el-non-compliant"
                     >
+                      <XCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
                       <p className="text-2xl font-bold text-red-600 dark:text-red-400 leading-none">{nonCompliantCount}</p>
                       <p className="text-xs text-muted-foreground">Not Compliant</p>
                     </button>
