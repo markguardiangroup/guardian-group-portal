@@ -8183,6 +8183,33 @@ export async function registerRoutes(
   });
 
   // Remove site assignment from user (admin only)
+  app.delete("/api/users/:userId/site-assignments", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      }
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+      if (targetUser.role === "client") {
+        await storage.clearClientSiteAssignments(targetUser.id);
+        await storage.createAuditLog({
+          action: "client_all_sites_removed",
+          entityType: "user",
+          entityId: targetUser.id,
+          userId: currentUser.id,
+          userName: currentUser.fullName,
+          details: `Removed all site assignments from client ${targetUser.fullName}`,
+          metadata: { clientId: targetUser.id },
+        });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Clear all site assignments error:", error);
+      res.status(500).json({ error: "Failed to clear site assignments" });
+    }
+  });
+
   app.delete("/api/users/:userId/site-assignments/:siteId", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);

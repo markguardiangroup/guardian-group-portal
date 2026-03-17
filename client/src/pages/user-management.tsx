@@ -68,6 +68,7 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   RefreshCw,
   Trash2,
   Clock,
@@ -221,6 +222,13 @@ export default function UserManagement() {
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [primaryContactConflictInUM, setPrimaryContactConflictInUM] = useState<{
+    oldUserId: string;
+    oldUserName: string;
+    companyId: string;
+    newUserId: string;
+  } | null>(null);
 
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -493,6 +501,39 @@ export default function UserManagement() {
       toast({ title: "Failed to set primary contact", description: error.message, variant: "destructive" });
     },
   });
+
+  const clearOldContactSitesMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/users/${userId}/site-assignments`);
+    },
+  });
+
+  const handleSetPrimaryContactClick = () => {
+    if (!userNeedingSiteAssignment?.companyId) return;
+    const targetCompany = companies.find(c => c.id === userNeedingSiteAssignment.companyId);
+    const existingContactId = targetCompany?.contactUserId;
+    if (existingContactId && existingContactId !== userNeedingSiteAssignment.id) {
+      const oldUser = allUsers.find(u => u.id === existingContactId);
+      const oldName = oldUser?.fullName || targetCompany?.contactName || "the current contact";
+      setPrimaryContactConflictInUM({
+        oldUserId: existingContactId,
+        oldUserName: oldName,
+        companyId: userNeedingSiteAssignment.companyId!,
+        newUserId: userNeedingSiteAssignment.id,
+      });
+    } else {
+      setPrimaryContactMutation.mutate({ companyId: userNeedingSiteAssignment.companyId!, userId: userNeedingSiteAssignment.id });
+    }
+  };
+
+  const handleConflictResolveInUM = async (removeAccess: boolean) => {
+    if (!primaryContactConflictInUM) return;
+    if (removeAccess) {
+      await clearOldContactSitesMutation.mutateAsync(primaryContactConflictInUM.oldUserId);
+    }
+    setPrimaryContactMutation.mutate({ companyId: primaryContactConflictInUM.companyId, userId: primaryContactConflictInUM.newUserId });
+    setPrimaryContactConflictInUM(null);
+  };
 
   // Get available sites for assignment (filtered based on user role)
   const getAvailableSitesForUser = () => {
@@ -933,7 +974,10 @@ export default function UserManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedUsers.map((u) => (
+              paginatedUsers.flatMap((u) => {
+                const isExpanded = expandedUserId === u.id;
+                const hasSites = u.siteAssignments && u.siteAssignments.length > 0;
+                return [
                 <TableRow 
                   key={u.id} 
                   data-testid={`row-user-${u.id}`}
@@ -980,7 +1024,27 @@ export default function UserManagement() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {renderSiteAssignments(u)}
+                    {u.role === "admin" ? (
+                      <button
+                        onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid={`button-expand-sites-${u.id}`}
+                      >
+                        <span className="font-medium">All Sites</span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                    ) : u.siteAssignments && u.siteAssignments.length > 0 ? (
+                      <button
+                        onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                        className="flex items-center gap-1.5 text-sm hover:text-foreground transition-colors"
+                        data-testid={`button-expand-sites-${u.id}`}
+                      >
+                        <span className="font-medium">{u.siteAssignments.length} {u.siteAssignments.length === 1 ? "site" : "sites"}</span>
+                        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">None</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge 
@@ -1087,8 +1151,40 @@ export default function UserManagement() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                </TableRow>
-              ))
+                </TableRow>,
+                isExpanded && (hasSites || u.role === "admin") && (
+                  <TableRow key={`expand-${u.id}`} className="bg-muted/30">
+                    <TableCell colSpan={6} className="py-3 px-6">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                        {u.role === "admin" ? "Access" : "Site Access"}
+                      </p>
+                      {u.role === "admin" ? (
+                        <p className="text-sm text-muted-foreground">Full access to all sites</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {u.role === "consultant" ? (
+                            u.siteAssignments!.map(a => (
+                              <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                {a.isPrimary && <Shield className="h-3 w-3 text-amber-500 shrink-0" />}
+                                <span className="font-medium">{a.siteName}</span>
+                                <span className="text-muted-foreground">· {a.companyName}</span>
+                              </div>
+                            ))
+                          ) : (
+                            u.siteAssignments!.map(a => (
+                              <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="font-medium">{a.siteName}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ),
+                ].filter(Boolean)
+              })
             )}
           </TableBody>
         </Table>
@@ -2201,7 +2297,7 @@ export default function UserManagement() {
             </Button>
             {setPrimaryContact && userNeedingSiteAssignment?.companyId && (
               <Button
-                onClick={() => setPrimaryContactMutation.mutate({ companyId: userNeedingSiteAssignment!.companyId!, userId: userNeedingSiteAssignment!.id })}
+                onClick={handleSetPrimaryContactClick}
                 disabled={setPrimaryContactMutation.isPending}
                 data-testid="button-confirm-primary-contact"
               >
@@ -2325,6 +2421,37 @@ export default function UserManagement() {
               data-testid="button-confirm-delete-user"
             >
               {deleteUserMutation.isPending ? "Deleting..." : "Yes, Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Primary Contact Conflict Dialog (User Management) */}
+      <AlertDialog open={!!primaryContactConflictInUM} onOpenChange={v => { if (!v) setPrimaryContactConflictInUM(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Existing Primary Contact</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><strong className="text-foreground">{primaryContactConflictInUM?.oldUserName}</strong> is currently the primary contact for this company and has access to all company sites.</p>
+                <p>What should happen to their site access?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setPrimaryContactConflictInUM(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="outline"
+              onClick={() => handleConflictResolveInUM(false)}
+              data-testid="button-conflict-keep-access"
+            >
+              Keep Site Access
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => handleConflictResolveInUM(true)}
+              data-testid="button-conflict-remove-access"
+            >
+              Remove All Site Access
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

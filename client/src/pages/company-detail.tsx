@@ -20,6 +20,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -521,6 +531,13 @@ export default function CompanyDetail() {
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
+  const [changePrimaryContactOpen, setChangePrimaryContactOpen] = useState(false);
+  const [selectedNewContactId, setSelectedNewContactId] = useState("");
+  const [primaryContactConflict, setPrimaryContactConflict] = useState<{
+    oldUserId: string;
+    oldUserName: string;
+    newUserId: string;
+  } | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
 
   const [editForm, setEditForm] = useState({
@@ -659,6 +676,57 @@ export default function CompanyDetail() {
       });
     },
   });
+
+  const changePrimaryContactMutation = useMutation({
+    mutationFn: async ({ newUserId }: { newUserId: string }) => {
+      const response = await apiRequest("PATCH", `/api/companies/${companyId}`, { contactUserId: newUserId || null });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setChangePrimaryContactOpen(false);
+      setSelectedNewContactId("");
+      toast({ title: "Primary contact updated", description: "The primary contact has been changed." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update primary contact.", variant: "destructive" });
+    },
+  });
+
+  const clearSiteAccessMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/users/${userId}/site-assignments`);
+    },
+    onError: () => {
+      toast({ title: "Warning", description: "Could not remove old contact's site access.", variant: "destructive" });
+    },
+  });
+
+  const handleChangePrimaryContactSave = () => {
+    if (!selectedNewContactId) return;
+    const existingContactUserId = company?.contactUserId;
+    if (existingContactUserId && existingContactUserId !== selectedNewContactId) {
+      const oldUser = companyUsers.find(u => u.id === existingContactUserId);
+      setPrimaryContactConflict({
+        oldUserId: existingContactUserId,
+        oldUserName: oldUser?.fullName || company?.contactName || "the current contact",
+        newUserId: selectedNewContactId,
+      });
+    } else {
+      changePrimaryContactMutation.mutate({ newUserId: selectedNewContactId });
+    }
+  };
+
+  const handleConflictResolve = async (removeAccess: boolean) => {
+    if (!primaryContactConflict) return;
+    if (removeAccess) {
+      await clearSiteAccessMutation.mutateAsync(primaryContactConflict.oldUserId);
+    }
+    changePrimaryContactMutation.mutate({ newUserId: primaryContactConflict.newUserId });
+    setPrimaryContactConflict(null);
+  };
 
   const createSiteMutation = useMutation({
     mutationFn: async (data: typeof newSiteForm) => {
@@ -1020,9 +1088,26 @@ export default function CompanyDetail() {
                     </div>
                   </div>
                 )}
-                {(company.contactName || company.contactPhone || company.contactEmail) && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground">Primary Contact</p>
+                    {isAdmin && companyUsers.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          setSelectedNewContactId(company.contactUserId || "");
+                          setChangePrimaryContactOpen(true);
+                        }}
+                        data-testid="button-change-primary-contact"
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        {company.contactName ? "Change" : "Set"}
+                      </Button>
+                    )}
+                  </div>
+                  {(company.contactName || company.contactPhone || company.contactEmail) ? (
                     <div className="space-y-1.5 text-sm">
                       {company.contactName && (
                         <div className="flex items-center gap-2">
@@ -1043,11 +1128,10 @@ export default function CompanyDetail() {
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
-                {!company.addressLine1 && !company.city && !company.contactName && !company.contactPhone && !company.contactEmail && (
-                  <p className="text-sm text-muted-foreground">No contact details available</p>
-                )}
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No primary contact set</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -1591,6 +1675,88 @@ export default function CompanyDetail() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Change Primary Contact dialog */}
+      <Dialog open={changePrimaryContactOpen} onOpenChange={v => { setChangePrimaryContactOpen(v); if (!v) setSelectedNewContactId(""); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Change Primary Contact</DialogTitle>
+            <DialogDescription>
+              Select a registered user from this company to be the primary contact.
+            </DialogDescription>
+          </DialogHeader>
+          {company?.contactName && (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-2">
+              <UserIcon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">{company.contactName}</p>
+                <p className="text-xs text-muted-foreground">Current primary contact</p>
+              </div>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label>Select new contact</Label>
+            <Select value={selectedNewContactId || "none"} onValueChange={v => setSelectedNewContactId(v === "none" ? "" : v)}>
+              <SelectTrigger data-testid="select-new-primary-contact">
+                <SelectValue placeholder="Choose a user..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No contact</SelectItem>
+                {companyUsers.map(u => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName}{u.jobTitle ? ` — ${u.jobTitle}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangePrimaryContactOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleChangePrimaryContactSave}
+              disabled={changePrimaryContactMutation.isPending}
+              data-testid="button-save-primary-contact"
+            >
+              {changePrimaryContactMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Primary contact conflict dialog */}
+      <AlertDialog open={!!primaryContactConflict} onOpenChange={v => { if (!v) setPrimaryContactConflict(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Existing Primary Contact</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  <strong>{primaryContactConflict?.oldUserName}</strong> is currently the primary contact.
+                  What would you like to do with their site access?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setPrimaryContactConflict(null)}>Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => handleConflictResolve(false)}
+              disabled={changePrimaryContactMutation.isPending}
+              data-testid="button-keep-site-access"
+            >
+              Keep site access
+            </Button>
+            <AlertDialogAction
+              onClick={() => handleConflictResolve(true)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-remove-site-access"
+            >
+              Remove all site access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

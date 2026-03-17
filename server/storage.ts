@@ -250,6 +250,7 @@ export interface IStorage {
   getClientSites(clientId: string): Promise<ClientSiteAssignment[]>;
   assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment>;
   removeClientSiteAssignment(clientId: string, siteId: string): Promise<boolean>;
+  clearClientSiteAssignments(clientId: string): Promise<void>;
   hasClientSiteAssignments(clientId: string): Promise<boolean>;
   
   // Users by Site
@@ -1783,6 +1784,11 @@ export class MemStorage implements IStorage {
         eq(clientSiteAssignmentsTable.siteId, siteId)
       ));
     return true;
+  }
+
+  async clearClientSiteAssignments(clientId: string): Promise<void> {
+    await db.delete(clientSiteAssignmentsTable)
+      .where(eq(clientSiteAssignmentsTable.clientId, clientId));
   }
 
   async hasClientSiteAssignments(clientId: string): Promise<boolean> {
