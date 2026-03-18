@@ -82,6 +82,7 @@ import {
   ShieldCheck,
   Calendar,
   Save,
+  GripVertical,
 } from "lucide-react";
 import {
   Accordion,
@@ -90,6 +91,18 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord, DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
@@ -232,6 +245,53 @@ interface DocumentHierarchy {
     totalFolders: number;
     requiredFolders: number;
   };
+}
+
+function DroppableFolderZone({ folderId, isDragEnabled, children, className }: {
+  folderId: string;
+  isDragEnabled: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: folderId, disabled: !isDragEnabled });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        className,
+        isDragEnabled && isOver && "ring-2 ring-blue-400 rounded-lg bg-blue-50/20 dark:bg-blue-900/10 transition-colors"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function DraggableDocRow({ id, title, sourceFolderId, isDragEnabled, children }: {
+  id: string;
+  title: string;
+  sourceFolderId: string | null;
+  isDragEnabled: boolean;
+  children: React.ReactNode;
+}) {
+  const { listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+    data: { sourceFolderId, title },
+    disabled: !isDragEnabled,
+  });
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...(isDragEnabled ? listeners : {})}
+      className={isDragging ? "opacity-40 relative z-50" : undefined}
+    >
+      {children}
+    </div>
+  );
 }
 
 function ModuleDocumentsListView({ module }: { module: ModuleType }) {
@@ -425,6 +485,38 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: [hierarchyUrl],
     enabled: !!hierarchySiteId && viewMode === "folder",
   });
+
+  // Drag-and-drop for folder view (privileged users only)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
+
+  const moveDocumentMutation = useMutation({
+    mutationFn: ({ docId, folderId }: { docId: string; folderId: string | null }) =>
+      apiRequest("PATCH", `/api/documents/${docId}`, { folderId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [hierarchyUrl] });
+      toast({ title: "Document moved" });
+    },
+    onError: () => {
+      toast({ title: "Could not move document", variant: "destructive" });
+    },
+  });
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveDoc({ id: active.id as string, title: (active.data.current as any)?.title ?? "" });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDoc(null);
+    const { active, over } = event;
+    if (!over) return;
+    const docId = active.id as string;
+    const targetFolderId = over.id === "__unfiled__" ? null : (over.id as string);
+    const sourceFolderId: string | null = (active.data.current as any)?.sourceFolderId ?? null;
+    if (targetFolderId === sourceFolderId) return;
+    moveDocumentMutation.mutate({ docId, folderId: targetFolderId });
+  };
   
   // Get folder status badge - colors match document-level RAGBadge for consistency
   const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
@@ -672,6 +764,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Folder View */}
       {viewMode === "folder" && (
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="space-y-4">
           {/* No site selected message */}
           {!hierarchySiteId && (
@@ -733,8 +826,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <Accordion type="multiple" className="w-full">
                   {hierarchy.folders.map((folder) => {
                     const statusBadge = getFolderStatusBadge(folder.stats);
+                    const folderDropId = (folder as any).siteFolder?.id ?? folder.id;
                     return (
-                      <AccordionItem key={folder.id} value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
+                      <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isPrivilegedUser}>
+                      <AccordionItem value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
                         <AccordionTrigger className="hover:no-underline px-2">
                           <div className="flex items-center justify-between w-full pr-4">
                             <div className="flex items-center gap-3">
@@ -758,8 +853,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <Accordion type="multiple" className="space-y-2 mb-4">
                                 {(folder as any).childFolders.map((childFolder: any) => {
                                   const childStatusBadge = getFolderStatusBadge(childFolder.stats || { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 });
+                                  const childDropId = (childFolder as any).siteFolder?.id ?? childFolder.id;
                                   return (
-                                    <AccordionItem key={childFolder.id} value={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}>
+                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isPrivilegedUser}>
+                                    <AccordionItem value={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}>
                                       <AccordionTrigger className="hover:no-underline px-3 py-2 bg-muted/30">
                                         <div className="flex items-center justify-between w-full pr-2">
                                           <div className="flex items-center gap-3">
@@ -783,13 +880,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                         <div className="p-3 pl-10 space-y-2">
                                           {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).length > 0 ? (
                                             childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
+                                              <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isPrivilegedUser}>
                                               <Link
-                                                key={doc.id}
                                                 href={`${basePath}/documents/${doc.id}`}
                                                 className="flex items-center justify-between p-2 rounded-md border hover-elevate"
                                                 data-testid={`link-document-${doc.id}`}
                                               >
                                                 <div className="flex items-center gap-3">
+                                                  {isPrivilegedUser && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                                                   <FileText className="h-4 w-4 text-muted-foreground" />
                                                   <div>
                                                     <p className="font-medium text-sm">{doc.title}</p>
@@ -808,6 +906,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                 </div>
                                               </Link>
+                                              </DraggableDocRow>
                                             ))
                                           ) : (
                                             <div className="text-center py-4 text-muted-foreground">
@@ -825,6 +924,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                         </div>
                                       </AccordionContent>
                                     </AccordionItem>
+                                    </DroppableFolderZone>
                                   );
                                 })}
                               </Accordion>
@@ -834,13 +934,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {folder.documents.filter(doc => !doc.isArchived).length > 0 && (
                               <div className="space-y-2">
                                 {folder.documents.filter(doc => !doc.isArchived).map((doc) => (
+                                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={folderDropId} isDragEnabled={isPrivilegedUser}>
                                   <Link
-                                    key={doc.id}
                                     href={`${basePath}/documents/${doc.id}`}
                                     className="flex items-center justify-between p-3 rounded-md border hover-elevate"
                                     data-testid={`link-document-${doc.id}`}
                                   >
                                     <div className="flex items-center gap-3">
+                                      {isPrivilegedUser && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                                       <FileText className="h-4 w-4 text-muted-foreground" />
                                       <div>
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -867,6 +968,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
+                                  </DraggableDocRow>
                                 ))}
                               </div>
                             )}
@@ -885,6 +987,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           </div>
                         </AccordionContent>
                       </AccordionItem>
+                      </DroppableFolderZone>
                     );
                   })}
                 </Accordion>
@@ -914,6 +1017,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           {/* Unfiled Documents */}
           {hierarchySiteId && hierarchy?.unfiledDocuments && hierarchy.unfiledDocuments.length > 0 && (
+            <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isPrivilegedUser}>
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
                 <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
@@ -924,13 +1028,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
                 {hierarchy.unfiledDocuments.map((doc) => (
+                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={null} isDragEnabled={isPrivilegedUser}>
                   <Link
-                    key={doc.id}
                     href={`${basePath}/documents/${doc.id}`}
                     className={`flex items-center justify-between p-3 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
                     data-testid={`link-unfiled-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3">
+                      {isPrivilegedUser && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                       <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
@@ -943,11 +1048,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
+                  </DraggableDocRow>
                 ))}
               </CardContent>
             </Card>
+            </DroppableFolderZone>
           )}
         </div>
+        <DragOverlay dropAnimation={null}>
+          {activeDoc && (
+            <div className="flex items-center gap-2 bg-background border shadow-lg rounded-md px-3 py-2 opacity-90 pointer-events-none">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">{activeDoc.title}</span>
+            </div>
+          )}
+        </DragOverlay>
+        </DndContext>
       )}
 
       {/* Table View */}
