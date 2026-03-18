@@ -129,8 +129,8 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           />
         </div>
 
-        {/* Compliance stats: Compliant | Not Compliant */}
-        <div className="grid grid-cols-2 gap-3 text-center">
+        {/* Compliance stats: Compliant | Not Compliant | Docs Missing */}
+        <div className="grid grid-cols-3 gap-2 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
@@ -141,9 +141,16 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           <div>
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <XCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.overdueDocuments + (summary.reviewRequired || 0) + (summary.missingRequiredDocuments || 0)}</span>
+              <span className="text-lg font-semibold">{summary.overdueDocuments + (summary.reviewRequired || 0)}</span>
             </div>
             <p className="text-xs text-muted-foreground">Not Compliant</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+              <FileQuestion className="h-4 w-4" />
+              <span className="text-lg font-semibold">{summary.missingRequiredDocuments || 0}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Docs Missing</p>
           </div>
         </div>
 
@@ -622,9 +629,9 @@ function OverallComplianceCard({
 
         {/* Compliance stats: required docs only */}
         {(() => {
-          const nonCompliantDocs = overdueDocs + reviewRequiredSlots + missingDocs;
+          const nonCompliantDocs = overdueDocs + reviewRequiredSlots;
           return (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => openDocs("compliant")}
                 className={`rounded-md border p-3 text-center w-full transition-colors ${allDocuments && allDocuments.length > 0 && compliantDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
@@ -648,6 +655,18 @@ function OverallComplianceCard({
                 </div>
                 <p className="text-xs text-muted-foreground">Not Compliant</p>
                 {nonCompliantDocs > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+              </button>
+              <button
+                onClick={() => missingDocs > 0 && setShowMissingDialog(true)}
+                className={`rounded-md border p-3 text-center w-full transition-colors ${missingDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                data-testid="button-stat-docs-missing"
+              >
+                <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                  <FileQuestion className="h-4 w-4" />
+                  <span className="text-2xl font-semibold">{missingDocs}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Docs Missing</p>
+                {missingDocs > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
               </button>
             </div>
           );

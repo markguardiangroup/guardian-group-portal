@@ -447,7 +447,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         {(() => {
           const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
-          const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0) + (summary.missingRequiredDocuments || 0);
+          const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0);
+          const documentsMissingCount = summary.missingRequiredDocuments || 0;
           return (
             <Card data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
@@ -462,8 +463,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <div className="space-y-4">
                     <Skeleton className="h-16 w-32" />
                     <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-2 gap-4">
-                      {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+                    <div className="grid grid-cols-3 gap-3">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
                     </div>
                     <div className="rounded-md border bg-muted/30 p-4">
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -489,7 +490,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     </div>
 
                     {/* Compliance stats: required docs only */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
                         className={`rounded-md border p-3 text-center w-full transition-colors ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
@@ -513,6 +514,18 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                         </div>
                         <p className="text-xs text-muted-foreground">Not Compliant</p>
                         {nonCompliantCount > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                      </button>
+                      <button
+                        onClick={() => documentsMissingCount > 0 && setShowMissingDialog(true)}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-module-docs-missing"
+                      >
+                        <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                          <FileQuestion className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{documentsMissingCount}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Docs Missing</p>
+                        {documentsMissingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
                       </button>
                     </div>
 
@@ -839,7 +852,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {docsDialogDocs.length === 0 && (docsDialogFilter !== "req_non_compliant" || missingRequiredDetails.length === 0) ? (
+            {docsDialogDocs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
             ) : (
               <>
@@ -863,26 +876,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     </div>
                   );
                 })}
-                {docsDialogFilter === "req_non_compliant" && missingRequiredDetails.length > 0 && (
-                  <>
-                    {docsDialogDocs.length > 0 && <div className="pt-1 pb-1 px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Not Uploaded</div>}
-                    {missingRequiredDetails.map((item, idx) => (
-                      <div
-                        key={`missing-${item.templateId}-${item.siteId}-${idx}`}
-                        className="flex items-center justify-between rounded-md border p-3 gap-3"
-                        data-testid={`row-missing-noncomp-${item.templateId}`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{item.templateName}</p>
-                          <p className="text-xs text-muted-foreground truncate">{item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}</p>
-                        </div>
-                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                          Not Uploaded
-                        </span>
-                      </div>
-                    ))}
-                  </>
-                )}
               </>
             )}
           </div>

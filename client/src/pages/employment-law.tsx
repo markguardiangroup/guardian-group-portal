@@ -2184,7 +2184,8 @@ function EmploymentLawDashboardView() {
         {(() => {
           const score = summary?.complianceScore || 0;
           const compliantCount = summary?.compliantDocuments || 0;
-          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.reviewRequired || 0) + (summary?.missingRequiredDocuments || 0);
+          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.reviewRequired || 0);
+          const documentsMissingCount = summary?.missingRequiredDocuments || 0;
           const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = score >= 90 ? "bg-emerald-500" : score >= 70 ? "bg-amber-500" : "bg-red-500";
           return (
@@ -2201,8 +2202,8 @@ function EmploymentLawDashboardView() {
                   <div className="space-y-4">
                     <Skeleton className="h-16 w-32" />
                     <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-2 gap-4">
-                      {[1, 2].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+                    <div className="grid grid-cols-3 gap-3">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
                     </div>
                     <div className="rounded-md border bg-muted/30 p-4">
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2228,7 +2229,7 @@ function EmploymentLawDashboardView() {
                     </div>
 
                     {/* Compliance stats: required docs only */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
                         className={`rounded-md border p-3 text-center w-full transition-colors ${compliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
@@ -2252,6 +2253,18 @@ function EmploymentLawDashboardView() {
                         </div>
                         <p className="text-xs text-muted-foreground">Not Compliant</p>
                         {nonCompliantCount > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
+                      </button>
+                      <button
+                        onClick={() => documentsMissingCount > 0 && setShowMissingDialog(true)}
+                        className={`rounded-md border p-3 text-center w-full transition-colors ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        data-testid="card-el-docs-missing"
+                      >
+                        <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
+                          <FileQuestion className="h-4 w-4" />
+                          <span className="text-2xl font-semibold">{documentsMissingCount}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Docs Missing</p>
+                        {documentsMissingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
                       </button>
                     </div>
 
@@ -2587,7 +2600,7 @@ function EmploymentLawDashboardView() {
             <DialogTitle>{docsDialogFilter ? docsDialogMeta[docsDialogFilter].title : ""}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto divide-y">
-            {docsDialogDocs.length === 0 && (docsDialogFilter !== "req_non_compliant" || missingRequiredDetails.length === 0) ? (
+            {docsDialogDocs.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No documents.</p>
             ) : (
               <>
@@ -2602,22 +2615,6 @@ function EmploymentLawDashboardView() {
                     </span>
                   </div>
                 ))}
-                {docsDialogFilter === "req_non_compliant" && missingRequiredDetails.length > 0 && (
-                  <>
-                    {docsDialogDocs.length > 0 && <div className="pt-2 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Not Uploaded</div>}
-                    {missingRequiredDetails.map((item, idx) => (
-                      <div key={`missing-${item.templateId}-${item.siteId}-${idx}`} className="py-3 flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{item.templateName}</p>
-                          <p className="text-xs text-muted-foreground">{item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}</p>
-                        </div>
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                          Not Uploaded
-                        </span>
-                      </div>
-                    ))}
-                  </>
-                )}
               </>
             )}
           </div>
