@@ -9,13 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle, CheckCircle2 } from "lucide-react";
+import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle, CheckCircle2, Search } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 type FeedbackWithMetadata = Feedback & { commentCount: number; hasUnreadComments: boolean };
 
@@ -26,6 +27,7 @@ export default function AdminFeedback() {
   const [activeFeedbackId, setActiveFeedbackId] = useState<string | null>(null);
   const [commentContent, setCommentContent] = useState("");
   const [statusFilter, setStatusFilter] = useState<"open" | "resolved">("open");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: feedbackList, isLoading } = useQuery<FeedbackWithMetadata[]>({
     queryKey: ["/api/feedback"],
@@ -174,14 +176,26 @@ export default function AdminFeedback() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>Recent Feedback</CardTitle>
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "resolved")}>
-            <TabsList className="grid w-[200px] grid-cols-2">
-              <TabsTrigger value="open">Open</TabsTrigger>
-              <TabsTrigger value="resolved">Resolved</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search feedback..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-[220px] h-9"
+                data-testid="input-search-feedback"
+              />
+            </div>
+            <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as "open" | "resolved")}>
+              <TabsList className="grid w-[200px] grid-cols-2">
+                <TabsTrigger value="open">Open</TabsTrigger>
+                <TabsTrigger value="resolved">Resolved</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -190,7 +204,17 @@ export default function AdminFeedback() {
             </div>
           ) : (
             <div className="space-y-6">
-              {feedbackList?.filter(item => (item.status || "open") === statusFilter).map((item) => (
+              {feedbackList
+                ?.filter(item => (item.status || "open") === statusFilter)
+                .filter(item => {
+                  if (!searchQuery.trim()) return true;
+                  const q = searchQuery.toLowerCase();
+                  return (
+                    item.message.toLowerCase().includes(q) ||
+                    (item.userName || "").toLowerCase().includes(q)
+                  );
+                })
+                .map((item) => (
                 <Card key={item.id} className={cn("border-l-4", item.hasUnreadComments ? "border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10" : "border-l-primary")}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
@@ -321,9 +345,23 @@ export default function AdminFeedback() {
                   </CardContent>
                 </Card>
               ))}
-              {feedbackList?.length === 0 && (
-                <p className="text-center py-8 text-muted-foreground">No feedback found.</p>
-              )}
+              {(() => {
+                const filtered = feedbackList
+                  ?.filter(item => (item.status || "open") === statusFilter)
+                  .filter(item => {
+                    if (!searchQuery.trim()) return true;
+                    const q = searchQuery.toLowerCase();
+                    return item.message.toLowerCase().includes(q) || (item.userName || "").toLowerCase().includes(q);
+                  });
+                if (!filtered || filtered.length === 0) {
+                  return (
+                    <p className="text-center py-8 text-muted-foreground">
+                      {searchQuery.trim() ? `No feedback matches "${searchQuery}".` : "No feedback found."}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
         </CardContent>
