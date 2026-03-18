@@ -430,8 +430,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
     if (stats.overdue > 0) return { variant: "outline" as const, label: "Attention Needed", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" };
     if (stats.reviewRequired > 0) return { variant: "outline" as const, label: "Review Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" };
-    if (stats.compliant > 0 && stats.totalDocuments === stats.compliant) return { variant: "outline" as const, label: "Compliant", className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" };
-    if (stats.totalDocuments === 0) return { variant: "outline" as const, label: "No Documents", className: "" };
+    if (stats.compliant > 0 && stats.totalDocuments === stats.compliant) return null;
+    if (stats.totalDocuments === 0) return null;
     return { variant: "outline" as const, label: "Incomplete", className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" };
   };
   
@@ -744,7 +744,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <span className="font-medium">{folder.name}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>
+                              {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
                               <span className="text-sm text-muted-foreground">
                                 {folder.stats.totalDocuments} document{folder.stats.totalDocuments !== 1 ? "s" : ""}
                               </span>
@@ -772,7 +772,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>
+                                            {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
                                             <span className="text-xs text-muted-foreground">
                                               {childFolder.stats?.totalDocuments || 0} doc{(childFolder.stats?.totalDocuments || 0) !== 1 ? "s" : ""}
                                             </span>
