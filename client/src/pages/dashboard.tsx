@@ -690,11 +690,11 @@ function OverallComplianceCard({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                {docsDialog ? dialogMeta[docsDialog].title : ""} ({docsDialogDocs.length + (docsDialog === "non_compliant" ? (missingRequiredDetails?.length ?? 0) : 0)})
+                {docsDialog ? dialogMeta[docsDialog].title : ""} ({docsDialogDocs.length})
               </DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {docsDialogDocs.length === 0 && (docsDialog !== "non_compliant" || !missingRequiredDetails?.length) ? (
+              {docsDialogDocs.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
               ) : (
                 <>
@@ -727,28 +727,6 @@ function OverallComplianceCard({
                       </div>
                     );
                   })}
-                  {docsDialog === "non_compliant" && missingRequiredDetails && missingRequiredDetails.length > 0 && (
-                    <>
-                      {docsDialogDocs.length > 0 && (
-                        <div className="pt-1 pb-1 px-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Not Uploaded</div>
-                      )}
-                      {missingRequiredDetails.map((item, idx) => (
-                        <div
-                          key={`missing-${item.templateId}-${item.siteId}-${idx}`}
-                          className="flex items-center justify-between rounded-md border p-3 gap-3"
-                          data-testid={`row-missing-noncomp-${item.templateId}`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{item.templateName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}</p>
-                          </div>
-                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                            Not Uploaded
-                          </span>
-                        </div>
-                      ))}
-                    </>
-                  )}
                 </>
               )}
             </div>
