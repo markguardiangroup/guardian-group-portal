@@ -2268,62 +2268,77 @@ function EmploymentLawDashboardView() {
                       </button>
                     </div>
 
-                    {/* Document Progress */}
-                    <div className="rounded-md border bg-muted/30 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Document Progress</p>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <button
-                          onClick={() => (summary?.allDocuments || 0) > 0 && setDocsDialogFilter("total")}
-                          className={`text-center rounded-md p-1 transition-colors ${(summary?.allDocuments || 0) > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-                          data-testid="progress-el-total"
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-2xl font-semibold">{summary?.allDocuments || 0}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                        </button>
-                        <button
-                          onClick={() => (summary?.allCompliantDocuments || 0) > 0 && setDocsDialogFilter("all_compliant")}
-                          className={`text-center rounded-md p-1 transition-colors ${(summary?.allCompliantDocuments || 0) > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-                          data-testid="progress-el-compliant"
-                        >
-                          <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-2xl font-semibold">{summary?.allCompliantDocuments || 0}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Complete</p>
-                        </button>
-                        <button
-                          onClick={() => (summary?.allReviewRequired || 0) > 0 && setDocsDialogFilter("all_review")}
-                          className={`text-center rounded-md p-1 transition-colors ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-                          data-testid="progress-el-review"
-                        >
-                          <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-2xl font-semibold">{summary?.allReviewRequired || 0}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Review Required</p>
-                        </button>
-                        <button
-                          onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
-                          className={`text-center rounded-md p-1 transition-colors ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-                          data-testid="progress-el-overdue"
-                        >
-                          <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="text-2xl font-semibold">{summary?.allOverdueDocuments || 0}</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Overdue</p>
-                        </button>
-                      </div>
-                    </div>
                   </>
                 )}
               </CardContent>
             </Card>
           );
         })()}
+
+        {/* Document Progress Card */}
+        <Card data-testid="card-el-document-progress">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Document Progress
+            </CardTitle>
+            <CardDescription>All documents across this module</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <button
+                  onClick={() => (summary?.allDocuments || 0) > 0 && setDocsDialogFilter("total")}
+                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-total"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-2xl font-semibold">{summary?.allDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                </button>
+                <button
+                  onClick={() => (summary?.allCompliantDocuments || 0) > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allCompliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-compliant"
+                >
+                  <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allCompliantDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Complete</p>
+                </button>
+                <button
+                  onClick={() => (summary?.allReviewRequired || 0) > 0 && setDocsDialogFilter("all_review")}
+                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-review"
+                >
+                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allReviewRequired || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Review Required</p>
+                </button>
+                <button
+                  onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-overdue"
+                >
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allOverdueDocuments || 0}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Overdue</p>
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Case Overview Section */}
         <Card data-testid="card-case-overview">

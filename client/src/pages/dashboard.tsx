@@ -597,6 +597,7 @@ function OverallComplianceCard({
   };
 
   return (
+    <>
     <Card data-testid="card-overall-compliance">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
@@ -671,57 +672,6 @@ function OverallComplianceCard({
             </div>
           );
         })()}
-
-        {/* Document Progress */}
-        <div className="rounded-md border bg-muted/30 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Document Progress</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <button
-              onClick={() => openDocs("total")}
-              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-              data-testid="button-stat-total"
-            >
-              <div className="flex items-center justify-center gap-1">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-semibold">{allDocs}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </button>
-            <button
-              onClick={() => openDocs("all_compliant")}
-              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && allCompliant > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-              data-testid="button-stat-all-compliant"
-            >
-              <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle className="h-4 w-4" />
-                <span className="text-2xl font-semibold">{allCompliant}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Complete</p>
-            </button>
-            <button
-              onClick={() => openDocs("all_review")}
-              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && reviewDocs > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-              data-testid="button-stat-review"
-            >
-              <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-                <Clock className="h-4 w-4" />
-                <span className="text-2xl font-semibold">{reviewDocs}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Review Required</p>
-            </button>
-            <button
-              onClick={() => openDocs("all_overdue")}
-              className={`text-center rounded-md p-1 transition-colors ${allDocuments && allDocuments.length > 0 && allOverdue > 0 ? "hover:bg-muted/60 cursor-pointer" : "cursor-default"}`}
-              data-testid="button-stat-all-overdue"
-            >
-              <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="text-2xl font-semibold">{allOverdue}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Overdue</p>
-            </button>
-          </div>
-        </div>
 
         {/* Shared document-list dialog */}
         <Dialog open={docsDialog !== null} onOpenChange={(open) => { if (!open) setDocsDialog(null); }}>
@@ -873,6 +823,65 @@ function OverallComplianceCard({
         )}
       </CardContent>
     </Card>
+
+    <Card data-testid="card-overall-document-progress">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Document Progress
+        </CardTitle>
+        <CardDescription>All documents across all modules</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <button
+            onClick={() => openDocs("total")}
+            className={`text-center rounded-md border p-3 transition-colors ${allDocuments && allDocuments.length > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-total"
+          >
+            <div className="flex items-center justify-center gap-1">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-2xl font-semibold">{allDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </button>
+          <button
+            onClick={() => openDocs("all_compliant")}
+            className={`text-center rounded-md border p-3 transition-colors ${allDocuments && allDocuments.length > 0 && allCompliant > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-all-compliant"
+          >
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{allCompliant}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Complete</p>
+          </button>
+          <button
+            onClick={() => openDocs("all_review")}
+            className={`text-center rounded-md border p-3 transition-colors ${allDocuments && allDocuments.length > 0 && reviewDocs > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-review"
+          >
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <Clock className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{reviewDocs}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Review Required</p>
+          </button>
+          <button
+            onClick={() => openDocs("all_overdue")}
+            className={`text-center rounded-md border p-3 transition-colors ${allDocuments && allDocuments.length > 0 && allOverdue > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+            data-testid="button-stat-all-overdue"
+          >
+            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-2xl font-semibold">{allOverdue}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Overdue</p>
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+    </>
   );
 }
 
