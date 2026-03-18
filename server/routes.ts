@@ -861,7 +861,8 @@ export async function registerRoutes(
     const siteExcludedCache = new Map<string, Set<string>>();
 
     let slotTotal = 0;
-    let slotCompliant = 0;
+    let slotCompliant = 0;       // fulfilled slots (used for compliance score)
+    let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
@@ -920,12 +921,13 @@ export async function registerRoutes(
         if (isFulfilled) {
           slotCompliant++;
         }
-        // Count individual non-compliant docs in this slot.
-        // We count per-document (not per-slot) so that non-compliant docs in an
-        // otherwise-fulfilled slot (e.g. multiple contracts, one compliant + one
-        // review_required) still surface in the "Not Compliant" total.
+        // Count individual docs in this slot by status.
+        // We count per-document so the display cards match the dialog list —
+        // a slot with two compliant docs shows 2 compliant, and a non-compliant
+        // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
         matchingDocs.forEach(d => {
-          if (d.status === "overdue") slotOverdue++;
+          if (d.status === "compliant") slotCompliantDocs++;
+          else if (d.status === "overdue") slotOverdue++;
           else if (d.status === "review_required") slotReview++;
         });
       }
@@ -943,11 +945,15 @@ export async function registerRoutes(
     });
 
     const totalDocuments = slotTotal + manualRequired.length;
-    const compliantDocuments = slotCompliant + manualRequired.filter(d => d.status === "compliant").length;
+    // Per-document counts (match what the dialog list shows)
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+    const compliantDocuments = slotCompliantDocs + manualCompliant;
     const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required").length;
     const overdueDocuments = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const missingRequiredDocuments = missingRequired;
-    const complianceScore = totalDocuments > 0 ? Math.round((compliantDocuments / totalDocuments) * 100) : 0;
+    // Compliance score stays slot-based: fulfilled slots / total slots
+    const slotCompliantForScore = slotCompliant + manualCompliant;
+    const complianceScore = totalDocuments > 0 ? Math.round((slotCompliantForScore / totalDocuments) * 100) : 0;
 
     return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
