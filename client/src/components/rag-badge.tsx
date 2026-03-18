@@ -27,16 +27,7 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, className 
   const isCompliant = status === "compliant" && approvalStatus === "approved";
 
   if (isCompliant) {
-    return (
-      <Badge
-        variant="outline"
-        className={cn("gap-1.5 font-medium", "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", className)}
-        data-testid="badge-compliance"
-      >
-        <CheckCircle className="h-3 w-3" />
-        Compliant
-      </Badge>
-    );
+    return null;
   }
 
   return (
