@@ -673,9 +673,6 @@ function DocumentsListView() {
                             <div className="text-left">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{folder.name}</span>
-                                {folder.isRequired && (
-                                  <Badge variant="outline" className="text-xs">Required</Badge>
-                                )}
                               </div>
                               {folder.description && (
                                 <p className="text-sm text-muted-foreground">{folder.description}</p>

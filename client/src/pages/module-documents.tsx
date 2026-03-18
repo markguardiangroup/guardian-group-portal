@@ -699,9 +699,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                 <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <span className="font-medium">{folder.name}</span>
-                              {folder.isRequired && (
-                                <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
-                              )}
                             </div>
                             <div className="flex items-center gap-3">
                               <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>

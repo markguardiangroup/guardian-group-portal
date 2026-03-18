@@ -2317,7 +2317,6 @@ export default function TemplateLibraryPage() {
                       <TableHead>Code</TableHead>
                       <TableHead>Module</TableHead>
                       <TableHead>Parent</TableHead>
-                      <TableHead>Required</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -2357,13 +2356,6 @@ export default function TemplateLibraryPage() {
                                 <span className="text-sm text-muted-foreground">{getParentName(folder.parentId) || "—"}</span>
                               ) : (
                                 <Badge variant="outline" className="text-xs">Root</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {folder.isRequired ? (
-                                <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Required</Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">Optional</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -3248,15 +3240,6 @@ export default function TemplateLibraryPage() {
                 data-testid="input-folder-sort"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="folder-isRequired">Required folder</Label>
-              <Switch
-                id="folder-isRequired"
-                checked={folderFormData.isRequired}
-                onCheckedChange={(checked) => setFolderFormData({ ...folderFormData, isRequired: checked })}
-                data-testid="switch-folder-required"
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFolderDialogOpen(false)}>Cancel</Button>
@@ -3302,15 +3285,6 @@ export default function TemplateLibraryPage() {
                 value={folderFormData.sortOrder}
                 onChange={(e) => setFolderFormData({ ...folderFormData, sortOrder: parseInt(e.target.value) || 0 })}
                 data-testid="input-edit-folder-sort"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="edit-folder-isRequired">Required folder</Label>
-              <Switch
-                id="edit-folder-isRequired"
-                checked={folderFormData.isRequired}
-                onCheckedChange={(checked) => setFolderFormData({ ...folderFormData, isRequired: checked })}
-                data-testid="switch-edit-folder-required"
               />
             </div>
             <div className="flex items-center justify-between">
