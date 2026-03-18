@@ -598,7 +598,7 @@ function OverallComplianceCard({
 
   return (
     <>
-    <Card data-testid="card-overall-compliance">
+    <Card data-testid="card-overall-compliance" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary">
@@ -824,7 +824,7 @@ function OverallComplianceCard({
       </CardContent>
     </Card>
 
-    <Card data-testid="card-overall-document-progress">
+    <Card data-testid="card-overall-document-progress" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <FileText className="h-4 w-4" />
@@ -1170,47 +1170,60 @@ export default function Dashboard() {
   const isSupportLocked = !hasSupportAccess;
 
   return (
-    <div className="space-y-8 p-8 dash-animate">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Compliance Overview</h1>
-          <p className="mt-1 text-muted-foreground">
-            Monitor compliance across all modules
-            {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link 
-            href="/support" 
-            className="flex items-center gap-1.5 text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover-elevate rounded-md px-3 py-1.5 border border-slate-200 dark:border-slate-700"
-            data-testid="link-need-help"
-          >
-            <Headphones className="h-4 w-4" />
-            <span>Need support?</span>
-          </Link>
-          {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
-          {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-            <>
-              {isPrivilegedUser && (
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
+    <div className="theme-dashboard">
+      {/* Dashboard Header */}
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <Shield className="h-7 w-7 text-white dark:text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">Compliance Overview</h1>
+              <p className="text-muted-foreground">
+                Monitor compliance across all modules
+                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/support" 
+              className="flex items-center gap-1.5 text-sm font-medium bg-background/60 hover-elevate rounded-md px-3 py-1.5 border"
+              data-testid="link-need-help"
+            >
+              <Headphones className="h-4 w-4" />
+              <span>Need support?</span>
+            </Link>
+            {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
+            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
+                {isPrivilegedUser && (
+                  <>
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-48"
+                      testId="select-company-dashboard"
+                    />
+                    <span className="text-muted-foreground">/</span>
+                  </>
+                )}
+                <SiteCombobox
+                  sites={isPrivilegedUser ? filteredSites : sites}
+                  value={selectedSiteId}
+                  onValueChange={setSelectedSiteId}
                   className="w-48"
-                  testId="select-company-dashboard"
+                  testId="select-site-dashboard"
                 />
-              )}
-              <SiteCombobox
-                sites={isPrivilegedUser ? filteredSites : sites}
-                value={selectedSiteId}
-                onValueChange={setSelectedSiteId}
-                className="w-48"
-                testId="select-site-dashboard"
-              />
-            </>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+    <div className="space-y-8 p-8 dash-animate">
 
       <OverallComplianceCard 
         summaries={complianceSummaries} 
@@ -1222,7 +1235,7 @@ export default function Dashboard() {
       />
 
       {/* Renewal Compliance Section */}
-      <Card data-testid="card-renewal-compliance-overview">
+      <Card data-testid="card-renewal-compliance-overview" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -1386,6 +1399,7 @@ export default function Dashboard() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }
