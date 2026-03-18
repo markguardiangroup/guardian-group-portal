@@ -196,7 +196,6 @@ export default function Companies() {
     "Transport & Logistics",
     "Utilities",
     "Wholesale & Distribution",
-    "Other",
   ];
 
   const [formData, setFormData] = useState({

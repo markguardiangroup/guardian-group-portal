@@ -590,7 +590,6 @@ export default function CompanyDetail() {
     "Transport & Logistics",
     "Utilities",
     "Wholesale & Distribution",
-    "Other",
   ];
 
   const [editForm, setEditForm] = useState({
@@ -995,6 +994,10 @@ export default function CompanyDetail() {
     }
     if (!validatePostcode(editForm.postalCode, editForm.country)) {
       toast({ title: getPostcodeError(editForm.country), variant: "destructive" });
+      return;
+    }
+    if (!editForm.industry) {
+      toast({ title: "Industry is required", variant: "destructive" });
       return;
     }
     updateCompanyMutation.mutate(editForm);
