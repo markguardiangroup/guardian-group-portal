@@ -561,6 +561,8 @@ export default function CompanyDetail() {
   const isAdmin = user?.role === "admin";
   
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editFormOriginal, setEditFormOriginal] = useState<Record<string, string> | null>(null);
+  const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
   const [changePrimaryContactOpen, setChangePrimaryContactOpen] = useState(false);
   const [selectedNewContactId, setSelectedNewContactId] = useState("");
@@ -727,7 +729,9 @@ export default function CompanyDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      setEditFormOriginal(null);
       setEditDialogOpen(false);
+      setUnsavedChangesOpen(false);
       toast({
         title: "Company updated",
         description: "The company details have been updated successfully.",
@@ -869,7 +873,7 @@ export default function CompanyDetail() {
       const matchingUser = companyUsers.find(
         (u) => u.email === company.contactEmail || u.fullName === company.contactName
       );
-      setEditForm({
+      const initial = {
         name: company.name || "",
         companyNumber: company.companyNumber || "",
         website: company.website || "",
@@ -888,7 +892,9 @@ export default function CompanyDetail() {
         contactUserId: matchingUser?.id || "",
         searchTag: company.searchTag || "",
         status: company.status || "active",
-      });
+      };
+      setEditForm(initial);
+      setEditFormOriginal(initial);
       setEditDialogOpen(true);
     }
   };
@@ -966,8 +972,7 @@ export default function CompanyDetail() {
     ],
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitEditForm = () => {
     if (!editForm.name.trim()) {
       toast({ title: "Company name is required", variant: "destructive" });
       return;
@@ -1001,6 +1006,23 @@ export default function CompanyDetail() {
       return;
     }
     updateCompanyMutation.mutate(editForm);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitEditForm();
+  };
+
+  const isEditFormDirty =
+    editFormOriginal !== null &&
+    JSON.stringify(editForm) !== JSON.stringify(editFormOriginal);
+
+  const handleEditDialogClose = (open: boolean) => {
+    if (!open && isEditFormDirty) {
+      setUnsavedChangesOpen(true);
+    } else {
+      setEditDialogOpen(open);
+    }
   };
 
   if (isLoading) {
@@ -1501,7 +1523,7 @@ export default function CompanyDetail() {
         )}
       </Tabs>
 
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={handleEditDialogClose}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Company</DialogTitle>
@@ -1770,6 +1792,37 @@ export default function CompanyDetail() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={unsavedChangesOpen} onOpenChange={setUnsavedChangesOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Would you like to save them before leaving, or discard them?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setUnsavedChangesOpen(false);
+                setEditFormOriginal(null);
+                setEditDialogOpen(false);
+              }}
+            >
+              Discard Changes
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setUnsavedChangesOpen(false);
+                submitEditForm();
+              }}
+              disabled={updateCompanyMutation.isPending}
+            >
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={addSiteDialogOpen} onOpenChange={setAddSiteDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
