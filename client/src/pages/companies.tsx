@@ -176,10 +176,27 @@ export default function Companies() {
   const [editingCompany, setEditingCompany] = useState<CompanyWithSiteCount | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
 
+  const INDUSTRY_OPTIONS = [
+    "Agriculture & Forestry",
+    "Construction",
+    "Education",
+    "Financial Services",
+    "Healthcare & Social Care",
+    "Hospitality & Leisure",
+    "Manufacturing",
+    "Office & Professional Services",
+    "Retail",
+    "Transport & Logistics",
+    "Utilities",
+    "Wholesale & Distribution",
+    "Other",
+  ];
+
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
     website: "",
+    industry: "",
     employeeRange: "",
     addressLine1: "",
     addressLine2: "",
@@ -388,6 +405,7 @@ export default function Companies() {
       name: "",
       companyNumber: "",
       website: "",
+      industry: "",
       employeeRange: "",
       addressLine1: "",
       addressLine2: "",
@@ -404,6 +422,7 @@ export default function Companies() {
       name: company.name,
       companyNumber: company.companyNumber || "",
       website: company.website || "",
+      industry: (company as any).industry || "",
       employeeRange: company.employeeRange || "",
       addressLine1: company.addressLine1 || "",
       addressLine2: company.addressLine2 || "",
@@ -495,6 +514,10 @@ export default function Companies() {
   const handleSubmit = () => {
     if (!formData.name.trim()) {
       toast({ title: "Company name is required", variant: "destructive" });
+      return;
+    }
+    if (!formData.industry) {
+      toast({ title: "Industry is required", variant: "destructive" });
       return;
     }
     if (!formData.addressLine1.trim()) {
@@ -833,6 +856,22 @@ export default function Companies() {
               {websiteError && (
                 <p className="text-sm text-destructive">{websiteError}</p>
               )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="company-industry">Industry <span className="text-destructive">*</span></Label>
+              <Select
+                value={formData.industry || undefined}
+                onValueChange={(v) => setFormData(prev => ({ ...prev, industry: v }))}
+              >
+                <SelectTrigger id="company-industry" data-testid="select-company-industry">
+                  <SelectValue placeholder="Select an industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-employee-range">Number of Employees</Label>

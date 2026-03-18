@@ -570,11 +570,27 @@ export default function CompanyDetail() {
     newUserId: string;
   } | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
+  const INDUSTRY_OPTIONS = [
+    "Agriculture & Forestry",
+    "Construction",
+    "Education",
+    "Financial Services",
+    "Healthcare & Social Care",
+    "Hospitality & Leisure",
+    "Manufacturing",
+    "Office & Professional Services",
+    "Retail",
+    "Transport & Logistics",
+    "Utilities",
+    "Wholesale & Distribution",
+    "Other",
+  ];
 
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
     website: "",
+    industry: "",
     employeeRange: "",
     addressLine1: "",
     addressLine2: "",
@@ -851,6 +867,7 @@ export default function CompanyDetail() {
         name: company.name || "",
         companyNumber: company.companyNumber || "",
         website: company.website || "",
+        industry: (company as any).industry || "",
         employeeRange: company.employeeRange || "",
         addressLine1: company.addressLine1 || "",
         addressLine2: company.addressLine2 || "",
@@ -1122,6 +1139,12 @@ export default function CompanyDetail() {
                     >
                       {company.website}
                     </a>
+                  </div>
+                )}
+                {(company as any).industry && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    <span><span className="text-muted-foreground">Industry:</span> {(company as any).industry}</span>
                   </div>
                 )}
                 {company.employeeRange && (
@@ -1509,6 +1532,22 @@ export default function CompanyDetail() {
                 placeholder="https://www.example.com"
                 data-testid="input-edit-company-website"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-industry">Industry</Label>
+              <Select
+                value={editForm.industry || undefined}
+                onValueChange={(v) => setEditForm(prev => ({ ...prev, industry: v }))}
+              >
+                <SelectTrigger id="edit-industry" data-testid="select-edit-industry">
+                  <SelectValue placeholder="Select an industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-employee-range">Number of Employees</Label>

@@ -4825,10 +4825,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
+      }
+      
+      if (!industry || !industry.trim()) {
+        return res.status(400).json({ error: "Industry is required" });
       }
       
       if (!site || !site.name || !site.name.trim()) {
@@ -4849,6 +4853,7 @@ export async function registerRoutes(
         postalCode: postalCode || null,
         country: country || null,
         employeeRange: employeeRange || null,
+        industry: industry.trim(),
       });
       
       await storage.createSite({
@@ -4885,7 +4890,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can update companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -4906,6 +4911,7 @@ export async function registerRoutes(
       if (country !== undefined) updates.country = country || null;
       if (searchTag !== undefined) updates.searchTag = searchTag || null;
       if (employeeRange !== undefined) updates.employeeRange = employeeRange || null;
+      if (industry !== undefined) updates.industry = industry || null;
       
       const company = await storage.updateCompany(req.params.id, updates);
       
