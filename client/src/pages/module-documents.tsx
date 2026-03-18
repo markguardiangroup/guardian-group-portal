@@ -173,6 +173,19 @@ const moduleBorderColors: Record<string, string> = {
   support: "border-purple-200 dark:border-purple-800",
 };
 
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function getFileExtension(fileName?: string | null): string {
+  if (!fileName) return "";
+  const ext = fileName.split(".").pop();
+  return ext ? ext.toUpperCase() : "";
+}
+
 // Hierarchy types for folder view
 interface HierarchyDocument {
   id: string;
@@ -181,6 +194,8 @@ interface HierarchyDocument {
   type: string;
   status: DocumentStatus;
   version: number;
+  fileSize?: number | null;
+  siteId?: string | null;
   approvalStatus: ApprovalStatus;
   updatedAt: string;
   documentTypeId?: string | null;
@@ -441,6 +456,34 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     return lookup;
   }, [folderRules, folderTemplates, module]);
+
+  // Build a fast site lookup: siteId → { name, companyName }
+  const siteMap = useMemo(() => {
+    const m = new Map<string, { name: string; companyName?: string | null }>();
+    if (sites) (sites as SiteWithCompany[]).forEach(s => m.set(s.id, { name: s.name, companyName: s.companyName }));
+    return m;
+  }, [sites]);
+
+  // Show company column when a privileged user is viewing across all companies
+  const showCompany = isPrivilegedUser && (!selectedSiteId || selectedSiteId === "all") && (!selectedCompany || selectedCompany === "all");
+
+  // Build meta line for a document row: v1 · PDF · 2.4 MB [· Site] [· Company]
+  const docMetaLine = (doc: { fileName: string; version?: number; fileSize?: number | null; siteId?: string | null }) => {
+    const parts: string[] = [];
+    if (doc.version) parts.push(`v${doc.version}`);
+    const ext = getFileExtension(doc.fileName);
+    if (ext) parts.push(ext);
+    const size = formatFileSize(doc.fileSize);
+    if (size) parts.push(size);
+    if (isPrivilegedUser && doc.siteId) {
+      const siteInfo = siteMap.get(doc.siteId);
+      if (siteInfo) {
+        parts.push(siteInfo.name);
+        if (showCompany && siteInfo.companyName) parts.push(siteInfo.companyName);
+      }
+    }
+    return parts.join(" · ");
+  };
 
   // Determine which site to show access for
   // "all" means show data across all sites
@@ -750,7 +793,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   <FileText className="h-4 w-4 text-muted-foreground" />
                                                   <div>
                                                     <p className="font-medium text-sm">{doc.title}</p>
-                                                    <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                                                    <p className="text-xs text-muted-foreground">{docMetaLine(doc)}</p>
                                                   </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -815,7 +858,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             <Badge variant="outline" className="text-xs">Renew: {format(new Date(doc.renewalDate), "MMM d, yyyy")}</Badge>
                                           )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                                        <p className="text-xs text-muted-foreground">{docMetaLine(doc)}</p>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -891,7 +934,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
-                        <p className="text-xs text-muted-foreground">v{doc.version}</p>
+                        <p className="text-xs text-muted-foreground">{docMetaLine(doc)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1009,7 +1052,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           <div>
                             <p className="font-medium">{doc.title}</p>
                             <p className="text-sm text-muted-foreground">
-                              v{doc.version} - {doc.fileName}
+                              {docMetaLine(doc)}
                             </p>
                           </div>
                           {doc.isArchived && (

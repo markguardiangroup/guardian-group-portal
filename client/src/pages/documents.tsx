@@ -97,6 +97,9 @@ interface DocumentHierarchyDocument {
   id: string;
   title: string;
   fileName: string;
+  version?: number;
+  fileSize?: number | null;
+  siteId?: string | null;
   status: DocumentStatus;
   approvalStatus: ApprovalStatus;
   isRequired: boolean;
@@ -104,6 +107,19 @@ interface DocumentHierarchyDocument {
   templateId: string | null;
   expiryDate: string | null;
   updatedAt: string;
+}
+
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function getFileExtension(fileName?: string | null): string {
+  if (!fileName) return "";
+  const ext = fileName.split(".").pop();
+  return ext ? ext.toUpperCase() : "";
 }
 
 interface FolderStats {
@@ -379,6 +395,31 @@ function DocumentsListView() {
     const archiveFilter = showArchived ? doc.isArchived : !doc.isArchived;
     return matchesSearch && matchesType && matchesStatus && matchesSite && matchesFolder && archiveFilter;
   });
+
+  // Site lookup for metadata display
+  const siteMap = useMemo(() => {
+    const m = new Map<string, { name: string; companyName?: string | null }>();
+    if (sites) sites.forEach((s: any) => m.set(s.id, { name: s.name, companyName: s.companyName }));
+    return m;
+  }, [sites]);
+
+  // Build meta line: v1 · PDF · 2.4 MB [· Site] (site shown in flat list view only)
+  const docMetaLine = (doc: { fileName: string; version?: number; fileSize?: number | null; siteId?: string | null }, includeSite = false) => {
+    const parts: string[] = [];
+    if (doc.version) parts.push(`v${doc.version}`);
+    const ext = getFileExtension(doc.fileName);
+    if (ext) parts.push(ext);
+    const size = formatFileSize(doc.fileSize);
+    if (size) parts.push(size);
+    if (includeSite && isPrivilegedUser && doc.siteId) {
+      const siteInfo = siteMap.get(doc.siteId);
+      if (siteInfo) {
+        parts.push(siteInfo.name);
+        if (selectedSiteId === "all" && siteInfo.companyName) parts.push(siteInfo.companyName);
+      }
+    }
+    return parts.join(" · ");
+  };
 
   return (
     <div className="space-y-6 p-8">
@@ -750,7 +791,7 @@ function DocumentsListView() {
                                   <div>
                                     <p className="font-medium">{doc.title}</p>
                                     <p className="text-sm text-muted-foreground">
-                                      {doc.fileName} • {doc.source === "template" ? "From Template" : "Uploaded"}
+                                      {docMetaLine(doc)}
                                     </p>
                                   </div>
                                 </div>
@@ -806,9 +847,12 @@ function DocumentsListView() {
                                           href={`/documents/${doc.id}`}
                                           className="flex items-center justify-between rounded-md border bg-background p-2 hover-elevate"
                                         >
-                                          <div className="flex items-center gap-2">
-                                            <FileText className="h-4 w-4 text-muted-foreground" />
-                                            <span className="text-sm">{doc.title}</span>
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium truncate">{doc.title}</p>
+                                              <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
+                                            </div>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -973,7 +1017,7 @@ function DocumentsListView() {
                         <div>
                           <p className="font-medium">{doc.title}</p>
                           <p className="text-sm text-muted-foreground">
-                            v{doc.version} • {doc.fileName}
+                            {docMetaLine(doc, true)}
                           </p>
                         </div>
                       </Link>
