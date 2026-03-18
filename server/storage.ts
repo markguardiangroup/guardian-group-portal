@@ -732,7 +732,10 @@ export class MemStorage implements IStorage {
     const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
 
     let slotTotal = 0;
-    let slotCompliant = 0;
+    // slotCompliantForScore: one per fulfilled slot (used for compliance %)
+    let slotCompliantForScore = 0;
+    // per-document counts for display (matching computeSlotBasedCompliance in routes.ts)
+    let slotCompliantDocs = 0;
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
@@ -765,6 +768,7 @@ export class MemStorage implements IStorage {
           missingRequired++;
           continue;
         }
+        // Slot score: fulfilled if any doc properly satisfies the slot
         const isFulfilled = matchingDocs.some(d => {
           if (d.status !== "compliant") return false;
           if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
@@ -772,25 +776,28 @@ export class MemStorage implements IStorage {
           if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
           return true;
         });
-        if (isFulfilled) {
-          slotCompliant++;
-        } else {
-          const hasOverdue = matchingDocs.some(d => d.status === "overdue");
-          if (hasOverdue) slotOverdue++;
-          else slotReview++;
-        }
+        if (isFulfilled) slotCompliantForScore++;
+        // Per-document display counts — so the dialog list matches the card numbers
+        matchingDocs.forEach(d => {
+          if (d.status === "compliant") slotCompliantDocs++;
+          else if (d.status === "overdue") slotOverdue++;
+          else if (d.status === "review_required") slotReview++;
+        });
       }
     }
 
     const manualRequired = docs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
 
     const total = slotTotal + manualRequired.length;
-    const compliant = slotCompliant + manualRequired.filter(d => d.status === "compliant").length;
+    const compliant = slotCompliantDocs + manualCompliant;
     const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
     const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    // Score stays slot-based: fulfilled slots / total slots
+    const scoreNumerator = slotCompliantForScore + manualCompliant;
     
     return {
       totalDocuments: total,
@@ -801,7 +808,7 @@ export class MemStorage implements IStorage {
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+      complianceScore: total > 0 ? Math.round((scoreNumerator / total) * 100) : 0,
     };
   }
 
