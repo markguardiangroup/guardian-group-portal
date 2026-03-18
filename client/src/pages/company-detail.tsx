@@ -1566,7 +1566,7 @@ export default function CompanyDetail() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-industry">Industry</Label>
+              <Label htmlFor="edit-industry">Industry <span className="text-destructive">*</span></Label>
               <Select
                 value={editForm.industry || undefined}
                 onValueChange={(v) => setEditForm(prev => ({ ...prev, industry: v }))}
