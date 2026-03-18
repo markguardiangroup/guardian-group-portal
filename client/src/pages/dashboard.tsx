@@ -543,34 +543,45 @@ function OverallComplianceCard({
     overdue: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
+  // The compliance boxes (Compliant / Not Compliant) count only docs from the
+  // three compliance modules, excluding archived and case documents — this must
+  // match what computeSlotBasedCompliance does on the server.
+  const COMPLIANCE_MODULES = ["health_safety", "human_resources", "employment_law"];
+  const isComplianceDoc = (d: Document) =>
+    !d.isArchived && !d.caseId && COMPLIANCE_MODULES.includes(d.module as string);
+
+  // The Document Progress card counts ALL non-archived, non-case documents
+  // regardless of module.
+  const isProgressDoc = (d: Document) => !d.isArchived && !d.caseId;
+
   const dialogMeta: Record<NonNullable<DocsDialogType>, { title: string; filter: (d: Document) => boolean }> = {
     compliant: {
       title: "Compliant Required Documents",
-      filter: (d) => !!d.isRequired && d.status === "compliant",
+      filter: (d) => isComplianceDoc(d) && !!d.isRequired && d.status === "compliant",
     },
     non_compliant: {
       title: "Not Compliant (Required Documents)",
-      filter: (d) => !!d.isRequired && (d.status === "overdue" || d.status === "review_required"),
+      filter: (d) => isComplianceDoc(d) && !!d.isRequired && (d.status === "overdue" || d.status === "review_required"),
     },
     overdue: {
       title: "Overdue Required Documents",
-      filter: (d) => !!d.isRequired && d.status === "overdue",
+      filter: (d) => isComplianceDoc(d) && !!d.isRequired && d.status === "overdue",
     },
     total: {
-      title: "Required Documents",
-      filter: (d) => !!d.isRequired,
+      title: "All Documents",
+      filter: (d) => isProgressDoc(d),
     },
     all_compliant: {
-      title: "Complete Required Documents",
-      filter: (d) => !!d.isRequired && d.status === "compliant",
+      title: "Complete Documents",
+      filter: (d) => isProgressDoc(d) && d.status === "compliant",
     },
     all_review: {
       title: "Review Required Documents",
-      filter: (d) => !!d.isRequired && d.status === "review_required",
+      filter: (d) => isProgressDoc(d) && d.status === "review_required",
     },
     all_overdue: {
-      title: "Overdue Required Documents",
-      filter: (d) => !!d.isRequired && d.status === "overdue",
+      title: "Overdue Documents",
+      filter: (d) => isProgressDoc(d) && d.status === "overdue",
     },
   };
 
