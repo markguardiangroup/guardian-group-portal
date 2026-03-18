@@ -2189,7 +2189,7 @@ function EmploymentLawDashboardView() {
           const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = score >= 90 ? "bg-emerald-500" : score >= 70 ? "bg-amber-500" : "bg-red-500";
           return (
-            <Card data-testid="card-compliance-summary">
+            <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4" />
@@ -2276,7 +2276,7 @@ function EmploymentLawDashboardView() {
         })()}
 
         {/* Document Progress Card */}
-        <Card data-testid="card-el-document-progress">
+        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-el-document-progress">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -2341,7 +2341,7 @@ function EmploymentLawDashboardView() {
         </Card>
 
         {/* Case Overview Section */}
-        <Card data-testid="card-case-overview">
+        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-case-overview">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
@@ -2381,7 +2381,7 @@ function EmploymentLawDashboardView() {
         </Card>
 
         {/* Renewal Compliance Section */}
-        <Card data-testid="card-renewal-compliance">
+        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -2477,7 +2477,7 @@ function EmploymentLawDashboardView() {
         {/* Recent Documents and Cases Section */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent Documents */}
-          <Card>
+          <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
                 <CardTitle>Recent Documents</CardTitle>
@@ -2536,7 +2536,7 @@ function EmploymentLawDashboardView() {
           </Card>
 
           {/* Recent Cases */}
-          <Card>
+          <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
                 <CardTitle>Recent Cases</CardTitle>

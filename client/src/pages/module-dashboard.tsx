@@ -450,7 +450,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0);
           const documentsMissingCount = summary.missingRequiredDocuments || 0;
           return (
-            <Card data-testid="card-compliance-summary">
+            <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4" />
@@ -537,7 +537,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         })()}
 
         {/* Document Progress Card */}
-        <Card data-testid="card-document-progress">
+        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-document-progress">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -602,7 +602,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         </Card>
 
       {/* Renewal Compliance Section */}
-      <Card data-testid="card-renewal-compliance">
+      <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -697,7 +697,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border-t-4 border-t-module-accent bg-module-accent-subtle">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Recent Documents</CardTitle>
@@ -772,7 +772,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
           <CardHeader>
             <CardTitle className="text-lg">Upcoming Reviews</CardTitle>
           </CardHeader>
