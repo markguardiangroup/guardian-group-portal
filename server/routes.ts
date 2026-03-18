@@ -919,11 +919,15 @@ export async function registerRoutes(
         });
         if (isFulfilled) {
           slotCompliant++;
-        } else {
-          const hasOverdue = matchingDocs.some(d => d.status === "overdue");
-          if (hasOverdue) slotOverdue++;
-          else slotReview++;
         }
+        // Count individual non-compliant docs in this slot.
+        // We count per-document (not per-slot) so that non-compliant docs in an
+        // otherwise-fulfilled slot (e.g. multiple contracts, one compliant + one
+        // review_required) still surface in the "Not Compliant" total.
+        matchingDocs.forEach(d => {
+          if (d.status === "overdue") slotOverdue++;
+          else if (d.status === "review_required") slotReview++;
+        });
       }
     }
 
