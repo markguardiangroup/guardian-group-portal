@@ -284,7 +284,7 @@ export interface IStorage {
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
-  getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
+  getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; downloadsByModule: { health_safety: number; human_resources: number; employment_law: number }; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
 
   // Document Pathways (Guided finder decision trees)
   getDocumentPathways(module?: string): Promise<DocumentPathway[]>;
@@ -2130,9 +2130,29 @@ export class MemStorage implements IStorage {
       ? await recentQuery.where(totalWhere)
       : await recentQuery;
 
+    const byModuleQuery = db
+      .select({
+        module: documentTemplatesTable.module,
+        count: count(),
+      })
+      .from(toolkitDownloadsTable)
+      .leftJoin(documentTemplatesTable, eq(documentTemplatesTable.id, toolkitDownloadsTable.templateId))
+      .groupBy(documentTemplatesTable.module);
+
+    const byModuleRows = totalWhere
+      ? await byModuleQuery.where(totalWhere)
+      : await byModuleQuery;
+
+    const downloadsByModule = {
+      health_safety: byModuleRows.find(r => r.module === "health_safety")?.count ?? 0,
+      human_resources: byModuleRows.find(r => r.module === "human_resources")?.count ?? 0,
+      employment_law: byModuleRows.find(r => r.module === "employment_law")?.count ?? 0,
+    };
+
     return {
       totalDownloads: totalRow?.count ?? 0,
       downloadsLast30Days: last30Row?.count ?? 0,
+      downloadsByModule,
       recentDownloads: recentDownloads.map(r => ({
         id: r.id,
         templateName: r.templateName ?? 'Unknown',

@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, DownloadCloud, TrendingUp, Building2, Download, FolderOpen } from "lucide-react";
+import { BookMarked, DownloadCloud, TrendingUp, Building2, Download, FolderOpen, HardHat, Briefcase, Scale } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +22,11 @@ interface Site {
 interface DownloadStats {
   totalDownloads: number;
   downloadsLast30Days: number;
+  downloadsByModule: {
+    health_safety: number;
+    human_resources: number;
+    employment_law: number;
+  };
   recentDownloads: {
     id: string;
     templateName: string;
@@ -168,6 +173,7 @@ export default function ToolkitDashboard() {
       </div>
 
       <div className="p-8 space-y-6 dash-animate">
+        {/* Total summary cards */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card data-testid="card-total-downloads">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -196,6 +202,58 @@ export default function ToolkitDashboard() {
               <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Per-module breakdown */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              key: "health_safety" as const,
+              label: "Health & Safety",
+              Icon: HardHat,
+              iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+              iconColor: "text-emerald-600 dark:text-emerald-400",
+              countColor: "text-emerald-700 dark:text-emerald-300",
+              borderTop: "border-t-emerald-500",
+            },
+            {
+              key: "human_resources" as const,
+              label: "Human Resources",
+              Icon: Briefcase,
+              iconBg: "bg-blue-100 dark:bg-blue-900/40",
+              iconColor: "text-blue-600 dark:text-blue-400",
+              countColor: "text-blue-700 dark:text-blue-300",
+              borderTop: "border-t-blue-500",
+            },
+            {
+              key: "employment_law" as const,
+              label: "Employment Law",
+              Icon: Scale,
+              iconBg: "bg-pink-100 dark:bg-pink-900/40",
+              iconColor: "text-pink-600 dark:text-pink-400",
+              countColor: "text-pink-700 dark:text-pink-300",
+              borderTop: "border-t-pink-500",
+            },
+          ].map(({ key, label, Icon, iconBg, iconColor, countColor, borderTop }) => (
+            <Card key={key} className={`border-t-4 ${borderTop}`} data-testid={`card-module-downloads-${key}`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                <div className={`p-1.5 rounded-md ${iconBg}`}>
+                  <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${countColor}`} data-testid={`text-module-downloads-${key}`}>
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-12" />
+                  ) : (
+                    <TickerNumber value={stats?.downloadsByModule?.[key] ?? 0} />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Total downloads</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <Card>
