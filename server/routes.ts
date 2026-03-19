@@ -10157,7 +10157,16 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const pathway = await storage.updateDocumentPathway(req.params.id, req.body);
+      // Whitelist only mutable fields to prevent unintended overwrites
+      const { title, description, module, tree, isActive, sortOrder } = req.body;
+      const updates: Record<string, unknown> = {};
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description;
+      if (module !== undefined) updates.module = module;
+      if (tree !== undefined) updates.tree = tree;
+      if (isActive !== undefined) updates.isActive = isActive;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const pathway = await storage.updateDocumentPathway(req.params.id, updates);
       if (!pathway) return res.status(404).json({ error: "Pathway not found" });
       res.json(pathway);
     } catch (error) {

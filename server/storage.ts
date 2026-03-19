@@ -3760,6 +3760,9 @@ export class MemStorage implements IStorage {
         ],
       };
 
+      // templateIds arrays are intentionally empty in seed data — they act as
+      // placeholder leaf endpoints. Administrators should map real template IDs
+      // through the Manage Pathways admin UI after the Toolkit library is populated.
       await db.insert(documentPathwaysTable).values([
         {
           id: "pathway-hs-default",
