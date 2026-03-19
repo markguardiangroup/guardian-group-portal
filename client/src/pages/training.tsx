@@ -606,11 +606,9 @@ export default function Training() {
       </div>
 
       {/* Guided Training Finder Banner */}
-      <div className="flex-shrink-0 px-6 pt-4 pb-0">
-        <button
-          onClick={openFinder}
-          data-testid="button-open-training-finder"
-          className="w-full group relative overflow-hidden rounded-xl text-white cursor-pointer mb-4"
+      <div className="flex-shrink-0 px-6 pt-4">
+        <div
+          className="relative overflow-hidden rounded-xl p-5 sm:p-6 text-white shadow-md cursor-pointer group mb-0"
           style={
             activeTab === "health_safety"
               ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
@@ -618,25 +616,33 @@ export default function Training() {
               ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
               : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
           }
+          onClick={openFinder}
+          data-testid="button-open-training-finder"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && openFinder()}
         >
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 80% 50%, white 0%, transparent 60%)" }} />
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5">
+          <Compass
+            className="absolute -right-8 -top-8 h-44 w-44 opacity-[0.07] pointer-events-none"
+            aria-hidden="true"
+          />
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-2.5 rounded-xl bg-white/20 shrink-0 group-hover:bg-white/30 transition-colors">
-                <Compass className="h-6 w-6 text-white" />
+              <div className="p-3 rounded-xl bg-white/20 shrink-0 group-hover:bg-white/30 transition-colors">
+                <Compass className="h-7 w-7 text-white" />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-0.5">Guided Training Finder</p>
-                <h2 className="text-sm sm:text-base font-bold leading-snug">Not sure which training you need?</h2>
-                <p className="text-xs text-white/80 mt-0.5">Answer a few quick questions and we'll point you to the right course.</p>
+                <h2 className="text-base sm:text-lg font-bold leading-snug">Not sure which training you need?</h2>
+                <p className="text-sm text-white/80 mt-0.5 leading-relaxed">Answer a few quick questions and we'll point you to the right course.</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 bg-white/20 group-hover:bg-white/30 transition-colors rounded-lg px-4 py-2 font-semibold text-sm sm:ml-4">
+            <div className="flex items-center gap-2 shrink-0 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-4 py-2.5 font-semibold text-sm sm:ml-4">
               Find a Course
               <ChevronRight className="h-4 w-4" />
             </div>
           </div>
-        </button>
+        </div>
       </div>
 
       {/* Module tabs - Enhanced Prominence */}
