@@ -103,7 +103,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
-import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord, DocumentStatus, ApprovalStatus } from "@shared/schema";
+import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord, DocumentStatus, ApprovalStatus, DocumentFolder } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -456,7 +456,34 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
     queryKey: ["/api/folder-document-type-rules"],
   });
-  
+
+  // Fetch site folders for folder-path display in table view
+  const effectiveSiteId = selectedSiteId && selectedSiteId !== "all" ? selectedSiteId : null;
+  const { data: siteFoldersList } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", effectiveSiteId, module],
+    queryFn: async () => {
+      const res = await fetch(`/api/folders?siteId=${effectiveSiteId}&module=${module}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!effectiveSiteId,
+  });
+
+  // Build map: folderId → "ParentName / ChildName" (or just "Name")
+  const folderPathMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!siteFoldersList) return map;
+    for (const folder of siteFoldersList) {
+      if (folder.parentId) {
+        const parent = siteFoldersList.find(f => f.id === folder.parentId);
+        map.set(folder.id, parent ? `${parent.name} / ${folder.name}` : folder.name);
+      } else {
+        map.set(folder.id, folder.name);
+      }
+    }
+    return map;
+  }, [siteFoldersList]);
+
   // Get the effective site ID for hierarchy query
   // Support "all" when a company is selected or when viewing all sites
   const hierarchySiteId = selectedSiteId 
@@ -1182,7 +1209,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="font-normal">
-                        {getDocTypeLabel(doc.type, (doc as any).documentTypeId)}
+                        {(doc as any).folderId && folderPathMap.get((doc as any).folderId)
+                          ? folderPathMap.get((doc as any).folderId)
+                          : "—"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -1423,6 +1452,36 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const { data: auditLogs } = useQuery<AuditLog[]>({
     queryKey: ["/api/documents", id, "audit"],
   });
+
+  // Fetch site folders so we can show folder/subfolder path instead of doc type
+  const { data: detailSiteFolders } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", document?.siteId, module],
+    queryFn: async () => {
+      const res = await fetch(`/api/folders?siteId=${document!.siteId}&module=${module}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!document?.siteId,
+  });
+
+  const detailFolderPathMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!detailSiteFolders) return map;
+    for (const folder of detailSiteFolders) {
+      if (folder.parentId) {
+        const parent = detailSiteFolders.find(f => f.id === folder.parentId);
+        map.set(folder.id, parent ? `${parent.name} / ${folder.name}` : folder.name);
+      } else {
+        map.set(folder.id, folder.name);
+      }
+    }
+    return map;
+  }, [detailSiteFolders]);
+
+  const getFolderPath = (folderId?: string | null) => {
+    if (!folderId) return "—";
+    return detailFolderPathMap.get(folderId) || "—";
+  };
 
   const { data: templates } = useQuery<any[]>({
     queryKey: ["/api/document-templates"],
@@ -1806,7 +1865,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             )}
           </div>
           <p className="text-muted-foreground">
-            Version {document.version} - {getDocTypeLabel(document.type, (document as any).documentTypeId)}
+            Version {document.version} - {getFolderPath((document as any).folderId)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -1855,8 +1914,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   <p>{document.renewalDate ? format(new Date(document.renewalDate), "MMM d, yyyy") : "Not set"}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Document Type</p>
-                  <p>{getDocTypeLabel(document.type, (document as any).documentTypeId)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Location</p>
+                  <p>{getFolderPath((document as any).folderId)}</p>
                 </div>
               </div>
               {document.templateId && (() => {
