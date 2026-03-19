@@ -1509,6 +1509,34 @@ export const insertDocumentPathwaySchema = createInsertSchema(documentPathways).
 export type InsertDocumentPathway = z.infer<typeof insertDocumentPathwaySchema>;
 export type DocumentPathway = typeof documentPathways.$inferSelect;
 
+// Training Pathways (Guided training finder decision trees)
+export interface TrainingPathwayNode {
+  question: string;
+  answers: Array<{
+    label: string;
+    description?: string;
+    next?: TrainingPathwayNode | null;
+    courseIds?: string[];
+  }>;
+}
+
+export const trainingPathways = pgTable("training_pathways", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  module: text("module").$type<"health_safety" | "human_resources" | "employment_law" | null>(),
+  tree: jsonb("tree").notNull().$type<TrainingPathwayNode>(),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrainingPathwaySchema = createInsertSchema(trainingPathways).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTrainingPathway = z.infer<typeof insertTrainingPathwaySchema>;
+export type TrainingPathway = typeof trainingPathways.$inferSelect;
+
 // ─── Testing Task Lists ───────────────────────────────────────────────────────
 
 export type TestingModule = "health_safety" | "human_resources" | "employment_law" | "training" | "general";

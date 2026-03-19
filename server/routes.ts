@@ -10188,6 +10188,67 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Training Pathways (Guided Training Finder) ──────────────────────────────
+
+  app.get("/api/training/pathways", requireAuth, async (req, res) => {
+    try {
+      const { module } = req.query;
+      const pathways = await storage.getTrainingPathways(typeof module === "string" ? module : undefined);
+      res.json(pathways);
+    } catch (error) {
+      console.error("Error fetching training pathways:", error);
+      res.status(500).json({ error: "Failed to fetch training pathways" });
+    }
+  });
+
+  app.post("/api/training/pathways", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { title, description, module, tree, isActive, sortOrder } = req.body;
+      if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
+      const pathway = await storage.createTrainingPathway({ title, description: description ?? null, module: module ?? null, tree, isActive: isActive !== false, sortOrder: sortOrder ?? 0, createdBy: user.id });
+      res.status(201).json(pathway);
+    } catch (error) {
+      console.error("Error creating training pathway:", error);
+      res.status(500).json({ error: "Failed to create training pathway" });
+    }
+  });
+
+  app.patch("/api/training/pathways/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { title, description, module, tree, isActive, sortOrder } = req.body;
+      const updates: Record<string, unknown> = {};
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description;
+      if (module !== undefined) updates.module = module;
+      if (tree !== undefined) updates.tree = tree;
+      if (isActive !== undefined) updates.isActive = isActive;
+      if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+      const pathway = await storage.updateTrainingPathway(req.params.id, updates);
+      if (!pathway) return res.status(404).json({ error: "Pathway not found" });
+      res.json(pathway);
+    } catch (error) {
+      console.error("Error updating training pathway:", error);
+      res.status(500).json({ error: "Failed to update training pathway" });
+    }
+  });
+
+  app.delete("/api/training/pathways/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const ok = await storage.deleteTrainingPathway(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Pathway not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting training pathway:", error);
+      res.status(500).json({ error: "Failed to delete training pathway" });
+    }
+  });
+
   // ─── Testing Task Lists ──────────────────────────────────────────────────────
 
   const taskListSchema = z.object({

@@ -49,12 +49,14 @@ import {
   AlertCircle,
   FolderOpen,
   ChevronRight,
+  ChevronLeft,
   List,
   HelpCircle,
   Mail,
   Calendar,
   X,
   CheckCircle,
+  CheckCircle2,
   Target,
   Sparkles,
   Award,
@@ -62,7 +64,16 @@ import {
   Users2,
   Filter,
   LayoutGrid,
+  Compass,
+  RotateCcw,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -132,6 +143,216 @@ const moduleAccentBg: Record<string, string> = {
 
 type ModuleFilter = ModuleType;
 
+// ── Training Pathway Wizard ──────────────────────────────────────────────────
+
+interface TrainingPathwayNode {
+  question: string;
+  answers: Array<{
+    label: string;
+    description?: string;
+    next?: TrainingPathwayNode | null;
+    courseIds?: string[];
+  }>;
+}
+
+interface TrainingPathway {
+  id: string;
+  title: string;
+  description: string | null;
+  module: ModuleType | null;
+  tree: TrainingPathwayNode;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+interface TrainingWizardStep {
+  node: TrainingPathwayNode;
+  selectedAnswerIndex: number | null;
+}
+
+function TrainingPathwayWizard({
+  pathway,
+  allCourses,
+  activeTab,
+  onClose,
+  onEnquire,
+}: {
+  pathway: TrainingPathway;
+  allCourses: TrainingCourse[];
+  activeTab: ModuleFilter;
+  onClose: () => void;
+  onEnquire: (course: TrainingCourse) => void;
+}) {
+  const [steps, setSteps] = useState<TrainingWizardStep[]>([{ node: pathway.tree, selectedAnswerIndex: null }]);
+  const [results, setResults] = useState<string[] | null>(null);
+  const [animDir, setAnimDir] = useState<"forward" | "backward">("forward");
+  const [animKey, setAnimKey] = useState(0);
+
+  const currentStep = steps[steps.length - 1];
+  const color = moduleColors[activeTab];
+  const bgColor = moduleBgColors[activeTab];
+
+  const advance = (dir: "forward" | "backward", fn: () => void) => {
+    setAnimDir(dir);
+    setAnimKey(k => k + 1);
+    fn();
+  };
+
+  const handleAnswer = (idx: number) => {
+    const answer = currentStep.node.answers[idx];
+    const newSteps = steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: idx } : s);
+    if (answer.courseIds !== undefined && !answer.next) {
+      advance("forward", () => { setSteps(newSteps); setResults(answer.courseIds ?? []); });
+    } else if (answer.next) {
+      advance("forward", () => setSteps([...newSteps, { node: answer.next!, selectedAnswerIndex: null }]));
+    } else {
+      advance("forward", () => { setSteps(newSteps); setResults([]); });
+    }
+  };
+
+  const handleBack = () => {
+    if (results !== null) {
+      advance("backward", () => { setResults(null); setSteps(steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: null } : s)); });
+    } else if (steps.length > 1) {
+      advance("backward", () => setSteps(steps.slice(0, -1)));
+    }
+  };
+
+  const handleReset = () => advance("backward", () => { setSteps([{ node: pathway.tree, selectedAnswerIndex: null }]); setResults(null); });
+
+  const recommendedCourses = results !== null ? allCourses.filter(c => results.includes(c.id)) : [];
+
+  const slideClass = animDir === "forward"
+    ? "animate-in slide-in-from-right-4 fade-in duration-200"
+    : "animate-in slide-in-from-left-4 fade-in duration-200";
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Progress breadcrumb */}
+      <div className="px-6 pt-4 pb-3 border-b bg-muted/30 shrink-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`text-xs ${steps.length === 1 && results === null ? "font-medium text-foreground" : "text-muted-foreground"}`}>Start</span>
+          {steps.slice(1).map((s, i) => (
+            <span key={i} className="flex items-center gap-1.5">
+              <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span className={`text-xs ${i === steps.length - 2 && results === null ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                {steps[i].node.answers[steps[i].selectedAnswerIndex!]?.label}
+              </span>
+            </span>
+          ))}
+          {results !== null && (
+            <>
+              <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                Results
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div key={animKey} className={slideClass}>
+          {results !== null ? (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-base">Recommended Courses</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Based on your answers, here are the most relevant training courses for you.
+                  </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 shrink-0 text-xs font-medium px-2 py-1 rounded-full ${bgColor} ${color}`}>
+                  {moduleNames[activeTab]}
+                </span>
+              </div>
+              {recommendedCourses.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <GraduationCap className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm font-medium">No specific courses found.</p>
+                  <p className="text-xs mt-1">Try browsing courses above, or start over with different answers.</p>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden divide-y">
+                  {recommendedCourses.map((course) => (
+                    <div key={course.id} className="flex items-start gap-3 p-4 hover:bg-muted/40 transition-colors">
+                      <div className={`p-2 rounded-lg ${bgColor} shrink-0`}>
+                        <GraduationCap className={`h-4 w-4 ${color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm leading-snug">{course.title}</p>
+                        {course.provider && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Building2 className="h-3 w-3" /> {course.provider}
+                          </p>
+                        )}
+                        {course.duration && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Clock className="h-3 w-3" /> {course.duration}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => onEnquire(course)}
+                        data-testid={`button-wizard-enquire-${course.id}`}
+                      >
+                        <Mail className="h-3.5 w-3.5 mr-1.5" />
+                        Enquire
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <h3 className="font-semibold text-base leading-snug">{currentStep.node.question}</h3>
+              <div className="grid gap-2">
+                {currentStep.node.answers.map((answer, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAnswer(idx)}
+                    data-testid={`button-training-pathway-answer-${idx}`}
+                    className={`group flex items-start gap-3 rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-all ${
+                      currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary/5" : "border-border bg-card"
+                    }`}
+                  >
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 transition-colors ${
+                      currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary" : "border-muted-foreground/40 group-hover:border-primary"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm leading-snug">{answer.label}</p>
+                      {answer.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{answer.description}</p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="px-6 py-4 border-t flex items-center justify-between gap-3 shrink-0 bg-background">
+        <Button variant="ghost" size="sm" onClick={steps.length > 1 || results !== null ? handleBack : onClose} data-testid="button-training-pathway-back">
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          {steps.length <= 1 && results === null ? "Close" : "Back"}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleReset} data-testid="button-training-pathway-reset">
+          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          Start Over
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Training() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -140,6 +361,8 @@ export default function Training() {
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
   const [showEnquiryDialog, setShowEnquiryDialog] = useState(false);
+  const [showFinderSheet, setShowFinderSheet] = useState(false);
+  const [selectedPathway, setSelectedPathway] = useState<TrainingPathway | null>(null);
   const [enquiryMessage, setEnquiryMessage] = useState("");
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
   const [numberOfAttendees, setNumberOfAttendees] = useState("");
@@ -156,6 +379,27 @@ export default function Training() {
   const { data: allCourses, isLoading: coursesLoading } = useQuery<TrainingCourse[]>({
     queryKey: ["/api/training-courses"],
   });
+
+  const { data: pathways } = useQuery<TrainingPathway[]>({
+    queryKey: ["/api/training/pathways", activeTab],
+    queryFn: async () => {
+      const res = await fetch(`/api/training/pathways?module=${activeTab}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch training pathways");
+      return res.json();
+    },
+  });
+
+  const activePathways = (pathways ?? []).filter(p => p.isActive);
+  const pathwaysLoaded = pathways !== undefined;
+
+  const openFinder = () => {
+    if (activePathways.length === 1) {
+      setSelectedPathway(activePathways[0]);
+    } else {
+      setSelectedPathway(null);
+    }
+    setShowFinderSheet(true);
+  };
 
   const { data: sites } = useQuery<Site[]>({
     queryKey: ["/api/sites"],
@@ -359,6 +603,40 @@ export default function Training() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Guided Training Finder Banner */}
+      <div className="flex-shrink-0 px-6 pt-4 pb-0">
+        <button
+          onClick={openFinder}
+          data-testid="button-open-training-finder"
+          className="w-full group relative overflow-hidden rounded-xl text-white cursor-pointer mb-4"
+          style={
+            activeTab === "health_safety"
+              ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
+              : activeTab === "human_resources"
+              ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
+              : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
+          }
+        >
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 80% 50%, white 0%, transparent 60%)" }} />
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 rounded-xl bg-white/20 shrink-0 group-hover:bg-white/30 transition-colors">
+                <Compass className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-0.5">Guided Training Finder</p>
+                <h2 className="text-sm sm:text-base font-bold leading-snug">Not sure which training you need?</h2>
+                <p className="text-xs text-white/80 mt-0.5">Answer a few quick questions and we'll point you to the right course.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 bg-white/20 group-hover:bg-white/30 transition-colors rounded-lg px-4 py-2 font-semibold text-sm sm:ml-4">
+              Find a Course
+              <ChevronRight className="h-4 w-4" />
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* Module tabs - Enhanced Prominence */}
@@ -771,6 +1049,80 @@ export default function Training() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Guided Training Finder Sheet */}
+      <Sheet open={showFinderSheet} onOpenChange={(o) => { if (!o) { setShowFinderSheet(false); setSelectedPathway(null); } }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl lg:max-w-3xl p-0 flex flex-col gap-0">
+          <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+            <SheetTitle className="flex items-center gap-2">
+              <Compass className="h-5 w-5 text-primary" />
+              Find a Training Course
+            </SheetTitle>
+            <SheetDescription>
+              Answer a few quick questions and we'll point you to the right course.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            {!selectedPathway ? (
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                {!pathwaysLoaded ? (
+                  <p className="text-sm text-muted-foreground">Loading...</p>
+                ) : activePathways.length === 0 ? (
+                  <div className="flex flex-col items-center text-center gap-4 py-10">
+                    <div className="p-3 rounded-full bg-muted">
+                      <Compass className="h-8 w-8 text-muted-foreground opacity-50" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">No guided pathways available yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        A guided training finder has not been configured for <strong>{moduleNames[activeTab]}</strong> yet.
+                      </p>
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-xs">
+                      In the meantime, browse courses on this page or contact your administrator for help choosing the right training.
+                    </p>
+                    <Button variant="outline" size="sm" onClick={() => setShowFinderSheet(false)} data-testid="button-training-finder-close-no-pathways">
+                      <GraduationCap className="h-4 w-4 mr-2" />
+                      Browse Courses Instead
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">Choose a topic to get started:</p>
+                    {activePathways.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPathway(p)}
+                        data-testid={`button-training-pathway-picker-${p.id}`}
+                        className="w-full flex items-center gap-3 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 text-left transition-all group"
+                      >
+                        <Compass className="h-5 w-5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{p.title}</p>
+                          {p.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>}
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <TrainingPathwayWizard
+                pathway={selectedPathway}
+                allCourses={allCourses ?? []}
+                activeTab={activeTab}
+                onClose={() => setShowFinderSheet(false)}
+                onEnquire={(course) => {
+                  setSelectedCourse(course);
+                  setShowEnquiryDialog(true);
+                }}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

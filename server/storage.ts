@@ -59,6 +59,8 @@ import {
   userInvitations as userInvitationsTable,
   type DocumentPathway, type InsertDocumentPathway, type PathwayNode,
   documentPathways as documentPathwaysTable,
+  type TrainingPathway, type InsertTrainingPathway,
+  trainingPathways as trainingPathwaysTable,
   type TestingTaskList, type InsertTestingTaskList,
   type TestingTaskAssignment, type InsertTestingTaskAssignment,
   testingTaskLists as testingTaskListsTable,
@@ -292,6 +294,11 @@ export interface IStorage {
   createDocumentPathway(pathway: InsertDocumentPathway): Promise<DocumentPathway>;
   updateDocumentPathway(id: string, updates: Partial<DocumentPathway>): Promise<DocumentPathway | undefined>;
   deleteDocumentPathway(id: string): Promise<boolean>;
+  getTrainingPathways(module?: string): Promise<TrainingPathway[]>;
+  getTrainingPathway(id: string): Promise<TrainingPathway | undefined>;
+  createTrainingPathway(pathway: InsertTrainingPathway): Promise<TrainingPathway>;
+  updateTrainingPathway(id: string, updates: Partial<TrainingPathway>): Promise<TrainingPathway | undefined>;
+  deleteTrainingPathway(id: string): Promise<boolean>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -2065,6 +2072,39 @@ export class MemStorage implements IStorage {
 
   async deleteDocumentPathway(id: string): Promise<boolean> {
     const result = await db.delete(documentPathwaysTable).where(eq(documentPathwaysTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getTrainingPathways(module?: string): Promise<TrainingPathway[]> {
+    if (module) {
+      return await db.select().from(trainingPathwaysTable)
+        .where(sql`(${trainingPathwaysTable.module} = ${module} OR ${trainingPathwaysTable.module} IS NULL)`)
+        .orderBy(asc(trainingPathwaysTable.sortOrder), asc(trainingPathwaysTable.createdAt));
+    }
+    return await db.select().from(trainingPathwaysTable)
+      .orderBy(asc(trainingPathwaysTable.sortOrder), asc(trainingPathwaysTable.createdAt));
+  }
+
+  async getTrainingPathway(id: string): Promise<TrainingPathway | undefined> {
+    const [result] = await db.select().from(trainingPathwaysTable).where(eq(trainingPathwaysTable.id, id));
+    return result;
+  }
+
+  async createTrainingPathway(pathway: InsertTrainingPathway): Promise<TrainingPathway> {
+    const [result] = await db.insert(trainingPathwaysTable).values(pathway).returning();
+    return result;
+  }
+
+  async updateTrainingPathway(id: string, updates: Partial<TrainingPathway>): Promise<TrainingPathway | undefined> {
+    const [result] = await db.update(trainingPathwaysTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trainingPathwaysTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteTrainingPathway(id: string): Promise<boolean> {
+    const result = await db.delete(trainingPathwaysTable).where(eq(trainingPathwaysTable.id, id)).returning();
     return result.length > 0;
   }
 
