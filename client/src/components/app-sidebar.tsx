@@ -58,6 +58,7 @@ const moduleNavItems: {
   url: string;
   themeClass: string;
   module: ModuleType;
+  noColor?: boolean;
   subItems: { title: string; url: string; adminOnly?: boolean; clientOnly?: boolean }[];
 }[] = [
   {
@@ -128,6 +129,7 @@ const moduleNavItems: {
     url: "/support",
     themeClass: "theme-support",
     module: "support",
+    noColor: true,
     subItems: [
       { title: "Dashboard", url: "/support" },
     ],
@@ -138,6 +140,7 @@ const moduleNavItems: {
     url: "/reports",
     themeClass: "theme-reports",
     module: "reports",
+    noColor: true,
     subItems: [
       { title: "Dashboard", url: "/reports" },
     ],
@@ -479,13 +482,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 
                 if (!hasAccess) {
                   return (
-                    <SidebarMenuItem key={item.title} className={item.themeClass}>
+                    <SidebarMenuItem key={item.title} className={item.noColor ? undefined : item.themeClass}>
                       <SidebarMenuButton
-                        className="cursor-default opacity-60 nav-module-btn"
+                        className={cn("cursor-default opacity-60", !item.noColor && "nav-module-btn")}
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
-                        <item.icon className="h-4 w-4 text-module-accent" />
-                        <span className="flex-1 nav-module-label">{item.title}</span>
+                        <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
+                        <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                           <Lock className="h-3 w-3 mr-1" />
                           Locked
@@ -500,19 +503,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     key={item.title}
                     asChild
                     defaultOpen={isModuleActive}
-                    className={cn("group/collapsible", item.themeClass)}
+                    className={cn("group/collapsible", !item.noColor && item.themeClass)}
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                           className={cn(
-                            "transition-colors nav-module-btn",
-                            isModuleActive && "nav-module-active"
+                            "transition-colors",
+                            !item.noColor && "nav-module-btn",
+                            isModuleActive && (item.noColor ? "bg-sidebar-accent font-medium" : "nav-module-active")
                           )}
                           data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                         >
-                          <item.icon className="h-4 w-4 text-module-accent" />
-                          <span className="flex-1 nav-module-label">{item.title}</span>
+                          <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
+                          <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
                           {item.module === "support" && openSupportCount > 0 && (
                             <Badge 
                               variant="destructive" 
@@ -522,7 +526,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                               {openSupportCount}
                             </Badge>
                           )}
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180 text-module-accent opacity-70" />
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", !item.noColor && "text-module-accent opacity-70")} />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
