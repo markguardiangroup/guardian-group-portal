@@ -2211,7 +2211,6 @@ export default function TemplateLibraryPage() {
                       <TableHead>Module</TableHead>
                       <TableHead>Folder</TableHead>
                       <TableHead>Size</TableHead>
-                      <TableHead>Uploaded</TableHead>
                       <TableHead>Visibility</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -2260,14 +2259,14 @@ export default function TemplateLibraryPage() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <span className="text-sm text-muted-foreground">{formatFileSize(template.fileSize)}</span>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm text-muted-foreground" data-testid={`text-uploaded-${template.id}`}>
-                                {template.createdAt
-                                  ? new Date(template.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                  : "—"}
-                              </span>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm text-muted-foreground">{formatFileSize(template.fileSize)}</span>
+                                {template.createdAt && (
+                                  <span className="text-xs text-muted-foreground/70" data-testid={`text-uploaded-${template.id}`}>
+                                    {new Date(template.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               {template.visibility === "public" ? (
