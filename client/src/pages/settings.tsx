@@ -10,6 +10,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -890,38 +900,33 @@ export default function Settings() {
   );
 }
 
+type LegalDocInfo = {
+  exists: boolean;
+  type: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedAt?: string;
+  uploadedBy?: string;
+  revisionDate?: string;
+  revisionNumber?: number;
+};
+
 function LegalDocumentsTab() {
   const { toast } = useToast();
   const [termsUploading, setTermsUploading] = useState(false);
   const [privacyUploading, setPrivacyUploading] = useState(false);
+  const [replaceConfirmType, setReplaceConfirmType] = useState<"terms" | "privacy" | null>(null);
 
-  const { data: termsInfo, refetch: refetchTerms } = useQuery<{
-    exists: boolean;
-    type: string;
-    fileName?: string;
-    fileSize?: number;
-    mimeType?: string;
-    uploadedAt?: string;
-    uploadedBy?: string;
-    revisionDate?: string;
-  }>({
+  const { data: termsInfo, refetch: refetchTerms } = useQuery<LegalDocInfo>({
     queryKey: ["/api/legal-documents/terms/info"],
   });
 
-  const { data: privacyInfo, refetch: refetchPrivacy } = useQuery<{
-    exists: boolean;
-    type: string;
-    fileName?: string;
-    fileSize?: number;
-    mimeType?: string;
-    uploadedAt?: string;
-    uploadedBy?: string;
-    revisionDate?: string;
-  }>({
+  const { data: privacyInfo, refetch: refetchPrivacy } = useQuery<LegalDocInfo>({
     queryKey: ["/api/legal-documents/privacy/info"],
   });
 
-  const handleUpload = async (type: "terms" | "privacy") => {
+  const triggerFilePicker = async (type: "terms" | "privacy") => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".pdf,.doc,.docx";
@@ -970,6 +975,35 @@ function LegalDocumentsTab() {
     input.click();
   };
 
+  const downloadDoc = (type: "terms" | "privacy") => {
+    const a = document.createElement("a");
+    a.href = `/api/legal-documents/${type}/download`;
+    a.click();
+  };
+
+  const handleReplaceClick = (type: "terms" | "privacy", exists: boolean) => {
+    if (exists) {
+      setReplaceConfirmType(type);
+    } else {
+      triggerFilePicker(type);
+    }
+  };
+
+  const handleDownloadBothAndContinue = () => {
+    if (!replaceConfirmType) return;
+    if (termsInfo?.exists) downloadDoc("terms");
+    if (privacyInfo?.exists) downloadDoc("privacy");
+    const type = replaceConfirmType;
+    setReplaceConfirmType(null);
+    setTimeout(() => triggerFilePicker(type), 300);
+  };
+
+  const handleContinueWithoutDownloading = () => {
+    const type = replaceConfirmType;
+    setReplaceConfirmType(null);
+    if (type) setTimeout(() => triggerFilePicker(type), 100);
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -980,7 +1014,7 @@ function LegalDocumentsTab() {
     type: "terms" | "privacy",
     title: string,
     description: string,
-    info: typeof termsInfo,
+    info: LegalDocInfo | undefined,
     uploading: boolean
   ) => (
     <Card>
@@ -990,9 +1024,16 @@ function LegalDocumentsTab() {
             <CardTitle className="text-lg">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <Badge variant={info?.exists ? "default" : "secondary"}>
-            {info?.exists ? "Uploaded" : "Not uploaded"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {info?.exists && info.revisionNumber != null && (
+              <Badge variant="outline" className="text-xs font-mono">
+                v{info.revisionNumber}
+              </Badge>
+            )}
+            <Badge variant={info?.exists ? "default" : "secondary"}>
+              {info?.exists ? "Uploaded" : "Not uploaded"}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1004,21 +1045,10 @@ function LegalDocumentsTab() {
               <span className="text-muted-foreground">
                 ({formatFileSize(info.fileSize || 0)})
               </span>
-              {info.revisionDate && (
-                <Badge variant="outline" className="text-xs">
-                  Revision: {new Date(info.revisionDate).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Badge>
-              )}
             </div>
-            {info.uploadedAt && (
+            {info.revisionDate && (
               <p className="text-sm text-muted-foreground">
-                Uploaded {new Date(info.uploadedAt).toLocaleDateString("en-GB", {
+                Revised {new Date(info.revisionDate).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
@@ -1032,7 +1062,7 @@ function LegalDocumentsTab() {
         )}
         <div className="flex items-center gap-3 flex-wrap">
           <Button
-            onClick={() => handleUpload(type)}
+            onClick={() => handleReplaceClick(type, !!info?.exists)}
             disabled={uploading}
             data-testid={`button-upload-${type}`}
           >
@@ -1046,11 +1076,7 @@ function LegalDocumentsTab() {
           {info?.exists && (
             <Button
               variant="outline"
-              onClick={() => {
-                const a = document.createElement("a");
-                a.href = `/api/legal-documents/${type}/download`;
-                a.click();
-              }}
+              onClick={() => downloadDoc(type)}
               data-testid={`button-download-${type}`}
             >
               <Download className="h-4 w-4 mr-2" />
@@ -1088,6 +1114,39 @@ function LegalDocumentsTab() {
         privacyInfo,
         privacyUploading
       )}
+
+      <AlertDialog open={!!replaceConfirmType} onOpenChange={(open) => !open && setReplaceConfirmType(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Download documents before replacing?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Replacing a document overwrites the current version. To preserve a full version history, we recommend downloading both the Terms & Conditions and Privacy Policy before continuing.
+              </span>
+              <span className="block text-sm font-medium text-foreground">
+                Would you like to download both files first?
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel data-testid="button-replace-cancel">Cancel</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={handleContinueWithoutDownloading}
+              data-testid="button-replace-without-download"
+            >
+              Continue Without Downloading
+            </Button>
+            <AlertDialogAction
+              onClick={handleDownloadBothAndContinue}
+              data-testid="button-download-both-and-replace"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Both & Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

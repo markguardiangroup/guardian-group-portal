@@ -8688,6 +8688,15 @@ export async function registerRoutes(
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
 
+      // Determine revision number: increment if document already exists
+      let revisionNumber = 1;
+      const [alreadyExists] = await file.exists();
+      if (alreadyExists) {
+        const [existingMeta] = await file.getMetadata();
+        const existing = parseInt(existingMeta.metadata?.revisionNumber || "0", 10);
+        revisionNumber = existing + 1;
+      }
+
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
         chunks.push(chunk);
@@ -8695,24 +8704,33 @@ export async function registerRoutes(
       const buffer = Buffer.concat(chunks);
 
       const revisionDate = new Date().toISOString();
+      const revisionDateShort = revisionDate.slice(0, 10); // YYYY-MM-DD
+
+      // Build a versioned filename: base_v{N}_{YYYY-MM-DD}.ext
+      const lastDot = fileName.lastIndexOf(".");
+      const baseName = lastDot !== -1 ? fileName.slice(0, lastDot) : fileName;
+      const ext = lastDot !== -1 ? fileName.slice(lastDot) : "";
+      const versionedFileName = `${baseName}_v${revisionNumber}_${revisionDateShort}${ext}`;
 
       await file.save(buffer, {
         contentType: contentType,
         metadata: {
-          originalName: fileName,
+          originalName: versionedFileName,
           uploadedBy: currentUser.username,
           uploadedAt: revisionDate,
           revisionDate: revisionDate,
+          revisionNumber: String(revisionNumber),
         },
       });
 
       res.json({
         success: true,
         type: docType,
-        fileName,
+        fileName: versionedFileName,
         fileSize: buffer.length,
         mimeType: contentType,
         revisionDate,
+        revisionNumber,
       });
     } catch (error) {
       console.error("Error uploading legal document:", error);
@@ -8754,6 +8772,7 @@ export async function registerRoutes(
         uploadedAt: metadata.metadata?.uploadedAt || null,
         uploadedBy: metadata.metadata?.uploadedBy || null,
         revisionDate: metadata.metadata?.revisionDate || metadata.metadata?.uploadedAt || metadata.timeCreated || null,
+        revisionNumber: metadata.metadata?.revisionNumber ? parseInt(metadata.metadata.revisionNumber, 10) : null,
       });
     } catch (error) {
       console.error("Error getting legal document info:", error);
