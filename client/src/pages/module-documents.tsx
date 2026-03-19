@@ -83,6 +83,8 @@ import {
   Calendar,
   Save,
   GripVertical,
+  MapPin,
+  TrendingUp,
 } from "lucide-react";
 import {
   Accordion,
@@ -159,7 +161,7 @@ interface SiteWithCompany extends SiteBasic {
   moduleAccess?: SiteModuleAccess;
 }
 
-type ViewMode = "folder" | "table";
+type ViewMode = "folder" | "table" | "sites";
 
 // Module-specific color theming (matching template library)
 const moduleColors: Record<string, string> = {
@@ -766,6 +768,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <LayoutList className="mr-2 h-4 w-4" />
                 Table
               </Button>
+              {filteredSites.length > 1 && (
+                <Button
+                  variant={viewMode === "sites" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("sites")}
+                  className={viewMode === "sites" ? `${moduleBgColors[module]} ${moduleColors[module]} hover:opacity-90` : ""}
+                  data-testid="button-sites-view"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Sites
+                </Button>
+              )}
             </div>
           </div>
           
@@ -1314,6 +1328,159 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Sites Overview View */}
+      {viewMode === "sites" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
+                Site Compliance Overview
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Top-level document compliance summary across all your sites.
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {filteredSites.length} {filteredSites.length === 1 ? "site" : "sites"}
+            </Badge>
+          </div>
+
+          {isLoading ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-44 rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredSites.map((site) => {
+                const siteDocs = (documents ?? []).filter(d => d.siteId === site.id && !d.isArchived);
+                const total = siteDocs.length;
+                const compliant = siteDocs.filter(d => d.status === "compliant").length;
+                const overdue = siteDocs.filter(d => d.status === "overdue").length;
+                const reviewRequired = siteDocs.filter(d => d.status === "review_required").length;
+                const pending = siteDocs.filter(d => d.approvalStatus === "pending").length;
+                const pct = total > 0 ? Math.round((compliant / total) * 100) : null;
+                const hasIssues = overdue > 0 || reviewRequired > 0;
+                const allClear = total > 0 && !hasIssues && pct === 100;
+
+                return (
+                  <Card
+                    key={site.id}
+                    className={`group cursor-pointer transition-all hover:shadow-md border-2 ${
+                      overdue > 0
+                        ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
+                        : reviewRequired > 0
+                        ? "border-amber-200 dark:border-amber-900/50 hover:border-amber-400"
+                        : allClear
+                        ? "border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-400"
+                        : "hover:border-primary/30"
+                    }`}
+                    data-testid={`card-site-overview-${site.id}`}
+                    onClick={() => {
+                      setSelectedSiteId(site.id);
+                      setViewMode("folder");
+                    }}
+                  >
+                    <CardContent className="p-5">
+                      {/* Site header */}
+                      <div className="flex items-start justify-between gap-2 mb-4">
+                        <div className="flex items-start gap-2.5">
+                          <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
+                            <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm leading-snug truncate" data-testid={`text-site-name-${site.id}`}>
+                              {site.name}
+                            </p>
+                            {site.companyName && (
+                              <p className="text-xs text-muted-foreground truncate">{site.companyName}</p>
+                            )}
+                          </div>
+                        </div>
+                        {overdue > 0 ? (
+                          <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Attention
+                          </Badge>
+                        ) : reviewRequired > 0 ? (
+                          <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Review
+                          </Badge>
+                        ) : allClear ? (
+                          <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Compliant
+                          </Badge>
+                        ) : null}
+                      </div>
+
+                      {/* Compliance progress bar */}
+                      {total > 0 ? (
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3" />
+                              Compliance
+                            </span>
+                            <span className={`text-xs font-semibold ${
+                              pct === 100 ? "text-emerald-600 dark:text-emerald-400"
+                              : (pct ?? 0) >= 70 ? "text-amber-600 dark:text-amber-400"
+                              : "text-red-600 dark:text-red-400"
+                            }`}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                pct === 100 ? "bg-emerald-500"
+                                : (pct ?? 0) >= 70 ? "bg-amber-500"
+                                : "bg-red-500"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 py-2 text-center">
+                          <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
+                        </div>
+                      )}
+
+                      {/* Stats row */}
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
+                          <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{compliant}</p>
+                          <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
+                        </div>
+                        <div className={`rounded-lg px-2 py-1.5 ${reviewRequired > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${reviewRequired > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{reviewRequired}</p>
+                          <p className={`text-xs ${reviewRequired > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                        </div>
+                        <div className={`rounded-lg px-2 py-1.5 ${overdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${overdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{overdue}</p>
+                          <p className={`text-xs ${overdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{total} total document{total !== 1 ? "s" : ""}{pending > 0 ? ` · ${pending} pending approval` : ""}</span>
+                        <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}>
+                          View site
+                          <ChevronRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
       </div>
 
