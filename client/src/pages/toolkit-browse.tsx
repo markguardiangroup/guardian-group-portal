@@ -650,7 +650,7 @@ export default function ToolkitBrowse() {
       : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" };
 
   return (
-    <div className="space-y-7 dash-animate">
+    <div className="space-y-7 p-6 dash-animate">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
