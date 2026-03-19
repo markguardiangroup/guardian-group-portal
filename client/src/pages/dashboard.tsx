@@ -1223,13 +1223,13 @@ export default function Dashboard() {
         sites={sites}
       />
 
-      {/* Renewal Compliance Section */}
+      {/* Renewal Status Section */}
       <Card data-testid="card-renewal-compliance-overview" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Renewal Compliance
+              Renewal Status
             </CardTitle>
             <CardDescription>Documents approaching or past renewal dates across all modules</CardDescription>
           </div>

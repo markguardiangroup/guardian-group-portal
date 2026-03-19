@@ -601,13 +601,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardContent>
         </Card>
 
-      {/* Renewal Compliance Section */}
+      {/* Renewal Status Section */}
       <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Renewal Compliance
+                Renewal Status
               </CardTitle>
               <CardDescription>Documents approaching or past renewal dates</CardDescription>
             </div>
