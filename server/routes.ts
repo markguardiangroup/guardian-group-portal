@@ -10188,5 +10188,160 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Testing Task Lists ──────────────────────────────────────────────────────
+
+  const taskListSchema = z.object({
+    title: z.string().min(1),
+    description: z.string().optional().nullable(),
+    module: z.enum(["health_safety", "human_resources", "employment_law", "training", "general"]).optional(),
+    tasks: z.array(z.object({
+      id: z.string(),
+      label: z.string().min(1),
+      description: z.string().optional(),
+    })).optional(),
+  });
+
+  app.get("/api/testing-task-lists", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const lists = await storage.getTestingTaskLists();
+      res.json(lists);
+    } catch (error) {
+      console.error("Error fetching testing task lists:", error);
+      res.status(500).json({ error: "Failed to fetch task lists" });
+    }
+  });
+
+  app.post("/api/testing-task-lists", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = taskListSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const list = await storage.createTestingTaskList({
+        title: parsed.data.title,
+        description: parsed.data.description ?? null,
+        module: parsed.data.module ?? "general",
+        tasks: parsed.data.tasks ?? [],
+        createdBy: user.id,
+      });
+      res.status(201).json(list);
+    } catch (error) {
+      console.error("Error creating testing task list:", error);
+      res.status(500).json({ error: "Failed to create task list" });
+    }
+  });
+
+  app.patch("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = taskListSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const list = await storage.updateTestingTaskList(req.params.id, parsed.data as any);
+      if (!list) return res.status(404).json({ error: "Task list not found" });
+      res.json(list);
+    } catch (error) {
+      console.error("Error updating testing task list:", error);
+      res.status(500).json({ error: "Failed to update task list" });
+    }
+  });
+
+  app.delete("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const ok = await storage.deleteTestingTaskList(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Task list not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting testing task list:", error);
+      res.status(500).json({ error: "Failed to delete task list" });
+    }
+  });
+
+  // Testing Task Assignments
+
+  app.get("/api/testing-task-assignments/my", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const assignments = await storage.getMyTestingTaskAssignments(user.id);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching my testing assignments:", error);
+      res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+
+  app.get("/api/testing-task-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const taskListId = typeof req.query.taskListId === "string" ? req.query.taskListId : undefined;
+      const assignments = await storage.getTestingTaskAssignments(taskListId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching testing assignments:", error);
+      res.status(500).json({ error: "Failed to fetch assignments" });
+    }
+  });
+
+  app.post("/api/testing-task-assignments", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { taskListId, assignedTo } = z.object({ taskListId: z.string(), assignedTo: z.string() }).parse(req.body);
+      const assignee = await storage.getUser(assignedTo);
+      if (!assignee || assignee.role !== "consultant") {
+        return res.status(400).json({ error: "Assignee must be a consultant" });
+      }
+      const assignment = await storage.createTestingTaskAssignment({
+        taskListId,
+        assignedTo,
+        assignedBy: user.id,
+        completedTaskIds: [],
+      });
+      res.status(201).json(assignment);
+    } catch (error) {
+      console.error("Error creating testing assignment:", error);
+      res.status(500).json({ error: "Failed to create assignment" });
+    }
+  });
+
+  app.patch("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { completedTaskIds } = z.object({ completedTaskIds: z.array(z.string()) }).parse(req.body);
+      const assignment = await storage.updateTestingTaskAssignment(req.params.id, { completedTaskIds });
+      if (!assignment) return res.status(404).json({ error: "Assignment not found" });
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error updating testing assignment:", error);
+      res.status(500).json({ error: "Failed to update assignment" });
+    }
+  });
+
+  app.delete("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const ok = await storage.deleteTestingTaskAssignment(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Assignment not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting testing assignment:", error);
+      res.status(500).json({ error: "Failed to delete assignment" });
+    }
+  });
+
   return httpServer;
 }

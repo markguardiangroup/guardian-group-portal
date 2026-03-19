@@ -59,6 +59,10 @@ import {
   userInvitations as userInvitationsTable,
   type DocumentPathway, type InsertDocumentPathway, type PathwayNode,
   documentPathways as documentPathwaysTable,
+  type TestingTaskList, type InsertTestingTaskList,
+  type TestingTaskAssignment, type InsertTestingTaskAssignment,
+  testingTaskLists as testingTaskListsTable,
+  testingTaskAssignments as testingTaskAssignmentsTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
@@ -418,6 +422,20 @@ export interface IStorage {
   createClientUpload(data: InsertClientUpload): Promise<ClientUpload>;
   deleteClientUpload(id: string): Promise<boolean>;
   cleanupExpiredFolders(): Promise<number>;
+
+  // Testing Task Lists
+  getTestingTaskLists(): Promise<TestingTaskList[]>;
+  getTestingTaskList(id: string): Promise<TestingTaskList | undefined>;
+  createTestingTaskList(list: InsertTestingTaskList): Promise<TestingTaskList>;
+  updateTestingTaskList(id: string, updates: Partial<TestingTaskList>): Promise<TestingTaskList | undefined>;
+  deleteTestingTaskList(id: string): Promise<boolean>;
+
+  // Testing Task Assignments
+  getTestingTaskAssignments(taskListId?: string): Promise<(TestingTaskAssignment & { assignedToUser?: Pick<User, "id" | "fullName" | "email"> })[]>;
+  getMyTestingTaskAssignments(userId: string): Promise<(TestingTaskAssignment & { taskList: TestingTaskList })[]>;
+  createTestingTaskAssignment(assignment: InsertTestingTaskAssignment): Promise<TestingTaskAssignment>;
+  updateTestingTaskAssignment(id: string, updates: Partial<TestingTaskAssignment>): Promise<TestingTaskAssignment | undefined>;
+  deleteTestingTaskAssignment(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -3818,6 +3836,82 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error initializing default admin:", error);
     }
+  }
+
+  // ─── Testing Task Lists ──────────────────────────────────────────────────────
+
+  async getTestingTaskLists(): Promise<TestingTaskList[]> {
+    return db.select().from(testingTaskListsTable).orderBy(asc(testingTaskListsTable.createdAt));
+  }
+
+  async getTestingTaskList(id: string): Promise<TestingTaskList | undefined> {
+    const [row] = await db.select().from(testingTaskListsTable).where(eq(testingTaskListsTable.id, id));
+    return row;
+  }
+
+  async createTestingTaskList(list: InsertTestingTaskList): Promise<TestingTaskList> {
+    const [row] = await db.insert(testingTaskListsTable).values(list).returning();
+    return row;
+  }
+
+  async updateTestingTaskList(id: string, updates: Partial<TestingTaskList>): Promise<TestingTaskList | undefined> {
+    const [row] = await db.update(testingTaskListsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(testingTaskListsTable.id, id))
+      .returning();
+    return row;
+  }
+
+  async deleteTestingTaskList(id: string): Promise<boolean> {
+    await db.delete(testingTaskAssignmentsTable).where(eq(testingTaskAssignmentsTable.taskListId, id));
+    const result = await db.delete(testingTaskListsTable).where(eq(testingTaskListsTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getTestingTaskAssignments(taskListId?: string): Promise<(TestingTaskAssignment & { assignedToUser?: Pick<User, "id" | "fullName" | "email"> })[]> {
+    const rows = taskListId
+      ? await db.select().from(testingTaskAssignmentsTable).where(eq(testingTaskAssignmentsTable.taskListId, taskListId))
+      : await db.select().from(testingTaskAssignmentsTable);
+
+    const result: (TestingTaskAssignment & { assignedToUser?: Pick<User, "id" | "fullName" | "email"> })[] = [];
+    for (const row of rows) {
+      const [user] = await db.select({ id: usersTable.id, fullName: usersTable.fullName, email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, row.assignedTo));
+      result.push({ ...row, assignedToUser: user });
+    }
+    return result;
+  }
+
+  async getMyTestingTaskAssignments(userId: string): Promise<(TestingTaskAssignment & { taskList: TestingTaskList })[]> {
+    const rows = await db.select().from(testingTaskAssignmentsTable)
+      .where(eq(testingTaskAssignmentsTable.assignedTo, userId));
+
+    const result: (TestingTaskAssignment & { taskList: TestingTaskList })[] = [];
+    for (const row of rows) {
+      const [taskList] = await db.select().from(testingTaskListsTable)
+        .where(eq(testingTaskListsTable.id, row.taskListId));
+      if (taskList) result.push({ ...row, taskList });
+    }
+    return result;
+  }
+
+  async createTestingTaskAssignment(assignment: InsertTestingTaskAssignment): Promise<TestingTaskAssignment> {
+    const [row] = await db.insert(testingTaskAssignmentsTable).values(assignment).returning();
+    return row;
+  }
+
+  async updateTestingTaskAssignment(id: string, updates: Partial<TestingTaskAssignment>): Promise<TestingTaskAssignment | undefined> {
+    const [row] = await db.update(testingTaskAssignmentsTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(testingTaskAssignmentsTable.id, id))
+      .returning();
+    return row;
+  }
+
+  async deleteTestingTaskAssignment(id: string): Promise<boolean> {
+    const result = await db.delete(testingTaskAssignmentsTable)
+      .where(eq(testingTaskAssignmentsTable.id, id)).returning();
+    return result.length > 0;
   }
 
 }

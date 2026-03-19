@@ -1508,3 +1508,42 @@ export const documentPathways = pgTable("document_pathways", {
 export const insertDocumentPathwaySchema = createInsertSchema(documentPathways).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertDocumentPathway = z.infer<typeof insertDocumentPathwaySchema>;
 export type DocumentPathway = typeof documentPathways.$inferSelect;
+
+// ─── Testing Task Lists ───────────────────────────────────────────────────────
+
+export type TestingModule = "health_safety" | "human_resources" | "employment_law" | "training" | "general";
+
+export type TaskItem = {
+  id: string;
+  label: string;
+  description?: string;
+};
+
+export const testingTaskLists = pgTable("testing_task_lists", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  module: text("module").$type<TestingModule>().notNull().default("general"),
+  tasks: jsonb("tasks").notNull().$type<TaskItem[]>().default(sql`'[]'::jsonb`),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTestingTaskListSchema = createInsertSchema(testingTaskLists).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTestingTaskList = z.infer<typeof insertTestingTaskListSchema>;
+export type TestingTaskList = typeof testingTaskLists.$inferSelect;
+
+export const testingTaskAssignments = pgTable("testing_task_assignments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  taskListId: varchar("task_list_id").notNull(),
+  assignedTo: varchar("assigned_to").notNull(),
+  assignedBy: varchar("assigned_by").notNull(),
+  completedTaskIds: jsonb("completed_task_ids").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTestingTaskAssignmentSchema = createInsertSchema(testingTaskAssignments).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTestingTaskAssignment = z.infer<typeof insertTestingTaskAssignmentSchema>;
+export type TestingTaskAssignment = typeof testingTaskAssignments.$inferSelect;

@@ -53,6 +53,14 @@ import {
   Eye,
   Trash2,
   Download,
+  ClipboardList,
+  Plus,
+  Pencil,
+  GripVertical,
+  ChevronDown,
+  ChevronRight,
+  UserPlus,
+  CheckCircle2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -304,6 +312,12 @@ export default function Settings() {
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
+          {(user?.role === "admin" || user?.role === "consultant") && (
+            <TabsTrigger value="testing" className="gap-2" data-testid="tab-testing">
+              <ClipboardList className="h-4 w-4" />
+              Testing
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -895,7 +909,513 @@ export default function Settings() {
             {user?.role === "admin" && <LegalDocumentsTab />}
           </div>
         </TabsContent>
+
+        <TabsContent value="testing">
+          <TestingTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ─── Testing Tab ─────────────────────────────────────────────────────────────
+
+type TaskItem = { id: string; label: string; description?: string };
+type TestingTaskList = {
+  id: string; title: string; description?: string | null; module: string;
+  tasks: TaskItem[]; createdBy: string; createdAt: string; updatedAt: string;
+};
+type TestingAssignment = {
+  id: string; taskListId: string; assignedTo: string; assignedBy: string;
+  completedTaskIds: string[]; createdAt: string; updatedAt: string;
+  taskList?: TestingTaskList;
+  assignedToUser?: { id: string; fullName: string; email: string };
+};
+
+const MODULE_LABELS: Record<string, string> = {
+  health_safety: "H&S",
+  human_resources: "HR",
+  employment_law: "Employment Law",
+  training: "Training",
+  general: "General",
+};
+
+const MODULE_COLORS: Record<string, string> = {
+  health_safety: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  human_resources: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  employment_law: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+  training: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  general: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300",
+};
+
+function TaskListForm({
+  initial,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  initial?: Partial<TestingTaskList>;
+  onSave: (data: { title: string; description: string; module: string; tasks: TaskItem[] }) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [module, setModule] = useState(initial?.module ?? "general");
+  const [tasks, setTasks] = useState<TaskItem[]>(initial?.tasks ?? []);
+  const [newLabel, setNewLabel] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
+  const addTask = () => {
+    if (!newLabel.trim()) return;
+    setTasks([...tasks, { id: crypto.randomUUID(), label: newLabel.trim(), description: newDesc.trim() || undefined }]);
+    setNewLabel("");
+    setNewDesc("");
+  };
+
+  const removeTask = (id: string) => setTasks(tasks.filter(t => t.id !== id));
+
+  const moveTask = (idx: number, dir: -1 | 1) => {
+    const copy = [...tasks];
+    const swap = idx + dir;
+    if (swap < 0 || swap >= copy.length) return;
+    [copy[idx], copy[swap]] = [copy[swap], copy[idx]];
+    setTasks(copy);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="tl-title">Title *</Label>
+          <Input id="tl-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. H&S Portal Walkthrough" data-testid="input-tasklist-title" />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="tl-module">Module</Label>
+          <Select value={module} onValueChange={setModule}>
+            <SelectTrigger id="tl-module" data-testid="select-tasklist-module">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General</SelectItem>
+              <SelectItem value="health_safety">Health & Safety</SelectItem>
+              <SelectItem value="human_resources">Human Resources</SelectItem>
+              <SelectItem value="employment_law">Employment Law</SelectItem>
+              <SelectItem value="training">Training</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="tl-desc">Description</Label>
+        <Textarea id="tl-desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional context for testers" rows={2} data-testid="textarea-tasklist-description" />
+      </div>
+
+      <Separator />
+      <div className="space-y-2">
+        <Label>Task Items</Label>
+        {tasks.length === 0 && <p className="text-sm text-muted-foreground">No tasks yet. Add some below.</p>}
+        {tasks.map((task, idx) => (
+          <div key={task.id} className="flex items-start gap-2 rounded-md border p-2 bg-muted/30" data-testid={`task-item-${task.id}`}>
+            <GripVertical className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{task.label}</p>
+              {task.description && <p className="text-xs text-muted-foreground truncate">{task.description}</p>}
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, -1)} disabled={idx === 0} data-testid={`button-task-up-${idx}`}><ChevronRight className="h-3 w-3 -rotate-90" /></Button>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, 1)} disabled={idx === tasks.length - 1} data-testid={`button-task-down-${idx}`}><ChevronDown className="h-3 w-3" /></Button>
+              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeTask(task.id)} data-testid={`button-task-remove-${idx}`}><X className="h-3 w-3" /></Button>
+            </div>
+          </div>
+        ))}
+
+        <div className="rounded-md border p-3 space-y-2 bg-muted/10">
+          <div className="flex gap-2">
+            <Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Task label *" className="flex-1" data-testid="input-new-task-label"
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }} />
+          </div>
+          <div className="flex gap-2">
+            <Input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Optional description" className="flex-1" data-testid="input-new-task-desc"
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTask(); } }} />
+            <Button size="sm" variant="outline" onClick={addTask} disabled={!newLabel.trim()} data-testid="button-add-task">
+              <Plus className="h-3 w-3 mr-1" /> Add
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" onClick={onCancel} data-testid="button-tasklist-cancel">Cancel</Button>
+        <Button onClick={() => onSave({ title, description, module, tasks })} disabled={!title.trim() || saving} data-testid="button-tasklist-save">
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Task List
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function TestingTab() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const isAdmin = user?.role === "admin";
+  const isConsultant = user?.role === "consultant";
+
+  const [showListForm, setShowListForm] = useState(false);
+  const [editingList, setEditingList] = useState<TestingTaskList | null>(null);
+  const [savingList, setSavingList] = useState(false);
+  const [deletingListId, setDeletingListId] = useState<string | null>(null);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [assignConsultantId, setAssignConsultantId] = useState("");
+  const [assigningList, setAssigningList] = useState(false);
+  const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
+
+  const { data: taskLists = [], refetch: refetchLists } = useQuery<TestingTaskList[]>({
+    queryKey: ["/api/testing-task-lists"],
+  });
+
+  const { data: myAssignments = [], refetch: refetchMyAssignments } = useQuery<TestingAssignment[]>({
+    queryKey: ["/api/testing-task-assignments/my"],
+  });
+
+  const { data: listAssignments = [], refetch: refetchListAssignments } = useQuery<TestingAssignment[]>({
+    queryKey: ["/api/testing-task-assignments", selectedListId],
+    queryFn: async () => {
+      if (!selectedListId) return [];
+      const res = await fetch(`/api/testing-task-assignments?taskListId=${selectedListId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load assignments");
+      return res.json();
+    },
+    enabled: isAdmin && !!selectedListId,
+  });
+
+  const { data: rawConsultants = [] } = useQuery<{ id: string; fullName: string; email: string }[]>({
+    queryKey: ["/api/consultants"],
+    enabled: isAdmin,
+  });
+  const allConsultants = rawConsultants;
+
+  const handleSaveList = async (data: { title: string; description: string; module: string; tasks: TaskItem[] }) => {
+    setSavingList(true);
+    try {
+      if (editingList) {
+        await apiRequest("PATCH", `/api/testing-task-lists/${editingList.id}`, data);
+        toast({ title: "Task list updated" });
+      } else {
+        await apiRequest("POST", "/api/testing-task-lists", data);
+        toast({ title: "Task list created" });
+      }
+      await refetchLists();
+      setShowListForm(false);
+      setEditingList(null);
+    } catch {
+      toast({ title: "Error", description: "Failed to save task list", variant: "destructive" });
+    } finally {
+      setSavingList(false);
+    }
+  };
+
+  const handleDeleteList = async (id: string) => {
+    setDeletingListId(id);
+    try {
+      await apiRequest("DELETE", `/api/testing-task-lists/${id}`);
+      toast({ title: "Task list deleted" });
+      if (selectedListId === id) setSelectedListId(null);
+      await refetchLists();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete task list", variant: "destructive" });
+    } finally {
+      setDeletingListId(null);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!selectedListId || !assignConsultantId) return;
+    setAssigningList(true);
+    try {
+      await apiRequest("POST", "/api/testing-task-assignments", { taskListId: selectedListId, assignedTo: assignConsultantId });
+      toast({ title: "Consultant assigned" });
+      setShowAssignDialog(false);
+      setAssignConsultantId("");
+      await refetchListAssignments();
+    } catch {
+      toast({ title: "Error", description: "Failed to assign consultant", variant: "destructive" });
+    } finally {
+      setAssigningList(false);
+    }
+  };
+
+  const handleDeleteAssignment = async (id: string) => {
+    setDeletingAssignmentId(id);
+    try {
+      await apiRequest("DELETE", `/api/testing-task-assignments/${id}`);
+      toast({ title: "Assignment removed" });
+      await refetchListAssignments();
+    } catch {
+      toast({ title: "Error", description: "Failed to remove assignment", variant: "destructive" });
+    } finally {
+      setDeletingAssignmentId(null);
+    }
+  };
+
+  const handleToggleTask = async (assignment: TestingAssignment, taskId: string) => {
+    setTogglingTaskId(taskId);
+    const completed = assignment.completedTaskIds ?? [];
+    const next = completed.includes(taskId)
+      ? completed.filter((id: string) => id !== taskId)
+      : [...completed, taskId];
+    try {
+      await apiRequest("PATCH", `/api/testing-task-assignments/${assignment.id}`, { completedTaskIds: next });
+      await refetchMyAssignments();
+    } catch {
+      toast({ title: "Error", description: "Failed to save progress", variant: "destructive" });
+    } finally {
+      setTogglingTaskId(null);
+    }
+  };
+
+  const selectedList = taskLists.find(l => l.id === selectedListId);
+  const assignedConsultantIds = new Set(listAssignments.map((a: TestingAssignment) => a.assignedTo));
+  const availableToAssign = allConsultants.filter(c => !assignedConsultantIds.has(c.id));
+
+  if (!isAdmin && !isConsultant) {
+    return <p className="text-muted-foreground text-sm">You do not have access to this section.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Admin: Task List Management */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <CardTitle>Task Lists</CardTitle>
+                <CardDescription>Create and manage testing checklists for consultants</CardDescription>
+              </div>
+              {!showListForm && (
+                <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
+                  <Plus className="h-4 w-4 mr-2" /> New Task List
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(showListForm || editingList) && (
+              <div className="rounded-lg border p-4 bg-muted/20">
+                <h3 className="text-sm font-semibold mb-4">{editingList ? "Edit Task List" : "New Task List"}</h3>
+                <TaskListForm
+                  initial={editingList ?? undefined}
+                  onSave={handleSaveList}
+                  onCancel={() => { setShowListForm(false); setEditingList(null); }}
+                  saving={savingList}
+                />
+              </div>
+            )}
+
+            {taskLists.length === 0 && !showListForm && (
+              <p className="text-sm text-muted-foreground py-4 text-center">No task lists yet. Create one above.</p>
+            )}
+            {taskLists.map(list => (
+              <div
+                key={list.id}
+                className={`rounded-lg border p-4 cursor-pointer transition-colors ${selectedListId === list.id ? "border-primary bg-primary/5" : "hover:bg-muted/30"}`}
+                onClick={() => setSelectedListId(selectedListId === list.id ? null : list.id)}
+                data-testid={`tasklist-card-${list.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  <ClipboardList className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">{list.title}</span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[list.module] ?? MODULE_COLORS.general}`}>
+                        {MODULE_LABELS[list.module] ?? list.module}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{list.tasks.length} task{list.tasks.length !== 1 ? "s" : ""}</span>
+                    </div>
+                    {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
+                  </div>
+                  <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingList(list); setShowListForm(false); }} data-testid={`button-edit-tasklist-${list.id}`}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deletingListId === list.id}
+                      onClick={() => handleDeleteList(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
+                      {deletingListId === list.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin: Assignment Management (shown when a list is selected) */}
+      {isAdmin && selectedList && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <CardTitle>Assignments — {selectedList.title}</CardTitle>
+                <CardDescription>Assign this checklist to one or more consultants</CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0} data-testid="button-assign-consultant">
+                <UserPlus className="h-4 w-4 mr-2" /> Assign Consultant
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {listAssignments.length === 0 && (
+              <p className="text-sm text-muted-foreground py-2">No consultants assigned yet.</p>
+            )}
+            <div className="space-y-2">
+              {listAssignments.map((a: TestingAssignment) => {
+                const total = selectedList.tasks.length;
+                const done = (a.completedTaskIds ?? []).length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <div key={a.id} className="flex items-center gap-3 rounded-md border p-3" data-testid={`assignment-row-${a.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{a.assignedToUser?.fullName ?? a.assignedTo}</p>
+                      <p className="text-xs text-muted-foreground">{a.assignedToUser?.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                      <span>{done} / {total}</span>
+                      <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span>{pct}%</span>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" disabled={deletingAssignmentId === a.id}
+                      onClick={() => handleDeleteAssignment(a.id)} data-testid={`button-remove-assignment-${a.id}`}>
+                      {deletingAssignmentId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Consultant: My Assigned Task Lists */}
+      {(isConsultant || isAdmin) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{isAdmin ? "My Testing Assignments (as Consultant)" : "My Testing Tasks"}</CardTitle>
+            <CardDescription>Task lists assigned to you — tick off tasks as you complete them</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {myAssignments.length === 0 && (
+              <p className="text-sm text-muted-foreground py-2">No task lists assigned to you yet.</p>
+            )}
+            {myAssignments.map((a: TestingAssignment) => {
+              const list = a.taskList;
+              if (!list) return null;
+              const total = list.tasks.length;
+              const done = (a.completedTaskIds ?? []).length;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const isComplete = total > 0 && done === total;
+              const isExpanded = expandedAssignmentId === a.id;
+
+              return (
+                <div key={a.id} className="rounded-lg border" data-testid={`my-assignment-${a.id}`}>
+                  <div
+                    className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => setExpandedAssignmentId(isExpanded ? null : a.id)}
+                  >
+                    <ClipboardList className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{list.title}</span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[list.module] ?? MODULE_COLORS.general}`}>
+                          {MODULE_LABELS[list.module] ?? list.module}
+                        </span>
+                        {isComplete && (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" data-testid={`badge-complete-${a.id}`}>
+                            <CheckCircle2 className="h-3 w-3" /> Complete
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex-1 max-w-[200px] h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs text-muted-foreground">{done} / {total} tasks</span>
+                      </div>
+                    </div>
+                    {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t px-4 pb-4 pt-3 space-y-2">
+                      {list.description && <p className="text-sm text-muted-foreground mb-3">{list.description}</p>}
+                      {list.tasks.map((task: TaskItem) => {
+                        const checked = (a.completedTaskIds ?? []).includes(task.id);
+                        return (
+                          <div key={task.id} className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${checked ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30" : ""}`}
+                            data-testid={`task-checkbox-${task.id}`}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={togglingTaskId === task.id}
+                              onChange={() => handleToggleTask(a, task.id)}
+                              className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-emerald-600 cursor-pointer"
+                              data-testid={`checkbox-task-${task.id}`}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${checked ? "line-through text-muted-foreground" : ""}`}>{task.label}</p>
+                              {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Assign Consultant Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Consultant</DialogTitle>
+            <DialogDescription>Choose a consultant to assign to "{selectedList?.title}"</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {availableToAssign.length === 0 ? (
+              <p className="text-sm text-muted-foreground">All consultants are already assigned to this list.</p>
+            ) : (
+              <Select value={assignConsultantId} onValueChange={setAssignConsultantId}>
+                <SelectTrigger data-testid="select-assign-consultant">
+                  <SelectValue placeholder="Select consultant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableToAssign.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.fullName} — {c.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAssignDialog(false); setAssignConsultantId(""); }}>Cancel</Button>
+            <Button onClick={handleAssign} disabled={!assignConsultantId || assigningList} data-testid="button-confirm-assign">
+              {assigningList && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
