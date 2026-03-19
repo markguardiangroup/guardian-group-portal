@@ -2775,20 +2775,22 @@ export default function TemplateLibraryPage() {
                 data-testid="input-edit-template-description"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-template-synopsis">Synopsis</Label>
-              <p className="text-xs text-muted-foreground">
-                Shown to users before they download — explain what this template is for and when to use it.
-              </p>
-              <Textarea
-                id="edit-template-synopsis"
-                value={templateFormData.synopsis}
-                onChange={(e) => setTemplateFormData({ ...templateFormData, synopsis: e.target.value })}
-                rows={4}
-                placeholder="e.g. Use this template for new starters who are joining on a full-time permanent basis. It covers pay, hours, holiday entitlement and notice periods."
-                data-testid="input-edit-template-synopsis"
-              />
-            </div>
+            {templateFormData.visibility === "public" && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-template-synopsis">Synopsis</Label>
+                <p className="text-xs text-muted-foreground">
+                  Shown to users before they download — explain what this template is for and when to use it.
+                </p>
+                <Textarea
+                  id="edit-template-synopsis"
+                  value={templateFormData.synopsis}
+                  onChange={(e) => setTemplateFormData({ ...templateFormData, synopsis: e.target.value })}
+                  rows={4}
+                  placeholder="e.g. Use this template for new starters who are joining on a full-time permanent basis. It covers pay, hours, holiday entitlement and notice periods."
+                  data-testid="input-edit-template-synopsis"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="edit-template-placeholders">Placeholders</Label>
               <Input
