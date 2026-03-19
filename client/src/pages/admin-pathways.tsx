@@ -46,6 +46,11 @@ import {
   AlertCircle,
   CheckCircle2,
   Globe,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Check,
+  Search,
 } from "lucide-react";
 
 type PathwayModuleType = "health_safety" | "human_resources" | "employment_law" | "all";
@@ -85,6 +90,26 @@ interface PathwayPayload {
   tree: PathwayNode;
   isActive: boolean;
   sortOrder: number;
+}
+
+interface ToolkitTemplateRef {
+  id: string;
+  name: string;
+  description: string | null;
+  module: string;
+  toolkitFolderId: string | null;
+}
+
+interface ToolkitFolderRef {
+  id: string;
+  name: string;
+  module: string;
+  templates: ToolkitTemplateRef[];
+}
+
+interface ToolkitDataRef {
+  folders: ToolkitFolderRef[];
+  unassigned: ToolkitTemplateRef[];
 }
 
 type AdminModuleConfig = { label: string; Icon: ComponentType<{ className?: string }>; color: string; bg: string };
@@ -173,9 +198,16 @@ export default function AdminPathways() {
   const [formSortOrder, setFormSortOrder] = useState(0);
   const [treeError, setTreeError] = useState<string | null>(null);
   const [treeStats, setTreeStats] = useState<TreeStats | null>(null);
+  const [showTemplateRef, setShowTemplateRef] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { data: pathways, isLoading } = useQuery<DocumentPathway[]>({
     queryKey: ["/api/toolkit/pathways"],
+  });
+
+  const { data: toolkitData } = useQuery<ToolkitDataRef>({
+    queryKey: ["/api/toolkit"],
   });
 
   const createMutation = useMutation({
@@ -503,6 +535,100 @@ export default function AdminPathways() {
                 <code className="bg-muted px-1 rounded">next</code> (branch) or{" "}
                 <code className="bg-muted px-1 rounded">templateIds</code> (leaf).
               </p>
+            </div>
+
+            {/* Template Reference Panel */}
+            <div className="rounded-lg border bg-muted/20">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium hover:bg-muted/40 transition-colors rounded-lg"
+                onClick={() => setShowTemplateRef(!showTemplateRef)}
+                data-testid="button-toggle-template-ref"
+              >
+                <span className="flex items-center gap-2">
+                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  Browse Template IDs
+                </span>
+                {showTemplateRef ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+
+              {showTemplateRef && (
+                <div className="px-3 pb-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Copy a template ID and paste it into the <code className="bg-muted px-1 rounded">templateIds</code> array in your JSON tree above.
+                  </p>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      placeholder="Search templates..."
+                      className="pl-8 h-8 text-xs"
+                      data-testid="input-template-search"
+                    />
+                  </div>
+                  <div className="h-48 overflow-y-auto rounded-md border bg-background">
+                    <div className="p-1 space-y-px">
+                      {(() => {
+                        const allRefs: (ToolkitTemplateRef & { folderName?: string })[] = [
+                          ...(toolkitData?.folders ?? []).flatMap(f =>
+                            f.templates.map(t => ({ ...t, folderName: f.name }))
+                          ),
+                          ...(toolkitData?.unassigned ?? []).map(t => ({ ...t, folderName: undefined })),
+                        ];
+                        const filtered = allRefs.filter(t =>
+                          !templateSearch ||
+                          t.name.toLowerCase().includes(templateSearch.toLowerCase()) ||
+                          (t.folderName ?? "").toLowerCase().includes(templateSearch.toLowerCase())
+                        );
+                        if (filtered.length === 0) {
+                          return (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              No templates found.
+                            </p>
+                          );
+                        }
+                        return filtered.map(t => (
+                          <div
+                            key={t.id}
+                            className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/50 group"
+                            data-testid={`row-template-ref-${t.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{t.name}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono truncate">{t.id}</p>
+                            </div>
+                            {t.folderName && (
+                              <span className="text-[10px] text-muted-foreground shrink-0 hidden group-hover:inline">{t.folderName}</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(t.id);
+                                setCopiedId(t.id);
+                                setTimeout(() => setCopiedId(null), 1800);
+                              }}
+                              className="shrink-0 p-1 rounded hover:bg-muted transition-colors"
+                              title="Copy ID"
+                              data-testid={`button-copy-template-id-${t.id}`}
+                            >
+                              {copiedId === t.id ? (
+                                <Check className="h-3 w-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </button>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 pt-1">
