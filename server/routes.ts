@@ -10302,7 +10302,11 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const { taskListId, assignedTo } = z.object({ taskListId: z.string(), assignedTo: z.string() }).parse(req.body);
+      const parsed = z.object({ taskListId: z.string(), assignedTo: z.string() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const { taskListId, assignedTo } = parsed.data;
+      const taskList = await storage.getTestingTaskList(taskListId);
+      if (!taskList) return res.status(404).json({ error: "Task list not found" });
       const assignee = await storage.getUser(assignedTo);
       if (!assignee || assignee.role !== "consultant") {
         return res.status(400).json({ error: "Assignee must be a consultant" });
@@ -10331,7 +10335,9 @@ export async function registerRoutes(
       if (user.role === "consultant" && existing.assignedTo !== user.id) {
         return res.status(403).json({ error: "You can only update your own assignments" });
       }
-      const { completedTaskIds } = z.object({ completedTaskIds: z.array(z.string()) }).parse(req.body);
+      const bodyParsed = z.object({ completedTaskIds: z.array(z.string()) }).safeParse(req.body);
+      if (!bodyParsed.success) return res.status(400).json({ error: "Invalid data", details: bodyParsed.error.issues });
+      const { completedTaskIds } = bodyParsed.data;
       const assignment = await storage.updateTestingTaskAssignment(req.params.id, { completedTaskIds });
       if (!assignment) return res.status(404).json({ error: "Assignment not found" });
       res.json(assignment);
