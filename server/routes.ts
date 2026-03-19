@@ -10241,7 +10241,13 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const parsed = taskListSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const list = await storage.updateTestingTaskList(req.params.id, parsed.data as any);
+      const { title, description, module, tasks } = parsed.data;
+      const updatePayload: Record<string, unknown> = {};
+      if (title !== undefined) updatePayload.title = title;
+      if (description !== undefined) updatePayload.description = description;
+      if (module !== undefined) updatePayload.module = module;
+      if (tasks !== undefined) updatePayload.tasks = tasks;
+      const list = await storage.updateTestingTaskList(req.params.id, updatePayload as Partial<import("@shared/schema").TestingTaskList>);
       if (!list) return res.status(404).json({ error: "Task list not found" });
       res.json(list);
     } catch (error) {
@@ -10319,6 +10325,11 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Access denied" });
+      }
+      const existing = await storage.getTestingTaskAssignment(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Assignment not found" });
+      if (user.role === "consultant" && existing.assignedTo !== user.id) {
+        return res.status(403).json({ error: "You can only update your own assignments" });
       }
       const { completedTaskIds } = z.object({ completedTaskIds: z.array(z.string()) }).parse(req.body);
       const assignment = await storage.updateTestingTaskAssignment(req.params.id, { completedTaskIds });

@@ -432,6 +432,7 @@ export interface IStorage {
 
   // Testing Task Assignments
   getTestingTaskAssignments(taskListId?: string): Promise<(TestingTaskAssignment & { assignedToUser?: Pick<User, "id" | "fullName" | "email"> })[]>;
+  getTestingTaskAssignment(id: string): Promise<TestingTaskAssignment | undefined>;
   getMyTestingTaskAssignments(userId: string): Promise<(TestingTaskAssignment & { taskList: TestingTaskList })[]>;
   createTestingTaskAssignment(assignment: InsertTestingTaskAssignment): Promise<TestingTaskAssignment>;
   updateTestingTaskAssignment(id: string, updates: Partial<TestingTaskAssignment>): Promise<TestingTaskAssignment | undefined>;
@@ -3866,6 +3867,11 @@ export class MemStorage implements IStorage {
     await db.delete(testingTaskAssignmentsTable).where(eq(testingTaskAssignmentsTable.taskListId, id));
     const result = await db.delete(testingTaskListsTable).where(eq(testingTaskListsTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getTestingTaskAssignment(id: string): Promise<TestingTaskAssignment | undefined> {
+    const [row] = await db.select().from(testingTaskAssignmentsTable).where(eq(testingTaskAssignmentsTable.id, id));
+    return row;
   }
 
   async getTestingTaskAssignments(taskListId?: string): Promise<(TestingTaskAssignment & { assignedToUser?: Pick<User, "id" | "fullName" | "email"> })[]> {

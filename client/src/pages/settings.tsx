@@ -1072,6 +1072,7 @@ function TestingTab() {
   const [assignConsultantId, setAssignConsultantId] = useState("");
   const [assigningList, setAssigningList] = useState(false);
   const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
+  const [confirmRemoveAssignmentId, setConfirmRemoveAssignmentId] = useState<string | null>(null);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
 
   const { data: taskLists = [], refetch: refetchLists } = useQuery<TestingTaskList[]>({
@@ -1292,7 +1293,7 @@ function TestingTab() {
                       <span>{pct}%</span>
                     </div>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" disabled={deletingAssignmentId === a.id}
-                      onClick={() => handleDeleteAssignment(a.id)} data-testid={`button-remove-assignment-${a.id}`}>
+                      onClick={() => setConfirmRemoveAssignmentId(a.id)} data-testid={`button-remove-assignment-${a.id}`}>
                       {deletingAssignmentId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
@@ -1383,6 +1384,28 @@ function TestingTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Confirm Remove Assignment Dialog */}
+      <AlertDialog open={!!confirmRemoveAssignmentId} onOpenChange={(open) => !open && setConfirmRemoveAssignmentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Assignment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the consultant's access to this task list and delete their progress. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-confirm-remove-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (confirmRemoveAssignmentId) { handleDeleteAssignment(confirmRemoveAssignmentId); setConfirmRemoveAssignmentId(null); } }}
+              data-testid="button-confirm-remove-ok"
+            >
+              Remove Assignment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Assign Consultant Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
