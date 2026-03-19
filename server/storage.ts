@@ -307,6 +307,7 @@ export interface IStorage {
   
   // Document Templates (The "Document Bible")
   getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]>;
+  getDocumentTemplatesByIds(ids: string[]): Promise<DocumentTemplate[]>;
   getArchivedDocumentTemplates(): Promise<DocumentTemplate[]>;
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
@@ -2010,11 +2011,15 @@ export class MemStorage implements IStorage {
   // Document Pathways
   async getDocumentPathways(module?: string): Promise<DocumentPathway[]> {
     if (module) {
+      // Return pathways for this specific module OR module-agnostic pathways (null)
       return await db.select().from(documentPathwaysTable)
-        .where(eq(documentPathwaysTable.module, module as any))
-        .orderBy(asc(documentPathwaysTable.createdAt));
+        .where(
+          sql`(${documentPathwaysTable.module} = ${module} OR ${documentPathwaysTable.module} IS NULL)`
+        )
+        .orderBy(asc(documentPathwaysTable.sortOrder), asc(documentPathwaysTable.createdAt));
     }
-    return await db.select().from(documentPathwaysTable).orderBy(asc(documentPathwaysTable.createdAt));
+    return await db.select().from(documentPathwaysTable)
+      .orderBy(asc(documentPathwaysTable.sortOrder), asc(documentPathwaysTable.createdAt));
   }
 
   async getDocumentPathway(id: string): Promise<DocumentPathway | undefined> {
@@ -2326,6 +2331,12 @@ export class MemStorage implements IStorage {
   async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
     const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
     return template;
+  }
+
+  async getDocumentTemplatesByIds(ids: string[]): Promise<DocumentTemplate[]> {
+    if (!ids.length) return [];
+    return await db.select().from(documentTemplatesTable)
+      .where(sql`${documentTemplatesTable.id} = ANY(${ids})`);
   }
   
   async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {

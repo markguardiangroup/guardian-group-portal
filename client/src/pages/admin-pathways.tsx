@@ -43,9 +43,11 @@ import {
   Briefcase,
   Scale,
   AlertCircle,
+  CheckCircle2,
+  Globe,
 } from "lucide-react";
 
-type ModuleType = "health_safety" | "human_resources" | "employment_law";
+type PathwayModuleType = "health_safety" | "human_resources" | "employment_law" | "all";
 
 interface PathwayNode {
   question: string;
@@ -61,14 +63,21 @@ interface DocumentPathway {
   id: string;
   title: string;
   description: string | null;
-  module: ModuleType;
+  module: "health_safety" | "human_resources" | "employment_law" | null;
   tree: PathwayNode;
   isActive: boolean;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
 
-const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: string; bg: string }> = {
+interface TreeStats {
+  questionCount: number;
+  endpointCount: number;
+  maxDepth: number;
+}
+
+const MODULE_CONFIG: Record<string, { label: string; Icon: any; color: string; bg: string }> = {
   health_safety: {
     label: "Health & Safety",
     Icon: HardHat,
@@ -87,11 +96,12 @@ const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: strin
     color: "text-pink-600 dark:text-pink-400",
     bg: "bg-pink-100 dark:bg-pink-900/40",
   },
-};
-
-const EMPTY_TREE: PathwayNode = {
-  question: "",
-  answers: [],
+  all: {
+    label: "All Modules",
+    Icon: Globe,
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-100 dark:bg-violet-900/40",
+  },
 };
 
 const DEFAULT_TREE_TEMPLATE = JSON.stringify({
@@ -116,6 +126,25 @@ const DEFAULT_TREE_TEMPLATE = JSON.stringify({
   ],
 }, null, 2);
 
+function analyzeTree(node: PathwayNode, depth = 1): TreeStats {
+  let questionCount = 1;
+  let endpointCount = 0;
+  let maxDepth = depth;
+
+  for (const answer of node.answers) {
+    if (answer.next) {
+      const sub = analyzeTree(answer.next, depth + 1);
+      questionCount += sub.questionCount;
+      endpointCount += sub.endpointCount;
+      maxDepth = Math.max(maxDepth, sub.maxDepth);
+    } else {
+      endpointCount++;
+    }
+  }
+
+  return { questionCount, endpointCount, maxDepth };
+}
+
 export default function AdminPathways() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -126,18 +155,19 @@ export default function AdminPathways() {
 
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
-  const [formModule, setFormModule] = useState<ModuleType>("health_safety");
+  const [formModule, setFormModule] = useState<PathwayModuleType>("health_safety");
   const [formTree, setFormTree] = useState(DEFAULT_TREE_TEMPLATE);
   const [formActive, setFormActive] = useState(true);
+  const [formSortOrder, setFormSortOrder] = useState(0);
   const [treeError, setTreeError] = useState<string | null>(null);
+  const [treeStats, setTreeStats] = useState<TreeStats | null>(null);
 
   const { data: pathways, isLoading } = useQuery<DocumentPathway[]>({
     queryKey: ["/api/toolkit/pathways"],
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string | null; module: ModuleType; tree: PathwayNode; isActive: boolean }) =>
-      apiRequest("POST", "/api/toolkit/pathways", data),
+    mutationFn: async (data: any) => apiRequest("POST", "/api/toolkit/pathways", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
       toast({ title: "Pathway created", description: "The guided finder pathway has been created." });
@@ -147,7 +177,7 @@ export default function AdminPathways() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<DocumentPathway> }) =>
+    mutationFn: async ({ id, data }: { id: string; data: any }) =>
       apiRequest("PATCH", `/api/toolkit/pathways/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
@@ -183,7 +213,9 @@ export default function AdminPathways() {
     setFormModule("health_safety");
     setFormTree(DEFAULT_TREE_TEMPLATE);
     setFormActive(true);
+    setFormSortOrder(0);
     setTreeError(null);
+    setTreeStats(null);
     setShowForm(true);
   };
 
@@ -191,10 +223,12 @@ export default function AdminPathways() {
     setEditPathway(p);
     setFormTitle(p.title);
     setFormDesc(p.description ?? "");
-    setFormModule(p.module);
+    setFormModule(p.module ?? "all");
     setFormTree(JSON.stringify(p.tree, null, 2));
     setFormActive(p.isActive);
+    setFormSortOrder(p.sortOrder ?? 0);
     setTreeError(null);
+    setTreeStats(null);
     setShowForm(true);
   };
 
@@ -202,6 +236,22 @@ export default function AdminPathways() {
     setShowForm(false);
     setEditPathway(null);
     setTreeError(null);
+    setTreeStats(null);
+  };
+
+  const handleValidate = () => {
+    try {
+      const parsed: PathwayNode = JSON.parse(formTree);
+      if (!parsed.question || !Array.isArray(parsed.answers)) {
+        throw new Error("Root node must have a 'question' string and 'answers' array.");
+      }
+      const stats = analyzeTree(parsed);
+      setTreeStats(stats);
+      setTreeError(null);
+    } catch (e: any) {
+      setTreeError(e.message);
+      setTreeStats(null);
+    }
   };
 
   const handleSubmit = () => {
@@ -221,9 +271,10 @@ export default function AdminPathways() {
     const payload = {
       title: formTitle.trim(),
       description: formDesc.trim() || null,
-      module: formModule,
+      module: formModule === "all" ? null : formModule,
       tree: parsedTree,
       isActive: formActive,
+      sortOrder: formSortOrder,
     };
 
     if (editPathway) {
@@ -271,7 +322,8 @@ export default function AdminPathways() {
       ) : (
         <div className="grid gap-4">
           {pathways.map((pathway) => {
-            const mod = MODULE_CONFIG[pathway.module] || MODULE_CONFIG.health_safety;
+            const modKey = pathway.module ?? "all";
+            const mod = MODULE_CONFIG[modKey] || MODULE_CONFIG.all;
             return (
               <div
                 key={pathway.id}
@@ -352,12 +404,13 @@ export default function AdminPathways() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pathway-module">Module <span className="text-destructive">*</span></Label>
-                <Select value={formModule} onValueChange={(v) => setFormModule(v as ModuleType)}>
+                <Label htmlFor="pathway-module">Module</Label>
+                <Select value={formModule} onValueChange={(v) => setFormModule(v as PathwayModuleType)}>
                   <SelectTrigger id="pathway-module" data-testid="select-pathway-module">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All Modules</SelectItem>
                     <SelectItem value="health_safety">Health & Safety</SelectItem>
                     <SelectItem value="human_resources">Human Resources</SelectItem>
                     <SelectItem value="employment_law">Employment Law</SelectItem>
@@ -366,15 +419,28 @@ export default function AdminPathways() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="pathway-desc">Description</Label>
-              <Input
-                id="pathway-desc"
-                value={formDesc}
-                onChange={(e) => setFormDesc(e.target.value)}
-                placeholder="Brief description shown to users before they start"
-                data-testid="input-pathway-desc"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="pathway-desc">Description</Label>
+                <Input
+                  id="pathway-desc"
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                  placeholder="Brief description shown to users"
+                  data-testid="input-pathway-desc"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="pathway-sort">Sort Order</Label>
+                <Input
+                  id="pathway-sort"
+                  type="number"
+                  value={formSortOrder}
+                  onChange={(e) => setFormSortOrder(parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  data-testid="input-pathway-sort"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -382,30 +448,48 @@ export default function AdminPathways() {
                 <Label htmlFor="pathway-tree">
                   Decision Tree (JSON) <span className="text-destructive">*</span>
                 </Label>
-                <span className="text-xs text-muted-foreground">
-                  Use <code className="text-xs bg-muted px-1 rounded">templateIds</code> arrays with template IDs at leaf nodes
-                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleValidate}
+                  data-testid="button-validate-tree"
+                  className="h-7 text-xs"
+                >
+                  Validate & Preview
+                </Button>
               </div>
               <Textarea
                 id="pathway-tree"
                 value={formTree}
-                onChange={(e) => { setFormTree(e.target.value); setTreeError(null); }}
+                onChange={(e) => { setFormTree(e.target.value); setTreeError(null); setTreeStats(null); }}
                 rows={16}
                 className="font-mono text-xs"
                 data-testid="textarea-pathway-tree"
                 spellCheck={false}
               />
               {treeError && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="text-xs text-destructive flex items-center gap-1" data-testid="text-tree-error">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {treeError}
                 </p>
               )}
+              {treeStats && !treeError && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground rounded-md border bg-muted/30 px-3 py-2" data-testid="text-tree-stats">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                  <span>Valid JSON tree —</span>
+                  <span><strong>{treeStats.questionCount}</strong> question{treeStats.questionCount !== 1 ? "s" : ""}</span>
+                  <span>·</span>
+                  <span><strong>{treeStats.endpointCount}</strong> end point{treeStats.endpointCount !== 1 ? "s" : ""}</span>
+                  <span>·</span>
+                  <span>max depth <strong>{treeStats.maxDepth}</strong></span>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
-                Each node must have a <code className="bg-muted px-1 rounded">question</code> string and an{" "}
-                <code className="bg-muted px-1 rounded">answers</code> array. Each answer can have an optional{" "}
-                <code className="bg-muted px-1 rounded">next</code> node or{" "}
-                <code className="bg-muted px-1 rounded">templateIds</code> array (leaf).
+                Each node needs <code className="bg-muted px-1 rounded">question</code> and{" "}
+                <code className="bg-muted px-1 rounded">answers</code>. Each answer can have{" "}
+                <code className="bg-muted px-1 rounded">next</code> (branch) or{" "}
+                <code className="bg-muted px-1 rounded">templateIds</code> (leaf).
               </p>
             </div>
 
@@ -445,7 +529,7 @@ export default function AdminPathways() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Pathway?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the guided finder pathway. Users will no longer see the "Find a Document" option for this pathway.
+              This will permanently remove the guided finder pathway. Users will no longer see this pathway in the "Find a Document" flow.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -10117,7 +10117,22 @@ export async function registerRoutes(
     try {
       const pathway = await storage.getDocumentPathway(req.params.id);
       if (!pathway) return res.status(404).json({ error: "Pathway not found" });
-      res.json(pathway);
+
+      // Resolve leaf templateIds to template objects
+      const collectIds = (node: any): string[] => {
+        if (!node) return [];
+        const ids: string[] = [];
+        if (Array.isArray(node.answers)) {
+          for (const a of node.answers) {
+            if (Array.isArray(a.templateIds)) ids.push(...a.templateIds);
+            if (a.next) ids.push(...collectIds(a.next));
+          }
+        }
+        return ids;
+      };
+      const allIds = [...new Set(collectIds(pathway.tree))];
+      const templates = allIds.length > 0 ? await storage.getDocumentTemplatesByIds(allIds) : [];
+      res.json({ ...pathway, resolvedTemplates: templates });
     } catch (error) {
       console.error("Error fetching pathway:", error);
       res.status(500).json({ error: "Failed to fetch pathway" });
@@ -10128,9 +10143,9 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const { title, description, module, tree, isActive } = req.body;
-      if (!title || !module || !tree) return res.status(400).json({ error: "title, module and tree are required" });
-      const pathway = await storage.createDocumentPathway({ title, description: description ?? null, module, tree, isActive: isActive !== false, createdBy: user.id });
+      const { title, description, module, tree, isActive, sortOrder } = req.body;
+      if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
+      const pathway = await storage.createDocumentPathway({ title, description: description ?? null, module: module ?? null, tree, isActive: isActive !== false, sortOrder: sortOrder ?? 0, createdBy: user.id });
       res.status(201).json(pathway);
     } catch (error) {
       console.error("Error creating pathway:", error);
