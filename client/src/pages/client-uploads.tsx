@@ -66,6 +66,7 @@ import {
   Shield,
   Clock,
   Plus,
+  CloudUpload,
 } from "lucide-react";
 
 type ClientUploadModule = "health_safety" | "human_resources" | "employment_law";
@@ -583,26 +584,32 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   }
 
   const accentColor = MODULE_COLOR[module];
+  const themeClass = module === "health_safety" ? "theme-hs" : module === "human_resources" ? "theme-hr" : "theme-el";
 
   if (selectedFolder) {
     return (
-      <div className="p-6 space-y-4" data-testid="folder-contents-view">
-        <div className="flex items-center gap-2 mb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedFolder(null);
-              setCheckedFileIds(new Set());
-            }}
-            data-testid="button-back-to-folders"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Cloud Share
-          </Button>
-          <span className="text-muted-foreground">/</span>
-          <span className="font-medium">{selectedFolder.name}</span>
+      <div className={themeClass} data-testid="folder-contents-view">
+        <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-5">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-module-accent hover:text-module-accent hover:bg-module-accent-subtle font-medium"
+              onClick={() => {
+                setSelectedFolder(null);
+                setCheckedFileIds(new Set());
+              }}
+              data-testid="button-back-to-folders"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Cloud Share
+            </Button>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-medium text-sm">{selectedFolder.name}</span>
+          </div>
         </div>
+
+        <div className="p-6 space-y-4 dash-animate">
 
         <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border bg-muted/30">
           <div className="flex-1 min-w-0">
@@ -952,28 +959,39 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
             revokeAccessMutation.mutate({ folderId: accessFolder.id, userId });
           }}
         />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-5 dash-animate" data-testid="folder-list-view">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cloud Share</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{MODULE_LABELS[module]}</p>
+    <div className={themeClass} data-testid="folder-list-view">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-module-accent shrink-0">
+              <CloudUpload className="h-6 w-6 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold">Cloud Share</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">{MODULE_LABELS[module]}</p>
+            </div>
+          </div>
+          <Button
+            className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground shrink-0"
+            onClick={() => {
+              setCreateStep(1);
+              setCreateDialogOpen(true);
+            }}
+            data-testid="button-upload-documents"
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Upload Documents
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            setCreateStep(1);
-            setCreateDialogOpen(true);
-          }}
-          data-testid="button-upload-documents"
-        >
-          <FolderPlus className="h-4 w-4 mr-2" />
-          Upload Documents
-        </Button>
       </div>
+
+      <div className="p-6 space-y-5 dash-animate">
 
       <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30" data-testid="expiry-info-banner">
         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
@@ -1380,6 +1398,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           revokeAccessMutation.mutate({ folderId: accessFolder.id, userId });
         }}
       />
+      </div>
     </div>
   );
 }
