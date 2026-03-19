@@ -42,6 +42,7 @@ import {
   Upload,
   Eye,
   Trash2,
+  Download,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -1045,11 +1046,15 @@ function LegalDocumentsTab() {
           {info?.exists && (
             <Button
               variant="outline"
-              onClick={() => window.open(`/api/legal-documents/${type}/view`, "_blank")}
-              data-testid={`button-view-${type}`}
+              onClick={() => {
+                const a = document.createElement("a");
+                a.href = `/api/legal-documents/${type}/download`;
+                a.click();
+              }}
+              data-testid={`button-download-${type}`}
             >
-              <Eye className="h-4 w-4 mr-2" />
-              View Document
+              <Download className="h-4 w-4 mr-2" />
+              Download Document
             </Button>
           )}
         </div>

@@ -8801,6 +8801,43 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/legal-documents/:type/download", async (req, res) => {
+    try {
+      const docType = req.params.type;
+      if (docType !== "terms" && docType !== "privacy") {
+        return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const fullPath = `${privateObjectDir}/legal/${docType}`;
+
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+
+      const [exists] = await file.exists();
+      if (!exists) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const [metadata] = await file.getMetadata();
+      const contentType = metadata.contentType || "application/pdf";
+      const fileName = metadata.metadata?.originalName || `${docType}.pdf`;
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+      const stream = file.createReadStream();
+      stream.pipe(res);
+    } catch (error) {
+      console.error("Error downloading legal document:", error);
+      res.status(500).json({ error: "Failed to download legal document" });
+    }
+  });
+
   // ==================== FEEDBACK ENDPOINTS ====================
   // All feedback endpoints are for admin/consultant only
   const requirePrivileged = (req: any, res: any, next: any) => {
