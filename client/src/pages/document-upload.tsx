@@ -554,7 +554,7 @@ export default function DocumentUpload() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>Title <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="Document title" {...field} data-testid="input-title" />
                         </FormControl>
@@ -587,7 +587,7 @@ export default function DocumentUpload() {
                       name="module"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Module</FormLabel>
+                          <FormLabel>Module <span className="text-destructive">*</span></FormLabel>
                           <Select 
                             onValueChange={field.onChange} 
                             value={field.value}
@@ -618,7 +618,7 @@ export default function DocumentUpload() {
 
                   <div className="grid gap-6 sm:grid-cols-2">
                     <FormItem>
-                      <FormLabel>Company</FormLabel>
+                      <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
                       <Select 
                         value={selectedCompany} 
                         onValueChange={(value) => {
@@ -651,7 +651,7 @@ export default function DocumentUpload() {
                       name="uploadScope"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Apply To</FormLabel>
+                          <FormLabel>Apply To <span className="text-destructive">*</span></FormLabel>
                           <Select 
                             onValueChange={(value) => {
                               field.onChange(value);
@@ -741,7 +741,7 @@ export default function DocumentUpload() {
                       name="siteId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Site</FormLabel>
+                          <FormLabel>Site <span className="text-destructive">*</span></FormLabel>
                           <Select 
                             onValueChange={(value) => {
                               field.onChange(value);
@@ -977,7 +977,7 @@ export default function DocumentUpload() {
                           onChange={() => { form.setValue("complianceMode", "renewal"); form.setValue("expiryDate", ""); }}
                           className="accent-primary mt-1" />
                         <div className="flex-1 space-y-2">
-                          <span className="text-sm">Renewal period</span>
+                          <span className="text-sm">Renewal period {complianceMode === "renewal" && <span className="text-destructive">*</span>}</span>
                           {complianceMode === "renewal" && (
                             <Select
                               value={renewalPeriodMonths != null ? String(renewalPeriodMonths) : ""}
@@ -1002,7 +1002,7 @@ export default function DocumentUpload() {
                           onChange={() => { form.setValue("complianceMode", "expiry"); form.setValue("renewalPeriodMonths", null); }}
                           className="accent-primary mt-1" />
                         <div className="flex-1 space-y-2">
-                          <span className="text-sm">Expiry date</span>
+                          <span className="text-sm">Expiry date {complianceMode === "expiry" && <span className="text-destructive">*</span>}</span>
                           {complianceMode === "expiry" && (
                             <FormField
                               control={form.control}
@@ -1053,7 +1053,7 @@ export default function DocumentUpload() {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>Upload File</CardTitle>
+              <CardTitle>Upload File <span className="text-destructive text-base">*</span></CardTitle>
               <CardDescription>Drag and drop or click to select</CardDescription>
             </CardHeader>
             <CardContent>
