@@ -57,7 +57,7 @@ import {
   clientUploadFolderAccess as clientUploadFolderAccessTable,
   clientUploads as clientUploadsTable,
   userInvitations as userInvitationsTable,
-  type DocumentPathway, type InsertDocumentPathway,
+  type DocumentPathway, type InsertDocumentPathway, type PathwayNode,
   documentPathways as documentPathwaysTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
@@ -432,6 +432,10 @@ export class MemStorage implements IStorage {
     // Ensure default admin user exists on startup
     this.initializeDefaultAdmin().catch(err => {
       console.error("Failed to initialize default admin:", err);
+    });
+    // Seed example pathways if none exist
+    this.seedExamplePathways().catch(err => {
+      console.error("Failed to seed example pathways:", err);
     });
   }
 
@@ -3667,6 +3671,122 @@ export class MemStorage implements IStorage {
         eq(siteTemplateOverridesTable.templateId, templateId),
       ));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Seed example pathways if none exist
+  async seedExamplePathways(): Promise<void> {
+    try {
+      const existing = await db.select().from(documentPathwaysTable).limit(1);
+      if (existing.length > 0) return; // Already seeded
+
+      const hsTree: PathwayNode = {
+        question: "What type of health & safety document do you need?",
+        answers: [
+          {
+            label: "Risk Assessment",
+            description: "Identify hazards and control measures",
+            next: {
+              question: "Which area does this risk assessment cover?",
+              answers: [
+                { label: "General workplace risk assessment", templateIds: [] },
+                { label: "COSHH (hazardous substances)", templateIds: [] },
+                { label: "Manual handling", templateIds: [] },
+                { label: "Fire risk assessment", templateIds: [] },
+              ],
+            },
+          },
+          {
+            label: "Policy or Procedure",
+            description: "Formal written H&S policy or procedure",
+            next: {
+              question: "What does the policy or procedure relate to?",
+              answers: [
+                { label: "Health & Safety Policy Statement", templateIds: [] },
+                { label: "Emergency evacuation procedure", templateIds: [] },
+                { label: "First aid policy", templateIds: [] },
+                { label: "Lone working policy", templateIds: [] },
+              ],
+            },
+          },
+          {
+            label: "Inspection or Audit",
+            description: "Checklists for workplace inspections and audits",
+            templateIds: [],
+          },
+        ],
+      };
+
+      const hrTree: PathwayNode = {
+        question: "What HR situation are you dealing with?",
+        answers: [
+          {
+            label: "A new employee is starting",
+            description: "Onboarding, contracts, and first-day documentation",
+            next: {
+              question: "What do you need for the new starter?",
+              answers: [
+                { label: "Employment contract", templateIds: [] },
+                { label: "Offer letter", templateIds: [] },
+                { label: "Induction checklist", templateIds: [] },
+              ],
+            },
+          },
+          {
+            label: "Managing absence",
+            description: "Short-term, long-term sickness, or unauthorised absence",
+            next: {
+              question: "What type of absence?",
+              answers: [
+                { label: "Short-term sickness absence", templateIds: [] },
+                { label: "Long-term sickness absence", templateIds: [] },
+                { label: "Unauthorised absence", templateIds: [] },
+                { label: "Return to work", templateIds: [] },
+              ],
+            },
+          },
+          {
+            label: "Disciplinary or performance issue",
+            description: "Formal disciplinary, warnings, or performance management",
+            next: {
+              question: "What stage is the process at?",
+              answers: [
+                { label: "Informal discussion / first warning", templateIds: [] },
+                { label: "Formal disciplinary hearing", templateIds: [] },
+                { label: "Performance improvement plan", templateIds: [] },
+                { label: "Dismissal or final warning", templateIds: [] },
+              ],
+            },
+          },
+        ],
+      };
+
+      await db.insert(documentPathwaysTable).values([
+        {
+          id: "pathway-hs-default",
+          title: "Find the Right H&S Document",
+          description: "Quickly locate risk assessments, policies, and inspection checklists.",
+          module: "health_safety" as const,
+          tree: hsTree,
+          isActive: true,
+          sortOrder: 0,
+          createdBy: "user-admin",
+        },
+        {
+          id: "pathway-hr-default",
+          title: "Find the Right HR Document",
+          description: "Navigate contracts, absence management, and disciplinary templates.",
+          module: "human_resources" as const,
+          tree: hrTree,
+          isActive: true,
+          sortOrder: 0,
+          createdBy: "user-admin",
+        },
+      ]).onConflictDoNothing();
+
+      console.log("Example pathways seeded successfully.");
+    } catch (error) {
+      console.error("Error seeding example pathways:", error);
+    }
   }
 
   // Initialize default admin user in database if not exists

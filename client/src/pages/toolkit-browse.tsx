@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -132,11 +132,21 @@ interface DocumentPathway {
   updatedAt: string;
 }
 
-const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: string; cardColor: string; btnClass: string }> = {
+type ModuleConfig = {
+  label: string;
+  Icon: ComponentType<{ className?: string }>;
+  color: string;
+  bg: string;
+  cardColor: string;
+  btnClass: string;
+};
+
+const MODULE_CONFIG: Record<ModuleType, ModuleConfig> = {
   health_safety: {
     label: "Health & Safety",
     Icon: HardHat,
     color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-900/40",
     cardColor: "border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600",
     btnClass: "bg-emerald-600 hover:bg-emerald-700 text-white border-0",
   },
@@ -144,6 +154,7 @@ const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: strin
     label: "Human Resources",
     Icon: Briefcase,
     color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-900/40",
     cardColor: "border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600",
     btnClass: "bg-blue-600 hover:bg-blue-700 text-white border-0",
   },
@@ -151,6 +162,7 @@ const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: strin
     label: "Employment Law",
     Icon: Scale,
     color: "text-pink-600 dark:text-pink-400",
+    bg: "bg-pink-100 dark:bg-pink-900/40",
     cardColor: "border-pink-200 dark:border-pink-800 hover:border-pink-400 dark:hover:border-pink-600",
     btnClass: "bg-pink-600 hover:bg-pink-700 text-white border-0",
   },

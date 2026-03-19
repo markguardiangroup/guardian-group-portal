@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { type ComponentType } from "react";
 import {
   Compass,
   Plus,
@@ -77,7 +78,18 @@ interface TreeStats {
   maxDepth: number;
 }
 
-const MODULE_CONFIG: Record<string, { label: string; Icon: any; color: string; bg: string }> = {
+interface PathwayPayload {
+  title: string;
+  description: string | null;
+  module: "health_safety" | "human_resources" | "employment_law" | null;
+  tree: PathwayNode;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+type AdminModuleConfig = { label: string; Icon: ComponentType<{ className?: string }>; color: string; bg: string };
+
+const MODULE_CONFIG: Record<string, AdminModuleConfig> = {
   health_safety: {
     label: "Health & Safety",
     Icon: HardHat,
@@ -167,7 +179,7 @@ export default function AdminPathways() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest("POST", "/api/toolkit/pathways", data),
+    mutationFn: (data: PathwayPayload) => apiRequest("POST", "/api/toolkit/pathways", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
       toast({ title: "Pathway created", description: "The guided finder pathway has been created." });
@@ -177,7 +189,7 @@ export default function AdminPathways() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: PathwayPayload }) =>
       apiRequest("PATCH", `/api/toolkit/pathways/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
@@ -248,8 +260,8 @@ export default function AdminPathways() {
       const stats = analyzeTree(parsed);
       setTreeStats(stats);
       setTreeError(null);
-    } catch (e: any) {
-      setTreeError(e.message);
+    } catch (e) {
+      setTreeError(e instanceof Error ? e.message : "Invalid JSON");
       setTreeStats(null);
     }
   };
@@ -263,8 +275,8 @@ export default function AdminPathways() {
         throw new Error("Tree must have a 'question' string and 'answers' array.");
       }
       setTreeError(null);
-    } catch (e: any) {
-      setTreeError(e.message);
+    } catch (e) {
+      setTreeError(e instanceof Error ? e.message : "Invalid JSON");
       return;
     }
 
