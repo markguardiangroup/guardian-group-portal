@@ -1657,6 +1657,14 @@ export default function TemplateLibraryPage() {
               <span>{template.fileName}</span>
               <span>•</span>
               <span>{formatFileSize(template.fileSize)}</span>
+              {template.createdAt && (
+                <>
+                  <span>•</span>
+                  <span data-testid={`text-uploaded-card-${template.id}`}>
+                    {new Date(template.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </span>
+                </>
+              )}
               {showFolder && (
                 <>
                   <span>•</span>
