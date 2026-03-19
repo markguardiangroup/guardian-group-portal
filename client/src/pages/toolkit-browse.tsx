@@ -77,7 +77,6 @@ import {
   ChevronLeft,
   CheckCircle2,
   RotateCcw,
-  Mail,
 } from "lucide-react";
 
 type ModuleType = "health_safety" | "human_resources" | "employment_law";
@@ -291,6 +290,8 @@ interface WizardStep {
   selectedAnswerIndex: number | null;
 }
 
+type WizardAnimDir = "forward" | "backward";
+
 function PathwayWizard({
   pathway,
   allTemplates,
@@ -306,43 +307,67 @@ function PathwayWizard({
 }) {
   const [steps, setSteps] = useState<WizardStep[]>([{ node: pathway.tree, selectedAnswerIndex: null }]);
   const [results, setResults] = useState<string[] | null>(null);
+  const [animDir, setAnimDir] = useState<WizardAnimDir>("forward");
+  const [animKey, setAnimKey] = useState(0);
 
   const currentStep = steps[steps.length - 1];
   const { color, btnClass } = MODULE_CONFIG[selectedModule];
+  const modConfig = MODULE_CONFIG[selectedModule];
+
+  const advance = (dir: WizardAnimDir, fn: () => void) => {
+    setAnimDir(dir);
+    setAnimKey(k => k + 1);
+    fn();
+  };
 
   const handleAnswer = (idx: number) => {
     const answer = currentStep.node.answers[idx];
     const newSteps = steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: idx } : s);
 
-    if (answer.templateIds && answer.templateIds.length >= 0 && !answer.next) {
-      setSteps(newSteps);
-      setResults(answer.templateIds ?? []);
+    if (answer.templateIds !== undefined && !answer.next) {
+      advance("forward", () => {
+        setSteps(newSteps);
+        setResults(answer.templateIds ?? []);
+      });
     } else if (answer.next) {
-      setSteps([...newSteps, { node: answer.next, selectedAnswerIndex: null }]);
+      advance("forward", () => {
+        setSteps([...newSteps, { node: answer.next!, selectedAnswerIndex: null }]);
+      });
     } else {
-      setSteps(newSteps);
-      setResults([]);
+      advance("forward", () => {
+        setSteps(newSteps);
+        setResults([]);
+      });
     }
   };
 
   const handleBack = () => {
     if (results !== null) {
-      setResults(null);
-      const newSteps = steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: null } : s);
-      setSteps(newSteps);
+      advance("backward", () => {
+        setResults(null);
+        setSteps(steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: null } : s));
+      });
     } else if (steps.length > 1) {
-      setSteps(steps.slice(0, -1));
+      advance("backward", () => {
+        setSteps(steps.slice(0, -1));
+      });
     }
   };
 
   const handleReset = () => {
-    setSteps([{ node: pathway.tree, selectedAnswerIndex: null }]);
-    setResults(null);
+    advance("backward", () => {
+      setSteps([{ node: pathway.tree, selectedAnswerIndex: null }]);
+      setResults(null);
+    });
   };
 
   const recommendedTemplates = results !== null
     ? allTemplates.filter(t => results.includes(t.id))
     : [];
+
+  const slideClass = animDir === "forward"
+    ? "animate-in slide-in-from-right-4 fade-in duration-200"
+    : "animate-in slide-in-from-left-4 fade-in duration-200";
 
   return (
     <div className="flex flex-col h-full">
@@ -373,63 +398,71 @@ function PathwayWizard({
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
-        {results !== null ? (
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-base">Recommended Templates</h3>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Based on your answers, here are the most relevant templates for you.
-              </p>
-            </div>
-            {recommendedTemplates.length === 0 ? (
-              <div className="text-center py-10 text-muted-foreground">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-medium">No specific templates found.</p>
-                <p className="text-xs mt-1">Try browsing folders above, or start over with different answers.</p>
+        <div key={animKey} className={slideClass}>
+          {results !== null ? (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-base">Recommended Templates</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Based on your answers, here are the most relevant templates for you.
+                  </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 shrink-0 text-xs font-medium px-2 py-1 rounded-full ${modConfig.bg} ${color}`}>
+                  <modConfig.Icon className="h-3 w-3" />
+                  {modConfig.label}
+                </span>
               </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                {recommendedTemplates.map((template) => (
-                  <TemplateRow
-                    key={template.id}
-                    template={template}
-                    btnClass={btnClass}
-                    onPreview={template.mimeType === "application/pdf" ? () => onPreview(template) : undefined}
-                  />
+              {recommendedTemplates.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm font-medium">No specific templates found.</p>
+                  <p className="text-xs mt-1">Try browsing folders above, or start over with different answers.</p>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  {recommendedTemplates.map((template) => (
+                    <TemplateRow
+                      key={template.id}
+                      template={template}
+                      btnClass={btnClass}
+                      onPreview={template.mimeType === "application/pdf" ? () => onPreview(template) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <h3 className="font-semibold text-base leading-snug">{currentStep.node.question}</h3>
+              </div>
+              <div className="grid gap-2">
+                {currentStep.node.answers.map((answer, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAnswer(idx)}
+                    data-testid={`button-pathway-answer-${idx}`}
+                    className={`group flex items-start gap-3 rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-all ${
+                      currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary/5" : "border-border bg-card"
+                    }`}
+                  >
+                    <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 transition-colors ${
+                      currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary" : "border-muted-foreground/40 group-hover:border-primary"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm leading-snug">{answer.label}</p>
+                      {answer.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{answer.description}</p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div>
-              <h3 className="font-semibold text-base leading-snug">{currentStep.node.question}</h3>
             </div>
-            <div className="grid gap-2">
-              {currentStep.node.answers.map((answer, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAnswer(idx)}
-                  data-testid={`button-pathway-answer-${idx}`}
-                  className={`group flex items-start gap-3 rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-all ${
-                    currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary/5" : "border-border bg-card"
-                  }`}
-                >
-                  <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 transition-colors ${
-                    currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary" : "border-muted-foreground/40 group-hover:border-primary"
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm leading-snug">{answer.label}</p>
-                    {answer.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{answer.description}</p>
-                    )}
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="px-6 py-4 border-t flex items-center justify-between gap-3 shrink-0 bg-background">
@@ -805,7 +838,7 @@ export default function ToolkitBrowse() {
 
       {/* Guided Finder Sheet */}
       <Sheet open={showFinderSheet} onOpenChange={(o) => { if (!o) { setShowFinderSheet(false); setSelectedPathway(null); } }}>
-        <SheetContent side="right" className="w-full sm:max-w-xl p-0 flex flex-col gap-0">
+        <SheetContent side="right" className="w-full sm:max-w-2xl lg:max-w-3xl p-0 flex flex-col gap-0">
           <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
             <SheetTitle className="flex items-center gap-2">
               <Compass className="h-5 w-5 text-primary" />
