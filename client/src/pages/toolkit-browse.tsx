@@ -642,6 +642,13 @@ export default function ToolkitBrowse() {
     setShowFinderSheet(true);
   };
 
+  const bannerStyle =
+    selectedModule === "health_safety"
+      ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
+      : selectedModule === "human_resources"
+      ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
+      : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" };
+
   return (
     <div className="space-y-6 dash-animate">
       {/* Header */}
@@ -655,24 +662,53 @@ export default function ToolkitBrowse() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        {isAdmin && (
           <Button
-            variant="outline"
-            onClick={openFinder}
-            data-testid="button-find-document"
+            onClick={() => setShowCreateFolder(true)}
+            data-testid="button-create-folder"
           >
-            <Compass className="h-4 w-4 mr-2" />
-            Find a Document
+            <FolderPlus className="h-4 w-4 mr-2" />
+            New Folder
           </Button>
-          {isAdmin && (
-            <Button
-              onClick={() => setShowCreateFolder(true)}
-              data-testid="button-create-folder"
-            >
-              <FolderPlus className="h-4 w-4 mr-2" />
-              New Folder
-            </Button>
-          )}
+        )}
+      </div>
+
+      {/* Find a Document — prominent banner */}
+      <div
+        className="relative overflow-hidden rounded-xl p-5 sm:p-6 text-white shadow-md cursor-pointer group"
+        style={bannerStyle}
+        onClick={openFinder}
+        data-testid="button-find-document"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && openFinder()}
+      >
+        {/* Decorative large background icon */}
+        <Compass
+          className="absolute -right-8 -top-8 h-44 w-44 opacity-[0.07] pointer-events-none"
+          aria-hidden="true"
+        />
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-white/20 shrink-0 group-hover:bg-white/30 transition-colors">
+              <Compass className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-0.5">
+                Guided Document Finder
+              </p>
+              <h2 className="text-base sm:text-lg font-bold leading-snug">
+                Not sure which document you need?
+              </h2>
+              <p className="text-sm text-white/80 mt-0.5 leading-relaxed">
+                Answer a few quick questions and we'll point you to the right template.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-4 py-2.5 font-semibold text-sm sm:ml-4">
+            Find a Document
+            <ChevronRight className="h-4 w-4" />
+          </div>
         </div>
       </div>
 
@@ -700,7 +736,7 @@ export default function ToolkitBrowse() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search folders and templates..."
