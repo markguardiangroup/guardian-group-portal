@@ -107,7 +107,7 @@ const moduleNavItems: {
     module: "training" as ModuleType,
     subItems: [
       { title: "Dashboard", url: "/toolkit" },
-      { title: "Browse Templates", url: "/toolkit/browse" },
+      { title: "Templates", url: "/toolkit/browse" },
     ],
   },
   {
@@ -119,7 +119,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/training/dashboard", adminOnly: true },
       { title: "Dashboard", url: "/training/my-training", clientOnly: true },
-      { title: "Browse Courses", url: "/training" },
+      { title: "Courses", url: "/training" },
       { title: "Certificates", url: "/training/certificates" },
     ],
   },
