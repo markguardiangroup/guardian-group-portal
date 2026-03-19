@@ -581,9 +581,12 @@ export default function ToolkitBrowse() {
         : selectedFolder.templates)
     : [];
 
-  const allModuleTemplates = (toolkit?.folders ?? [])
-    .filter(f => f.module === selectedModule)
-    .flatMap(f => f.templates);
+  // All templates across all folders + unassigned — pathway templateIds may reference
+  // any template regardless of module or folder assignment
+  const allModuleTemplates = [
+    ...(toolkit?.folders ?? []).flatMap(f => f.templates),
+    ...(toolkit?.unassigned ?? []),
+  ];
 
   const activePathways = (pathways ?? []).filter(p => p.isActive);
   const pathwaysLoaded = pathways !== undefined;
