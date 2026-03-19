@@ -650,7 +650,7 @@ export default function ToolkitBrowse() {
       : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" };
 
   return (
-    <div className="space-y-6 dash-animate">
+    <div className="space-y-7 dash-animate">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -713,7 +713,7 @@ export default function ToolkitBrowse() {
       </div>
 
       {/* Module tabs */}
-      <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-muted/50 border">
+      <div className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-muted/50 border">
         {MODULES.map((mod) => {
           const { label, Icon, color } = MODULE_CONFIG[mod];
           const isActive = selectedModule === mod;
@@ -722,13 +722,13 @@ export default function ToolkitBrowse() {
               key={mod}
               onClick={() => { setSelectedModule(mod); setSearch(""); }}
               data-testid={`tab-module-${mod}`}
-              className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 py-3 px-2 rounded-lg font-medium transition-all text-xs sm:text-sm ${
+              className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3.5 px-3 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 isActive
                   ? `bg-background border shadow-sm ${color}`
                   : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
               }`}
             >
-              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
               <span>{label}</span>
             </button>
           );
