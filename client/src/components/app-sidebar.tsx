@@ -390,11 +390,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   return (
                     <SidebarMenuItem key={item.title} className={item.themeClass}>
                       <SidebarMenuButton
-                        className="cursor-default opacity-60"
+                        className="cursor-default opacity-60 nav-module-btn"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
                         <item.icon className="h-4 w-4 text-module-accent" />
-                        <span className="flex-1">{item.title}</span>
+                        <span className="flex-1 nav-module-label">{item.title}</span>
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                           <Lock className="h-3 w-3 mr-1" />
                           Locked
@@ -415,13 +415,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                           className={cn(
-                            "transition-colors",
-                            isModuleActive && "bg-sidebar-accent font-medium"
+                            "transition-colors nav-module-btn",
+                            isModuleActive && "nav-module-active"
                           )}
                           data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                         >
                           <item.icon className="h-4 w-4 text-module-accent" />
-                          <span className="flex-1">{item.title}</span>
+                          <span className="flex-1 nav-module-label">{item.title}</span>
                           {item.module === "support" && openSupportCount > 0 && (
                             <Badge 
                               variant="destructive" 
@@ -431,7 +431,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                               {openSupportCount}
                             </Badge>
                           )}
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180 text-module-accent opacity-70" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
@@ -481,11 +481,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   return (
                     <SidebarMenuItem key={item.title} className={item.themeClass}>
                       <SidebarMenuButton
-                        className="cursor-default opacity-60"
+                        className="cursor-default opacity-60 nav-module-btn"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
                         <item.icon className="h-4 w-4 text-module-accent" />
-                        <span className="flex-1">{item.title}</span>
+                        <span className="flex-1 nav-module-label">{item.title}</span>
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                           <Lock className="h-3 w-3 mr-1" />
                           Locked
@@ -506,13 +506,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                           className={cn(
-                            "transition-colors",
-                            isModuleActive && "bg-sidebar-accent font-medium"
+                            "transition-colors nav-module-btn",
+                            isModuleActive && "nav-module-active"
                           )}
                           data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                         >
                           <item.icon className="h-4 w-4 text-module-accent" />
-                          <span className="flex-1">{item.title}</span>
+                          <span className="flex-1 nav-module-label">{item.title}</span>
                           {item.module === "support" && openSupportCount > 0 && (
                             <Badge 
                               variant="destructive" 
@@ -522,7 +522,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                               {openSupportCount}
                             </Badge>
                           )}
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180 text-module-accent opacity-70" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>

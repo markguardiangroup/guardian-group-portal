@@ -60,6 +60,12 @@
   --module-toolkit: 38 95% 45%;
   --module-toolkit-foreground: 38 20% 98%;
   --module-toolkit-muted: 38 60% 92%;
+  --module-support: 195 70% 38%;
+  --module-support-foreground: 195 20% 98%;
+  --module-support-muted: 195 40% 92%;
+  --module-reports: 230 60% 48%;
+  --module-reports-foreground: 230 20% 98%;
+  --module-reports-muted: 230 30% 92%;
   --dashboard: 48 95% 42%;
   --dashboard-foreground: 48 20% 10%;
   --dashboard-muted: 48 60% 92%;
@@ -164,6 +170,12 @@
   --module-toolkit: 38 95% 55%;
   --module-toolkit-foreground: 38 20% 98%;
   --module-toolkit-muted: 38 60% 18%;
+  --module-support: 195 70% 52%;
+  --module-support-foreground: 195 20% 98%;
+  --module-support-muted: 195 40% 18%;
+  --module-reports: 230 60% 62%;
+  --module-reports-foreground: 230 20% 98%;
+  --module-reports-muted: 230 30% 18%;
   --dashboard: 48 95% 55%;
   --dashboard-foreground: 48 30% 10%;
   --dashboard-muted: 48 40% 18%;
@@ -268,6 +280,18 @@
     --module-accent-muted: var(--module-toolkit-muted);
   }
 
+  .theme-support {
+    --module-accent: var(--module-support);
+    --module-accent-foreground: var(--module-support-foreground);
+    --module-accent-muted: var(--module-support-muted);
+  }
+
+  .theme-reports {
+    --module-accent: var(--module-reports);
+    --module-accent-foreground: var(--module-reports-foreground);
+    --module-accent-muted: var(--module-reports-muted);
+  }
+
   .theme-dashboard {
     --module-accent: var(--dashboard);
     --module-accent-foreground: var(--dashboard-foreground);
@@ -308,6 +332,18 @@
   
   .progress-module-accent {
     background-color: hsl(var(--module-accent));
+  }
+
+  /* Module-coloured sidebar nav buttons */
+  .nav-module-btn:hover {
+    background-color: hsl(var(--module-accent) / 0.1) !important;
+  }
+  .nav-module-btn.nav-module-active {
+    background-color: hsl(var(--module-accent) / 0.13) !important;
+  }
+  .nav-module-label {
+    color: hsl(var(--module-accent));
+    font-weight: 500;
   }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
