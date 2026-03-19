@@ -54,6 +54,7 @@ import CalendarPage from "@/pages/calendar";
 import ClientUploads from "@/pages/client-uploads";
 import ToolkitDashboard from "@/pages/toolkit-dashboard";
 import ToolkitBrowse from "@/pages/toolkit-browse";
+import AdminPathways from "@/pages/admin-pathways";
 import NotFound from "@/pages/not-found";
 
 function HealthSafetyDashboard() {
@@ -143,6 +144,7 @@ function Router() {
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/toolkit" component={ToolkitDashboard} />
       <Route path="/toolkit/browse" component={ToolkitBrowse} />
+      <Route path="/admin/pathways" component={AdminPathways} />
       <Route component={NotFound} />
     </Switch>
   );

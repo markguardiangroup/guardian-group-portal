@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   MessageSquare,
   CalendarDays,
+  Compass,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -196,6 +197,11 @@ const adminNavItems = [
     title: "Roadmap",
     url: "/roadmap",
     icon: Lightbulb,
+  },
+  {
+    title: "Manage Pathways",
+    url: "/admin/pathways",
+    icon: Compass,
   },
 ];
 

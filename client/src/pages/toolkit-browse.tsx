@@ -65,6 +65,11 @@ import {
   Stethoscope,
   GraduationCap,
   Activity,
+  Compass,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -97,6 +102,27 @@ interface ToolkitFolder {
 interface ToolkitData {
   folders: ToolkitFolder[];
   unassigned: ToolkitTemplate[];
+}
+
+interface PathwayNode {
+  question: string;
+  answers: Array<{
+    label: string;
+    description?: string;
+    next?: PathwayNode | null;
+    templateIds?: string[];
+  }>;
+}
+
+interface DocumentPathway {
+  id: string;
+  title: string;
+  description: string | null;
+  module: ModuleType;
+  tree: PathwayNode;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const MODULE_CONFIG: Record<ModuleType, { label: string; Icon: any; color: string; cardColor: string; btnClass: string }> = {
@@ -260,6 +286,173 @@ function TemplateRow({ template, btnClass, onPreview }: { template: ToolkitTempl
   );
 }
 
+// Pathway Wizard state
+interface WizardStep {
+  node: PathwayNode;
+  selectedAnswerIndex: number | null;
+}
+
+function PathwayWizard({
+  pathway,
+  allTemplates,
+  selectedModule,
+  onClose,
+  onPreview,
+}: {
+  pathway: DocumentPathway;
+  allTemplates: ToolkitTemplate[];
+  selectedModule: ModuleType;
+  onClose: () => void;
+  onPreview: (t: ToolkitTemplate) => void;
+}) {
+  const [steps, setSteps] = useState<WizardStep[]>([{ node: pathway.tree, selectedAnswerIndex: null }]);
+  const [results, setResults] = useState<string[] | null>(null);
+
+  const currentStep = steps[steps.length - 1];
+  const { color, btnClass } = MODULE_CONFIG[selectedModule];
+
+  const handleAnswer = (idx: number) => {
+    const answer = currentStep.node.answers[idx];
+    const newSteps = steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: idx } : s);
+
+    if (answer.templateIds && answer.templateIds.length > 0) {
+      setSteps(newSteps);
+      setResults(answer.templateIds);
+    } else if (answer.next) {
+      setSteps([...newSteps, { node: answer.next, selectedAnswerIndex: null }]);
+    } else {
+      setSteps(newSteps);
+      setResults([]);
+    }
+  };
+
+  const handleBack = () => {
+    if (results !== null) {
+      setResults(null);
+      const newSteps = steps.map((s, i) => i === steps.length - 1 ? { ...s, selectedAnswerIndex: null } : s);
+      setSteps(newSteps);
+    } else if (steps.length > 1) {
+      setSteps(steps.slice(0, -1));
+    }
+  };
+
+  const handleReset = () => {
+    setSteps([{ node: pathway.tree, selectedAnswerIndex: null }]);
+    setResults(null);
+  };
+
+  const recommendedTemplates = results !== null
+    ? allTemplates.filter(t => results.includes(t.id))
+    : [];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Progress breadcrumb */}
+      <div className="px-6 pt-4 pb-3 border-b bg-muted/30">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {steps.map((s, i) => (
+            <span key={i} className="flex items-center gap-1.5">
+              <span className={`text-xs ${i === steps.length - 1 && results === null ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                {i === 0 ? pathway.title : steps[i - 1].node.answers[steps[i - 1].selectedAnswerIndex!]?.label}
+              </span>
+              {(i < steps.length - 1 || results !== null) && (
+                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              )}
+            </span>
+          ))}
+          {results !== null && (
+            <span className="text-xs font-medium text-foreground flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              Results
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        {results !== null ? (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-base">Recommended Templates</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Based on your answers, here are the most relevant templates for you.
+              </p>
+            </div>
+            {recommendedTemplates.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No specific templates found for this selection.</p>
+                <p className="text-xs mt-1">Try browsing the folders above or start over.</p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                {recommendedTemplates.map((template) => (
+                  <TemplateRow
+                    key={template.id}
+                    template={template}
+                    btnClass={btnClass}
+                    onPreview={template.mimeType === "application/pdf" ? () => onPreview(template) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <h3 className="font-semibold text-base leading-snug">{currentStep.node.question}</h3>
+            </div>
+            <div className="grid gap-2">
+              {currentStep.node.answers.map((answer, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAnswer(idx)}
+                  data-testid={`button-pathway-answer-${idx}`}
+                  className={`group flex items-start gap-3 rounded-lg border p-4 text-left hover:border-primary hover:bg-primary/5 transition-all ${
+                    currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary/5" : "border-border bg-card"
+                  }`}
+                >
+                  <div className={`mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 transition-colors ${
+                    currentStep.selectedAnswerIndex === idx ? "border-primary bg-primary" : "border-muted-foreground/40 group-hover:border-primary"
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm leading-snug">{answer.label}</p>
+                    {answer.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{answer.description}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 py-4 border-t flex items-center justify-between gap-3 shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={steps.length > 1 || results !== null ? handleBack : onClose}
+          data-testid="button-pathway-back"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          {steps.length <= 1 && results === null ? "Close" : "Back"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          data-testid="button-pathway-reset"
+        >
+          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          Start Over
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function ToolkitBrowse() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -290,8 +483,21 @@ export default function ToolkitBrowse() {
   // PDF preview
   const [previewToolkitTemplate, setPreviewToolkitTemplate] = useState<ToolkitTemplate | null>(null);
 
+  // Pathway wizard
+  const [showPathwayPicker, setShowPathwayPicker] = useState(false);
+  const [selectedPathway, setSelectedPathway] = useState<DocumentPathway | null>(null);
+
   const { data: toolkit, isLoading } = useQuery<ToolkitData>({
     queryKey: ["/api/toolkit"],
+  });
+
+  const { data: pathways } = useQuery<DocumentPathway[]>({
+    queryKey: ["/api/toolkit/pathways", selectedModule],
+    queryFn: async () => {
+      const res = await fetch(`/api/toolkit/pathways?module=${selectedModule}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch pathways");
+      return res.json();
+    },
   });
 
   const createFolderMutation = useMutation({
@@ -326,6 +532,12 @@ export default function ToolkitBrowse() {
           )
         : selectedFolder.templates)
     : [];
+
+  const allModuleTemplates = (toolkit?.folders ?? [])
+    .filter(f => f.module === selectedModule)
+    .flatMap(f => f.templates);
+
+  const activePathways = (pathways ?? []).filter(p => p.isActive);
 
   return (
     <div className="space-y-6 dash-animate">
@@ -373,6 +585,39 @@ export default function ToolkitBrowse() {
           );
         })}
       </div>
+
+      {/* Find a Document (Guided Finder) */}
+      {activePathways.length > 0 && (
+        <div className="rounded-xl border bg-gradient-to-r from-primary/5 to-primary/10 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-lg bg-primary/10">
+              <Compass className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Not sure which document you need?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Answer a few quick questions and we'll point you to the right template.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => {
+              if (activePathways.length === 1) {
+                setSelectedPathway(activePathways[0]);
+              } else {
+                setShowPathwayPicker(true);
+              }
+            }}
+            data-testid="button-find-document"
+            className="shrink-0"
+          >
+            <Compass className="h-4 w-4 mr-1.5" />
+            Find a Document
+          </Button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -565,6 +810,68 @@ export default function ToolkitBrowse() {
               Download
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pathway Picker Dialog (when multiple pathways exist) */}
+      <Dialog open={showPathwayPicker} onOpenChange={setShowPathwayPicker}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Compass className="h-5 w-5 text-primary" />
+              Find a Document
+            </DialogTitle>
+            <DialogDescription>
+              Choose a topic to get started with the guided document finder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {activePathways.map(p => (
+              <button
+                key={p.id}
+                onClick={() => { setSelectedPathway(p); setShowPathwayPicker(false); }}
+                data-testid={`button-pathway-picker-${p.id}`}
+                className="w-full flex items-center gap-3 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 text-left transition-all group"
+              >
+                <Compass className="h-5 w-5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{p.title}</p>
+                  {p.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.description}</p>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pathway Wizard Dialog */}
+      <Dialog open={!!selectedPathway} onOpenChange={(o) => { if (!o) setSelectedPathway(null); }}>
+        <DialogContent className="max-w-xl w-full p-0 gap-0 flex flex-col overflow-hidden" style={{ maxHeight: "80vh" }}>
+          {selectedPathway && (
+            <>
+              <DialogHeader className="px-6 pt-5 pb-3 border-b shrink-0">
+                <DialogTitle className="flex items-center gap-2">
+                  <Compass className="h-5 w-5 text-primary" />
+                  {selectedPathway.title}
+                </DialogTitle>
+                {selectedPathway.description && (
+                  <DialogDescription>{selectedPathway.description}</DialogDescription>
+                )}
+              </DialogHeader>
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                <PathwayWizard
+                  pathway={selectedPathway}
+                  allTemplates={allModuleTemplates}
+                  selectedModule={selectedModule}
+                  onClose={() => setSelectedPathway(null)}
+                  onPreview={(t) => { setPreviewToolkitTemplate(t); }}
+                />
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -10101,5 +10101,68 @@ export async function registerRoutes(
     }
   });
 
+  // Document Pathways (Guided Document Finder)
+  app.get("/api/toolkit/pathways", requireAuth, async (req, res) => {
+    try {
+      const { module } = req.query;
+      const pathways = await storage.getDocumentPathways(typeof module === "string" ? module : undefined);
+      res.json(pathways);
+    } catch (error) {
+      console.error("Error fetching pathways:", error);
+      res.status(500).json({ error: "Failed to fetch pathways" });
+    }
+  });
+
+  app.get("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
+    try {
+      const pathway = await storage.getDocumentPathway(req.params.id);
+      if (!pathway) return res.status(404).json({ error: "Pathway not found" });
+      res.json(pathway);
+    } catch (error) {
+      console.error("Error fetching pathway:", error);
+      res.status(500).json({ error: "Failed to fetch pathway" });
+    }
+  });
+
+  app.post("/api/toolkit/pathways", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { title, description, module, tree, isActive } = req.body;
+      if (!title || !module || !tree) return res.status(400).json({ error: "title, module and tree are required" });
+      const pathway = await storage.createDocumentPathway({ title, description: description ?? null, module, tree, isActive: isActive !== false, createdBy: user.id });
+      res.status(201).json(pathway);
+    } catch (error) {
+      console.error("Error creating pathway:", error);
+      res.status(500).json({ error: "Failed to create pathway" });
+    }
+  });
+
+  app.patch("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const pathway = await storage.updateDocumentPathway(req.params.id, req.body);
+      if (!pathway) return res.status(404).json({ error: "Pathway not found" });
+      res.json(pathway);
+    } catch (error) {
+      console.error("Error updating pathway:", error);
+      res.status(500).json({ error: "Failed to update pathway" });
+    }
+  });
+
+  app.delete("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const ok = await storage.deleteDocumentPathway(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Pathway not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting pathway:", error);
+      res.status(500).json({ error: "Failed to delete pathway" });
+    }
+  });
+
   return httpServer;
 }

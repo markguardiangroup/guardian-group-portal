@@ -57,6 +57,8 @@ import {
   clientUploadFolderAccess as clientUploadFolderAccessTable,
   clientUploads as clientUploadsTable,
   userInvitations as userInvitationsTable,
+  type DocumentPathway, type InsertDocumentPathway,
+  documentPathways as documentPathwaysTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
@@ -279,6 +281,13 @@ export interface IStorage {
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
   getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
+
+  // Document Pathways (Guided finder decision trees)
+  getDocumentPathways(module?: string): Promise<DocumentPathway[]>;
+  getDocumentPathway(id: string): Promise<DocumentPathway | undefined>;
+  createDocumentPathway(pathway: InsertDocumentPathway): Promise<DocumentPathway>;
+  updateDocumentPathway(id: string, updates: Partial<DocumentPathway>): Promise<DocumentPathway | undefined>;
+  deleteDocumentPathway(id: string): Promise<boolean>;
   
   // Folder Templates (Admin-managed master folder structure)
   getFolderTemplates(module?: ModuleType): Promise<FolderTemplate[]>;
@@ -1995,6 +2004,39 @@ export class MemStorage implements IStorage {
       .set({ toolkitFolderId: null })
       .where(eq(documentTemplatesTable.toolkitFolderId, id));
     const result = await db.delete(toolkitFoldersTable).where(eq(toolkitFoldersTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Document Pathways
+  async getDocumentPathways(module?: string): Promise<DocumentPathway[]> {
+    if (module) {
+      return await db.select().from(documentPathwaysTable)
+        .where(eq(documentPathwaysTable.module, module as any))
+        .orderBy(asc(documentPathwaysTable.createdAt));
+    }
+    return await db.select().from(documentPathwaysTable).orderBy(asc(documentPathwaysTable.createdAt));
+  }
+
+  async getDocumentPathway(id: string): Promise<DocumentPathway | undefined> {
+    const [result] = await db.select().from(documentPathwaysTable).where(eq(documentPathwaysTable.id, id));
+    return result;
+  }
+
+  async createDocumentPathway(pathway: InsertDocumentPathway): Promise<DocumentPathway> {
+    const [result] = await db.insert(documentPathwaysTable).values(pathway).returning();
+    return result;
+  }
+
+  async updateDocumentPathway(id: string, updates: Partial<DocumentPathway>): Promise<DocumentPathway | undefined> {
+    const [result] = await db.update(documentPathwaysTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(documentPathwaysTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteDocumentPathway(id: string): Promise<boolean> {
+    const result = await db.delete(documentPathwaysTable).where(eq(documentPathwaysTable.id, id)).returning();
     return result.length > 0;
   }
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1479,3 +1479,30 @@ export const toolkitDownloads = pgTable("toolkit_downloads", {
 });
 
 export type ToolkitDownload = typeof toolkitDownloads.$inferSelect;
+
+// Document Pathways (Guided document finder decision trees)
+export interface PathwayNode {
+  question: string;
+  answers: Array<{
+    label: string;
+    description?: string;
+    next?: PathwayNode | null;
+    templateIds?: string[];
+  }>;
+}
+
+export const documentPathways = pgTable("document_pathways", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  module: text("module").$type<"health_safety" | "human_resources" | "employment_law">().notNull(),
+  tree: jsonb("tree").notNull().$type<PathwayNode>(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDocumentPathwaySchema = createInsertSchema(documentPathways).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDocumentPathway = z.infer<typeof insertDocumentPathwaySchema>;
+export type DocumentPathway = typeof documentPathways.$inferSelect;
