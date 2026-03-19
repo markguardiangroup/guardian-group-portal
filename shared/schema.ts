@@ -548,6 +548,7 @@ export const documentTemplates = pgTable("document_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
+  synopsis: text("synopsis"),
   module: text("module").$type<ModuleType>().notNull(),
   folderTemplateId: varchar("folder_template_id"), // Which template folder this belongs to (Template Library), nullable = unassigned
   toolkitFolderId: varchar("toolkit_folder_id"), // Which toolkit folder this belongs to (Toolkit page, nullable)

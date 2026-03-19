@@ -85,6 +85,7 @@ interface ToolkitTemplate {
   id: string;
   name: string;
   description: string | null;
+  synopsis: string | null;
   module: ModuleType;
   toolkitFolderId: string | null;
   fileName: string;
@@ -242,57 +243,98 @@ async function downloadTemplate(template: ToolkitTemplate) {
 
 function TemplateRow({ template, btnClass, onPreview }: { template: ToolkitTemplate; btnClass: string; onPreview?: () => void }) {
   const [popping, setPopping] = useState(false);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
 
-  const handleDownload = () => {
+  const confirmDownload = () => {
     setPopping(true);
+    setShowDownloadDialog(false);
     downloadTemplate(template);
   };
 
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-muted/40 transition-colors"
-      data-testid={`row-template-${template.id}`}
-    >
-      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate" data-testid={`text-template-name-${template.id}`}>
-          {template.name}
-        </p>
-        {template.description && (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <p className="text-xs text-muted-foreground truncate cursor-default">{template.description}</p>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-sm text-xs z-[200] whitespace-normal break-words">
-              {template.description}
-            </TooltipContent>
-          </Tooltip>
+    <>
+      <div
+        className="flex items-center gap-3 px-4 py-3 border-b last:border-b-0 hover:bg-muted/40 transition-colors"
+        data-testid={`row-template-${template.id}`}
+      >
+        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" data-testid={`text-template-name-${template.id}`}>
+            {template.name}
+          </p>
+          {template.description && (
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <p className="text-xs text-muted-foreground truncate cursor-default">{template.description}</p>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-sm text-xs z-[200] whitespace-normal break-words">
+                {template.description}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        {template.mimeType === "application/pdf" && onPreview && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onPreview}
+            data-testid={`button-preview-${template.id}`}
+            className="shrink-0"
+          >
+            <Eye className="h-3.5 w-3.5 mr-1.5" />
+            Preview
+          </Button>
         )}
-      </div>
-      {template.mimeType === "application/pdf" && onPreview && (
         <Button
           size="sm"
-          variant="outline"
-          onClick={onPreview}
-          data-testid={`button-preview-${template.id}`}
-          className="shrink-0"
+          onClick={() => setShowDownloadDialog(true)}
+          disabled={!template.fileUrl}
+          data-testid={`button-download-${template.id}`}
+          className={`shrink-0 ${btnClass}${popping ? " download-btn-pop" : ""}`}
+          onAnimationEnd={() => setPopping(false)}
         >
-          <Eye className="h-3.5 w-3.5 mr-1.5" />
-          Preview
+          <Download className="h-3.5 w-3.5 mr-1.5" />
+          Download
         </Button>
-      )}
-      <Button
-        size="sm"
-        onClick={handleDownload}
-        disabled={!template.fileUrl}
-        data-testid={`button-download-${template.id}`}
-        className={`shrink-0 ${btnClass}${popping ? " download-btn-pop" : ""}`}
-        onAnimationEnd={() => setPopping(false)}
-      >
-        <Download className="h-3.5 w-3.5 mr-1.5" />
-        Download
-      </Button>
-    </div>
+      </div>
+
+      <Dialog open={showDownloadDialog} onOpenChange={setShowDownloadDialog}>
+        <DialogContent className="max-w-md" data-testid={`dialog-download-${template.id}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-4 w-4 shrink-0" />
+              {template.name}
+            </DialogTitle>
+          </DialogHeader>
+          {template.synopsis ? (
+            <div className="text-sm text-muted-foreground leading-relaxed py-1" data-testid={`text-synopsis-${template.id}`}>
+              {template.synopsis}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-1 italic">
+              No synopsis available for this template.
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowDownloadDialog(false)}
+              data-testid={`button-cancel-download-${template.id}`}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDownload}
+              data-testid={`button-confirm-download-${template.id}`}
+              className={btnClass}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

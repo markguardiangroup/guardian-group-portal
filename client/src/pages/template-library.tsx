@@ -196,6 +196,7 @@ const downloadFile = async (fileUrl: string, fileName: string) => {
 type TemplateFormData = {
   name: string;
   description: string;
+  synopsis: string;
   module: ModuleType;
   folderTemplateId: string;
   isRequired: boolean;
@@ -277,6 +278,7 @@ type DocTypeFormData = {
 const defaultTemplateFormData: TemplateFormData = {
   name: "",
   description: "",
+  synopsis: "",
   module: "health_safety",
   folderTemplateId: "",
   isRequired: false,
@@ -1037,6 +1039,7 @@ export default function TemplateLibraryPage() {
     createTemplateMutation.mutate({
       name: templateFormData.name,
       description: templateFormData.description || undefined,
+      synopsis: templateFormData.synopsis || undefined,
       module: templateFormData.module,
       ...(folderId ? { folderTemplateId: folderId } : {}),
       fileName: templateFormData.fileName,
@@ -1233,6 +1236,7 @@ export default function TemplateLibraryPage() {
     setTemplateFormData({
       name: template.name,
       description: template.description || "",
+      synopsis: (template as any).synopsis || "",
       module: template.module,
       folderTemplateId: template.folderTemplateId,
       isRequired: template.isRequired || false,
@@ -1289,6 +1293,7 @@ export default function TemplateLibraryPage() {
       data: {
         name: templateFormData.name,
         description: templateFormData.description || undefined,
+        synopsis: templateFormData.synopsis || undefined,
         placeholders: templateFormData.placeholders || undefined,
         sortOrder: templateFormData.sortOrder,
         isRequired: templateFormData.isRequired,
@@ -2768,6 +2773,20 @@ export default function TemplateLibraryPage() {
                 rows={2}
                 maxLength={150}
                 data-testid="input-edit-template-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-template-synopsis">Synopsis</Label>
+              <p className="text-xs text-muted-foreground">
+                Shown to users before they download — explain what this template is for and when to use it.
+              </p>
+              <Textarea
+                id="edit-template-synopsis"
+                value={templateFormData.synopsis}
+                onChange={(e) => setTemplateFormData({ ...templateFormData, synopsis: e.target.value })}
+                rows={4}
+                placeholder="e.g. Use this template for new starters who are joining on a full-time permanent basis. It covers pay, hours, holiday entitlement and notice periods."
+                data-testid="input-edit-template-synopsis"
               />
             </div>
             <div className="space-y-2">
