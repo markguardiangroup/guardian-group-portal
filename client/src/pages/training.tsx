@@ -130,12 +130,12 @@ const moduleAccentBg: Record<string, string> = {
   employment_law: "bg-pink-500",
 };
 
-type ModuleFilter = "all" | ModuleType;
+type ModuleFilter = ModuleType;
 
 export default function Training() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<ModuleFilter>("all");
+  const [activeTab, setActiveTab] = useState<ModuleFilter>("health_safety");
   const [searchQuery, setSearchQuery] = useState("");
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
@@ -170,13 +170,11 @@ export default function Training() {
 
   const trainingFolders = useMemo(() => {
     if (!allFolders) return [];
-    if (activeTab === "all") return allFolders;
     return allFolders.filter(f => f.module === activeTab);
   }, [allFolders, activeTab]);
 
   const trainingCourses = useMemo(() => {
     if (!allCourses) return [];
-    if (activeTab === "all") return allCourses;
     return allCourses.filter(c => c.module === activeTab);
   }, [allCourses, activeTab]);
 
@@ -323,8 +321,8 @@ export default function Training() {
   }, [sites, selectedSiteId]);
 
   const isLoading = foldersLoading || coursesLoading;
-  const currentColor = activeTab === "all" ? "all" : activeTab;
-  const currentModuleName = activeTab === "all" ? "All Training" : moduleNames[activeTab];
+  const currentColor = activeTab;
+  const currentModuleName = moduleNames[activeTab];
 
   const getCourseModuleColor = (course: TrainingCourse) => {
     return moduleColors[course.module] || moduleColors.all;
@@ -366,9 +364,8 @@ export default function Training() {
       {/* Module tabs - Enhanced Prominence */}
       <div className="flex-shrink-0 border-b bg-background">
         <div className="px-6 py-3">
-          <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border">
+          <div className="grid w-full grid-cols-3 gap-2 p-1 rounded-xl bg-muted/50 border">
             {([
-              { value: "all", label: "All Training", Icon: HardHat, color: "text-purple-600 dark:text-purple-400", activeStyle: "bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700" },
               { value: "health_safety", label: "Health & Safety", Icon: HardHat, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
               { value: "human_resources", label: "Human Resources", Icon: Users, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
               { value: "employment_law", label: "Employment Law", Icon: Scale, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
@@ -583,11 +580,6 @@ export default function Training() {
                               <div className="text-left">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold">{folder.name}</span>
-                                  {activeTab === "all" && folder.module && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {moduleNames[folder.module]}
-                                    </Badge>
-                                  )}
                                 </div>
                                 {folder.description && (
                                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{folder.description}</p>
