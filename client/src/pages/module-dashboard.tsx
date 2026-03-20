@@ -555,7 +555,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                           <FileQuestion className="h-4 w-4" />
                           <span className="text-2xl font-semibold">{documentsMissingCount}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">Docs Missing</p>
+                        <p className="text-xs text-muted-foreground">Required Docs Missing</p>
                         {documentsMissingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
                       </button>
                     </div>

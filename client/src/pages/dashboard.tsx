@@ -151,7 +151,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
               <FileQuestion className="h-4 w-4" />
               <span className="text-lg font-semibold">{summary.missingRequiredDocuments || 0}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Docs Missing</p>
+            <p className="text-xs text-muted-foreground">Required Docs Missing</p>
           </div>
         </div>
 
@@ -678,7 +678,7 @@ function OverallComplianceCard({
                   <FileQuestion className="h-4 w-4" />
                   <span className="text-2xl font-semibold">{missingDocs}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Docs Missing</p>
+                <p className="text-xs text-muted-foreground">Required Docs Missing</p>
                 {missingDocs > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
               </button>
             </div>
