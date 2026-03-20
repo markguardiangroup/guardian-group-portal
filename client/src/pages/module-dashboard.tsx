@@ -199,7 +199,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // Create stable string key for company site IDs (avoid nested arrays in query keys)
   const companySiteIdsKey = companySiteIds?.join(",") || null;
 
-  const { data, isLoading } = useQuery<ModuleDashboardData>({
+  const { data, isLoading, isFetching } = useQuery<ModuleDashboardData>({
     queryKey: ["/api/dashboard", module, siteId, companySiteIdsKey],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -458,22 +458,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </CardTitle>
                 <CardDescription>Based on required documents only</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {isLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-16 w-32" />
-                    <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-3 gap-3">
-                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
-                    </div>
-                    <div className="rounded-md border bg-muted/30 p-4">
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
+              <CardContent className={`space-y-6 transition-opacity duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}>
                     {/* Score */}
                     <div>
                       <span className={`text-6xl font-bold ${scoreColor}`} data-testid="card-module-score">
@@ -484,7 +469,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     {/* Progress bar */}
                     <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
                       <div
-                        className={`h-full transition-all ${scoreBg}`}
+                        className={`h-full transition-all duration-500 ${scoreBg}`}
                         style={{ width: `${summary.complianceScore}%` }}
                       />
                     </div>
@@ -528,9 +513,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                         {documentsMissingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
                       </button>
                     </div>
-
-                  </>
-                )}
               </CardContent>
             </Card>
           );
@@ -545,12 +527,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </CardTitle>
             <CardDescription>All documents across this module</CardDescription>
           </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
-              </div>
-            ) : (
+          <CardContent className={`transition-opacity duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
                   onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
@@ -597,7 +574,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-xs text-muted-foreground">Overdue</p>
                 </button>
               </div>
-            )}
           </CardContent>
         </Card>
 
