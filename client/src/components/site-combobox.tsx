@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronsUpDown, Building2 } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,14 +60,11 @@ export function SiteCombobox({
           className={cn("justify-between", className)}
           data-testid={testId}
         >
-          <div className="flex items-center gap-2 truncate">
-            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">{displayValue}</span>
-          </div>
+          <span className="truncate">{displayValue}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[280px] p-0" align="start">
+      <PopoverContent className="w-[320px] p-0" align="start">
         <Command>
           <CommandInput placeholder="Search sites..." />
           <CommandList>
