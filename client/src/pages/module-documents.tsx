@@ -315,7 +315,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
-  const [viewInitialized, setViewInitialized] = useState(false);
   const hasSetInitialView = useRef(false);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
@@ -420,7 +419,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!hasSetInitialView.current && sites !== undefined) {
       hasSetInitialView.current = true;
       setViewMode(filteredSites.length > 1 ? "sites" : "folder");
-      setViewInitialized(true);
     }
   }, [sites, filteredSites]);
 
@@ -809,7 +807,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       <div className="bg-muted/30 border-b px-8 py-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
           {/* View Mode Toggle */}
-          <div className={`flex items-center gap-2 ${viewInitialized ? "" : "invisible"}`}>
+          <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">View:</span>
             <div className={`flex items-center gap-1 rounded-lg border ${moduleBorderColors[module]} p-1 bg-background`}>
               {filteredSites.length > 1 && (
