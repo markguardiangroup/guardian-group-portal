@@ -361,6 +361,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     awaitingYourApproval: 0,
     awaitingOthersApproval: 0,
   };
+  const documentsMissingCount = summary.missingRequiredDocuments || 0;
 
   type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
@@ -494,7 +495,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
           const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0);
-          const documentsMissingCount = summary.missingRequiredDocuments || 0;
           return (
             <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
