@@ -317,8 +317,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const urlRenewal = urlParams.get("renewal");
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("updatedAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
@@ -682,7 +683,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "all" || doc.type === typeFilter;
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
     // Filter by site - only show documents for the selected site
@@ -738,8 +738,55 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       matchesRenewal = !doc.renewalDate;
     }
     
-    return matchesSearch && matchesType && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
+    return matchesSearch && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
   });
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedDocuments = useMemo(() => {
+    if (!filteredDocuments) return [];
+    return [...filteredDocuments].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      switch (sortBy) {
+        case "title":
+          aVal = a.title.toLowerCase();
+          bVal = b.title.toLowerCase();
+          break;
+        case "status":
+          aVal = a.status || "";
+          bVal = b.status || "";
+          break;
+        case "renewalPeriodMonths":
+          aVal = (a as any).renewalPeriodMonths ?? -1;
+          bVal = (b as any).renewalPeriodMonths ?? -1;
+          break;
+        case "renewalDate":
+          aVal = (a as any).renewalDate ? new Date((a as any).renewalDate).getTime() : 0;
+          bVal = (b as any).renewalDate ? new Date((b as any).renewalDate).getTime() : 0;
+          break;
+        case "expiryDate":
+          aVal = (a as any).expiryDate ? new Date((a as any).expiryDate).getTime() : 0;
+          bVal = (b as any).expiryDate ? new Date((b as any).expiryDate).getTime() : 0;
+          break;
+        case "updatedAt":
+        default:
+          aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          break;
+      }
+      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredDocuments, sortBy, sortDir]);
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
@@ -1215,18 +1262,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               />
             </div>
             <div className="flex gap-3">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-48" data-testid="select-document-type">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {config.documentTypes.map(({ value, label }) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-40" data-testid="select-document-status">
                   <SelectValue placeholder="Status" />
@@ -1274,10 +1309,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Document</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Compliance</TableHead>
                   <TableHead>Renewal Period</TableHead>
                   <TableHead>Renewal Date</TableHead>
+                  <TableHead>Expiry Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Last Modified</TableHead>
                   <TableHead className="w-12"></TableHead>
@@ -1295,9 +1330,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -1310,18 +1345,48 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Document
+                      {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
                   <TableHead>Compliance</TableHead>
-                  <TableHead>Renewal Period</TableHead>
-                  <TableHead>Renewal Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Modified</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Renewal Period
+                      {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Renewal Date
+                      {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Expiry Date
+                      {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Status
+                      {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap">
+                    <span className="flex items-center gap-1">
+                      Last Modified
+                      {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.map((doc) => (
+                {sortedDocuments.map((doc) => (
                   <TableRow key={doc.id} className="hover-elevate" data-testid={`row-document-${doc.id}`}>
                     <TableCell>
                       <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-3">
@@ -1345,25 +1410,25 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="font-normal">
-                        {(doc as any).folderId && folderPathMap.get((doc as any).folderId)
-                          ? folderPathMap.get((doc as any).folderId)
-                          : "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
                         <Badge variant="secondary">{(doc as any).renewalPeriodMonths}mo</Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">None</span>
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalDate ? (
                         <span className="text-sm">{format(new Date((doc as any).renewalDate), "MMM d, yyyy")}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(doc as any).expiryDate ? (
+                        <span className="text-sm">{format(new Date((doc as any).expiryDate), "MMM d, yyyy")}</span>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
@@ -1433,7 +1498,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <FileText className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-medium">No documents found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || typeFilter !== "all" || statusFilter !== "all" || renewalFilter !== "all"
+                {searchQuery || statusFilter !== "all" || renewalFilter !== "all"
                   ? "Try adjusting your search or filters"
                   : isPrivilegedUser
                     ? `Upload your first ${config.shortName} document to get started`
