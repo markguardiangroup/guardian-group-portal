@@ -1957,13 +1957,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       } else if (editComplianceMode === "renewal" && editRenewalPeriodMonths) {
         body.expiryDate = null;
         body.renewalPeriodMonths = editRenewalPeriodMonths;
-        const baseDate = document.lastApprovedAt ? new Date(document.lastApprovedAt) : new Date();
-        const renewalDate = new Date(baseDate);
-        renewalDate.setMonth(renewalDate.getMonth() + editRenewalPeriodMonths);
-        body.renewalDate = renewalDate.toISOString();
+        // renewalDate is calculated server-side from lastApprovedAt + renewalPeriodMonths
       } else if (editComplianceMode === "expiry" && editExpiryDate) {
-        body.renewalDate = null;
         body.renewalPeriodMonths = null;
+        body.renewalDate = null;
         body.expiryDate = editExpiryDate;
       }
       return apiRequest("PATCH", `/api/documents/${id}`, body);

@@ -1964,28 +1964,37 @@ export async function registerRoutes(
       // Check if approval is required
       let documentStatus: "review_required" | "compliant" = "review_required";
       let documentApprovalStatus: string = "pending";
-      let autoRenewalDate: Date | null = null;
+      let isAutoApproved = false;
       
       // Training certificates are automatically compliant - they prove completion
       if (body.module === "training") {
         documentStatus = "compliant";
         documentApprovalStatus = "approved";
+        isAutoApproved = true;
       } else if (body.requiresApproval === false) {
         // Uploader explicitly set no approval required
         documentStatus = "compliant";
         documentApprovalStatus = "approved";
+        isAutoApproved = true;
       } else if (body.templateId) {
         const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval - auto-mark as compliant
           documentStatus = "compliant";
           documentApprovalStatus = "approved";
-          // Also calculate renewal date from template if set
-          if (template.renewalPeriodMonths) {
-            autoRenewalDate = new Date();
-            autoRenewalDate.setMonth(autoRenewalDate.getMonth() + template.renewalPeriodMonths);
-          }
+          isAutoApproved = true;
         }
+      }
+
+      // Renewal date is only calculated when the document is approved.
+      // For auto-approved docs (no approval workflow) approval time = now.
+      // For pending docs, renewalDate remains null until they are approved.
+      const autoApprovalTime = isAutoApproved ? new Date() : null;
+      const renewalPeriodMonths = body.renewalPeriodMonths ?? null;
+      let computedRenewalDate: Date | null = null;
+      if (autoApprovalTime && renewalPeriodMonths) {
+        computedRenewalDate = new Date(autoApprovalTime);
+        computedRenewalDate.setMonth(computedRenewalDate.getMonth() + renewalPeriodMonths);
       }
       
       const document = await storage.createDocument({
@@ -2006,6 +2015,7 @@ export async function registerRoutes(
         approvalStatus: documentApprovalStatus,
         reviewDate: body.reviewDate ? new Date(body.reviewDate) : null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
+        lastApprovedAt: autoApprovalTime,
         uploadedBy: user.id,
         assignedTo: null,
         isArchived: false,
@@ -2017,8 +2027,8 @@ export async function registerRoutes(
         trainingCourseTitle: body.trainingCourseTitle || null,
         trainingCourseCode: body.trainingCourseCode || null,
         trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
-        renewalDate: autoRenewalDate || (body.renewalDate ? new Date(body.renewalDate) : null),
-        renewalPeriodMonths: body.renewalPeriodMonths ?? null,
+        renewalDate: computedRenewalDate,
+        renewalPeriodMonths,
       });
 
       await storage.createAuditLog({
@@ -2216,15 +2226,16 @@ export async function registerRoutes(
       if (isFinalApproval) {
         lastApprovedAt = new Date();
         
-        // Look up renewal period from template if document has one
-        if (existingDoc.templateId) {
+        // Determine renewal period: document's own setting takes priority over template's
+        let effectiveRenewalPeriodMonths: number | null = existingDoc.renewalPeriodMonths ?? null;
+        if (!effectiveRenewalPeriodMonths && existingDoc.templateId) {
           const template = await storage.getDocumentTemplate(existingDoc.templateId);
-          if (template?.renewalPeriodMonths) {
-            // renewalDate = lastApprovedAt + renewalPeriodMonths - 30 days (buffer)
-            renewalDate = new Date(lastApprovedAt);
-            renewalDate.setMonth(renewalDate.getMonth() + template.renewalPeriodMonths);
-            renewalDate.setDate(renewalDate.getDate() - 30); // 30-day buffer
-          }
+          effectiveRenewalPeriodMonths = template?.renewalPeriodMonths ?? null;
+        }
+
+        if (effectiveRenewalPeriodMonths) {
+          renewalDate = new Date(lastApprovedAt);
+          renewalDate.setMonth(renewalDate.getMonth() + effectiveRenewalPeriodMonths);
         }
       }
 
@@ -2426,6 +2437,20 @@ export async function registerRoutes(
       }
       if ("reviewDate" in body) {
         body.reviewDate = body.reviewDate ? new Date(body.reviewDate) : null;
+      }
+
+      // When renewalPeriodMonths is being updated, recalculate renewalDate server-side.
+      // Renewal date only exists when the document is approved.
+      if ("renewalPeriodMonths" in body) {
+        const newPeriod = body.renewalPeriodMonths ?? null;
+        if (newPeriod && doc.approvalStatus === "approved" && doc.lastApprovedAt) {
+          const base = new Date(doc.lastApprovedAt);
+          base.setMonth(base.getMonth() + newPeriod);
+          body.renewalDate = base;
+        } else {
+          // No approval yet, or period cleared — no renewal date
+          body.renewalDate = null;
+        }
       }
 
       // Recalculate compliance status when dates are changed
