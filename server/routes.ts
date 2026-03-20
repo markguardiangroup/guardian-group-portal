@@ -2010,7 +2010,7 @@ export async function registerRoutes(
         assignedTo: null,
         isArchived: false,
         isRequired: body.isRequired || false,
-        source: body.source || "external",
+        source: body.source || "upload",
         templateId: body.templateId || null,
         templateVersion: body.templateVersion ?? null,
         // Training certificate fields
