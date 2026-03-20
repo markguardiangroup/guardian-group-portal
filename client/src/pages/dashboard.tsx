@@ -30,6 +30,7 @@ import {
   Briefcase,
   FileQuestion,
   XCircle,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
@@ -934,7 +935,7 @@ function LockedModuleCard({ moduleName, module }: {
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   const [, navigate] = useLocation();
   
   const isClientUser = user?.role === "client";
@@ -1087,6 +1088,22 @@ export default function Dashboard() {
     return null;
   }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
 
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
   // Get site compliance summary for accurate overall score (includes ALL document types)
   // This is used when a specific site is selected to ensure consistency with sites list
   const selectedSiteComplianceSummary = useMemo(() => {
@@ -1177,14 +1194,23 @@ export default function Dashboard() {
               <Shield className="h-7 w-7 text-white dark:text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">Compliance Overview</h1>
-              <p className="text-muted-foreground">
-                Monitor compliance across all modules
-                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              <h1 className="text-3xl font-semibold">
+                Compliance
+                <span className="font-normal text-muted-foreground text-2xl"> - Overview</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivilegedUser && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!isPrivilegedUser && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(isPrivilegedUser || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Link 
               href="/support" 
               className="flex items-center gap-1.5 text-sm font-medium bg-background/60 hover-elevate rounded-md px-3 py-1.5 border"
@@ -1193,25 +1219,38 @@ export default function Dashboard() {
               <Headphones className="h-4 w-4" />
               <span>Need support?</span>
             </Link>
-            {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                {isPrivilegedUser && (
-                  <CompanyCombobox
-                    sites={sites}
-                    value={selectedCompany}
-                    onValueChange={handleCompanyChange}
-                    className="w-64"
-                    testId="select-company-dashboard"
-                  />
+              <div className="flex items-center gap-2">
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-dashboard"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
-                <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sites}
-                  value={selectedSiteId}
-                  onValueChange={handleSiteChange}
-                  className="w-64"
-                  testId="select-site-dashboard"
-                />
+                <div className="flex flex-col gap-1.5">
+                  {isPrivilegedUser && (
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-[280px]"
+                      testId="select-company-dashboard"
+                    />
+                  )}
+                  <SiteCombobox
+                    sites={isPrivilegedUser ? filteredSites : sites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-dashboard"
+                  />
+                </div>
               </div>
             )}
           </div>
