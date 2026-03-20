@@ -513,22 +513,9 @@
   }
 }
 
-/* Coloured header band – snaps in slightly from the top */
-@keyframes dashHeaderEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    filter: blur(3px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-}
-
+/* Coloured header band – no entrance animation so it feels persistent across navigation */
 .dash-header {
-  animation: dashHeaderEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0ms both;
+  /* intentionally static – content area uses dash-animate for staggered entrance */
 }
 
 /* Each direct child of .dash-animate gets a staggered entrance */
