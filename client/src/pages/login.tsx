@@ -98,6 +98,7 @@ export default function Login() {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
       queryClient.clear();
+      sessionStorage.setItem("freshLogin", "1");
       const currentPath = window.location.pathname + window.location.search;
       const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
       window.location.href = redirectTo;

@@ -371,10 +371,13 @@ function AuthenticatedApp() {
   const [splashFading, setSplashFading] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const transitionStarted = useRef(false);
+  // Only show splash when navigating here immediately after a successful login
+  const isFreshLogin = useRef(sessionStorage.getItem("freshLogin") === "1");
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !transitionStarted.current) {
+    if (!isLoading && isAuthenticated && !transitionStarted.current && isFreshLogin.current) {
       transitionStarted.current = true;
+      sessionStorage.removeItem("freshLogin");
       const fadeTimer = setTimeout(() => setSplashFading(true), 400);
       const hideTimer = setTimeout(() => setSplashDone(true), 750);
       return () => {
@@ -388,7 +391,7 @@ function AuthenticatedApp() {
     return <Login />;
   }
 
-  const showSplash = isLoading || (isAuthenticated && !splashDone);
+  const showSplash = isFreshLogin.current && (isLoading || (isAuthenticated && !splashDone));
 
   const sidebarStyle = {
     "--sidebar-width": "16rem",
