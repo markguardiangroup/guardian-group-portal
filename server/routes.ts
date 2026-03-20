@@ -887,7 +887,7 @@ export async function registerRoutes(
         siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
       }
       const siteExcluded = siteExcludedCache.get(site.id)!;
-      const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId);
 
       for (const rt of required) {
         if (siteExcluded.has(rt.templateId)) continue;
@@ -921,7 +921,7 @@ export async function registerRoutes(
     const manualRequired = documents.filter(d => {
       if (!d.isRequired) return false;
       if (consumedDocIds.has(d.id)) return false;
-      if (d.isArchived || d.caseId) return false;
+      if (d.isArchived || d.caseId || d.incidentId) return false;
       if (!filteredSiteIds.has(d.siteId)) return false;
       if (module && d.module !== module) return false;
       if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
