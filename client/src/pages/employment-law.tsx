@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -94,6 +94,7 @@ import {
   ArchiveRestore,
   ShieldCheck,
   FileQuestion,
+  X,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -161,7 +162,7 @@ function CasesList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -180,7 +181,16 @@ function CasesList() {
   
   // Clients can see the site filter to confirm their access (even with single site)
   const clientHasSites = isClientUser && sites && sites.length > 0;
-  
+
+  // When selecting a site also sync the company dropdown
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
     if (!sites) return [];
@@ -269,6 +279,22 @@ function CasesList() {
     }
     return null;
   }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
 
   const createCaseMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -2128,36 +2154,55 @@ function EmploymentLawDashboardView() {
               <Scale className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">Employment Law</h1>
-              <p className="text-muted-foreground">
-                Module compliance overview
-                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              <h1 className="text-3xl font-semibold">
+                Employment Law
+                <span className="font-normal text-muted-foreground text-2xl"> - Module compliance overview</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivilegedUser && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!isPrivilegedUser && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(isPrivilegedUser || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                {isPrivilegedUser && (
-                  <>
+              <div className="flex items-center gap-2">
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-el"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  {isPrivilegedUser && (
                     <CompanyCombobox
                       sites={sites}
                       value={selectedCompany}
                       onValueChange={handleCompanyChange}
-                      className="w-44"
+                      className="w-[280px]"
                       testId="select-company-el"
                     />
-                    <span className="text-muted-foreground">/</span>
-                  </>
-                )}
-                <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sites}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-44"
-                  testId="select-site-el"
-                />
+                  )}
+                  <SiteCombobox
+                    sites={isPrivilegedUser ? filteredSites : sites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-el"
+                  />
+                </div>
               </div>
             )}
             <div className="flex items-center gap-2 rounded-lg border bg-background/80 p-1">
