@@ -1113,9 +1113,12 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — all module documents except archived and cloud-share external uploads
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
         d.source !== "external"
       );
       const allDocumentsCount = docProgressSet.length;
@@ -1249,9 +1252,12 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — all module documents except archived and cloud-share external uploads
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const allNonCaseDocs = documents.filter(d =>
         !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
         d.source !== "external"
       );
       const allDocsProgress = allNonCaseDocs.length;
@@ -1409,10 +1415,13 @@ export async function registerRoutes(
         }
       }
 
-      // Fetch all module documents from accessible sites, excluding archived and cloud-share external uploads
+      // Fetch regular module folder documents from accessible sites
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const allDocs = await storage.getDocuments();
       const filteredDocs = allDocs.filter(d =>
         !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
         d.source !== "external" &&
         (!accessibleSiteIds || (d.siteId && accessibleSiteIds.includes(d.siteId)))
       );

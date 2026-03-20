@@ -551,8 +551,9 @@ function OverallComplianceCard({
   const isComplianceDoc = (d: Document) =>
     !d.isArchived && !d.caseId && COMPLIANCE_MODULES.includes(d.module as string);
 
-  // The Document Progress card counts all module documents except archived and cloud-share external uploads.
-  const isProgressDoc = (d: Document) => !d.isArchived && d.source !== "external";
+  // The Document Progress card counts regular module folder documents only.
+  // Excludes: archived, case docs (EL), incident docs (H&S), cloud share (external uploads).
+  const isProgressDoc = (d: Document) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external";
 
   const dialogMeta: Record<NonNullable<DocsDialogType>, { title: string; filter: (d: Document) => boolean }> = {
     compliant: {
