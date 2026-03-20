@@ -21,6 +21,7 @@ import {
   Users,
   FileQuestion,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -156,7 +157,7 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   const [, navigate] = useLocation();
 
   const config = moduleConfig[module];
@@ -416,23 +417,37 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <div className="flex flex-wrap items-center gap-3">
             {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                {isPrivilegedUser && (
-                  <CompanyCombobox
-                    sites={sites}
-                    value={selectedCompany}
-                    onValueChange={handleCompanyChange}
+              <div className="flex items-end gap-2">
+                <div className="flex flex-col gap-1.5">
+                  {isPrivilegedUser && (
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-64"
+                      testId="select-company-module-dashboard"
+                    />
+                  )}
+                  <SiteCombobox
+                    sites={isPrivilegedUser ? filteredSites : sites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
                     className="w-64"
-                    testId="select-company-module-dashboard"
+                    testId="select-site-module-dashboard"
                   />
+                </div>
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
-                <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sites}
-                  value={selectedSiteId}
-                  onValueChange={handleSiteChange}
-                  className="w-64"
-                  testId="select-site-module-dashboard"
-                />
               </div>
             )}
             <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
