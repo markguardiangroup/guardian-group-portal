@@ -1856,7 +1856,7 @@ function IncidentsListView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
@@ -1883,11 +1883,31 @@ function IncidentsListView() {
   const selectedSiteObj = useMemo(() =>
     sites.find((s: any) => s.id === selectedSiteId), [sites, selectedSiteId]);
 
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find((s: any) => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
   const currentContextLabel = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") return selectedSiteObj?.name || null;
     if (isPrivileged) return selectedCompany && selectedCompany !== "all" ? selectedCompany : "All Clients";
     return null;
   }, [selectedSiteId, selectedCompany, selectedSiteObj, isPrivileged]);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteObj?.companyName || null;
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, selectedSiteObj]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteObj?.name || null;
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, selectedSiteObj]);
 
   const filteredIncidents = useMemo(() => incidents.filter((incident) => {
     const incidentSite = sites.find((s: any) => s.id === incident.siteId);
@@ -1918,31 +1938,54 @@ function IncidentsListView() {
               <ShieldAlert className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">Incidents</h1>
-              <p className="text-muted-foreground">
-                Workplace incident management
-                {currentContextLabel && <span className="font-medium"> – {currentContextLabel}</span>}
+              <h1 className="text-3xl font-semibold">
+                Health &amp; Safety
+                <span className="font-normal text-muted-foreground text-2xl"> - Incidents</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivileged && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!isPrivileged && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(isPrivileged || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {isPrivileged && sites && sites.length > 0 && (
-              <>
-                <CompanyCombobox
-                  sites={sites}
-                  value={selectedCompany}
-                  onValueChange={handleCompanyChange}
-                  className="w-48"
-                  testId="select-company-incidents"
-                />
-                <SiteCombobox
-                  sites={filteredSitesForCombobox}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-48"
-                  testId="select-site-incidents"
-                />
-              </>
+              <div className="flex items-center gap-2">
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-incidents"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-[280px]"
+                    testId="select-company-incidents"
+                  />
+                  <SiteCombobox
+                    sites={filteredSitesForCombobox}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-incidents"
+                  />
+                </div>
+              </div>
             )}
             <Button
               className="bg-module-accent hover:bg-module-accent/90"
