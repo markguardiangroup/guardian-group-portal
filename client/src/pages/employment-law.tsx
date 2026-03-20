@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -2004,6 +2004,7 @@ function EmploymentLawDashboardView() {
     recentDocuments: Document[];
   }>({
     queryKey: ["/api/dashboard/employment_law", siteId, selectedCompanyId],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) params.set("siteId", siteId);

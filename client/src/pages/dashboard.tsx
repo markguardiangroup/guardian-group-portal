@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -981,6 +981,7 @@ export default function Dashboard() {
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
     queryKey: ["/api/modules/summary", siteId, companySiteIdsKey, isClientUser],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       // For client users, the backend will filter by their company from session
       // No need to send companyId from client side (more secure)
@@ -1000,6 +1001,7 @@ export default function Dashboard() {
   // Fetch all documents for renewal compliance tracking
   const { data: allDocuments = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents", siteId, companySiteIdsKey],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       let url = "/api/documents";
       if (siteId) {
@@ -1015,6 +1017,7 @@ export default function Dashboard() {
   
   const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
     queryKey: ["/api/missing-required-templates", siteId, companySiteIdsKey],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       let url = "/api/missing-required-templates";
       const params: string[] = [];
