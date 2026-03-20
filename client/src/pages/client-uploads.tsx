@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -68,6 +68,8 @@ import {
   Plus,
   CloudUpload,
 } from "lucide-react";
+import { CompanyCombobox } from "@/components/company-combobox";
+import { SiteCombobox } from "@/components/site-combobox";
 
 type ClientUploadModule = "health_safety" | "human_resources" | "employment_law";
 
@@ -123,6 +125,7 @@ interface Site {
   id: string;
   name: string;
   companyId: string;
+  companyName?: string;
 }
 
 interface User {
@@ -190,7 +193,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [selectedSiteId, setSelectedSiteId] = useState<string>("__all__");
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<ClientUploadFolderWithMeta | null>(null);
   const [checkedFileIds, setCheckedFileIds] = useState<Set<string>>(new Set());
 
@@ -248,11 +252,45 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     }
   }, [isClient, clientSiteAssignments]);
 
+  const filteredSites = useMemo(() => {
+    if (!sites || !selectedCompany) return sites;
+    return sites.filter(s => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+
+  const handleCompanyChange = useCallback((company: string | null) => {
+    setSelectedCompany(company && company !== "all" ? company : null);
+    setSelectedSiteId(null);
+  }, []);
+
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites]);
+
+  const resetFilters = useCallback(() => {
+    setSelectedCompany(null);
+    setSelectedSiteId(null);
+  }, []);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId) return sites.find(s => s.id === selectedSiteId)?.companyName || null;
+    return selectedCompany || null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId) return sites.find(s => s.id === selectedSiteId)?.name || null;
+    if (selectedCompany) return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
   const { data: folders = [], isLoading: foldersLoading } = useQuery<ClientUploadFolderWithMeta[]>({
-    queryKey: ["/api/client-upload-folders", module, selectedSiteId],
+    queryKey: ["/api/client-upload-folders", module, selectedSiteId, selectedCompany],
     queryFn: async () => {
       const params = new URLSearchParams({ module });
-      if (selectedSiteId && selectedSiteId !== "__all__") params.set("siteId", selectedSiteId);
+      if (selectedSiteId) params.set("siteId", selectedSiteId);
       const res = await fetch(`/api/client-upload-folders?${params}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch folders");
       return res.json();
@@ -421,7 +459,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       return;
     }
     const effectiveSiteId = canManageFolders ? dialogSiteId : selectedSiteId;
-    if (!effectiveSiteId || effectiveSiteId === "__all__") {
+    if (!effectiveSiteId) {
       toast({ title: "Please select a site", variant: "destructive" });
       return;
     }
@@ -967,27 +1005,73 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   return (
     <div className={themeClass} data-testid="folder-list-view">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-module-accent shrink-0">
-              <CloudUpload className="h-6 w-6 text-module-accent-foreground" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent shrink-0">
+              <CloudUpload className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold">Cloud Share</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">{MODULE_LABELS[module]}</p>
+              <h1 className="text-3xl font-semibold">
+                {MODULE_LABELS[module]}
+                <span className="font-normal text-muted-foreground text-2xl"> - Cloud Share</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {canManageFolders && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!canManageFolders && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(canManageFolders || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
+              </p>
             </div>
           </div>
-          <Button
-            className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground shrink-0"
-            onClick={() => {
-              setCreateStep(1);
-              setCreateDialogOpen(true);
-            }}
-            data-testid="button-upload-documents"
-          >
-            <FolderPlus className="h-4 w-4 mr-2" />
-            Upload Documents
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            {canManageFolders && sites.length > 0 && (
+              <div className="flex items-center gap-2">
+                {(selectedCompany || selectedSiteId) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-cloudshare"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-[280px]"
+                    testId="select-company-cloudshare"
+                  />
+                  <SiteCombobox
+                    sites={filteredSites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-cloudshare"
+                  />
+                </div>
+              </div>
+            )}
+            <Button
+              className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground shrink-0"
+              onClick={() => {
+                setCreateStep(1);
+                setCreateDialogOpen(true);
+              }}
+              data-testid="button-upload-documents"
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Upload Documents
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1000,30 +1084,6 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded.
         </p>
       </div>
-
-      {(!isClient || (isClient && clientSiteAssignments.length > 1)) && (
-        <div className="flex items-center gap-3">
-          <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-            <SelectTrigger className="w-64" data-testid="select-site-filter">
-              <SelectValue placeholder="All sites" />
-            </SelectTrigger>
-            <SelectContent>
-              {!isClient && <SelectItem value="__all__">All sites</SelectItem>}
-              {isClient
-                ? clientSiteAssignments.map((a) => (
-                    <SelectItem key={a.siteId} value={a.siteId} data-testid={`site-option-${a.siteId}`}>
-                      {a.siteName}
-                    </SelectItem>
-                  ))
-                : sites.map((s) => (
-                    <SelectItem key={s.id} value={s.id} data-testid={`site-option-${s.id}`}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       {foldersLoading ? (
         <div className="flex items-center justify-center py-16">
@@ -1325,7 +1385,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     return;
                   }
                   const siteToCheck = canManageFolders ? dialogSiteId : selectedSiteId;
-                  if (!siteToCheck || siteToCheck === "__all__") {
+                  if (!siteToCheck) {
                     toast({ title: "Please select a site", variant: "destructive" });
                     return;
                   }
