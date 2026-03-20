@@ -331,40 +331,63 @@ function CasesList() {
   return (
     <div className="theme-el">
       {/* Module Header with tinted background */}
-      <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
               <Briefcase className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">Case Files</h1>
-              <p className="text-muted-foreground">
-                Employment law case management
-                {currentContextLabel && <span className="font-medium"> - {currentContextLabel}</span>}
+              <h1 className="text-3xl font-semibold">
+                Employment Law
+                <span className="font-normal text-muted-foreground text-2xl"> - Cases</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivilegedUser && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!isPrivilegedUser && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(isPrivilegedUser || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <>
-                {isPrivilegedUser && (
-                  <CompanyCombobox
-                    sites={sites}
-                    value={selectedCompany}
-                    onValueChange={handleCompanyChange}
-                    className="w-48"
-                    testId="select-company-cases"
-                  />
+              <div className="flex items-center gap-2">
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-cases"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
-                <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : sites}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-48"
-                  testId="select-site-cases"
-                />
-              </>
+                <div className="flex flex-col gap-1.5">
+                  {isPrivilegedUser && (
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-[280px]"
+                      testId="select-company-cases"
+                    />
+                  )}
+                  <SiteCombobox
+                    sites={isPrivilegedUser ? filteredSites : sites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-cases"
+                  />
+                </div>
+              </div>
             )}
             {(user?.role === "admin" || user?.role === "consultant") && (
               <Button 
