@@ -383,6 +383,7 @@ export default function DocumentUpload() {
             renewalDate: data.complianceMode === "renewal" && data.renewalPeriodMonths
               ? new Date(new Date().setMonth(new Date().getMonth() + data.renewalPeriodMonths)).toISOString()
               : undefined,
+            renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
             type: "supporting_document",
             fileName: selectedFile.name,
             fileUrl,
@@ -407,6 +408,7 @@ export default function DocumentUpload() {
           renewalDate: data.complianceMode === "renewal" && data.renewalPeriodMonths
             ? new Date(new Date().setMonth(new Date().getMonth() + data.renewalPeriodMonths)).toISOString()
             : undefined,
+          renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
           type: "supporting_document",
           fileName: selectedFile.name,
           fileUrl,

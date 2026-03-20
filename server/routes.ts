@@ -2018,6 +2018,7 @@ export async function registerRoutes(
         trainingCourseCode: body.trainingCourseCode || null,
         trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
         renewalDate: autoRenewalDate || (body.renewalDate ? new Date(body.renewalDate) : null),
+        renewalPeriodMonths: body.renewalPeriodMonths ?? null,
       });
 
       await storage.createAuditLog({
