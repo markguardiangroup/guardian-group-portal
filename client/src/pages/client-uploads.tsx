@@ -1087,23 +1087,70 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
 
       <div className="p-6 space-y-5 dash-animate">
 
-      <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30" data-testid="expiry-info-banner">
-        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-        <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-          Press <strong>Upload Documents</strong> to create a new folder for your documents, or add files within an existing folder.<br />
-          Each file is <strong>automatically and permanently deleted 30 days</strong> after it is uploaded.
-        </p>
-      </div>
+      {isClient ? (
+        <div className="rounded-lg border bg-card p-5 space-y-4" data-testid="client-help-card">
+          <div>
+            <h2 className="font-semibold text-base">Share documents with your advisor</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              If you need to share files with your Guardian Group advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How it works</p>
+            <ol className="space-y-2.5">
+              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">1</span>
+                <span>Click <strong className="text-foreground">Upload Documents</strong> in the top right corner to start a new upload.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">2</span>
+                <span>Give your upload a clear name so your advisor knows what it contains — for example, <em>"March Risk Assessments"</em> or <em>"Updated Policies"</em>.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">3</span>
+                <span>Choose the files you want to share — you can upload multiple files at once.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">4</span>
+                <span>That's it — your advisor will have immediate access to everything you've uploaded.</span>
+              </li>
+            </ol>
+          </div>
+          <div className="flex items-start gap-2 pt-1 border-t text-xs text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>Uploaded files are automatically and permanently deleted <strong>30 days</strong> after upload. If you need them available longer, upload them again closer to when they are needed.</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30" data-testid="expiry-info-banner">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+            Press <strong>Upload Documents</strong> to create a new folder, or open an existing folder to add more files.<br />
+            Files are <strong>automatically deleted 30 days</strong> after upload.
+          </p>
+        </div>
+      )}
 
       {foldersLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : filteredFolders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="empty-state-folders">
-          <FolderOpen className="h-14 w-14 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">No uploads yet</p>
-          <p className="text-sm text-muted-foreground mt-1">Click "Upload Documents" to get started.</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state-folders">
+          <CloudUpload className="h-14 w-14 text-muted-foreground mb-4" />
+          {isClient ? (
+            <>
+              <p className="text-lg font-medium">Nothing shared yet</p>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm">
+                When you're ready to share a document with your advisor, click <strong>Upload Documents</strong> above — it only takes a minute.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">No uploads yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Click "Upload Documents" to create the first folder.</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border divide-y" data-testid="folders-grid">
