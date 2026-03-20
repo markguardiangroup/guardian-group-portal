@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -947,7 +947,16 @@ export default function Dashboard() {
   
   // Clients can see the site filter to confirm their access (even with single site)
   const clientHasSites = isClientUser && sites && sites.length > 0;
-  
+
+  // When selecting a site also sync the company dropdown
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
   // Filter sites by selected company for the site dropdown
   const filteredSites = useMemo(() => {
     if (!sites) return [];
@@ -1186,24 +1195,21 @@ export default function Dashboard() {
             </Link>
             {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
+              <div className="flex flex-col gap-1.5">
                 {isPrivilegedUser && (
-                  <>
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-48"
-                      testId="select-company-dashboard"
-                    />
-                    <span className="text-muted-foreground">/</span>
-                  </>
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-64"
+                    testId="select-company-dashboard"
+                  />
                 )}
                 <SiteCombobox
                   sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-48"
+                  onValueChange={handleSiteChange}
+                  className="w-64"
                   testId="select-site-dashboard"
                 />
               </div>

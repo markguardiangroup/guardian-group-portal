@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import {
   Calendar,
   HardHat,
   Users,
-  Building2,
   FileQuestion,
   ShieldCheck,
 } from "lucide-react";
@@ -159,7 +158,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
   const [, navigate] = useLocation();
-  
+
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
@@ -175,7 +174,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   
   // Clients can see the site filter to confirm their access (even with single site)
   const clientHasSites = isClientUser && sites && sites.length > 0;
-  
+
+  // When selecting a site also sync the company dropdown
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
   // Filter sites by selected company
   const filteredSites = useMemo(() => {
     if (!sites) return [];
@@ -408,25 +416,21 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <div className="flex flex-wrap items-center gap-3">
             {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col gap-1.5">
                 {isPrivilegedUser && (
-                  <>
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-44"
-                      testId="select-company-module-dashboard"
-                    />
-                    <span className="text-muted-foreground">/</span>
-                  </>
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-64"
+                    testId="select-company-module-dashboard"
+                  />
                 )}
                 <SiteCombobox
                   sites={isPrivilegedUser ? filteredSites : sites}
                   value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-44"
+                  onValueChange={handleSiteChange}
+                  className="w-64"
                   testId="select-site-module-dashboard"
                 />
               </div>
