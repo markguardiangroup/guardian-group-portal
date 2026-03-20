@@ -772,8 +772,6 @@ export class MemStorage implements IStorage {
     const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
 
     let slotTotal = 0;
-    // slotCompliantForScore: one per fulfilled slot (used for compliance %)
-    let slotCompliantForScore = 0;
     // per-document counts for display (matching computeSlotBasedCompliance in routes.ts)
     let slotCompliantDocs = 0;
     let slotReview = 0;
@@ -808,15 +806,6 @@ export class MemStorage implements IStorage {
           missingRequired++;
           continue;
         }
-        // Slot score: fulfilled if any doc properly satisfies the slot
-        const isFulfilled = matchingDocs.some(d => {
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
-        });
-        if (isFulfilled) slotCompliantForScore++;
         // Per-document display counts — so the dialog list matches the card numbers
         matchingDocs.forEach(d => {
           if (d.status === "compliant") slotCompliantDocs++;
@@ -836,8 +825,9 @@ export class MemStorage implements IStorage {
     const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
     const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Score stays slot-based: fulfilled slots / total slots
-    const scoreNumerator = slotCompliantForScore + manualCompliant;
+    // Compliance score: compliant / (compliant + not compliant + missing)
+    // Ties the percentage directly to the three tiles shown on the dashboard card.
+    const scoreDenominator = compliant + review + overdue + missingRequired;
     
     return {
       totalDocuments: total,
@@ -848,7 +838,7 @@ export class MemStorage implements IStorage {
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((scoreNumerator / total) * 100) : 0,
+      complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
     };
   }
 

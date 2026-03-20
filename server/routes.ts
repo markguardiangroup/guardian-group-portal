@@ -861,7 +861,6 @@ export async function registerRoutes(
     const siteExcludedCache = new Map<string, Set<string>>();
 
     let slotTotal = 0;
-    let slotCompliant = 0;       // fulfilled slots (used for compliance score)
     let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
     let slotReview = 0;
     let slotOverdue = 0;
@@ -906,21 +905,6 @@ export async function registerRoutes(
           continue;
         }
 
-        const isFulfilled = matchingDocs.some(d => {
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate) {
-            const expiry = new Date(d.expiryDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            expiry.setHours(0, 0, 0, 0);
-            if (expiry < today) return false;
-          }
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
-        });
-        if (isFulfilled) {
-          slotCompliant++;
-        }
         // Count individual docs in this slot by status.
         // We count per-document so the display cards match the dialog list —
         // a slot with two compliant docs shows 2 compliant, and a non-compliant
@@ -951,9 +935,10 @@ export async function registerRoutes(
     const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required").length;
     const overdueDocuments = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const missingRequiredDocuments = missingRequired;
-    // Compliance score stays slot-based: fulfilled slots / total slots
-    const slotCompliantForScore = slotCompliant + manualCompliant;
-    const complianceScore = totalDocuments > 0 ? Math.round((slotCompliantForScore / totalDocuments) * 100) : 0;
+    // Compliance score: compliant / (compliant + not compliant + missing)
+    // This ties the percentage directly to the three tiles shown on the dashboard card.
+    const complianceScoreDenominator = compliantDocuments + reviewRequired + overdueDocuments + missingRequiredDocuments;
+    const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
     return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
