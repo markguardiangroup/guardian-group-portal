@@ -2195,7 +2195,7 @@ function EmploymentLawDashboardView() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-start gap-2">
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2">
                 {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
@@ -2230,7 +2230,7 @@ function EmploymentLawDashboardView() {
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-lg border bg-background/80 p-1">
+            <div className="flex flex-col gap-1.5">
               <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
                   <FileText className="mr-2 h-4 w-4" />
