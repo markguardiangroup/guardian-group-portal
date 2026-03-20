@@ -1890,7 +1890,7 @@ interface MissingRequiredTemplateDetail {
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   const [, navigate] = useLocation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -1944,7 +1944,32 @@ function EmploymentLawDashboardView() {
     }
     return null;
   }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
-  
+
+  // When selecting a site also sync the company dropdown
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
