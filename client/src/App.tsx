@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -57,6 +57,14 @@ import ToolkitBrowse from "@/pages/toolkit-browse";
 import AdminPathways from "@/pages/admin-pathways";
 import NotFound from "@/pages/not-found";
 
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => {
+    document.getElementById("main-content")?.scrollTo(0, 0);
+  }, [location]);
+  return null;
+}
+
 function HealthSafetyDashboard() {
   return <ModuleDashboard module="health_safety" />;
 }
@@ -92,6 +100,8 @@ function ELClientUploads() {
 
 function Router() {
   return (
+    <>
+    <ScrollToTop />
     <Switch>
       <Route path="/" component={Dashboard} />
       
@@ -147,6 +157,7 @@ function Router() {
       <Route path="/admin/pathways" component={AdminPathways} />
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 
@@ -395,7 +406,7 @@ function AuthenticatedApp() {
               </div>
               <ThemeToggle />
             </header>
-            <main className="flex-1 overflow-auto">
+            <main id="main-content" className="flex-1 overflow-auto">
               <Router />
             </main>
           </SidebarInset>
