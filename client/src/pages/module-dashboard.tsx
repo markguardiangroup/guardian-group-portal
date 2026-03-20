@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -210,6 +210,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   const { data, isLoading, isFetching } = useQuery<ModuleDashboardData>({
     queryKey: ["/api/dashboard", module, siteId, companySiteIdsKey],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) {
@@ -236,6 +237,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const [showMissingDialog, setShowMissingDialog] = useState(false);
   const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
     queryKey: ["/api/missing-required-templates", module, siteId, companySiteIdsKey],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const params: string[] = [`module=${module}`];
       if (siteId) params.push(`siteId=${siteId}`);

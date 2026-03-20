@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -489,6 +489,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const effectiveSiteId = selectedSiteId && selectedSiteId !== "all" ? selectedSiteId : null;
   const { data: siteFoldersList } = useQuery<DocumentFolder[]>({
     queryKey: ["/api/folders", effectiveSiteId, module],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const res = await fetch(`/api/folders?siteId=${effectiveSiteId}&module=${module}`, { credentials: "include" });
       if (!res.ok) return [];
@@ -538,6 +539,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Fetch document hierarchy for folder view
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
     queryKey: [hierarchyUrl],
+    placeholderData: keepPreviousData,
     enabled: !!hierarchySiteId && viewMode === "folder",
   });
 
