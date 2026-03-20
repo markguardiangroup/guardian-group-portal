@@ -1150,23 +1150,6 @@ export default function Dashboard() {
     return totals;
   }, [siteId, sites, selectedCompany]);
 
-  if (isLoading || isAuthLoading || sitesLoading) {
-    return (
-      <div className="space-y-8 p-8">
-        <div>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="mt-2 h-4 w-64" />
-        </div>
-        <Skeleton className="h-64 w-full" />
-        <div className="grid gap-6 md:grid-cols-3">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    );
-  }
-
   // Compliance modules (not including support)
   const complianceModules: { module: ModuleType; name: string }[] = [
     { module: "health_safety", name: "Health & Safety" },
@@ -1183,6 +1166,8 @@ export default function Dashboard() {
   // Check if user has access to support
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
+
+  const showContentSkeleton = isLoading || isAuthLoading || sitesLoading;
 
   return (
     <div className="theme-dashboard">
@@ -1259,6 +1244,21 @@ export default function Dashboard() {
 
     <div className="space-y-8 p-8 dash-animate">
 
+      {showContentSkeleton ? (
+        <>
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <div>
+            <Skeleton className="h-6 w-48 mb-4" />
+            <div className="grid gap-6 md:grid-cols-3">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </>
+      ) : (
+      <>
       <OverallComplianceCard 
         summaries={complianceSummaries} 
         siteComplianceSummary={selectedSiteComplianceSummary || aggregatedComplianceSummary}
@@ -1432,6 +1432,8 @@ export default function Dashboard() {
             />
           )}
         </div>
+      )}
+      </>
       )}
     </div>
     </div>

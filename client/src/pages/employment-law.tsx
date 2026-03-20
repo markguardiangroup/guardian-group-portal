@@ -2165,33 +2165,6 @@ function EmploymentLawDashboardView() {
     return queryString ? `/employment-law/cases?${queryString}` : "/employment-law/cases";
   }, [selectedSiteId, selectedCompany]);
 
-  if (dashboardLoading || sitesLoading) {
-    return (
-      <div className="theme-el">
-        <div className="bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-          <Skeleton className="h-14 w-96" />
-        </div>
-        <div className="space-y-8 p-8">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i}>
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-4 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="mt-2 h-3 w-32" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const complianceScore = summary?.complianceScore || 0;
-  
   return (
     <div className="theme-el">
       {/* Module Header with tinted background */}
