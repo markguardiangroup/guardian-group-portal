@@ -1109,7 +1109,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
             <div className="overflow-hidden">
               <div className="px-5 pb-5 pt-4 space-y-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  If you need to share files with your Guardian Group advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
+                  If you need to share files with your advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
                 </p>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How it works</p>
