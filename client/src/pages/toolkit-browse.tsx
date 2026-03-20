@@ -650,28 +650,38 @@ export default function ToolkitBrowse() {
       : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" };
 
   return (
-    <div className="space-y-7 p-6 dash-animate">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <BookMarked className="h-7 w-7 text-primary mt-0.5 shrink-0" />
-          <div>
-            <h1 className="text-2xl font-bold">Browse Templates</h1>
-            <p className="text-muted-foreground text-sm">
-              Browse and download document templates organised by category.
-            </p>
+    <div className="theme-toolkit">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <BookMarked className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                Toolkit
+                <span className="font-normal text-muted-foreground text-2xl"> - Browse Templates</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                Browse and download document templates organised by category.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdmin && (
+              <Button
+                onClick={() => setShowCreateFolder(true)}
+                data-testid="button-create-folder"
+                className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
+              >
+                <FolderPlus className="h-4 w-4 mr-2" />
+                New Folder
+              </Button>
+            )}
           </div>
         </div>
-        {isAdmin && (
-          <Button
-            onClick={() => setShowCreateFolder(true)}
-            data-testid="button-create-folder"
-          >
-            <FolderPlus className="h-4 w-4 mr-2" />
-            New Folder
-          </Button>
-        )}
       </div>
+    <div className="space-y-7 p-6 dash-animate">
 
       {/* Find a Document — prominent banner */}
       <div
@@ -1010,6 +1020,7 @@ export default function ToolkitBrowse() {
           </div>
         </SheetContent>
       </Sheet>
+    </div>
     </div>
   );
 }
