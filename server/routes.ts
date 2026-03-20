@@ -1113,12 +1113,15 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Required-document progress stats (matching compliance scope: template-slot docs + manually required)
-      const nonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId && (d.isRequired || consumedDocIds.has(d.id)));
-      const allDocumentsCount = nonCaseDocs.length;
-      const allCompliantDocuments = nonCaseDocs.filter(d => d.status === "compliant").length;
-      const allReviewRequired = nonCaseDocs.filter(d => d.status === "review_required").length;
-      const allOverdueDocuments = nonCaseDocs.filter(d => d.status === "overdue").length;
+      // Required-document progress stats
+      // For employment_law all docs live inside cases so include them; other modules exclude case docs
+      const docProgressSet = module === "employment_law"
+        ? documents.filter(d => !d.isArchived)
+        : documents.filter(d => !d.isArchived && !d.caseId && (d.isRequired || consumedDocIds.has(d.id)));
+      const allDocumentsCount = docProgressSet.length;
+      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant").length;
+      const allReviewRequired = docProgressSet.filter(d => d.status === "review_required").length;
+      const allOverdueDocuments = docProgressSet.filter(d => d.status === "overdue").length;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
