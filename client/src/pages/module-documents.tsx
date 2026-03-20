@@ -164,6 +164,18 @@ interface SiteWithCompany extends SiteBasic {
 
 type ViewMode = "folder" | "table" | "sites";
 
+interface MissingRequiredTemplateDetail {
+  templateId: string;
+  templateName: string;
+  module: string;
+  requiresApproval: boolean;
+  siteId: string;
+  siteName: string;
+  companyId: string;
+  companyName: string;
+  kind: "template_slot" | "required_document";
+}
+
 // Module-specific color theming (matching template library)
 const moduleColors: Record<string, string> = {
   health_safety: "text-emerald-600 dark:text-emerald-400",
@@ -498,6 +510,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   const { data: folderRules } = useQuery<FolderDocumentTypeRule[]>({
     queryKey: ["/api/folder-document-type-rules"],
+  });
+
+  // Fetch missing required templates for the sites view compliance stats
+  const { data: missingRequiredDetails = [] } = useQuery<MissingRequiredTemplateDetail[]>({
+    queryKey: ["/api/missing-required-templates", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/missing-required-templates?module=${module}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch missing required templates");
+      return res.json();
+    },
+    enabled: viewMode === "sites",
   });
 
   // Fetch site folders for folder-path display in table view
@@ -1460,15 +1483,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 const overdue = siteDocs.filter(d => d.status === "overdue").length;
                 const reviewRequired = siteDocs.filter(d => d.status === "review_required").length;
                 const pending = siteDocs.filter(d => d.approvalStatus === "pending").length;
-                const pct = total > 0 ? Math.round((compliant / total) * 100) : null;
-                const hasIssues = overdue > 0 || reviewRequired > 0;
-                const allClear = total > 0 && !hasIssues && pct === 100;
+                const missingCount = missingRequiredDetails.filter(m => m.siteId === site.id).length;
+                // Match dashboard compliance score formula: compliant / (compliant + review + overdue + missing)
+                const scoreDenominator = compliant + reviewRequired + overdue + missingCount;
+                const pct = scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : null;
+                const hasIssues = missingCount > 0 || overdue > 0 || reviewRequired > 0;
+                const allClear = scoreDenominator > 0 && !hasIssues && pct === 100;
 
                 return (
                   <Card
                     key={site.id}
                     className={`group cursor-pointer transition-all hover:shadow-md border-2 ${
-                      overdue > 0
+                      missingCount > 0 || overdue > 0
                         ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
                         : reviewRequired > 0
                         ? "border-amber-200 dark:border-amber-900/50 hover:border-amber-400"
@@ -1498,7 +1524,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
                           </div>
                         </div>
-                        {overdue > 0 ? (
+                        {missingCount > 0 || overdue > 0 ? (
                           <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             Attention
@@ -1559,9 +1585,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           <p className={`text-base font-bold ${reviewRequired > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{reviewRequired}</p>
                           <p className={`text-xs ${reviewRequired > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                         </div>
-                        <div className={`rounded-lg px-2 py-1.5 ${overdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                          <p className={`text-base font-bold ${overdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{overdue}</p>
-                          <p className={`text-xs ${overdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                        <div className={`rounded-lg px-2 py-1.5 ${missingCount > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${missingCount > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{missingCount}</p>
+                          <p className={`text-xs ${missingCount > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Docs Missing</p>
                         </div>
                       </div>
 
