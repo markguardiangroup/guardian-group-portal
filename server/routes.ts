@@ -1113,11 +1113,14 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — count all non-archived docs
-      // EL docs live inside cases (caseId set), so include them; other modules exclude case docs
-      const docProgressSet = module === "employment_law"
-        ? documents.filter(d => !d.isArchived)
-        : documents.filter(d => !d.isArchived && !d.caseId);
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      const docProgressSet = documents.filter(d =>
+        !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
+        d.source !== "external"
+      );
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant").length;
       const allReviewRequired = docProgressSet.filter(d => d.status === "review_required").length;
@@ -1249,8 +1252,14 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Required-document progress stats (matching compliance scope: template-slot docs + manually required)
-      const allNonCaseDocs = documents.filter(d => !d.isArchived && !d.caseId && (d.isRequired || consumedDocIds.has(d.id)));
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      const allNonCaseDocs = documents.filter(d =>
+        !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
+        d.source !== "external"
+      );
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant").length;
       const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required").length;
@@ -1406,10 +1415,14 @@ export async function registerRoutes(
         }
       }
 
-      // Fetch all non-archived, non-case documents from accessible sites
+      // Fetch regular module folder documents from accessible sites
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const allDocs = await storage.getDocuments();
       const filteredDocs = allDocs.filter(d =>
-        !d.isArchived && !d.caseId &&
+        !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
+        d.source !== "external" &&
         (!accessibleSiteIds || (d.siteId && accessibleSiteIds.includes(d.siteId)))
       );
 
