@@ -219,7 +219,7 @@ export async function sendDocumentApprovalEmail({
           </div>
           
           <div style="text-align: center; padding: 24px 0;">
-            <a href="${documentUrl}&email=${encodeURIComponent(to)}" 
+            <a href="${documentUrl}?email=${encodeURIComponent(to)}" 
                style="background-color: #1e40af; color: #ffffff; padding: 12px 32px; 
                       text-decoration: none; border-radius: 6px; font-size: 16px; 
                       font-weight: 600; display: inline-block;">
@@ -324,7 +324,7 @@ export async function sendClientSignOffEmail({
           </div>
           
           <div style="text-align: center; padding: 24px 0;">
-            <a href="${documentUrl}&email=${encodeURIComponent(to)}" 
+            <a href="${documentUrl}?email=${encodeURIComponent(to)}" 
                style="background-color: #1e40af; color: #ffffff; padding: 12px 32px; 
                       text-decoration: none; border-radius: 6px; font-size: 16px; 
                       font-weight: 600; display: inline-block;">
