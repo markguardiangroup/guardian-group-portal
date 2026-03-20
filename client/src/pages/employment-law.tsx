@@ -2393,16 +2393,15 @@ function EmploymentLawDashboardView() {
                   <p className="text-xs text-muted-foreground">Review Required</p>
                 </button>
                 <button
-                  onClick={() => documentsMissingCount > 0 && setShowMissingDialog(true)}
-                  className={`text-center rounded-md border p-3 transition-colors ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
-                  data-testid="progress-el-docs-missing"
+                  onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  data-testid="progress-el-overdue"
                 >
-                  <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
-                    <FileQuestion className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{documentsMissingCount}</span>
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{summary?.allOverdueDocuments || 0}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Docs Missing</p>
-                  {documentsMissingCount > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
+                  <p className="text-xs text-muted-foreground">Overdue</p>
                 </button>
               </div>
             )}
