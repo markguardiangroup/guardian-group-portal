@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -314,8 +314,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
-  const [viewMode, setViewMode] = useState<ViewMode>("folder");
-  const hasSetInitialView = useRef(false);
+  const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
   
@@ -414,20 +413,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return clientSites.filter(s => s.companyName === selectedCompany);
   }, [clientSites, selectedCompany]);
 
-  // Set default view once sites data first loads
-  useEffect(() => {
-    if (!hasSetInitialView.current && sites !== undefined) {
-      hasSetInitialView.current = true;
-      setViewMode(filteredSites.length > 1 ? "sites" : "folder");
+  // Derive the effective view mode: use the user's explicit choice if set,
+  // otherwise auto-select based on site count once data is available.
+  // null means sites data hasn't loaded yet — used to suppress content until ready.
+  const viewMode: ViewMode | null = useMemo(() => {
+    if (sites === undefined) return null;
+    if (explicitViewMode !== null) {
+      // If the user pinned "sites" but sites dropped to 1, fall back to folder
+      if (explicitViewMode === "sites" && filteredSites.length <= 1) return "folder";
+      return explicitViewMode;
     }
-  }, [sites, filteredSites]);
+    return filteredSites.length > 1 ? "sites" : "folder";
+  }, [sites, explicitViewMode, filteredSites]);
 
-  // If filtering reduces sites to 1 while in sites view, fall back to folder view
-  useEffect(() => {
-    if (viewMode === "sites" && filteredSites.length <= 1) {
-      setViewMode("folder");
-    }
-  }, [filteredSites, viewMode]);
+  const setViewMode = (mode: ViewMode) => setExplicitViewMode(mode);
 
   // When selecting a site also sync the company dropdown
   const handleSiteChange = useCallback((siteId: string | null) => {
