@@ -297,6 +297,16 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     },
   });
 
+  // When a company is selected without a specific site, filter folders to only show
+  // those belonging to sites of the selected company
+  const filteredFolders = useMemo(() => {
+    if (!selectedCompany || selectedSiteId) return folders;
+    const companySiteIds = new Set(
+      sites.filter(s => s.companyName === selectedCompany).map(s => s.id)
+    );
+    return folders.filter(f => companySiteIds.has(f.siteId));
+  }, [folders, selectedCompany, selectedSiteId, sites]);
+
   const { data: files = [], isLoading: filesLoading } = useQuery<ClientUploadWithUploader[]>({
     queryKey: ["/api/client-upload-folders", selectedFolder?.id, "files"],
     queryFn: async () => {
@@ -1089,7 +1099,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : folders.length === 0 ? (
+      ) : filteredFolders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center" data-testid="empty-state-folders">
           <FolderOpen className="h-14 w-14 text-muted-foreground mb-4" />
           <p className="text-lg font-medium text-muted-foreground">No uploads yet</p>
@@ -1097,7 +1107,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         </div>
       ) : (
         <div className="rounded-lg border divide-y" data-testid="folders-grid">
-          {folders.map((folder) => (
+          {filteredFolders.map((folder) => (
             <div
               key={folder.id}
               className="flex items-center gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
