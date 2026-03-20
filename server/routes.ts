@@ -1537,7 +1537,12 @@ export async function registerRoutes(
         })
       );
       
-      res.json(accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null));
+      // Exclude case documents (EL), incident-linked documents (H&S), and cloud share uploads
+      // These are managed in their own dedicated sections, not the module document folder
+      const regularDocs = accessibleDocuments.filter((d): d is NonNullable<typeof d> =>
+        d !== null && !d.caseId && !d.incidentId && d.source !== "external"
+      );
+      res.json(regularDocs);
     } catch (error) {
       console.error("Module documents error:", error);
       res.status(500).json({ error: "Failed to fetch module documents" });

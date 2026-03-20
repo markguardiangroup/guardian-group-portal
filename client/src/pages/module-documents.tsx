@@ -1478,7 +1478,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredSites.map((site) => {
-                const siteDocs = (documents ?? []).filter(d => d.siteId === site.id && !d.isArchived);
+                const siteDocs = (documents ?? []).filter(d =>
+                  d.siteId === site.id &&
+                  !d.isArchived &&
+                  !(d as any).caseId &&
+                  !(d as any).incidentId &&
+                  (d as any).source !== "external"
+                );
                 const total = siteDocs.length;
                 const compliant = siteDocs.filter(d => d.status === "compliant").length;
                 const overdue = siteDocs.filter(d => d.status === "overdue").length;
