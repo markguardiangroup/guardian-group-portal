@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, DownloadCloud, TrendingUp, Building2, Download, FolderOpen, HardHat, Briefcase, Scale } from "lucide-react";
+import { BookMarked, DownloadCloud, TrendingUp, Download, FolderOpen, HardHat, Briefcase, Scale, X } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +76,7 @@ function TickerNumber({ value, className }: { value: number; className?: string 
 export default function ToolkitDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedCompany, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const isClient = user?.role === "client";
@@ -142,23 +142,38 @@ export default function ToolkitDashboard() {
               <BookMarked className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">Toolkit</h1>
-              <p className="text-muted-foreground">
-                Template download overview
-                {contextName && <span className="font-medium"> - {contextName}</span>}
+              <h1 className="text-3xl font-semibold">
+                Toolkit
+                <span className="font-normal text-muted-foreground text-2xl"> - Template overview</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivilegedUser && (
+                  <span className="font-semibold text-foreground">{contextName || "All Companies"}</span>
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {isPrivilegedUser && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                {selectedCompany && selectedCompany !== "all" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-toolkit"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
                 <CompanyCombobox
                   sites={sites}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-44"
+                  className="w-[280px]"
                   testId="select-company-toolkit"
                 />
               </div>

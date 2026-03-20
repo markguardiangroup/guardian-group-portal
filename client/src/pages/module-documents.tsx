@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -85,6 +85,7 @@ import {
   GripVertical,
   MapPin,
   TrendingUp,
+  X,
 } from "lucide-react";
 import {
   Accordion,
@@ -308,7 +309,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -411,7 +412,32 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!selectedCompany || selectedCompany === "all") return clientSites;
     return clientSites.filter(s => s.companyName === selectedCompany);
   }, [clientSites, selectedCompany]);
-  
+
+  // When selecting a site also sync the company dropdown
+  const handleSiteChange = useCallback((siteId: string | null) => {
+    setSelectedSiteId(siteId);
+    if (siteId && siteId !== "all" && sites) {
+      const site = sites.find(s => s.id === siteId);
+      if (site?.companyName) setSelectedCompany(site.companyName);
+    }
+  }, [sites, setSelectedSiteId, setSelectedCompany]);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
   });
@@ -689,48 +715,66 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     <div className={`${themeClass}`}>
       {/* Module Header with tinted background */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${moduleBgColors[module]}`}>
-              <ModuleIcon className={`h-6 w-6 ${moduleColors[module]}`} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <ModuleIcon className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">{config.name} Documents</h1>
-              <p className="text-muted-foreground">
-                Manage {config.shortName} compliance documents
+              <h1 className="text-3xl font-semibold">
+                {config.name}
+                <span className="font-normal text-muted-foreground text-2xl"> - Documents</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                {isPrivilegedUser && (
+                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                )}
+                {!isPrivilegedUser && contextCompany && (
+                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                )}
+                {(isPrivilegedUser || contextCompany) && contextSite && <span> - </span>}
+                {contextSite && <span>{contextSite}</span>}
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Site Context - Company and Site selectors */}
+
+          <div className="flex flex-wrap items-center gap-3">
             {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-background/60 border">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                {isPrivilegedUser && (
-                  <>
+              <div className="flex items-center gap-2">
+                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetFilters}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-documents"
+                    title="Clear selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  {isPrivilegedUser && (
                     <CompanyCombobox
                       sites={sites}
                       value={selectedCompany}
                       onValueChange={handleCompanyChange}
-                      className="w-44"
+                      className="w-[280px]"
                       testId="select-company-documents"
                     />
-                    <span className="text-muted-foreground">/</span>
-                  </>
-                )}
-                <SiteCombobox
-                  sites={isPrivilegedUser ? filteredSites : clientSites}
-                  value={selectedSiteId}
-                  onValueChange={setSelectedSiteId}
-                  className="w-44"
-                  testId="select-site-documents"
-                />
+                  )}
+                  <SiteCombobox
+                    sites={isPrivilegedUser ? filteredSites : clientSites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[280px]"
+                    testId="select-site-documents"
+                  />
+                </div>
               </div>
             )}
-            
             {isPrivilegedUser && (
-              <Button className={`${moduleBgColors[module]} ${moduleColors[module]} border ${moduleBorderColors[module]} hover:opacity-90`} asChild>
+              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Document
