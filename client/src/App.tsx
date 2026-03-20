@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, FileText, Loader2, Eye } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
@@ -367,25 +368,27 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
+  const [splashFading, setSplashFading] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+  const transitionStarted = useRef(false);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="space-y-4 text-center">
-          <Skeleton className="h-12 w-12 mx-auto rounded-full" />
-          <Skeleton className="h-4 w-32 mx-auto" />
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !transitionStarted.current) {
+      transitionStarted.current = true;
+      const fadeTimer = setTimeout(() => setSplashFading(true), 400);
+      const hideTimer = setTimeout(() => setSplashDone(true), 750);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [isLoading, isAuthenticated]);
 
-  if (!isAuthenticated) {
+  if (!isLoading && !isAuthenticated) {
     return <Login />;
   }
 
-  if (user?.legalAcceptanceRequired) {
-    return <LegalAcceptanceScreen />;
-  }
+  const showSplash = isLoading || (isAuthenticated && !splashDone);
 
   const sidebarStyle = {
     "--sidebar-width": "16rem",
@@ -393,26 +396,54 @@ function AuthenticatedApp() {
   };
 
   return (
-    <SiteFilterProvider>
-      <DataPrefetcher userId={user!.id} isClientUser={user!.role === "client"} />
-      <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-        <div className="flex h-screen w-full">
-          <AppSidebar user={user} />
-          <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-            <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <BreadcrumbNav />
-              </div>
-              <ThemeToggle />
-            </header>
-            <main id="main-content" className="flex-1 overflow-auto">
-              <Router />
-            </main>
-          </SidebarInset>
+    <>
+      {showSplash && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background"
+          style={{
+            opacity: splashFading ? 0 : 1,
+            transition: "opacity 350ms ease",
+            pointerEvents: splashFading ? "none" : "auto",
+          }}
+        >
+          <div className="flex flex-col items-center gap-4">
+            <img
+              src={logoIcon}
+              alt="Guardian Group"
+              className="h-16 w-16 rounded-full object-cover shadow-md"
+            />
+            <p className="text-sm font-medium text-muted-foreground">Signing you in…</p>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
         </div>
-      </SidebarProvider>
-    </SiteFilterProvider>
+      )}
+      {isAuthenticated && (
+        user?.legalAcceptanceRequired ? (
+          <LegalAcceptanceScreen />
+        ) : (
+          <SiteFilterProvider>
+            <DataPrefetcher userId={user!.id} isClientUser={user!.role === "client"} />
+            <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+              <div className="flex h-screen w-full">
+                <AppSidebar user={user} />
+                <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+                  <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <SidebarTrigger data-testid="button-sidebar-toggle" />
+                      <BreadcrumbNav />
+                    </div>
+                    <ThemeToggle />
+                  </header>
+                  <main id="main-content" className="flex-1 overflow-auto">
+                    <Router />
+                  </main>
+                </SidebarInset>
+              </div>
+            </SidebarProvider>
+          </SiteFilterProvider>
+        )
+      )}
+    </>
   );
 }
 
