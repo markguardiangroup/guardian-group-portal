@@ -58,6 +58,7 @@ import {
   Download,
   Users,
   ChevronLeft,
+  ChevronDown,
   AlertTriangle,
   File,
   Loader2,
@@ -67,6 +68,7 @@ import {
   Clock,
   Plus,
   CloudUpload,
+  HelpCircle,
 } from "lucide-react";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
@@ -222,6 +224,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const [deleteFile, setDeleteFile] = useState<ClientUploadWithUploader | null>(null);
 
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [helpExpanded, setHelpExpanded] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const moreFileInputRef = useRef<HTMLInputElement>(null);
@@ -1088,39 +1091,63 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       <div className="p-6 space-y-5 dash-animate">
 
       {isClient ? (
-        <div className="rounded-lg border bg-card p-5 space-y-4" data-testid="client-help-card">
-          <div>
-            <h2 className="font-semibold text-base">Share documents with your advisor</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              If you need to share files with your Guardian Group advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
-            </p>
+        foldersLoading || filteredFolders.length === 0 || helpExpanded ? (
+          <div className="rounded-lg border bg-card p-5 space-y-4" data-testid="client-help-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <h2 className="font-semibold text-base">Share documents with your advisor</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  If you need to share files with your Guardian Group advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
+                </p>
+              </div>
+              {filteredFolders.length > 0 && (
+                <button
+                  onClick={() => setHelpExpanded(false)}
+                  className="text-muted-foreground hover:text-foreground p-1 rounded shrink-0"
+                  aria-label="Collapse help"
+                  data-testid="button-collapse-help"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How it works</p>
+              <ol className="space-y-2.5">
+                <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">1</span>
+                  <span>Click <strong className="text-foreground">Upload Documents</strong> in the top right corner to start a new upload.</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">2</span>
+                  <span>Give your upload a clear name so your advisor knows what it contains — for example, <em>"March Risk Assessments"</em> or <em>"Updated Policies"</em>.</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">3</span>
+                  <span>Choose the files you want to share — you can upload multiple files at once.</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">4</span>
+                  <span>That's it — your advisor will have immediate access to everything you've uploaded.</span>
+                </li>
+              </ol>
+            </div>
+            <div className="flex items-start gap-2 pt-1 border-t text-xs text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>Uploaded files are automatically and permanently deleted <strong>30 days</strong> after upload. If you need them available longer, upload them again closer to when they are needed.</span>
+            </div>
           </div>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How it works</p>
-            <ol className="space-y-2.5">
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">1</span>
-                <span>Click <strong className="text-foreground">Upload Documents</strong> in the top right corner to start a new upload.</span>
-              </li>
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">2</span>
-                <span>Give your upload a clear name so your advisor knows what it contains — for example, <em>"March Risk Assessments"</em> or <em>"Updated Policies"</em>.</span>
-              </li>
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">3</span>
-                <span>Choose the files you want to share — you can upload multiple files at once.</span>
-              </li>
-              <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">4</span>
-                <span>That's it — your advisor will have immediate access to everything you've uploaded.</span>
-              </li>
-            </ol>
-          </div>
-          <div className="flex items-start gap-2 pt-1 border-t text-xs text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>Uploaded files are automatically and permanently deleted <strong>30 days</strong> after upload. If you need them available longer, upload them again closer to when they are needed.</span>
-          </div>
-        </div>
+        ) : (
+          <button
+            onClick={() => setHelpExpanded(true)}
+            className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 rounded-lg border bg-card hover:bg-muted/40 transition-colors text-sm text-muted-foreground hover:text-foreground"
+            data-testid="button-expand-help"
+          >
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            <span>How to share documents with your advisor</span>
+            <ChevronDown className="h-4 w-4 ml-auto shrink-0" />
+          </button>
+        )
       ) : (
         <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30" data-testid="expiry-info-banner">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
