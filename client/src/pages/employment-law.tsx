@@ -392,7 +392,7 @@ function CasesList() {
             {(user?.role === "admin" || user?.role === "consultant") && (
               <Button 
                 onClick={() => setShowCreateDialog(true)}
-                className="bg-pink-600 hover:bg-pink-700 w-[280px]"
+                className="bg-pink-600 hover:bg-pink-700"
                 data-testid="button-create-case"
               >
                 <Plus className="mr-2 h-4 w-4" />
