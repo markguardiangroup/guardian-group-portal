@@ -899,12 +899,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {/* Folders Accordion */}
           {hierarchySiteId && isLoadingHierarchy ? (
             <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
+              <CardContent className="p-4 space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center justify-between px-2 py-3 border-b last:border-b-0">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8 rounded-md shrink-0" />
+                      <Skeleton className="h-4 w-36" />
+                    </div>
+                    <div className="flex items-center gap-3 pr-4">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           ) : hierarchySiteId && hierarchy?.folders && hierarchy.folders.length > 0 ? (
@@ -1224,11 +1231,42 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Compliance</TableHead>
+                  <TableHead>Renewal Period</TableHead>
+                  <TableHead>Renewal Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-40" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
