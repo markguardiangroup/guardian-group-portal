@@ -57,9 +57,9 @@
   --module-training: 270 60% 50%;
   --module-training-foreground: 270 20% 98%;
   --module-training-muted: 270 30% 92%;
-  --module-toolkit: 38 95% 45%;
-  --module-toolkit-foreground: 38 20% 98%;
-  --module-toolkit-muted: 38 60% 92%;
+  --module-toolkit: 38 90% 35%;
+  --module-toolkit-foreground: 38 10% 98%;
+  --module-toolkit-muted: 38 55% 92%;
   --module-support: 195 70% 38%;
   --module-support-foreground: 195 20% 98%;
   --module-support-muted: 195 40% 92%;
