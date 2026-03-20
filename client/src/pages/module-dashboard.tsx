@@ -315,6 +315,22 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     }
     return null;
   }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
+
+  const contextCompany = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
+
+  const contextSite = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.name || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return "All sites";
+    return null;
+  }, [selectedSiteId, selectedCompany, sites]);
   
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
@@ -408,10 +424,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </div>
             <div>
               <h1 className="text-3xl font-semibold">{config.name}</h1>
-              <p className="text-muted-foreground">
-                Module compliance overview
-                {currentContextName && <span className="font-medium"> - {currentContextName}</span>}
-              </p>
+              <p className="text-muted-foreground">Module compliance overview</p>
+              {contextCompany && (
+                <p className="text-sm font-medium text-foreground mt-0.5">{contextCompany}</p>
+              )}
+              {contextSite && (
+                <p className="text-sm text-muted-foreground">{contextSite}</p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
