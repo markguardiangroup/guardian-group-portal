@@ -332,6 +332,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
   const ModuleIcon = module === "health_safety" ? HardHat : module === "training" ? FileText : Users;
@@ -1505,7 +1506,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     data-testid={`card-site-overview-${site.id}`}
                     onClick={() => {
                       setSelectedSiteId(site.id);
-                      setViewMode("folder");
+                      navigate(basePath);
                     }}
                   >
                     <CardContent className="p-5">
@@ -1594,10 +1595,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {/* Footer */}
                       <div className="mt-4 pt-3 border-t flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">{total} total document{total !== 1 ? "s" : ""}{pending > 0 ? ` · ${pending} pending approval` : ""}</span>
-                        <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}>
-                          View site
+                        <button
+                          className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} hover:underline`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSiteId(site.id);
+                            setViewMode("folder");
+                          }}
+                          data-testid={`link-view-documents-${site.id}`}
+                        >
+                          View documents
                           <ChevronRight className="h-3 w-3" />
-                        </span>
+                        </button>
                       </div>
                     </CardContent>
                   </Card>
