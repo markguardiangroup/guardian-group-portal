@@ -461,7 +461,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       sites={sites}
                       value={selectedCompany}
                       onValueChange={handleCompanyChange}
-                      className="w-56"
+                      className="w-[280px]"
                       testId="select-company-module-dashboard"
                     />
                   )}
@@ -469,7 +469,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     sites={isPrivilegedUser ? filteredSites : sites}
                     value={selectedSiteId}
                     onValueChange={handleSiteChange}
-                    className="w-56"
+                    className="w-[280px]"
                     testId="select-site-module-dashboard"
                   />
                 </div>
