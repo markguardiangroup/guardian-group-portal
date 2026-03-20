@@ -423,13 +423,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <ModuleIcon className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">{config.name}</h1>
-              <p className="text-muted-foreground">Module compliance overview</p>
-              {contextCompany && (
-                <p className="text-sm font-medium text-foreground mt-0.5">{contextCompany}</p>
-              )}
-              {contextSite && (
-                <p className="text-sm text-muted-foreground">{contextSite}</p>
+              <h1 className="text-3xl font-semibold">
+                {config.name}
+                <span className="font-normal text-muted-foreground text-2xl"> - Module compliance overview</span>
+              </h1>
+              {(contextCompany || contextSite) && (
+                <p className="text-sm mt-1 text-muted-foreground">
+                  {contextCompany && <span className="font-semibold text-foreground">{contextCompany}</span>}
+                  {contextCompany && contextSite && <span> - </span>}
+                  {contextSite && <span>{contextSite}</span>}
+                </p>
               )}
             </div>
           </div>
