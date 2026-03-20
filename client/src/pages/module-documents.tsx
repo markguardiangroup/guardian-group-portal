@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -315,6 +315,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
+  const hasSetInitialView = useRef(false);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
   
@@ -412,6 +413,21 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!selectedCompany || selectedCompany === "all") return clientSites;
     return clientSites.filter(s => s.companyName === selectedCompany);
   }, [clientSites, selectedCompany]);
+
+  // Set default view once sites data first loads
+  useEffect(() => {
+    if (!hasSetInitialView.current && sites !== undefined) {
+      hasSetInitialView.current = true;
+      setViewMode(filteredSites.length > 1 ? "sites" : "folder");
+    }
+  }, [sites, filteredSites]);
+
+  // If filtering reduces sites to 1 while in sites view, fall back to folder view
+  useEffect(() => {
+    if (viewMode === "sites" && filteredSites.length <= 1) {
+      setViewMode("folder");
+    }
+  }, [filteredSites, viewMode]);
 
   // When selecting a site also sync the company dropdown
   const handleSiteChange = useCallback((siteId: string | null) => {
@@ -794,6 +810,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">View:</span>
             <div className={`flex items-center gap-1 rounded-lg border ${moduleBorderColors[module]} p-1 bg-background`}>
+              {filteredSites.length > 1 && (
+                <Button
+                  variant={viewMode === "sites" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("sites")}
+                  className={viewMode === "sites" ? `${moduleBgColors[module]} ${moduleColors[module]} hover:opacity-90` : ""}
+                  data-testid="button-sites-view"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Sites
+                </Button>
+              )}
               <Button
                 variant={viewMode === "folder" ? "default" : "ghost"}
                 size="sm"
@@ -814,18 +842,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <LayoutList className="mr-2 h-4 w-4" />
                 Table
               </Button>
-              {filteredSites.length > 1 && (
-                <Button
-                  variant={viewMode === "sites" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("sites")}
-                  className={viewMode === "sites" ? `${moduleBgColors[module]} ${moduleColors[module]} hover:opacity-90` : ""}
-                  data-testid="button-sites-view"
-                >
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Sites
-                </Button>
-              )}
             </div>
           </div>
           
