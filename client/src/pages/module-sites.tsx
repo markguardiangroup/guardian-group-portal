@@ -332,7 +332,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   <div className="border-t flex divide-x">
                     <button
                       onClick={handleAllSitesDashboardClick}
-                      className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold text-white transition-colors ${moduleAccentBg[module]}`}
                       data-testid="link-dashboard-all"
                     >
                       <LayoutDashboard className="h-3.5 w-3.5" />
@@ -537,7 +537,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   <div className="border-t flex divide-x">
                     <button
                       onClick={() => handleSiteDashboardClick(site.id)}
-                      className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold text-white transition-colors ${moduleAccentBg[module]}`}
                       data-testid={`link-dashboard-${site.id}`}
                     >
                       <LayoutDashboard className="h-3.5 w-3.5" />
