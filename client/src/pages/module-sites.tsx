@@ -69,6 +69,14 @@ const moduleAccentBg: Record<ModuleType, string> = {
   support: "bg-slate-600 hover:bg-slate-700",
 };
 
+const moduleBorderDashedColors: Record<ModuleType, string> = {
+  health_safety: "border-emerald-300 dark:border-emerald-700",
+  human_resources: "border-blue-300 dark:border-blue-700",
+  employment_law: "border-pink-300 dark:border-pink-700",
+  training: "border-purple-300 dark:border-purple-700",
+  support: "border-slate-300 dark:border-slate-700",
+};
+
 const moduleLabels: Record<ModuleType, string> = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
@@ -122,6 +130,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const handleSiteClick = (siteId: string) => {
     setSelectedSiteId(siteId);
+    navigate(`${basePath}/documents`);
+  };
+
+  const handleAllSitesClick = () => {
+    setSelectedSiteId("all");
     navigate(`${basePath}/documents`);
   };
 
@@ -189,6 +202,128 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* All Sites aggregate tile */}
+            {(() => {
+              const allDocs = (documents ?? []).filter(
+                (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
+                  filteredSites.some((s) => s.id === d.siteId)
+              );
+              const allTotal = allDocs.length;
+              const allCompliant = allDocs.filter((d) => d.status === "compliant").length;
+              const allOverdue = allDocs.filter((d) => d.status === "overdue").length;
+              const allReview = allDocs.filter((d) => d.status === "review_required").length;
+              const allPending = allDocs.filter((d) => d.approvalStatus === "pending").length;
+              const allMissing = missingRequiredDetails.filter((m) =>
+                filteredSites.some((s) => s.id === m.siteId)
+              ).length;
+              const allDenom = allCompliant + allReview + allOverdue + allMissing;
+              const allPct = allDenom > 0 ? Math.round((allCompliant / allDenom) * 100) : null;
+              const allHasIssues = allMissing > 0 || allOverdue > 0 || allReview > 0;
+              const allClear = allDenom > 0 && !allHasIssues && allPct === 100;
+
+              return (
+                <Card
+                  className={`group cursor-pointer transition-all hover:shadow-md border-2 border-dashed ${moduleBorderDashedColors[module]} hover:border-solid`}
+                  data-testid="card-site-all"
+                  onClick={handleAllSitesClick}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-2 mb-4">
+                      <div className="flex items-start gap-2.5">
+                        <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
+                          <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm leading-snug" data-testid="text-site-name-all">
+                            All Sites
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {filteredSites.length} site{filteredSites.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                      </div>
+                      {allHasIssues ? (
+                        allMissing > 0 || allOverdue > 0 ? (
+                          <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Attention
+                          </Badge>
+                        ) : (
+                          <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Review
+                          </Badge>
+                        )
+                      ) : allClear ? (
+                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Compliant
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    {allTotal > 0 ? (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            Overall Compliance
+                          </span>
+                          <span className={`text-xs font-semibold ${
+                            allPct === 100 ? "text-emerald-600 dark:text-emerald-400"
+                            : (allPct ?? 0) >= 70 ? "text-amber-600 dark:text-amber-400"
+                            : "text-red-600 dark:text-red-400"
+                          }`}>
+                            {allPct}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              allPct === 100 ? "bg-emerald-500"
+                              : (allPct ?? 0) >= 70 ? "bg-amber-500"
+                              : "bg-red-500"
+                            }`}
+                            style={{ width: `${allPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4 py-2 text-center">
+                        <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
+                        <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{allCompliant}</p>
+                        <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
+                      </div>
+                      <div className={`rounded-lg px-2 py-1.5 ${allReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                        <p className={`text-base font-bold ${allReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allReview}</p>
+                        <p className={`text-xs ${allReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                      </div>
+                      <div className={`rounded-lg px-2 py-1.5 ${allMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                        <p className={`text-base font-bold ${allMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allMissing}</p>
+                        <p className={`text-xs ${allMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {allTotal} document{allTotal !== 1 ? "s" : ""}
+                        {allPending > 0 ? ` · ${allPending} pending` : ""}
+                      </span>
+                      <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`} data-testid="link-view-documents-all">
+                        View all documents
+                        <ChevronRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+
             {filteredSites.map((site) => {
               const siteDocs = (documents ?? []).filter(
                 (d) =>
