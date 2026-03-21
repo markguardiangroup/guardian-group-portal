@@ -20,6 +20,7 @@ import {
   HardHat,
   Users,
   Scale,
+  LayoutDashboard,
 } from "lucide-react";
 import type { ModuleType } from "@shared/schema";
 
@@ -133,9 +134,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     navigate(`${basePath}/documents`);
   };
 
+  const handleSiteDashboardClick = (siteId: string) => {
+    setSelectedSiteId(siteId);
+    navigate(basePath);
+  };
+
   const handleAllSitesClick = () => {
     setSelectedSiteId("all");
     navigate(`${basePath}/documents`);
+  };
+
+  const handleAllSitesDashboardClick = () => {
+    setSelectedSiteId("all");
+    navigate(basePath);
   };
 
   const ModuleIcon =
@@ -311,13 +322,23 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     <div className="mt-4 pt-3 border-t flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {allTotal} document{allTotal !== 1 ? "s" : ""}
+                        {allTotal} doc{allTotal !== 1 ? "s" : ""}
                         {allPending > 0 ? ` · ${allPending} pending` : ""}
                       </span>
-                      <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`} data-testid="link-view-documents-all">
-                        View all documents
-                        <ChevronRight className="h-3 w-3" />
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAllSitesDashboardClick(); }}
+                          className="text-xs font-medium flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid="link-dashboard-all"
+                        >
+                          <LayoutDashboard className="h-3 w-3" />
+                          Dashboard
+                        </button>
+                        <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`} data-testid="link-view-documents-all">
+                          Documents
+                          <ChevronRight className="h-3 w-3" />
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -509,16 +530,26 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     {/* Footer */}
                     <div className="mt-4 pt-3 border-t flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">
-                        {total} document{total !== 1 ? "s" : ""}
+                        {total} doc{total !== 1 ? "s" : ""}
                         {pending > 0 ? ` · ${pending} pending` : ""}
                       </span>
-                      <span
-                        className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}
-                        data-testid={`link-view-documents-${site.id}`}
-                      >
-                        View documents
-                        <ChevronRight className="h-3 w-3" />
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleSiteDashboardClick(site.id); }}
+                          className="text-xs font-medium flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid={`link-dashboard-${site.id}`}
+                        >
+                          <LayoutDashboard className="h-3 w-3" />
+                          Dashboard
+                        </button>
+                        <span
+                          className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}
+                          data-testid={`link-view-documents-${site.id}`}
+                        >
+                          Documents
+                          <ChevronRight className="h-3 w-3" />
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
