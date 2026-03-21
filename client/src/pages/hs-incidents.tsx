@@ -1855,6 +1855,7 @@ function IncidentsListView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
@@ -1905,8 +1906,8 @@ function IncidentsListView() {
 
   const contextSite = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") return selectedSiteObj?.name || null;
-    if (selectedCompany && selectedCompany !== "all") return "All sites";
-    return null;
+    if (selectedCompany && selectedCompany !== "all") return "All Sites";
+    return "All Sites";
   }, [selectedSiteId, selectedCompany, selectedSiteObj]);
 
   const filteredIncidents = useMemo(() => incidents.filter((incident) => {
@@ -1917,10 +1918,11 @@ function IncidentsListView() {
       incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
     const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
+    const matchesType = typeFilter === "all" || incident.incidentType === typeFilter;
     const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
     const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
-    return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
-  }), [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany]);
+    return matchesSearch && matchesStatus && matchesSeverity && matchesType && matchesSite && matchesCompany;
+  }), [incidents, sites, searchQuery, statusFilter, severityFilter, typeFilter, selectedSiteId, selectedCompany]);
 
   const stats = {
     active: incidents.filter(i => i.status === "reported" || i.status === "under_review").length,
@@ -2081,6 +2083,17 @@ function IncidentsListView() {
                     <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[170px]" data-testid="select-type-filter">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {INCIDENT_TYPES.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
@@ -2181,7 +2194,7 @@ function IncidentsListView() {
                 </div>
                 <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {searchQuery || statusFilter !== "all" || severityFilter !== "all"
+                  {searchQuery || statusFilter !== "all" || severityFilter !== "all" || typeFilter !== "all"
                     ? "Try adjusting your filters"
                     : "No incidents have been reported yet"}
                 </p>
