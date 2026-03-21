@@ -22,7 +22,6 @@ import {
   FileQuestion,
   ShieldCheck,
   X,
-  MapPin,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -478,12 +477,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </div>
               </div>
             )}
-            <Button variant="outline" asChild>
-              <Link href={`${basePath}/sites`} data-testid="link-sites-from-dashboard">
-                <MapPin className="mr-2 h-4 w-4" />
-                Sites
-              </Link>
-            </Button>
             <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />

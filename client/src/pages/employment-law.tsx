@@ -2229,12 +2229,6 @@ function EmploymentLawDashboardView() {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Button variant="outline" asChild>
-                <Link href="/employment-law/sites" data-testid="link-sites-from-el-dashboard">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Sites
-                </Link>
-              </Button>
               <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
                   <FileText className="mr-2 h-4 w-4" />

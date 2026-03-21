@@ -84,7 +84,6 @@ import {
   GripVertical,
   X,
   LayoutDashboard,
-  MapPin,
 } from "lucide-react";
 import {
   Accordion,
@@ -830,12 +829,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </div>
               </div>
             )}
-            <Button variant="outline" asChild>
-              <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
-                <MapPin className="mr-2 h-4 w-4" />
-                Sites
-              </Link>
-            </Button>
             <Button variant="outline" asChild>
               <Link href={basePath} data-testid="link-dashboard-from-documents">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
