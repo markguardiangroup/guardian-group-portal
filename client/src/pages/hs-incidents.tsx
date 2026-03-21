@@ -1857,7 +1857,6 @@ function IncidentsListView() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
-  const handleSiteChange = (siteId: string | null) => setSelectedSiteId(siteId);
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
