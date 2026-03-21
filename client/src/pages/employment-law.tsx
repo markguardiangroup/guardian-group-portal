@@ -2194,20 +2194,12 @@ function EmploymentLawDashboardView() {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2">
-              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
-                  <FileText className="mr-2 h-4 w-4" />
-                  View Documents
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={viewCasesUrl} data-testid="link-view-cases-el">
-                  <Briefcase className="mr-2 h-4 w-4" />
-                  View Cases
-                </Link>
-              </Button>
-            </div>
+            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+              <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
+                <FileText className="mr-2 h-4 w-4" />
+                View Documents
+              </Link>
+            </Button>
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2">
                 {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
