@@ -56,6 +56,7 @@ const moduleNavItems: {
   title: string;
   icon: typeof HardHat;
   url: string;
+  basePath?: string;
   themeClass: string;
   module: ModuleType;
   noColor?: boolean;
@@ -64,13 +65,12 @@ const moduleNavItems: {
   {
     title: "Health & Safety",
     icon: HardHat,
-    url: "/health-safety",
+    url: "/health-safety/sites",
+    basePath: "/health-safety",
     themeClass: "theme-hs",
     module: "health_safety",
     subItems: [
-      { title: "Dashboard", url: "/health-safety" },
       { title: "Sites", url: "/health-safety/sites" },
-      { title: "Documents", url: "/health-safety/documents" },
       { title: "Incidents", url: "/health-safety/incidents" },
       { title: "Cloud Share", url: "/health-safety/cloud-share" },
     ],
@@ -78,26 +78,24 @@ const moduleNavItems: {
   {
     title: "Human Resources",
     icon: Users,
-    url: "/human-resources",
+    url: "/human-resources/sites",
+    basePath: "/human-resources",
     themeClass: "theme-hr",
     module: "human_resources",
     subItems: [
-      { title: "Dashboard", url: "/human-resources" },
       { title: "Sites", url: "/human-resources/sites" },
-      { title: "Documents", url: "/human-resources/documents" },
       { title: "Cloud Share", url: "/human-resources/cloud-share" },
     ],
   },
   {
     title: "Employment Law",
     icon: Scale,
-    url: "/employment-law",
+    url: "/employment-law/sites",
+    basePath: "/employment-law",
     themeClass: "theme-el",
     module: "employment_law",
     subItems: [
-      { title: "Dashboard", url: "/employment-law" },
       { title: "Sites", url: "/employment-law/sites" },
-      { title: "Documents", url: "/employment-law/documents" },
       { title: "Cases", url: "/employment-law/cases" },
       { title: "Cloud Share", url: "/employment-law/cloud-share" },
     ],
@@ -388,7 +386,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleModules.slice(0, 4).map((item) => {
-                const isModuleActive = location.startsWith(item.url);
+                const isModuleActive = location.startsWith(item.basePath ?? item.url);
                 const isTrainingModule = item.module === ("training" as ModuleType);
                 const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
                 
@@ -479,7 +477,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               })}
 
               {visibleModules.slice(4).map((item) => {
-                const isModuleActive = location.startsWith(item.url);
+                const isModuleActive = location.startsWith(item.basePath ?? item.url);
                 const isTrainingModule = item.module === ("training" as ModuleType);
                 const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
                 
