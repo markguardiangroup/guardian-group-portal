@@ -1914,30 +1914,19 @@ interface MissingRequiredTemplateDetail {
 // Employment Law Dashboard with company/site filters
 function EmploymentLawDashboardView() {
   const { user } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId } = useSiteFilter();
   const [, navigate] = useLocation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [showMissingDialog, setShowMissingDialog] = useState(false);
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
-  const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for all users (needed for site name lookup in recent docs/cases)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
   });
-  
-  // Clients can see the site filter to confirm their access (even with single site)
-  const clientHasSites = isClientUser && sites && sites.length > 0;
-  
-  // Filter sites by selected company
-  const filteredSites = useMemo(() => {
-    if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter(s => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
   
   // Get site IDs for the selected company
   const companySiteIds = useMemo(() => {
@@ -1952,32 +1941,6 @@ function EmploymentLawDashboardView() {
     return companySite?.companyId || null;
   }, [sites, selectedCompany]);
   
-  // Build current context label
-  const currentContextLabel = useMemo(() => {
-    if (selectedSiteId && selectedSiteId !== "all") {
-      return sites?.find(s => s.id === selectedSiteId)?.name || null;
-    }
-    if (isPrivilegedUser) {
-      if (selectedCompany && selectedCompany !== "all") {
-        return `${selectedCompany} (all sites)`;
-      }
-      return "All Clients";
-    }
-    if (clientHasSites && !selectedSiteId) {
-      return "All Sites";
-    }
-    return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
-
-  // When selecting a site also sync the company dropdown
-  const handleSiteChange = useCallback((siteId: string | null) => {
-    setSelectedSiteId(siteId);
-    if (siteId && siteId !== "all" && sites) {
-      const site = sites.find(s => s.id === siteId);
-      if (site?.companyName) setSelectedCompany(site.companyName);
-    }
-  }, [sites, setSelectedSiteId, setSelectedCompany]);
-
   const contextCompany = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
@@ -2193,48 +2156,12 @@ function EmploymentLawDashboardView() {
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-              <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
-                <FileText className="mr-2 h-4 w-4" />
-                View Documents
-              </Link>
-            </Button>
-            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters-el"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  {isPrivilegedUser && (
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-[280px]"
-                      testId="select-company-el"
-                    />
-                  )}
-                  <SiteCombobox
-                    sites={isPrivilegedUser ? filteredSites : sites}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[280px]"
-                    testId="select-site-el"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+            <Link href={viewDocumentsUrl} data-testid="link-view-documents-el">
+              <FileText className="mr-2 h-4 w-4" />
+              View Documents
+            </Link>
+          </Button>
         </div>
       </div>
       

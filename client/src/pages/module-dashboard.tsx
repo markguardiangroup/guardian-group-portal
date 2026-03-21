@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
-import { SiteCombobox } from "@/components/site-combobox";
-import { CompanyCombobox } from "@/components/company-combobox";
 import { 
   FileText, 
   Clock, 
@@ -21,7 +19,6 @@ import {
   Users,
   FileQuestion,
   ShieldCheck,
-  X,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -157,7 +154,7 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId } = useSiteFilter();
   const [, navigate] = useLocation();
 
   const config = moduleConfig[module];
@@ -165,32 +162,12 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
-  const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
   // Fetch sites for all users (clients see their accessible sites)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
-  
-  // Clients can see the site filter to confirm their access (even with single site)
-  const clientHasSites = isClientUser && sites && sites.length > 0;
-
-  // When selecting a site also sync the company dropdown
-  const handleSiteChange = useCallback((siteId: string | null) => {
-    setSelectedSiteId(siteId);
-    if (siteId && siteId !== "all" && sites) {
-      const site = sites.find(s => s.id === siteId);
-      if (site?.companyName) setSelectedCompany(site.companyName);
-    }
-  }, [sites, setSelectedSiteId, setSelectedCompany]);
-
-  // Filter sites by selected company
-  const filteredSites = useMemo(() => {
-    if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter(s => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
   
   // Determine which site(s) to show data for
   // Clients can now filter by site if they have multiple sites
@@ -300,24 +277,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return { overdue, due30Days, due60Days, upcomingRenewals };
   }, [documents, siteId, companySiteIds]);
   
-  // Build context description for display
-  const currentContextName = useMemo(() => {
-    if (selectedSiteId && selectedSiteId !== "all") {
-      return sites?.find((s) => s.id === selectedSiteId)?.name || null;
-    }
-    if (isPrivilegedUser) {
-      if (selectedCompany && selectedCompany !== "all") {
-        return `${selectedCompany} (all sites)`;
-      }
-      return "All Clients";
-    }
-    // For clients with multiple sites showing "all"
-    if (clientHasSites && !selectedSiteId) {
-      return "All Sites";
-    }
-    return null;
-  }, [selectedSiteId, selectedCompany, sites, isPrivilegedUser, clientHasSites]);
-
   const contextCompany = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
@@ -441,49 +400,12 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-              <Link href={viewDocumentsUrl} data-testid="link-view-documents">
-                <FileText className="mr-2 h-4 w-4" />
-                View Documents
-              </Link>
-            </Button>
-            {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
-            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  {isPrivilegedUser && (
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-[280px]"
-                      testId="select-company-module-dashboard"
-                    />
-                  )}
-                  <SiteCombobox
-                    sites={isPrivilegedUser ? filteredSites : sites}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[280px]"
-                    testId="select-site-module-dashboard"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+            <Link href={viewDocumentsUrl} data-testid="link-view-documents">
+              <FileText className="mr-2 h-4 w-4" />
+              View Documents
+            </Link>
+          </Button>
         </div>
       </div>
 
