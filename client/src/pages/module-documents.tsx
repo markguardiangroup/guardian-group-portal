@@ -83,6 +83,8 @@ import {
   Save,
   GripVertical,
   X,
+  LayoutDashboard,
+  MapPin,
 } from "lucide-react";
 import {
   Accordion,
@@ -828,6 +830,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </div>
               </div>
             )}
+            <Button variant="outline" asChild>
+              <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
+                <MapPin className="mr-2 h-4 w-4" />
+                Sites
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={basePath} data-testid="link-dashboard-from-documents">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
             {isPrivilegedUser && (
               <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
