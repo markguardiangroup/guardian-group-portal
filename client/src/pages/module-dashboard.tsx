@@ -441,7 +441,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col items-end gap-2">
+            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+              <Link href={viewDocumentsUrl} data-testid="link-view-documents">
+                <FileText className="mr-2 h-4 w-4" />
+                View Documents
+              </Link>
+            </Button>
             {/* Company and Site selectors - admin/consultant get both, clients with multiple sites get site selector */}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2">
@@ -477,12 +483,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </div>
               </div>
             )}
-            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-              <Link href={viewDocumentsUrl} data-testid="link-view-documents">
-                <FileText className="mr-2 h-4 w-4" />
-                View Documents
-              </Link>
-            </Button>
           </div>
         </div>
       </div>

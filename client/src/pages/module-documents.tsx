@@ -794,7 +794,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                <Link href={basePath} data-testid="link-dashboard-from-documents">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  View Dashboard
+                </Link>
+              </Button>
+              {isPrivilegedUser && (
+                <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                  <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </Link>
+                </Button>
+              )}
+            </div>
             {(isPrivilegedUser || clientHasMultipleSites) && sites && sites.length > 0 && (
               <div className="flex items-center gap-2">
                 {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
@@ -828,20 +844,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   />
                 </div>
               </div>
-            )}
-            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-              <Link href={basePath} data-testid="link-dashboard-from-documents">
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                View Dashboard
-              </Link>
-            </Button>
-            {isPrivilegedUser && (
-              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Document
-                </Link>
-              </Button>
             )}
           </div>
         </div>
