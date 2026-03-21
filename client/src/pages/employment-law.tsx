@@ -1953,8 +1953,8 @@ function EmploymentLawDashboardView() {
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
-    if (selectedCompany && selectedCompany !== "all") return "All sites";
-    return null;
+    if (selectedCompany && selectedCompany !== "all") return "All Sites";
+    return "All Sites";
   }, [selectedSiteId, selectedCompany, sites]);
 
   // Determine site filter for API
