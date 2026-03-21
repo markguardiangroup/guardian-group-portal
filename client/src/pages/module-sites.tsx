@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,6 @@ import {
   CheckCircle,
   TrendingUp,
   ChevronRight,
-  Upload,
   HardHat,
   Users,
   Scale,
@@ -185,17 +184,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 className="w-[260px]"
                 testId="select-company-sites"
               />
-            )}
-            {isPrivilegedUser && (
-              <Button
-                className={`text-white ${moduleAccentBg[module]}`}
-                asChild
-              >
-                <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document-sites">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Document
-                </Link>
-              </Button>
             )}
           </div>
         </div>

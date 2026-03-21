@@ -175,8 +175,8 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
         </div>
 
         <Button className={`w-full mt-auto ${buttonClass}`} variant="outline" asChild>
-          <Link href={basePath} data-testid={`link-module-${summary.module}`}>
-            View Module
+          <Link href={`${basePath}/sites`} data-testid={`link-module-${summary.module}`}>
+            View Sites
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -274,8 +274,8 @@ function EmploymentLawCard({ summary, siteId }: { summary: ModuleSummary; siteId
         </div>
 
         <Button className="w-full mt-auto border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
-          <Link href="/employment-law" data-testid="link-module-employment_law">
-            View Module
+          <Link href="/employment-law/sites" data-testid="link-module-employment_law">
+            View Sites
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>

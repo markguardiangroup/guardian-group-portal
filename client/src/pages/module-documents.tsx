@@ -44,6 +44,7 @@ import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
+import { UploadDocumentDialog } from "@/components/upload-document-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -316,6 +317,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadFolderId, setUploadFolderId] = useState<string | undefined>(undefined);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -429,6 +432,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       if (site?.companyName) setSelectedCompany(site.companyName);
     }
   }, [sites, setSelectedSiteId, setSelectedCompany]);
+
+  const openUploadDialog = useCallback((folderId?: string) => {
+    if (!selectedSiteId || selectedSiteId === "all") {
+      toast({ title: "Select a site first", description: "Please select a specific site before uploading a document.", variant: "destructive" });
+      return;
+    }
+    setUploadFolderId(folderId);
+    setShowUploadDialog(true);
+  }, [selectedSiteId, toast]);
 
   const contextCompany = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
@@ -803,11 +815,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </Link>
               </Button>
               {isPrivilegedUser && (
-                <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                  <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
+                <Button
+                  className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
+                  onClick={() => openUploadDialog()}
+                  data-testid="button-upload-document"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
                 </Button>
               )}
             </div>
@@ -1056,11 +1070,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
                                               {isPrivilegedUser && (
-                                                <Button variant="ghost" size="sm" asChild className="mt-1">
-                                                  <Link href={`${basePath}/documents/upload`}>
-                                                    <Upload className="mr-2 h-3 w-3" />
-                                                    Upload
-                                                  </Link>
+                                                <Button variant="ghost" size="sm" className="mt-1" onClick={() => openUploadDialog()}>
+                                                  <Upload className="mr-2 h-3 w-3" />
+                                                  Upload
                                                 </Button>
                                               )}
                                             </div>
@@ -1120,11 +1132,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {/* Upload to parent folder option - privileged only */}
                             {isPrivilegedUser && (
                               <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
-                                <Button variant="ghost" size="sm" asChild>
-                                  <Link href={`${basePath}/documents/upload`}>
-                                    <Upload className="mr-2 h-3 w-3" />
-                                    Upload to {folder.name}
-                                  </Link>
+                                <Button variant="ghost" size="sm" onClick={() => openUploadDialog(folder.id)}>
+                                  <Upload className="mr-2 h-3 w-3" />
+                                  Upload to {folder.name}
                                 </Button>
                               </div>
                             )}
@@ -1148,11 +1158,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   {isPrivilegedUser ? "Upload documents to get started" : "No documents have been added yet"}
                 </p>
                 {isPrivilegedUser && (
-                  <Button variant="outline" size="sm" asChild className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`}>
-                    <Link href={`${basePath}/documents/upload`}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Document
-                    </Link>
+                  <Button variant="outline" size="sm" className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`} onClick={() => openUploadDialog()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
                   </Button>
                 )}
               </CardContent>
@@ -1469,11 +1477,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     : "No documents have been added yet"}
               </p>
               {isPrivilegedUser && (
-                <Button className="mt-4" asChild>
-                  <Link href={`${basePath}/documents/upload`}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
+                <Button className="mt-4" onClick={() => openUploadDialog()}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
                 </Button>
               )}
             </div>
@@ -1581,6 +1587,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {isPrivilegedUser && selectedSiteId && selectedSiteId !== "all" && (
+        <UploadDocumentDialog
+          open={showUploadDialog}
+          onOpenChange={setShowUploadDialog}
+          siteId={selectedSiteId}
+          siteName={sites?.find(s => s.id === selectedSiteId)?.name || ""}
+          companyName={sites?.find(s => s.id === selectedSiteId)?.companyName}
+          module={module}
+          initialFolderId={uploadFolderId}
+        />
+      )}
     </div>
   );
 }
