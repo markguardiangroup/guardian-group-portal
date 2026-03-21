@@ -26,6 +26,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ModuleDashboard from "@/pages/module-dashboard";
 import ModuleDocuments from "@/pages/module-documents";
+import ModuleSites from "@/pages/module-sites";
 import EmploymentLawPage from "@/pages/employment-law";
 import Documents from "@/pages/documents";
 import DocumentUpload from "@/pages/document-upload";
@@ -86,6 +87,18 @@ function EmploymentLawDocuments() {
   return <ModuleDocuments module="employment_law" />;
 }
 
+function HealthSafetySites() {
+  return <ModuleSites module="health_safety" />;
+}
+
+function HumanResourcesSites() {
+  return <ModuleSites module="human_resources" />;
+}
+
+function EmploymentLawSites() {
+  return <ModuleSites module="employment_law" />;
+}
+
 function HSClientUploads() {
   return <ClientUploads module="health_safety" />;
 }
@@ -107,6 +120,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       
       <Route path="/health-safety" component={HealthSafetyDashboard} />
+      <Route path="/health-safety/sites" component={HealthSafetySites} />
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
       <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
@@ -115,12 +129,14 @@ function Router() {
       <Route path="/health-safety/cloud-share" component={HSClientUploads} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
+      <Route path="/human-resources/sites" component={HumanResourcesSites} />
       <Route path="/human-resources/documents" component={HumanResourcesDocuments} />
       <Route path="/human-resources/documents/upload" component={DocumentUpload} />
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
       <Route path="/human-resources/cloud-share" component={HRClientUploads} />
       
       <Route path="/employment-law" component={EmploymentLawPage} />
+      <Route path="/employment-law/sites" component={EmploymentLawSites} />
       <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
       <Route path="/employment-law/documents/upload" component={DocumentUpload} />
       <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />

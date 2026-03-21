@@ -69,6 +69,7 @@ const moduleNavItems: {
     module: "health_safety",
     subItems: [
       { title: "Dashboard", url: "/health-safety" },
+      { title: "Sites", url: "/health-safety/sites" },
       { title: "Documents", url: "/health-safety/documents" },
       { title: "Incidents", url: "/health-safety/incidents" },
       { title: "Cloud Share", url: "/health-safety/cloud-share" },
@@ -82,6 +83,7 @@ const moduleNavItems: {
     module: "human_resources",
     subItems: [
       { title: "Dashboard", url: "/human-resources" },
+      { title: "Sites", url: "/human-resources/sites" },
       { title: "Documents", url: "/human-resources/documents" },
       { title: "Cloud Share", url: "/human-resources/cloud-share" },
     ],
@@ -94,6 +96,7 @@ const moduleNavItems: {
     module: "employment_law",
     subItems: [
       { title: "Dashboard", url: "/employment-law" },
+      { title: "Sites", url: "/employment-law/sites" },
       { title: "Documents", url: "/employment-law/documents" },
       { title: "Cases", url: "/employment-law/cases" },
       { title: "Cloud Share", url: "/employment-law/cloud-share" },

@@ -1,0 +1,401 @@
+import { useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { CompanyCombobox } from "@/components/company-combobox";
+import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Building2,
+  MapPin,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  ChevronRight,
+  Upload,
+  HardHat,
+  Users,
+  Scale,
+} from "lucide-react";
+import type { ModuleType } from "@shared/schema";
+
+interface SiteWithCompany {
+  id: string;
+  name: string;
+  companyName?: string | null;
+  companyId?: string;
+}
+
+interface Document {
+  id: string;
+  siteId: string;
+  status: string;
+  approvalStatus: string;
+  isArchived: boolean;
+  caseId?: string | null;
+  incidentId?: string | null;
+  source?: string;
+}
+
+interface MissingRequired {
+  siteId: string;
+}
+
+const moduleColors: Record<ModuleType, string> = {
+  health_safety: "text-emerald-600 dark:text-emerald-400",
+  human_resources: "text-blue-600 dark:text-blue-400",
+  employment_law: "text-pink-600 dark:text-pink-400",
+  training: "text-purple-600 dark:text-purple-400",
+  support: "text-slate-600 dark:text-slate-400",
+};
+
+const moduleBgColors: Record<ModuleType, string> = {
+  health_safety: "bg-emerald-100 dark:bg-emerald-900/30",
+  human_resources: "bg-blue-100 dark:bg-blue-900/30",
+  employment_law: "bg-pink-100 dark:bg-pink-900/30",
+  training: "bg-purple-100 dark:bg-purple-900/30",
+  support: "bg-slate-100 dark:bg-slate-900/30",
+};
+
+const moduleAccentBg: Record<ModuleType, string> = {
+  health_safety: "bg-emerald-600 hover:bg-emerald-700",
+  human_resources: "bg-blue-600 hover:bg-blue-700",
+  employment_law: "bg-pink-600 hover:bg-pink-700",
+  training: "bg-purple-600 hover:bg-purple-700",
+  support: "bg-slate-600 hover:bg-slate-700",
+};
+
+const moduleLabels: Record<ModuleType, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
+  training: "Training",
+  support: "Support",
+};
+
+function ModuleSitesView({ module }: { module: ModuleType }) {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const { selectedCompany, handleCompanyChange, setSelectedSiteId } = useSiteFilter();
+
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const basePath =
+    module === "health_safety"
+      ? "/health-safety"
+      : module === "human_resources"
+      ? "/human-resources"
+      : module === "employment_law"
+      ? "/employment-law"
+      : "/training";
+
+  const { data: sites, isLoading: isLoadingSites } = useQuery<SiteWithCompany[]>({
+    queryKey: ["/api/sites"],
+  });
+
+  const { data: documents, isLoading: isLoadingDocs } = useQuery<Document[]>({
+    queryKey: ["/api/documents/module", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/module/${module}`, { credentials: "include" });
+      return res.json();
+    },
+  });
+
+  const { data: missingRequiredDetails = [] } = useQuery<MissingRequired[]>({
+    queryKey: ["/api/missing-required-templates", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/missing-required-templates?module=${module}`, { credentials: "include" });
+      return res.json();
+    },
+  });
+
+  const isLoading = isLoadingSites || isLoadingDocs;
+
+  const filteredSites = useMemo(() => {
+    if (!sites) return [];
+    if (!selectedCompany || selectedCompany === "all") return sites;
+    return sites.filter((s) => s.companyName === selectedCompany);
+  }, [sites, selectedCompany]);
+
+  const handleSiteClick = (siteId: string) => {
+    setSelectedSiteId(siteId);
+    navigate(`${basePath}/documents`);
+  };
+
+  const ModuleIcon =
+    module === "health_safety" ? HardHat : module === "employment_law" ? Scale : Users;
+
+  return (
+    <div className={`module-page theme-${module === "health_safety" ? "hs" : module === "human_resources" ? "hr" : module === "employment_law" ? "el" : "training"}`}>
+      {/* Page header */}
+      <div className="border-b bg-background px-8 py-5">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${moduleBgColors[module]}`}>
+              <ModuleIcon className={`h-5 w-5 ${moduleColors[module]}`} />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">{moduleLabels[module]} — Sites</h1>
+              <p className="text-sm text-muted-foreground">
+                Select a site to view and manage its documents
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {isPrivilegedUser && (
+              <CompanyCombobox
+                sites={sites}
+                value={selectedCompany}
+                onValueChange={handleCompanyChange}
+                className="w-[260px]"
+                testId="select-company-sites"
+              />
+            )}
+            {isPrivilegedUser && (
+              <Button
+                className={`text-white ${moduleAccentBg[module]}`}
+                asChild
+              >
+                <Link href={`${basePath}/documents/upload`} data-testid="button-upload-document-sites">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sites grid */}
+      <div className="p-8">
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-52 rounded-xl" />
+            ))}
+          </div>
+        ) : filteredSites.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
+            <MapPin className="h-10 w-10 mb-3 opacity-30" />
+            <p className="text-sm font-medium">No sites found</p>
+            <p className="text-xs mt-1">
+              {selectedCompany && selectedCompany !== "all"
+                ? "No sites match the selected company filter"
+                : "No sites are available for this module"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredSites.map((site) => {
+              const siteDocs = (documents ?? []).filter(
+                (d) =>
+                  d.siteId === site.id &&
+                  !d.isArchived &&
+                  !d.caseId &&
+                  !d.incidentId &&
+                  d.source !== "external"
+              );
+              const total = siteDocs.length;
+              const compliant = siteDocs.filter((d) => d.status === "compliant").length;
+              const overdue = siteDocs.filter((d) => d.status === "overdue").length;
+              const reviewRequired = siteDocs.filter((d) => d.status === "review_required").length;
+              const pending = siteDocs.filter((d) => d.approvalStatus === "pending").length;
+              const missingCount = missingRequiredDetails.filter(
+                (m) => m.siteId === site.id
+              ).length;
+              const scoreDenominator = compliant + reviewRequired + overdue + missingCount;
+              const pct =
+                scoreDenominator > 0
+                  ? Math.round((compliant / scoreDenominator) * 100)
+                  : null;
+              const hasIssues = missingCount > 0 || overdue > 0 || reviewRequired > 0;
+              const allClear = scoreDenominator > 0 && !hasIssues && pct === 100;
+
+              return (
+                <Card
+                  key={site.id}
+                  className={`group cursor-pointer transition-all hover:shadow-md border-2 ${
+                    missingCount > 0 || overdue > 0
+                      ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
+                      : reviewRequired > 0
+                      ? "border-amber-200 dark:border-amber-900/50 hover:border-amber-400"
+                      : allClear
+                      ? "border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-400"
+                      : "hover:border-primary/30"
+                  }`}
+                  data-testid={`card-site-${site.id}`}
+                  onClick={() => handleSiteClick(site.id)}
+                >
+                  <CardContent className="p-5">
+                    {/* Site header */}
+                    <div className="flex items-start justify-between gap-2 mb-4">
+                      <div className="flex items-start gap-2.5">
+                        <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
+                          <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <p
+                            className="font-semibold text-sm leading-snug truncate"
+                            data-testid={`text-site-name-${site.id}`}
+                          >
+                            {site.name}
+                          </p>
+                          {site.companyName && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {site.companyName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {missingCount > 0 || overdue > 0 ? (
+                        <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          Attention
+                        </Badge>
+                      ) : reviewRequired > 0 ? (
+                        <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Review
+                        </Badge>
+                      ) : allClear ? (
+                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Compliant
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    {/* Compliance bar */}
+                    {total > 0 ? (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            Compliance
+                          </span>
+                          <span
+                            className={`text-xs font-semibold ${
+                              pct === 100
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : (pct ?? 0) >= 70
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              pct === 100
+                                ? "bg-emerald-500"
+                                : (pct ?? 0) >= 70
+                                ? "bg-amber-500"
+                                : "bg-red-500"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4 py-2 text-center">
+                        <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
+                      </div>
+                    )}
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
+                        <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">
+                          {compliant}
+                        </p>
+                        <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
+                          Compliant
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-lg px-2 py-1.5 ${
+                          reviewRequired > 0
+                            ? "bg-amber-50 dark:bg-amber-900/20"
+                            : "bg-muted/50"
+                        }`}
+                      >
+                        <p
+                          className={`text-base font-bold ${
+                            reviewRequired > 0
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {reviewRequired}
+                        </p>
+                        <p
+                          className={`text-xs ${
+                            reviewRequired > 0
+                              ? "text-amber-600/70 dark:text-amber-400/70"
+                              : "text-muted-foreground/70"
+                          }`}
+                        >
+                          Review
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-lg px-2 py-1.5 ${
+                          missingCount > 0
+                            ? "bg-orange-50 dark:bg-orange-900/20"
+                            : "bg-muted/50"
+                        }`}
+                      >
+                        <p
+                          className={`text-base font-bold ${
+                            missingCount > 0
+                              ? "text-orange-700 dark:text-orange-400"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {missingCount}
+                        </p>
+                        <p
+                          className={`text-xs ${
+                            missingCount > 0
+                              ? "text-orange-600/70 dark:text-orange-400/70"
+                              : "text-muted-foreground/70"
+                          }`}
+                        >
+                          Missing
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-4 pt-3 border-t flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {total} document{total !== 1 ? "s" : ""}
+                        {pending > 0 ? ` · ${pending} pending` : ""}
+                      </span>
+                      <span
+                        className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}
+                        data-testid={`link-view-documents-${site.id}`}
+                      >
+                        View documents
+                        <ChevronRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function ModuleSites({ module }: { module: ModuleType }) {
+  return <ModuleSitesView module={module} />;
+}
