@@ -234,11 +234,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
               return (
                 <Card
-                  className={`group cursor-pointer transition-all hover:shadow-md border-2 border-dashed ${moduleBorderDashedColors[module]} hover:border-solid`}
+                  className={`overflow-hidden transition-all hover:shadow-md border-2 border-dashed ${moduleBorderDashedColors[module]} hover:border-solid`}
                   data-testid="card-site-all"
-                  onClick={handleAllSitesClick}
                 >
-                  <CardContent className="p-5">
+                  <CardContent className="p-5 pb-4">
                     <div className="flex items-start justify-between gap-2 mb-4">
                       <div className="flex items-start gap-2.5">
                         <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
@@ -320,27 +319,26 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {allTotal} doc{allTotal !== 1 ? "s" : ""}
-                        {allPending > 0 ? ` · ${allPending} pending` : ""}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleAllSitesDashboardClick(); }}
-                          className="text-xs font-medium flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-                          data-testid="link-dashboard-all"
-                        >
-                          <LayoutDashboard className="h-3 w-3" />
-                          Dashboard
-                        </button>
-                        <span className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`} data-testid="link-view-documents-all">
-                          Documents
-                          <ChevronRight className="h-3 w-3" />
-                        </span>
-                      </div>
-                    </div>
                   </CardContent>
+                  {/* Split action bar */}
+                  <div className="border-t flex divide-x">
+                    <button
+                      onClick={handleAllSitesDashboardClick}
+                      className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                      data-testid="link-dashboard-all"
+                    >
+                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={handleAllSitesClick}
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} hover:bg-muted/60 transition-colors`}
+                      data-testid="link-view-documents-all"
+                    >
+                      Documents
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </Card>
               );
             })()}
@@ -373,7 +371,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               return (
                 <Card
                   key={site.id}
-                  className={`group cursor-pointer transition-all hover:shadow-md border-2 ${
+                  className={`overflow-hidden transition-all hover:shadow-md border-2 ${
                     missingCount > 0 || overdue > 0
                       ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
                       : reviewRequired > 0
@@ -383,9 +381,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       : "hover:border-primary/30"
                   }`}
                   data-testid={`card-site-${site.id}`}
-                  onClick={() => handleSiteClick(site.id)}
                 >
-                  <CardContent className="p-5">
+                  <CardContent className="p-5 pb-4">
                     {/* Site header */}
                     <div className="flex items-start justify-between gap-2 mb-4">
                       <div className="flex items-start gap-2.5">
@@ -527,31 +524,26 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-4 pt-3 border-t flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {total} doc{total !== 1 ? "s" : ""}
-                        {pending > 0 ? ` · ${pending} pending` : ""}
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleSiteDashboardClick(site.id); }}
-                          className="text-xs font-medium flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-                          data-testid={`link-dashboard-${site.id}`}
-                        >
-                          <LayoutDashboard className="h-3 w-3" />
-                          Dashboard
-                        </button>
-                        <span
-                          className={`text-xs font-medium flex items-center gap-1 ${moduleColors[module]} group-hover:underline`}
-                          data-testid={`link-view-documents-${site.id}`}
-                        >
-                          Documents
-                          <ChevronRight className="h-3 w-3" />
-                        </span>
-                      </div>
-                    </div>
                   </CardContent>
+                  {/* Split action bar */}
+                  <div className="border-t flex divide-x">
+                    <button
+                      onClick={() => handleSiteDashboardClick(site.id)}
+                      className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+                      data-testid={`link-dashboard-${site.id}`}
+                    >
+                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => handleSiteClick(site.id)}
+                      className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} hover:bg-muted/60 transition-colors`}
+                      data-testid={`link-view-documents-${site.id}`}
+                    >
+                      Documents
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </Card>
               );
             })}
