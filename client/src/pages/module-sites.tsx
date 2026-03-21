@@ -221,8 +221,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* All Sites aggregate tile */}
+            {/* All Sites aggregate tile — only shown when there are 2+ sites */}
             {(() => {
+              if (filteredSites.length <= 1) return null;
               const allDocs = (documents ?? []).filter(
                 (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
                   filteredSites.some((s) => s.id === d.siteId)
