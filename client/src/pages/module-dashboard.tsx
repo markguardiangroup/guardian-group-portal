@@ -402,14 +402,12 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isPrivilegedUser && (
-              <Button variant="outline" asChild>
-                <Link href={`${basePath}/sites`} data-testid="link-sites-from-dashboard">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Sites
-                </Link>
-              </Button>
-            )}
+            <Button variant="outline" asChild>
+              <Link href={`${basePath}/sites`} data-testid="link-sites-from-dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Sites
+              </Link>
+            </Button>
             <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />

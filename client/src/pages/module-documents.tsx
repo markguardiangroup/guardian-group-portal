@@ -41,8 +41,6 @@ import {
 } from "@/components/ui/table";
 import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { PdfViewer } from "@/components/pdf-viewer";
-import { SiteCombobox } from "@/components/site-combobox";
-import { CompanyCombobox } from "@/components/company-combobox";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -402,9 +400,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!sites) return [];
     return sites;
   }, [sites]);
-  
-  // Clients can filter by site if they have multiple sites
-  const clientHasMultipleSites = isClientUser && clientSites && clientSites.length > 1;
   
   // Filter sites by selected company (for privileged users)
   const filteredSites = useMemo(() => {
@@ -808,14 +803,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
-              {isPrivilegedUser && (
-                <Button variant="outline" asChild>
-                  <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Sites
-                  </Link>
-                </Button>
-              )}
+              <Button variant="outline" asChild>
+                <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Sites
+                </Link>
+              </Button>
               <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={basePath} data-testid="link-dashboard-from-documents">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -835,40 +828,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </Button>
               )}
             </div>
-            {clientHasMultipleSites && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters-documents"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  {isPrivilegedUser && (
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-[280px]"
-                      testId="select-company-documents"
-                    />
-                  )}
-                  <SiteCombobox
-                    sites={isPrivilegedUser ? filteredSites : clientSites}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[280px]"
-                    testId="select-site-documents"
-                  />
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
