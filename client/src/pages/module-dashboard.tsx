@@ -786,30 +786,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         </Card>
       </div>
 
-      {data?.recentActivity && data.recentActivity.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.recentActivity.slice(0, 5).map((log) => (
-                <div key={log.id} className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm">{log.details}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {log.userName} - {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
       {/* Document list dialog */}
       <Dialog open={docsDialogFilter !== null} onOpenChange={(open) => { if (!open) setDocsDialogFilter(null); }}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col" data-testid="dialog-module-docs-list">
