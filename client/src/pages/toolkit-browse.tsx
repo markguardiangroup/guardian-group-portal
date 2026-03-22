@@ -705,10 +705,10 @@ export default function ToolkitBrowse() {
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-0.5">
-                Guided Document Finder
+                Guided Template Finder
               </p>
               <h2 className="text-base sm:text-lg font-bold leading-snug">
-                Not sure which document you need?
+                Not sure which template you need?
               </h2>
               <p className="text-sm text-white/80 mt-0.5 leading-relaxed">
                 Answer a few quick questions and we'll point you to the right template.
@@ -716,7 +716,7 @@ export default function ToolkitBrowse() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-4 py-2.5 font-semibold text-sm sm:ml-4">
-            Find a Document
+            Find a Template
             <ChevronRight className="h-4 w-4" />
           </div>
         </div>
@@ -945,7 +945,7 @@ export default function ToolkitBrowse() {
           <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
             <SheetTitle className="flex items-center gap-2">
               <Compass className="h-5 w-5 text-primary" />
-              Find a Document
+              Find a Template
             </SheetTitle>
             <SheetDescription>
               Answer a few quick questions and we'll point you to the right template.
