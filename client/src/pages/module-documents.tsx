@@ -56,6 +56,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  AlertCircle,
   Clock,
   ArrowLeft,
   History,
@@ -456,6 +457,32 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const { data: documents, isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
   });
+
+  interface MissingRequiredTemplate {
+    templateId: string;
+    templateName: string;
+    module: string;
+    requiresApproval: boolean;
+    siteId: string;
+    siteName: string;
+    companyId: string;
+    companyName: string;
+    kind: string;
+  }
+
+  const { data: allMissingTemplates } = useQuery<MissingRequiredTemplate[]>({
+    queryKey: ["/api/missing-required-templates"],
+  });
+
+  // Required-but-missing slots for the current module + selected site
+  const missingSlots = useMemo(() => {
+    if (!allMissingTemplates) return [];
+    return allMissingTemplates.filter(m => {
+      if (m.module !== module) return false;
+      if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
+      return true;
+    });
+  }, [allMissingTemplates, module, selectedSiteId]);
 
   // Archived documents — fetched fresh only when the dialog opens
   const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
@@ -1005,37 +1032,54 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="p-3 pl-10 space-y-2">
-                                          {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).length > 0 ? (
-                                            childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
-                                              <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isPrivilegedUser}>
-                                              <Link
-                                                href={`${basePath}/documents/${doc.id}`}
-                                                className="flex items-center justify-between p-2 rounded-md border hover-elevate"
-                                                data-testid={`link-document-${doc.id}`}
-                                              >
-                                                <div className="flex items-center gap-3">
-                                                  {isPrivilegedUser && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
-                                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                                  <div>
-                                                    <p className="font-medium text-sm">{doc.title}</p>
-                                                    <p className="text-xs text-muted-foreground">{docMetaLine(doc)}</p>
-                                                  </div>
+                                          {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
+                                            <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isPrivilegedUser}>
+                                            <Link
+                                              href={`${basePath}/documents/${doc.id}`}
+                                              className="flex items-center justify-between p-2 rounded-md border hover-elevate"
+                                              data-testid={`link-document-${doc.id}`}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                {isPrivilegedUser && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                <div>
+                                                  <p className="font-medium text-sm">{doc.title}</p>
+                                                  <p className="text-xs text-muted-foreground">{docMetaLine(doc)}</p>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                  {doc.isArchived && (
-                                                    <Badge variant="secondary" className="gap-1 bg-muted text-[10px] h-5">
-                                                      <Archive className="h-3 w-3" />
-                                                      Archived
-                                                    </Badge>
-                                                  )}
-                                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
-                                                  <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
-                                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                {doc.isArchived && (
+                                                  <Badge variant="secondary" className="gap-1 bg-muted text-[10px] h-5">
+                                                    <Archive className="h-3 w-3" />
+                                                    Archived
+                                                  </Badge>
+                                                )}
+                                                <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                            </Link>
+                                            </DraggableDocRow>
+                                          ))}
+                                          {/* Missing required slots for child folder */}
+                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
+                                            <div key={ti.id} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
+                                              <div className="flex items-center gap-3">
+                                                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                                <div>
+                                                  <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
+                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
                                                 </div>
-                                              </Link>
-                                              </DraggableDocRow>
-                                            ))
-                                          ) : (
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                                <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                                              </div>
+                                            </div>
+                                          ))}
+                                          {/* Empty state — only when no docs and no missing required slots */}
+                                          {(!childFolder.documents || childFolder.documents.filter((doc: any) => !doc.isArchived).length === 0) &&
+                                           (!childFolder.templateInfo || childFolder.templateInfo.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).length === 0) && (
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
                                               {isPrivilegedUser && (
@@ -1100,6 +1144,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               </div>
                             )}
                             
+                            {/* Missing required document slots */}
+                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
+                              <div key={ti.id} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
+                                <div className="flex items-center gap-3">
+                                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                  <div>
+                                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                  <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                                </div>
+                              </div>
+                            ))}
+
                             {/* Upload to parent folder option - privileged only */}
                             {isPrivilegedUser && (
                               <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
@@ -1436,6 +1497,72 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
+                  </TableRow>
+                ))}
+                {/* Missing required document slots — shown only when no active search/status/folder filters */}
+                {!searchQuery && statusFilter === "all" && folderFilter === "all" && missingSlots.map((slot) => (
+                  <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10 border-dashed" data-testid={`row-missing-${slot.templateId}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
+                          <AlertCircle className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required — Missing</Badge>
+                    </TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && folderFilter === "all" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Compliance</TableHead>
+                  <TableHead>Renewal Period</TableHead>
+                  <TableHead>Renewal Date</TableHead>
+                  <TableHead>Expiry Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {missingSlots.map((slot) => (
+                  <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10" data-testid={`row-missing-${slot.templateId}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
+                          <AlertCircle className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required — Missing</Badge>
+                    </TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

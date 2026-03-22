@@ -7079,6 +7079,14 @@ export async function registerRoutes(
         return doc.isRequired || docTmpl?.isRequired || isRequiredViaCompanyTemplate;
       };
 
+      // Flat set of all required template IDs across any target company (for templateInfo slots)
+      const allCompanyRequiredTemplateIds = new Set<string>();
+      for (const reqSet of companyReqCacheHierarchy.values()) {
+        for (const id of reqSet) allCompanyRequiredTemplateIds.add(id);
+      }
+      const getEffectiveTemplateIsRequired = (dt: { id: string; isRequired: boolean }) =>
+        dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
+
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
         .filter(ft => !ft.parentId) // Only top-level folders
@@ -7171,6 +7179,13 @@ export async function registerRoutes(
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
               },
+              templateInfo: childDocTemplates.map(dt => ({
+                id: dt.id,
+                name: dt.name,
+                isRequired: getEffectiveTemplateIsRequired(dt),
+                renewalPeriodMonths: dt.renewalPeriodMonths,
+                hasFulfilledDocument: childFolderDocs.some(d => d.templateId === dt.id),
+              })),
             };
           });
 
@@ -7275,7 +7290,7 @@ export async function registerRoutes(
             templateInfo: folderDocTemplates.map(dt => ({
               id: dt.id,
               name: dt.name,
-              isRequired: dt.isRequired,
+              isRequired: getEffectiveTemplateIsRequired(dt),
               renewalPeriodMonths: dt.renewalPeriodMonths,
               hasFulfilledDocument: folderDocuments.some(d => d.templateId === dt.id),
             })),
