@@ -156,21 +156,30 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
         </div>
 
-        {/* Document Progress */}
-        <div className="rounded-md border bg-muted/30 px-3 py-2">
+        {/* Document Progress — styled to match the overall document progress tile */}
+        <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Document Progress</p>
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <span className="text-sm font-semibold">{summary.allDocuments ?? summary.totalDocuments}</span>
-              <p className="text-xs text-muted-foreground">Total</p>
+            <div className="rounded-md border p-2.5">
+              <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" />
+                <span className="text-xl font-semibold text-foreground">{summary.allDocuments ?? summary.totalDocuments}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Total</p>
             </div>
-            <div>
-              <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">{summary.allReviewRequired ?? summary.reviewRequired}</span>
-              <p className="text-xs text-muted-foreground">Review</p>
+            <div className="rounded-md border p-2.5">
+              <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="text-xl font-semibold">{summary.allReviewRequired ?? summary.reviewRequired}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Review</p>
             </div>
-            <div>
-              <span className="text-sm font-semibold text-muted-foreground">{summary.pendingApprovals || 0}</span>
-              <p className="text-xs text-muted-foreground">Pending</p>
+            <div className="rounded-md border p-2.5">
+              <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span className="text-xl font-semibold">{summary.pendingApprovals || 0}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Pending</p>
             </div>
           </div>
         </div>
