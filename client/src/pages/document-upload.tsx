@@ -127,6 +127,11 @@ export default function DocumentUpload() {
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
 
+  // Read pre-fill params from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlSiteId = urlParams.get("siteId") || "";
+  const urlFolderId = urlParams.get("folderId") || "";
+
   // Detect module from URL path
   const getModuleFromPath = (): ModuleType => {
     if (location.includes("/health-safety")) return "health_safety";
@@ -184,6 +189,17 @@ export default function DocumentUpload() {
   useEffect(() => {
     setSelectedApproverId("");
   }, [selectedSiteId]);
+
+  // Auto-populate site + company from URL param once sites load
+  useEffect(() => {
+    if (urlSiteId && sites && sites.length > 0 && !form.getValues("siteId")) {
+      const site = sites.find(s => s.id === urlSiteId);
+      if (site) {
+        if (site.companyName) setSelectedCompany(site.companyName);
+        form.setValue("siteId", urlSiteId);
+      }
+    }
+  }, [urlSiteId, sites]);
 
   // Get unique companies from sites
   const companies = sites 
@@ -313,6 +329,16 @@ export default function DocumentUpload() {
     }
     return result;
   })();
+
+  // Auto-populate folder from URL param once module folders load
+  useEffect(() => {
+    if (urlFolderId && moduleFolders.length > 0 && !form.getValues("folderId")) {
+      const folder = moduleFolders.find(f => f.id === urlFolderId);
+      if (folder) {
+        form.setValue("folderId", urlFolderId);
+      }
+    }
+  }, [urlFolderId, moduleFolders]);
 
   const mutation = useMutation({
     mutationFn: async (data: DocumentUploadForm) => {
