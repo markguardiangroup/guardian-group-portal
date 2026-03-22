@@ -14,6 +14,7 @@ import {
   XCircle,
   TrendingUp,
   ArrowRight,
+  ArrowLeft,
   Calendar,
   HardHat,
   Users,
@@ -400,12 +401,22 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               </p>
             </div>
           </div>
-          <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-            <Link href={viewDocumentsUrl} data-testid="link-view-documents">
-              <FileText className="mr-2 h-4 w-4" />
-              View Documents
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {isPrivilegedUser && (
+              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                <Link href={`${basePath}/sites`} data-testid="link-sites-from-dashboard">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Sites
+                </Link>
+              </Button>
+            )}
+            <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+              <Link href={viewDocumentsUrl} data-testid="link-view-documents">
+                <FileText className="mr-2 h-4 w-4" />
+                View Documents
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
