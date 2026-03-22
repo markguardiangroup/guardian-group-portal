@@ -136,6 +136,45 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     return sites.filter((s) => s.companyName === selectedCompany);
   }, [sites, selectedCompany]);
 
+  // Sort sites by compliance priority:
+  // 1. Has score + issues (lowest score first)
+  // 2. No score but attention required (missing required docs)
+  // 3. 100% compliant
+  // 4. Empty — no docs, no attention needed
+  const sortedFilteredSites = useMemo(() => {
+    const getSiteMetrics = (siteId: string) => {
+      const siteDocs = (documents ?? []).filter(
+        (d) => d.siteId === siteId && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external"
+      );
+      const compliant = siteDocs.filter((d) => d.status === "compliant").length;
+      const overdue = siteDocs.filter((d) => d.status === "overdue").length;
+      const reviewRequired = siteDocs.filter((d) => d.status === "review_required").length;
+      const missingCount = missingRequiredDetails.filter((m) => m.siteId === siteId).length;
+      const denom = compliant + reviewRequired + overdue + missingCount;
+      const pct = denom > 0 ? Math.round((compliant / denom) * 100) : null;
+      const hasIssues = missingCount > 0 || overdue > 0 || reviewRequired > 0;
+      return { pct, hasIssues };
+    };
+
+    const getPriority = (pct: number | null, hasIssues: boolean) => {
+      if (hasIssues && pct !== null) return 0; // scored with issues → sort by pct asc
+      if (hasIssues && pct === null) return 1; // no score but attention required
+      if (pct === 100) return 2;               // fully compliant
+      return 3;                                // empty, no attention needed
+    };
+
+    return [...filteredSites].sort((a, b) => {
+      const am = getSiteMetrics(a.id);
+      const bm = getSiteMetrics(b.id);
+      const ap = getPriority(am.pct, am.hasIssues);
+      const bp = getPriority(bm.pct, bm.hasIssues);
+      if (ap !== bp) return ap - bp;
+      // Within scored-with-issues bucket, sort lowest score first
+      if (ap === 0) return (am.pct ?? 0) - (bm.pct ?? 0);
+      return 0;
+    });
+  }, [filteredSites, documents, missingRequiredDetails]);
+
   const handleSiteClick = (siteId: string) => {
     setSelectedSiteId(siteId);
     navigate(`${basePath}/documents`);
@@ -340,7 +379,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               );
             })()}
 
-            {filteredSites.map((site) => {
+            {sortedFilteredSites.map((site) => {
               const siteDocs = (documents ?? []).filter(
                 (d) =>
                   d.siteId === site.id &&
