@@ -66,9 +66,9 @@
   --module-reports: 230 60% 48%;
   --module-reports-foreground: 230 20% 98%;
   --module-reports-muted: 230 30% 92%;
-  --dashboard: 48 95% 42%;
-  --dashboard-foreground: 48 20% 10%;
-  --dashboard-muted: 48 60% 92%;
+  --dashboard: 220 50% 23%;
+  --dashboard-foreground: 220 15% 98%;
+  --dashboard-muted: 220 30% 92%;
   --font-sans: Inter, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, Menlo, monospace;
@@ -176,9 +176,9 @@
   --module-reports: 230 60% 62%;
   --module-reports-foreground: 230 20% 98%;
   --module-reports-muted: 230 30% 18%;
-  --dashboard: 48 95% 55%;
-  --dashboard-foreground: 48 30% 10%;
-  --dashboard-muted: 48 40% 18%;
+  --dashboard: 220 65% 60%;
+  --dashboard-foreground: 220 15% 98%;
+  --dashboard-muted: 220 35% 20%;
   --shadow-2xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(210 6% 8% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(210 6% 8% / 0.00), 0px 1px 2px -1px hsl(210 6% 8% / 0.00);
