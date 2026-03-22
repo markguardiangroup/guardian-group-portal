@@ -1029,6 +1029,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
+                                            {childFolder.templateInfo?.some((ti: any) => ti.isRequired && !ti.hasFulfilledDocument) && (
+                                              <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                                                <AlertCircle className="h-3 w-3" />
+                                                {childFolder.templateInfo.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).length} Missing
+                                              </Badge>
+                                            )}
                                             {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
                                             <span className="text-xs text-muted-foreground">
                                               {childFolder.stats?.totalDocuments || 0} doc{(childFolder.stats?.totalDocuments || 0) !== 1 ? "s" : ""}
