@@ -57,9 +57,9 @@
   --module-training: 270 60% 50%;
   --module-training-foreground: 270 20% 98%;
   --module-training-muted: 270 30% 92%;
-  --module-toolkit: 278 55% 28%;
-  --module-toolkit-foreground: 278 15% 98%;
-  --module-toolkit-muted: 278 30% 93%;
+  --module-toolkit: 34 88% 46%;
+  --module-toolkit-foreground: 34 10% 98%;
+  --module-toolkit-muted: 34 70% 93%;
   --module-support: 195 70% 38%;
   --module-support-foreground: 195 20% 98%;
   --module-support-muted: 195 40% 92%;
@@ -167,9 +167,9 @@
   --module-training: 270 60% 60%;
   --module-training-foreground: 270 20% 98%;
   --module-training-muted: 270 30% 18%;
-  --module-toolkit: 278 60% 65%;
-  --module-toolkit-foreground: 278 15% 98%;
-  --module-toolkit-muted: 278 35% 20%;
+  --module-toolkit: 34 90% 62%;
+  --module-toolkit-foreground: 34 10% 98%;
+  --module-toolkit-muted: 34 60% 20%;
   --module-support: 195 70% 52%;
   --module-support-foreground: 195 20% 98%;
   --module-support-muted: 195 40% 18%;
