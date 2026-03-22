@@ -146,30 +146,32 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const siteDocs = (documents ?? []).filter(
         (d) => d.siteId === siteId && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external"
       );
+      const total = siteDocs.length; // actual uploaded docs (not counting missing)
       const compliant = siteDocs.filter((d) => d.status === "compliant").length;
       const overdue = siteDocs.filter((d) => d.status === "overdue").length;
       const reviewRequired = siteDocs.filter((d) => d.status === "review_required").length;
       const missingCount = missingRequiredDetails.filter((m) => m.siteId === siteId).length;
       const denom = compliant + reviewRequired + overdue + missingCount;
-      const pct = denom > 0 ? Math.round((compliant / denom) * 100) : null;
+      // A site only "has a score" if there are actual uploaded docs — matching the UI display
+      const pct = total > 0 && denom > 0 ? Math.round((compliant / denom) * 100) : null;
       const hasIssues = missingCount > 0 || overdue > 0 || reviewRequired > 0;
-      return { pct, hasIssues };
+      return { pct, hasIssues, total };
     };
 
-    const getPriority = (pct: number | null, hasIssues: boolean) => {
-      if (hasIssues && pct !== null) return 0; // scored with issues → sort by pct asc
-      if (hasIssues && pct === null) return 1; // no score but attention required
-      if (pct === 100) return 2;               // fully compliant
-      return 3;                                // empty, no attention needed
+    const getPriority = (pct: number | null, hasIssues: boolean, total: number) => {
+      if (total > 0 && hasIssues) return 0; // has docs + issues → sort by pct asc (lowest first)
+      if (hasIssues) return 1;              // no docs uploaded but attention required
+      if (pct === 100) return 2;            // fully compliant
+      return 3;                             // empty, no attention needed
     };
 
     return [...filteredSites].sort((a, b) => {
       const am = getSiteMetrics(a.id);
       const bm = getSiteMetrics(b.id);
-      const ap = getPriority(am.pct, am.hasIssues);
-      const bp = getPriority(bm.pct, bm.hasIssues);
+      const ap = getPriority(am.pct, am.hasIssues, am.total);
+      const bp = getPriority(bm.pct, bm.hasIssues, bm.total);
       if (ap !== bp) return ap - bp;
-      // Within scored-with-issues bucket, sort lowest score first
+      // Within the "has docs + issues" bucket, sort lowest score first
       if (ap === 0) return (am.pct ?? 0) - (bm.pct ?? 0);
       return 0;
     });
