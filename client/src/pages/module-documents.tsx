@@ -808,21 +808,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
-              {isPrivilegedUser ? (
+              {isPrivilegedUser && (
                 <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                   <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Sites
                   </Link>
                 </Button>
-              ) : (
-                <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                  <Link href={basePath} data-testid="link-dashboard-from-documents">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    View Dashboard
-                  </Link>
-                </Button>
               )}
+              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                <Link href={basePath} data-testid="link-dashboard-from-documents">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  View Dashboard
+                </Link>
+              </Button>
               {isPrivilegedUser && (
                 <Button
                   className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
