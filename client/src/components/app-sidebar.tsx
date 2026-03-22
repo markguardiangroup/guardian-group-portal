@@ -22,6 +22,9 @@ import {
   MessageSquare,
   CalendarDays,
   Compass,
+  AlertTriangle,
+  Briefcase,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -60,7 +63,7 @@ const moduleNavItems: {
   themeClass: string;
   module: ModuleType;
   noColor?: boolean;
-  subItems: { title: string; url: string; adminOnly?: boolean; clientOnly?: boolean }[];
+  subItems: { title: string; url: string; icon?: LucideIcon; adminOnly?: boolean; clientOnly?: boolean }[];
 }[] = [
   {
     title: "Health & Safety",
@@ -71,7 +74,7 @@ const moduleNavItems: {
     module: "health_safety",
     subItems: [
       { title: "Sites", url: "/health-safety/sites" },
-      { title: "Incidents", url: "/health-safety/incidents" },
+      { title: "Incidents", url: "/health-safety/incidents", icon: AlertTriangle },
       { title: "Cloud Share", url: "/health-safety/cloud-share" },
     ],
   },
@@ -96,7 +99,7 @@ const moduleNavItems: {
     module: "employment_law",
     subItems: [
       { title: "Sites", url: "/employment-law/sites" },
-      { title: "Cases", url: "/employment-law/cases" },
+      { title: "Cases", url: "/employment-law/cases", icon: Briefcase },
       { title: "Cloud Share", url: "/employment-law/cloud-share" },
     ],
   },
@@ -463,6 +466,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                                     href={subItem.url}
                                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                                   >
+                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
                                     <span>{subItem.title}</span>
                                   </Link>
                                 </SidebarMenuSubButton>
@@ -555,6 +559,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                                     href={subItem.url}
                                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                                   >
+                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
                                     <span>{subItem.title}</span>
                                   </Link>
                                 </SidebarMenuSubButton>
