@@ -30,13 +30,15 @@ import {
   FileQuestion,
   XCircle,
   X,
+  Briefcase,
+  ShieldAlert,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking } from "@shared/schema";
+import type { ModuleSummary, ModuleType, SiteWithDetails, SupportRequest, Document, TrainingBooking, Incident, Case } from "@shared/schema";
 
 interface DashboardData {
   moduleSummaries: ModuleSummary[];
@@ -328,6 +330,142 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
         <Button className="w-full border-purple-500 text-purple-600 dark:text-purple-400" variant="outline" asChild>
           <Link href={isPrivilegedUser ? "/training/dashboard" : "/training/my-training"} data-testid="link-module-training">
             {isPrivilegedUser ? "Manage Training" : "View Training"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
+  const { user } = useAuth();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+
+  const { data: incidents = [] } = useQuery<Incident[]>({
+    queryKey: ["/api/incidents"],
+  });
+
+  const filteredIncidents = useMemo(() => {
+    if (siteId) return incidents.filter(i => i.siteId === siteId);
+    if (selectedCompany && selectedCompany !== "all") {
+      const companySiteIds = sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+      return incidents.filter(i => companySiteIds.includes(i.siteId as string));
+    }
+    return incidents;
+  }, [incidents, siteId, selectedCompany, sites]);
+
+  const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
+  const resolvedCount = filteredIncidents.filter(i => i.status === "resolved" || i.status === "closed").length;
+  const totalCount = filteredIncidents.length;
+
+  return (
+    <Card className="hover-elevate theme-hs border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20" data-testid="card-module-incidents">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-800/40">
+            <ShieldAlert className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Incidents</CardTitle>
+            <CardDescription>{totalCount} total · Health & Safety</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+            {activeCount}
+          </span>
+          <p className="text-xs text-muted-foreground">Active</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{activeCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Active</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{resolvedCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Resolved</p>
+          </div>
+        </div>
+        <Button className="w-full border-emerald-500 text-emerald-600 dark:text-emerald-400" variant="outline" asChild>
+          <Link href="/health-safety/incidents" data-testid="link-module-incidents">
+            {isPrivilegedUser ? "Manage Incidents" : "View Incidents"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
+  const { user } = useAuth();
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+
+  const { data: cases = [] } = useQuery<Case[]>({
+    queryKey: ["/api/cases"],
+  });
+
+  const filteredCases = useMemo(() => {
+    if (siteId) return cases.filter(c => c.siteId === siteId);
+    if (selectedCompany && selectedCompany !== "all") {
+      const companySiteIds = sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+      return cases.filter(c => companySiteIds.includes(c.siteId as string));
+    }
+    return cases;
+  }, [cases, siteId, selectedCompany, sites]);
+
+  const openCount = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+  const resolvedCount = filteredCases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const totalCount = filteredCases.length;
+
+  return (
+    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-cases">
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-800/40">
+            <Briefcase className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">Cases</CardTitle>
+            <CardDescription>{totalCount} total · Employment Law</CardDescription>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+            {openCount}
+          </span>
+          <p className="text-xs text-muted-foreground">Open</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <Briefcase className="h-4 w-4" />
+              <span className="text-lg font-semibold">{openCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Open</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{resolvedCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Resolved</p>
+          </div>
+        </div>
+        <Button className="w-full border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
+          <Link href="/employment-law/cases" data-testid="link-module-cases">
+            {isPrivilegedUser ? "Manage Cases" : "View Cases"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -1313,11 +1451,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Training section */}
+      {/* Activity section — Incidents | Training | Cases aligned under their parent modules */}
       <div>
-        <h2 className="mb-4 text-xl font-semibold">Training</h2>
+        <h2 className="mb-4 text-xl font-semibold">Activity</h2>
         <div className="grid gap-6 md:grid-cols-3">
+          {hasActiveAccess("health_safety") ? (
+            <IncidentsCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+          ) : (
+            <div />
+          )}
           <TrainingCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+          {hasActiveAccess("employment_law") ? (
+            <CasesCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+          ) : (
+            <div />
+          )}
         </div>
       </div>
 
