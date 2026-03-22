@@ -31,6 +31,7 @@ interface DownloadStats {
     id: string;
     templateName: string;
     templateId: string;
+    module: string | null;
     folderName: string | null;
     fileUrl: string | null;
     fileName: string | null;
@@ -271,81 +272,123 @@ export default function ToolkitDashboard() {
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recently Downloaded</CardTitle>
-            <CardDescription>
-              The 10 most recently downloaded templates
-              {contextName && ` for ${contextName}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : stats?.recentDownloads && stats.recentDownloads.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {stats.recentDownloads.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start justify-between gap-2 rounded-lg border p-2.5 hover:bg-muted/50 transition-colors"
-                    data-testid={`row-recent-download-${item.id}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-xs truncate" data-testid={`text-template-name-${item.templateId}`}>
-                        {item.templateName}
-                      </p>
-                      {item.folderName && (
-                        <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <FolderOpen className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{item.folderName}</span>
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {!isClient && <>{item.downloadedBy} · </>}
-                        {format(new Date(item.downloadedAt), "d MMM yyyy, HH:mm")}
-                      </p>
-                      {!isClient && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {item.companyName && (
-                            <Badge variant="outline" className="text-xs py-0 h-4" data-testid={`badge-company-${item.id}`}>
-                              {item.companyName}
-                            </Badge>
-                          )}
-                          {item.siteName && (
-                            <Badge variant="secondary" className="text-xs py-0 h-4" data-testid={`badge-site-${item.id}`}>
-                              {item.siteName}
-                            </Badge>
-                          )}
-                        </div>
-                      )}
+        {/* Recently Downloaded — grouped by module, aligned with the breakdown cards above */}
+        <div>
+          <div className="mb-3">
+            <h2 className="text-base font-semibold">Recently Downloaded</h2>
+            <p className="text-sm text-muted-foreground">
+              Most recent template downloads by module{contextName && ` for ${contextName}`}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                key: "health_safety" as const,
+                label: "Health & Safety",
+                Icon: HardHat,
+                iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+                iconColor: "text-emerald-600 dark:text-emerald-400",
+                borderTop: "border-t-emerald-500",
+                badgeClass: "border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300",
+              },
+              {
+                key: "human_resources" as const,
+                label: "Human Resources",
+                Icon: Briefcase,
+                iconBg: "bg-blue-100 dark:bg-blue-900/40",
+                iconColor: "text-blue-600 dark:text-blue-400",
+                borderTop: "border-t-blue-500",
+                badgeClass: "border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300",
+              },
+              {
+                key: "employment_law" as const,
+                label: "Employment Law",
+                Icon: Scale,
+                iconBg: "bg-pink-100 dark:bg-pink-900/40",
+                iconColor: "text-pink-600 dark:text-pink-400",
+                borderTop: "border-t-pink-500",
+                badgeClass: "border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-300",
+              },
+            ].map(({ key, label, Icon, iconBg, iconColor, borderTop, badgeClass }) => {
+              const moduleItems = (stats?.recentDownloads ?? [])
+                .filter(d => d.module === key)
+                .slice(0, 5);
+              return (
+                <Card key={key} className={`border-t-4 ${borderTop}`} data-testid={`card-recent-downloads-${key}`}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium">{label}</CardTitle>
+                    <div className={`p-1.5 rounded-md ${iconBg}`}>
+                      <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
                     </div>
-                    {item.fileUrl && item.fileName && (
-                      <button
-                        type="button"
-                        onClick={() => handleRedownload(item.templateId, item.fileUrl!, item.fileName!)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="Re-download"
-                        data-testid={`button-redownload-${item.id}`}
-                      >
-                        <Download className="h-3 w-3" />
-                      </button>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {isLoading ? (
+                      <div className="space-y-2">
+                        {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+                      </div>
+                    ) : moduleItems.length > 0 ? (
+                      <div className="space-y-2">
+                        {moduleItems.map(item => (
+                          <div
+                            key={item.id}
+                            className="flex items-start justify-between gap-2 rounded-lg border p-2.5 hover:bg-muted/50 transition-colors"
+                            data-testid={`row-recent-download-${item.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-xs truncate" data-testid={`text-template-name-${item.templateId}`}>
+                                {item.templateName}
+                              </p>
+                              {item.folderName && (
+                                <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                                  <FolderOpen className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{item.folderName}</span>
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {!isClient && <>{item.downloadedBy} · </>}
+                                {format(new Date(item.downloadedAt), "d MMM yyyy, HH:mm")}
+                              </p>
+                              {!isClient && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {item.companyName && (
+                                    <Badge variant="outline" className={`text-xs py-0 h-4 ${badgeClass}`} data-testid={`badge-company-${item.id}`}>
+                                      {item.companyName}
+                                    </Badge>
+                                  )}
+                                  {item.siteName && (
+                                    <Badge variant="secondary" className="text-xs py-0 h-4" data-testid={`badge-site-${item.id}`}>
+                                      {item.siteName}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {item.fileUrl && item.fileName && (
+                              <button
+                                type="button"
+                                onClick={() => handleRedownload(item.templateId, item.fileUrl!, item.fileName!)}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                title="Re-download"
+                                data-testid={`button-redownload-${item.id}`}
+                              >
+                                <Download className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 text-center">
+                        <Download className={`h-6 w-6 mb-2 ${iconColor} opacity-40`} />
+                        <p className="text-xs text-muted-foreground">No recent downloads</p>
+                      </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                {contextName
-                  ? `No downloads recorded for ${contextName} yet.`
-                  : "No downloads recorded yet. Downloads will appear here once templates are downloaded from the Browse page."}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

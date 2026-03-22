@@ -286,7 +286,7 @@ export interface IStorage {
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
-  getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; downloadsByModule: { health_safety: number; human_resources: number; employment_law: number }; recentDownloads: Array<{ id: string; templateName: string; templateId: string; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
+  getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; downloadsByModule: { health_safety: number; human_resources: number; employment_law: number }; recentDownloads: Array<{ id: string; templateName: string; templateId: string; module: string | null; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
 
   // Document Pathways (Guided finder decision trees)
   getDocumentPathways(module?: string): Promise<DocumentPathway[]>;
@@ -2142,6 +2142,7 @@ export class MemStorage implements IStorage {
         id: toolkitDownloadsTable.id,
         templateName: documentTemplatesTable.name,
         templateId: toolkitDownloadsTable.templateId,
+        module: documentTemplatesTable.module,
         folderName: toolkitFoldersTable.name,
         fileUrl: documentTemplatesTable.fileUrl,
         fileName: documentTemplatesTable.fileName,
@@ -2154,7 +2155,7 @@ export class MemStorage implements IStorage {
       .leftJoin(documentTemplatesTable, eq(documentTemplatesTable.id, toolkitDownloadsTable.templateId))
       .leftJoin(toolkitFoldersTable, eq(toolkitFoldersTable.id, documentTemplatesTable.toolkitFolderId))
       .orderBy(desc(toolkitDownloadsTable.downloadedAt))
-      .limit(10);
+      .limit(30);
 
     const recentDownloads = totalWhere
       ? await recentQuery.where(totalWhere)
@@ -2187,6 +2188,7 @@ export class MemStorage implements IStorage {
         id: r.id,
         templateName: r.templateName ?? 'Unknown',
         templateId: r.templateId,
+        module: r.module ?? null,
         folderName: r.folderName ?? null,
         fileUrl: r.fileUrl ?? null,
         fileName: r.fileName ?? null,
