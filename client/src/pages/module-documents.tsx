@@ -809,7 +809,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
               {isPrivilegedUser && (
-                <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                <Button variant="outline" asChild>
                   <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Sites
