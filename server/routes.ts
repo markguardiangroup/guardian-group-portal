@@ -7053,7 +7053,13 @@ export async function registerRoutes(
       // Get all documents for target sites in this module
       const includeArchived = req.query.includeArchived === "true";
       const allDocuments = await storage.getDocuments(module as any, includeArchived);
-      const siteDocuments = allDocuments.filter(d => targetSiteIds.includes(d.siteId));
+      // Exclude case docs, incident docs, and cloud share (source "external") — same as table view and dashboard
+      const siteDocuments = allDocuments.filter(d =>
+        targetSiteIds.includes(d.siteId) &&
+        !d.caseId &&
+        !d.incidentId &&
+        d.source !== "external"
+      );
 
       // Build company required-templates lookup so hierarchy document badges reflect
       // effective compliance requirement (isRequired via company config OR per-document flag)
