@@ -1997,7 +1997,8 @@ const registerTypeConfig = {
     label: "Incidents",
     icon: ShieldAlert,
     color: "text-red-600 dark:text-red-400",
-    activeClass: "border-red-400 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 shadow-sm",
+    activeClass: "bg-red-500 dark:bg-red-600 text-white border-red-500 dark:border-red-600 shadow-sm",
+    inactiveClass: "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-500 dark:hover:bg-red-600 hover:text-white hover:border-red-500",
     reportLabel: "Report Incident",
     registerTitle: "Incident Register",
     description: "Workplace incidents and accidents",
@@ -2011,7 +2012,8 @@ const registerTypeConfig = {
     label: "Near Miss",
     icon: AlertCircle,
     color: "text-amber-600 dark:text-amber-400",
-    activeClass: "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 shadow-sm",
+    activeClass: "bg-amber-500 dark:bg-amber-600 text-white border-amber-500 dark:border-amber-600 shadow-sm",
+    inactiveClass: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-500 dark:hover:bg-amber-600 hover:text-white hover:border-amber-500",
     reportLabel: "Report Near Miss",
     registerTitle: "Near Miss Register",
     description: "Events that could have caused harm but didn't",
@@ -2025,7 +2027,8 @@ const registerTypeConfig = {
     label: "Good Practice",
     icon: ThumbsUp,
     color: "text-green-600 dark:text-green-400",
-    activeClass: "border-green-400 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 shadow-sm",
+    activeClass: "bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700 shadow-sm",
+    inactiveClass: "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-600 dark:hover:bg-green-700 hover:text-white hover:border-green-600",
     reportLabel: "Report Good Practice",
     registerTitle: "Good Practice Register",
     description: "Positive safety behaviours and best practices",
@@ -2216,10 +2219,8 @@ function IncidentsListView() {
                 key={type}
                 onClick={() => { setRegisterType(type); setSearchQuery(""); setStatusFilter("all"); setSeverityFilter("all"); }}
                 data-testid={`toggle-register-${type}`}
-                className={`flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-lg font-medium transition-all ${
-                  isActive
-                    ? `${cfg.activeClass} border`
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+                className={`flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-lg font-medium transition-all border ${
+                  isActive ? cfg.activeClass : cfg.inactiveClass
                 }`}
               >
                 <Icon className="h-5 w-5" />
