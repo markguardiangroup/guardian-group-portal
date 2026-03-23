@@ -1518,91 +1518,202 @@ function IncidentDetailView({ id }: { id: string }) {
                 <CardTitle className="text-lg">Incident Details</CardTitle>
               </CardHeader>
               <CardContent className="pt-5 space-y-5">
-                <div className="grid gap-5 sm:grid-cols-2">
+                {/* Overview grid */}
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <p className="text-sm text-muted-foreground">Incident Type</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium">
-                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                      {incident.incidentType}
-                    </p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Incident Type</p>
+                    <p className="mt-1 flex items-center gap-2 font-medium text-sm">{incident.incidentType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Incident Date</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Incident Date &amp; Time</p>
+                    <p className="mt-1 font-medium text-sm">
                       {format(new Date(incident.incidentDate), "d MMMM yyyy")}
+                      {incident.incidentTime ? ` at ${incident.incidentTime}` : ""}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Reported By</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      {incident.reportedByName}
-                    </p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Reported By</p>
+                    <p className="mt-1 font-medium text-sm">{incident.reportedByName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Reported On</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      {format(new Date(incident.createdAt), "d MMM yyyy, HH:mm")}
-                    </p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Record Created</p>
+                    <p className="mt-1 font-medium text-sm">{format(new Date(incident.createdAt), "d MMM yyyy, HH:mm")}</p>
                   </div>
+                  {incident.locationDetails && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Location</p>
+                      <p className="mt-1 text-sm">{incident.locationDetails}</p>
+                    </div>
+                  )}
+                  {incident.machineryInvolved && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Machinery / Equipment Involved</p>
+                      <p className="mt-1 text-sm">{incident.machineryInvolved}</p>
+                    </div>
+                  )}
                   {incident.resolvedAt && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Resolved On</p>
-                      <p className="mt-1 flex items-center gap-2 font-medium text-emerald-600">
-                        <CheckCircle className="h-4 w-4" />
-                        {format(new Date(incident.resolvedAt), "d MMM yyyy")}
-                      </p>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Resolved On</p>
+                      <p className="mt-1 text-sm text-emerald-600 font-medium">{format(new Date(incident.resolvedAt), "d MMM yyyy")}</p>
                     </div>
                   )}
                 </div>
 
                 <Separator />
 
+                {/* Description */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Description</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Description of Incident</p>
                   <p className="text-sm leading-relaxed">{incident.description}</p>
                 </div>
 
-                {incident.locationDetails && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Location</p>
-                    <p className="text-sm leading-relaxed">{incident.locationDetails}</p>
-                  </div>
+                {/* Cause & Effect */}
+                {((incident.incidentCause?.length > 0) || (incident.incidentEffect?.length > 0)) && (
+                  <>
+                    <Separator />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {incident.incidentCause?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Cause(s)</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {incident.incidentCause.map((c: string) => (
+                              <Badge key={c} variant="outline" className="text-xs font-normal">{c}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {incident.incidentEffect?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Effect / Affect</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {incident.incidentEffect.map((e: string) => (
+                              <Badge key={e} variant="outline" className="text-xs font-normal">{e}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
 
-                {incident.immediateActions && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Immediate Actions Taken</p>
-                    <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
-                  </div>
+                <Separator />
+
+                {/* Affected / Injured Person */}
+                {(incident.affectedPersonName || incident.affectedPersonJobTitle || incident.affectedPersonAddress) && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                        Affected / Injured Person
+                        {incident.affectedPersonIsPublic && <Badge variant="outline" className="ml-2 text-xs">Member of Public</Badge>}
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                        {incident.affectedPersonName && <div><span className="text-muted-foreground">Name: </span>{incident.affectedPersonName}</div>}
+                        {incident.affectedPersonJobTitle && <div><span className="text-muted-foreground">{incident.affectedPersonIsPublic ? "Role/Occupation: " : "Job Title: "}</span>{incident.affectedPersonJobTitle}</div>}
+                        {incident.affectedPersonAddress && <div className="sm:col-span-2"><span className="text-muted-foreground">Address: </span>{incident.affectedPersonAddress}</div>}
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
                 )}
 
-                {incident.witnesses && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Witnesses</p>
-                    <p className="text-sm leading-relaxed">{incident.witnesses}</p>
-                  </div>
+                {/* Injury Details & Body Diagram */}
+                {(incident.injuriesReported || incident.bodyDiagramMarkers) && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Injuries Sustained</p>
+                      {incident.injuryDetails && <p className="text-sm leading-relaxed mb-2">{incident.injuryDetails}</p>}
+                      {incident.bodyDiagramMarkers && (() => {
+                        try {
+                          const zones: string[] = JSON.parse(incident.bodyDiagramMarkers);
+                          return zones.length > 0 ? (
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1.5">Marked body areas:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {zones.map(id => (
+                                  <Badge key={id} variant="outline" className="text-xs font-normal bg-red-50 text-red-700 border-red-200">
+                                    {ALL_BODY_ZONES.find(z => z.id === id)?.label ?? id}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        } catch { return null; }
+                      })()}
+                    </div>
+                    <Separator />
+                  </>
                 )}
 
-                {incident.injuryDetails && (
+                {/* Immediate Actions & Recommendations */}
+                {(incident.immediateActions || incident.recommendations) && (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {incident.immediateActions && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Immediate Actions Taken</p>
+                          <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
+                        </div>
+                      )}
+                      {incident.recommendations && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Recommendations</p>
+                          <p className="text-sm leading-relaxed">{incident.recommendations}</p>
+                        </div>
+                      )}
+                    </div>
+                    <Separator />
+                  </>
+                )}
+
+                {/* RIDDOR */}
+                {incident.riddorReportable && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">RIDDOR Details</p>
+                      <div className="text-sm space-y-1">
+                        <div><span className="text-muted-foreground">Reportable: </span><span className="font-medium text-red-600">Yes</span></div>
+                        {incident.riddorResponsiblePerson && <div><span className="text-muted-foreground">Responsible Person: </span>{incident.riddorResponsiblePerson}</div>}
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+
+                {/* Reporting Person */}
+                {(incident.reportingPersonName || incident.reportingPersonJobTitle) && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Person Who Reported This Incident</p>
+                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                        {incident.reportingPersonName && <div><span className="text-muted-foreground">Name: </span>{incident.reportingPersonName}</div>}
+                        {incident.reportingPersonJobTitle && <div><span className="text-muted-foreground">Job Title: </span>{incident.reportingPersonJobTitle}</div>}
+                        {incident.reportingPersonAddress && <div className="sm:col-span-2"><span className="text-muted-foreground">Address: </span>{incident.reportingPersonAddress}</div>}
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+
+                {/* Declaration */}
+                {incident.declarationName && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Injury Details</p>
-                    <p className="text-sm leading-relaxed">{incident.injuryDetails}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Declaration</p>
+                    <div className="text-sm space-y-1">
+                      <div><span className="text-muted-foreground">Signed by: </span><span className="font-medium italic">{incident.declarationSignature || incident.declarationName}</span></div>
+                      {incident.declarationDate && <div><span className="text-muted-foreground">Date: </span>{incident.declarationDate}</div>}
+                    </div>
                   </div>
                 )}
 
                 {incident.rootCause && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Root Cause</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Root Cause</p>
                     <p className="text-sm leading-relaxed">{incident.rootCause}</p>
                   </div>
                 )}
-
                 {incident.correctiveActions && (
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Corrective Actions</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Corrective Actions</p>
                     <p className="text-sm leading-relaxed">{incident.correctiveActions}</p>
                   </div>
                 )}

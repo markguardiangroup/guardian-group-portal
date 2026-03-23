@@ -9115,11 +9115,28 @@ export async function registerRoutes(
   function generateIncidentReportHtml(incident: any, siteName: string, companyName: string, imageUrls: string[] = []): string {
     const fmt = (d: string | Date | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
     const bool = (v: boolean) => v ? "Yes" : "No";
+    const val = (v: string | null | undefined) => (v && v.trim()) ? v.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>';
     const field = (label: string, value: string | null | undefined) =>
-      `<tr><td class="label">${label}</td><td class="value">${value && value.trim() ? value.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</td></tr>`;
+      `<tr><td class="label">${label}</td><td class="value">${val(value)}</td></tr>`;
+    const pills = (items: string[] | null | undefined) =>
+      items?.length ? items.map(i => `<span class="pill">${i}</span>`).join("") : '<span class="empty">None recorded</span>';
+    const bodyZoneLabels: Record<string, string> = {
+      "head":"Head","neck":"Neck","l-shoulder":"L Shoulder","r-shoulder":"R Shoulder","chest":"Chest","abdomen":"Abdomen",
+      "l-upper-arm":"L Upper Arm","r-upper-arm":"R Upper Arm","l-forearm":"L Forearm","r-forearm":"R Forearm",
+      "l-hand":"L Hand","r-hand":"R Hand","l-hip":"L Hip","r-hip":"R Hip","l-thigh":"L Thigh","r-thigh":"R Thigh",
+      "l-knee":"L Knee","r-knee":"R Knee","l-lower-leg":"L Lower Leg","r-lower-leg":"R Lower Leg","l-foot":"L Foot","r-foot":"R Foot",
+      "head-b":"Head (Back)","neck-b":"Neck (Back)","l-shoulder-b":"L Shoulder (Back)","r-shoulder-b":"R Shoulder (Back)",
+      "upper-back":"Upper Back","lower-back":"Lower Back","l-upper-arm-b":"L Upper Arm (Back)","r-upper-arm-b":"R Upper Arm (Back)",
+      "l-forearm-b":"L Forearm (Back)","r-forearm-b":"R Forearm (Back)","l-hand-b":"L Hand (Back)","r-hand-b":"R Hand (Back)",
+      "l-buttock":"L Buttock","r-buttock":"R Buttock","l-hamstring":"L Hamstring","r-hamstring":"R Hamstring",
+      "l-knee-b":"L Knee (Back)","r-knee-b":"R Knee (Back)","l-calf":"L Calf","r-calf":"R Calf","l-foot-b":"L Foot (Back)","r-foot-b":"R Foot (Back)",
+    };
 
     const severityColour: Record<string, string> = { minor: "#22c55e", moderate: "#f59e0b", major: "#ef4444", critical: "#7f1d1d" };
     const colour = severityColour[incident.severity] || "#374151";
+
+    let bodyZones: string[] = [];
+    try { if (incident.bodyDiagramMarkers) bodyZones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -9141,10 +9158,15 @@ export async function registerRoutes(
   section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px}
   table{width:100%;border-collapse:collapse}
   td{padding:7px 0;vertical-align:top;border-bottom:1px solid #f3f4f6;font-size:13px}
-  td.label{width:200px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
+  td.label{width:210px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
   td.value{color:#111827;line-height:1.5}
   .empty{color:#9ca3af;font-style:italic}
   .flag{display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;margin-right:6px;margin-top:2px}
+  .pill{display:inline-block;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
+  .body-pill{display:inline-block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+  .declaration-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 16px;font-size:12px;color:#374151;line-height:1.7;margin-bottom:12px}
+  .sig{font-style:italic;font-size:16px;font-family:Georgia,serif;border-bottom:1px solid #374151;display:inline-block;padding-bottom:2px;min-width:200px}
   .footer{border-top:1px solid #e5e7eb;padding:14px 32px;background:#f9fafb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
   @media print{body{background:#fff;padding:0}.page{border:none;border-radius:0}}
 </style>
@@ -9166,55 +9188,123 @@ export async function registerRoutes(
   </div>
   <div class="severity-banner">Severity: ${incident.severity}&nbsp;&nbsp;|&nbsp;&nbsp;Status: ${incident.status.replace(/_/g, " ")}</div>
   <div class="body">
+
     <section>
       <h2>Incident Overview</h2>
       <table>
         ${field("Reference", incident.incidentReference)}
-        ${field("Title", incident.title)}
-        ${field("Incident Date", fmt(incident.incidentDate))}
+        ${field("Incident Date", `${fmt(incident.incidentDate)}${incident.incidentTime ? " at " + incident.incidentTime : ""}`)}
         ${field("Incident Type", incident.incidentType?.replace(/_/g, " "))}
         ${field("Severity", incident.severity)}
-        ${field("Location Details", incident.locationDetails)}
+        ${field("Location", incident.locationDetails)}
+        ${field("Machinery / Equipment Involved", incident.machineryInvolved)}
       </table>
     </section>
+
     <section>
-      <h2>Description</h2>
-      <table>
-        ${field("What Happened", incident.description)}
-      </table>
+      <h2>Description of Incident</h2>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${val(incident.description)}</p>
     </section>
-    ${(incident.injuriesReported || incident.riddorReportable) ? `
+
     <section>
-      <h2>Safety Flags</h2>
-      <div style="margin-bottom:8px">
-        ${incident.injuriesReported ? '<span class="flag">⚠ Injuries Reported</span>' : ""}
-        ${incident.riddorReportable ? '<span class="flag">⚠ RIDDOR Reportable</span>' : ""}
+      <h2>Cause &amp; Effect</h2>
+      <div class="two-col">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Cause(s)</p>
+          <div>${pills(incident.incidentCause)}</div>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Effect / Affect</p>
+          <div>${pills(incident.incidentEffect)}</div>
+        </div>
       </div>
+    </section>
+
+    <section>
+      <h2>Affected / Injured Person</h2>
       <table>
-        ${field("Injuries Reported", bool(incident.injuriesReported))}
-        ${field("RIDDOR Reportable", bool(incident.riddorReportable))}
+        ${field("Member of Public", bool(!!incident.affectedPersonIsPublic))}
+        ${field("Name", incident.affectedPersonName)}
+        ${field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", incident.affectedPersonJobTitle)}
+        ${field("Address", incident.affectedPersonAddress)}
+      </table>
+    </section>
+
+    <section>
+      <h2>Person Reporting This Incident</h2>
+      <table>
+        ${field("Name", incident.reportingPersonName)}
+        ${field("Job Title", incident.reportingPersonJobTitle)}
+        ${field("Address", incident.reportingPersonAddress)}
+      </table>
+    </section>
+
+    <section>
+      <h2>Injury Location</h2>
+      <table>
+        ${field("Injuries Sustained", bool(incident.injuriesReported))}
         ${field("Injury Details", incident.injuryDetails)}
       </table>
-    </section>` : ""}
-    <section>
-      <h2>Response &amp; Investigation</h2>
-      <table>
-        ${field("Immediate Actions Taken", incident.immediateActions)}
-        ${field("Witnesses", incident.witnesses)}
-        ${field("Root Cause", incident.rootCause)}
-        ${field("Corrective Actions", incident.correctiveActions)}
-      </table>
+      ${bodyZones.length > 0 ? `<div style="margin-top:8px"><p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Marked Body Areas</p><div>${bodyZones.map(id => `<span class="body-pill">${bodyZoneLabels[id] ?? id}</span>`).join("")}</div></div>` : ""}
     </section>
+
+    <section>
+      <h2>Actions Taken &amp; Recommendations</h2>
+      <div class="two-col">
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Immediate Actions Taken</p>
+          <p style="font-size:13px;line-height:1.7">${val(incident.immediateActions)}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Recommendations</p>
+          <p style="font-size:13px;line-height:1.7">${val(incident.recommendations)}</p>
+        </div>
+      </div>
+    </section>
+
+    ${incident.riddorReportable ? `
+    <section>
+      <h2>RIDDOR</h2>
+      <div style="margin-bottom:8px"><span class="flag">⚠ RIDDOR Reportable</span></div>
+      <table>
+        ${field("Reportable under RIDDOR", "Yes")}
+        ${field("Responsible Person", incident.riddorResponsiblePerson)}
+      </table>
+    </section>` : ""}
+
     ${imageUrls.length > 0 ? `
     <section>
-      <h2>Photographs</h2>
+      <h2>Supporting Photographs</h2>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px">
         ${imageUrls.map((url, i) => `<div style="aspect-ratio:1;overflow:hidden;border-radius:6px;border:1px solid #e5e7eb"><img src="${url}" alt="Photo ${i + 1}" style="width:100%;height:100%;object-fit:cover;display:block" /></div>`).join("")}
       </div>
     </section>` : ""}
+
+    ${incident.declarationName || incident.declarationSignature ? `
+    <section>
+      <h2>Declaration</h2>
+      <div class="declaration-box">
+        I understand that it is an offence to make a false statement in connection with the reporting of an injury or dangerous occurrence. I declare that the information I have given on this form is correct and accurate to the best of my knowledge.
+      </div>
+      <table>
+        ${field("Full Name", incident.declarationName)}
+        ${field("Date", incident.declarationDate)}
+      </table>
+      ${incident.declarationSignature ? `<div style="margin-top:12px"><p style="font-size:11px;color:#6b7280;margin-bottom:6px">Digital Signature</p><p class="sig">${incident.declarationSignature}</p></div>` : ""}
+    </section>` : ""}
+
+    ${incident.rootCause || incident.correctiveActions ? `
+    <section>
+      <h2>Investigation Notes</h2>
+      <table>
+        ${field("Root Cause", incident.rootCause)}
+        ${field("Corrective Actions", incident.correctiveActions)}
+      </table>
+    </section>` : ""}
+
   </div>
   <div class="footer">
-    <span>This is the original incident report as submitted. Generated ${new Date().toLocaleString("en-GB")}.</span>
+    <span>Original incident report as submitted. Generated ${new Date().toLocaleString("en-GB")}.</span>
     <span>${incident.incidentReference} &bull; Confidential</span>
   </div>
 </div>
