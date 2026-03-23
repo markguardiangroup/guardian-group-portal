@@ -82,6 +82,9 @@ import {
   Filter,
   ImagePlus,
   Paperclip,
+  ThumbsUp,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { PdfViewer } from "@/components/pdf-viewer";
 import {
@@ -1987,13 +1990,63 @@ function IncidentCard({ incident, sites }: { incident: Incident; sites: any[] })
   );
 }
 
+type RegisterType = "incident" | "near_miss" | "good_practice";
+
+const registerTypeConfig = {
+  incident: {
+    label: "Incidents",
+    icon: ShieldAlert,
+    color: "text-red-600 dark:text-red-400",
+    activeClass: "border-red-400 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 shadow-sm",
+    reportLabel: "Report Incident",
+    registerTitle: "Incident Register",
+    description: "Workplace incidents and accidents",
+    statCards: [
+      { title: "Active Incidents", key: "active", colorClass: "border-l-module-accent", iconColor: "text-module-accent", bg: "bg-module-accent/10", sub: "Reported or under review" },
+      { title: "High Severity", key: "critical", colorClass: "border-l-red-500", iconColor: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/40", sub: "Major or critical severity" },
+      { title: "Resolved", key: "resolved", colorClass: "border-l-green-500", iconColor: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/40", sub: "Successfully closed" },
+    ],
+  },
+  near_miss: {
+    label: "Near Miss",
+    icon: AlertCircle,
+    color: "text-amber-600 dark:text-amber-400",
+    activeClass: "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 shadow-sm",
+    reportLabel: "Report Near Miss",
+    registerTitle: "Near Miss Register",
+    description: "Events that could have caused harm but didn't",
+    statCards: [
+      { title: "Near Misses Reported", key: "active", colorClass: "border-l-amber-500", iconColor: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/40", sub: "Reported or under review" },
+      { title: "Unreviewed", key: "critical", colorClass: "border-l-orange-500", iconColor: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/40", sub: "Awaiting review" },
+      { title: "Closed", key: "resolved", colorClass: "border-l-green-500", iconColor: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/40", sub: "Actions taken & closed" },
+    ],
+  },
+  good_practice: {
+    label: "Good Practice",
+    icon: ThumbsUp,
+    color: "text-green-600 dark:text-green-400",
+    activeClass: "border-green-400 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 shadow-sm",
+    reportLabel: "Report Good Practice",
+    registerTitle: "Good Practice Register",
+    description: "Positive safety behaviours and best practices",
+    statCards: [
+      { title: "Practices Logged", key: "active", colorClass: "border-l-green-500", iconColor: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/40", sub: "Submitted for review" },
+      { title: "Shared", key: "critical", colorClass: "border-l-teal-500", iconColor: "text-teal-600 dark:text-teal-400", bg: "bg-teal-100 dark:bg-teal-900/40", sub: "Shared across the business" },
+      { title: "Archived", key: "resolved", colorClass: "border-l-slate-400", iconColor: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-900/40", sub: "Completed & archived" },
+    ],
+  },
+} as const;
+
 function IncidentsListView() {
   const { user } = useAuth();
+  const [registerType, setRegisterType] = useState<RegisterType>("incident");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+
+  const activeConfig = registerTypeConfig[registerType];
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
 
@@ -2046,18 +2099,21 @@ function IncidentsListView() {
     return "All Sites";
   }, [selectedSiteId, selectedCompany, selectedSiteObj]);
 
-  const filteredIncidents = useMemo(() => incidents.filter((incident) => {
-    const incidentSite = sites.find((s: any) => s.id === incident.siteId);
-    const matchesSearch =
-      incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      incident.incidentReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
-    const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
-    const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
-    const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
-    return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
-  }), [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany]);
+  const filteredIncidents = useMemo(() => {
+    if (registerType !== "incident") return [];
+    return incidents.filter((incident) => {
+      const incidentSite = sites.find((s: any) => s.id === incident.siteId);
+      const matchesSearch =
+        incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        incident.incidentReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
+      const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
+      const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
+      const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
+      return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
+    });
+  }, [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany, registerType]);
 
   const stats = {
     active: incidents.filter(i => i.status === "reported" || i.status === "under_review").length,
@@ -2124,69 +2180,90 @@ function IncidentsListView() {
                 </div>
               </div>
             )}
-            <Button
-              className="bg-module-accent hover:bg-module-accent/90"
-              onClick={() => setShowReportDialog(true)}
-              data-testid="button-report-incident"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Report Incident
-            </Button>
+            {registerType === "incident" ? (
+              <Button
+                className="bg-module-accent hover:bg-module-accent/90"
+                onClick={() => setShowReportDialog(true)}
+                data-testid="button-report-incident"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Report Incident
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled
+                title="Coming soon — form not yet available"
+                data-testid={`button-report-${registerType}`}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {activeConfig.reportLabel}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       <div className="space-y-6 p-8 dash-animate">
+        {/* Register Type Toggle */}
+        <div className="grid w-full grid-cols-3 gap-2 p-1 rounded-xl bg-muted/50 border">
+          {(["incident", "near_miss", "good_practice"] as RegisterType[]).map((type) => {
+            const cfg = registerTypeConfig[type];
+            const Icon = cfg.icon;
+            const isActive = registerType === type;
+            return (
+              <button
+                key={type}
+                onClick={() => { setRegisterType(type); setSearchQuery(""); setStatusFilter("all"); setSeverityFilter("all"); }}
+                data-testid={`toggle-register-${type}`}
+                className={`flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-lg font-medium transition-all ${
+                  isActive
+                    ? `${cfg.activeClass} border`
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-sm">{cfg.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-l-4 border-l-module-accent">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Incidents</CardTitle>
-              <div className="rounded-full bg-module-accent/10 p-2">
-                <AlertOctagon className="h-4 w-4 text-module-accent" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-module-accent" data-testid="text-active-incidents">{stats.active}</div>
-              <p className="text-xs text-muted-foreground">Reported or under review</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">High Severity</CardTitle>
-              <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
-                <Flag className="h-4 w-4 text-red-600 dark:text-red-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-critical-incidents">{stats.critical}</div>
-              <p className="text-xs text-muted-foreground">Major or critical severity</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Resolved</CardTitle>
-              <div className="rounded-full bg-green-100 dark:bg-green-900/40 p-2">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-resolved-incidents">{stats.resolved}</div>
-              <p className="text-xs text-muted-foreground">Successfully closed</p>
-            </CardContent>
-          </Card>
+          {activeConfig.statCards.map((card, i) => {
+            const statVal = registerType === "incident" ? stats[card.key as keyof typeof stats] : 0;
+            const StatIcon = i === 0 ? AlertOctagon : i === 1 ? Flag : CheckCircle2;
+            return (
+              <Card key={card.title} className={`border-l-4 ${card.colorClass}`}>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                  <div className={`rounded-full ${card.bg} p-2`}>
+                    <StatIcon className={`h-4 w-4 ${card.iconColor}`} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${card.iconColor}`} data-testid={`text-stat-${i}-${registerType}`}>{statVal}</div>
+                  <p className="text-xs text-muted-foreground">{card.sub}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Table card */}
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle>Incident Register</CardTitle>
+              <div>
+                <CardTitle>{activeConfig.registerTitle}</CardTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">{activeConfig.description}</p>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search incidents..."
+                    placeholder={`Search ${activeConfig.label.toLowerCase()}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-[200px] pl-8"
@@ -2327,23 +2404,65 @@ function IncidentsListView() {
               </Table>
             ) : (
               <div className="flex flex-col items-center justify-center py-16">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-                  <AlertTriangle className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {searchQuery || statusFilter !== "all" || severityFilter !== "all" || (selectedSiteId && selectedSiteId !== "all")
-                    ? "Try adjusting your filters"
-                    : "No incidents have been reported yet"}
-                </p>
-                <Button
-                  className="mt-4 bg-module-accent hover:bg-module-accent/90"
-                  onClick={() => setShowReportDialog(true)}
-                  data-testid="button-report-first-incident"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Report First Incident
-                </Button>
+                {(() => {
+                  const EmptyIcon = activeConfig.icon;
+                  const isFiltered = registerType === "incident" && (searchQuery || statusFilter !== "all" || severityFilter !== "all" || (selectedSiteId && selectedSiteId !== "all"));
+                  if (registerType === "near_miss") {
+                    return (
+                      <>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                          <EmptyIcon className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <h3 className="mt-4 text-lg font-medium">No near miss reports yet</h3>
+                        <p className="mt-1 text-sm text-muted-foreground max-w-sm text-center">
+                          Near miss reporting will be available soon. This register will populate once the reporting form is enabled.
+                        </p>
+                        <Button variant="outline" className="mt-4" disabled data-testid="button-report-near-miss-empty">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Report Near Miss — Coming Soon
+                        </Button>
+                      </>
+                    );
+                  }
+                  if (registerType === "good_practice") {
+                    return (
+                      <>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                          <EmptyIcon className="h-7 w-7 text-green-500" />
+                        </div>
+                        <h3 className="mt-4 text-lg font-medium">No good practice entries yet</h3>
+                        <p className="mt-1 text-sm text-muted-foreground max-w-sm text-center">
+                          Good practice reporting will be available soon. This register will populate once the reporting form is enabled.
+                        </p>
+                        <Button variant="outline" className="mt-4" disabled data-testid="button-report-good-practice-empty">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Report Good Practice — Coming Soon
+                        </Button>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+                        <AlertTriangle className="h-7 w-7 text-muted-foreground" />
+                      </div>
+                      <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {isFiltered ? "Try adjusting your filters" : "No incidents have been reported yet"}
+                      </p>
+                      {!isFiltered && (
+                        <Button
+                          className="mt-4 bg-module-accent hover:bg-module-accent/90"
+                          onClick={() => setShowReportDialog(true)}
+                          data-testid="button-report-first-incident"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Report First Incident
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </CardContent>
