@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -87,6 +89,8 @@ import {
   CheckCircle2,
   LayoutDashboard,
   TrendingUp,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { PdfViewer } from "@/components/pdf-viewer";
 import {
@@ -137,27 +141,6 @@ const statusConfig: Record<IncidentStatus, { label: string; icon: typeof AlertTr
   closed: { label: "Closed", icon: XCircle, className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" },
 };
 
-const INCIDENT_CAUSES = [
-  "Contact with machinery",
-  "Struck by object",
-  "Struck by moving vehicle",
-  "Struck against a stationary object",
-  "Lifting and handling injuries",
-  "Slip, trip, fall at the same level",
-  "Fall from height",
-  "Trapped by something collapsing",
-  "Drowned or asphyxiated",
-  "Exposure to harmful substance",
-  "Exposed to fire",
-  "Exposed to explosion",
-  "Contact with electricity",
-  "Injured by an animal",
-  "Physical assault",
-  "Environment",
-  "Dangerous occurrence (RIDDOR)",
-  "Other",
-];
-
 const INCIDENT_EFFECTS = [
   "Bone fracture",
   "Amputation",
@@ -177,6 +160,76 @@ const INCIDENT_EFFECTS = [
   "Superficial injuries",
   "Electric shock",
 ];
+
+const CAUSE_EFFECT_MAP: Record<string, string[]> = {
+  "Contact with machinery": [
+    "Bone fracture", "Amputation", "Lacerations or open wounds", "Contusions and bruising",
+    "Crush injury leading to brain or organ damage", "Dislocation without fracture", "Superficial injuries", "Strains and sprains",
+  ],
+  "Struck by object": [
+    "Bone fracture", "Concussion and/or internal injuries", "Lacerations or open wounds", "Contusions and bruising",
+    "Loss of consciousness caused by head injury or asphyxia", "Superficial injuries", "Dislocation without fracture",
+  ],
+  "Struck by moving vehicle": [
+    "Bone fracture", "Crush injury leading to brain or organ damage", "Lacerations or open wounds", "Contusions and bruising",
+    "Concussion and/or internal injuries", "Loss of consciousness caused by head injury or asphyxia", "Amputation", "Serious burns",
+  ],
+  "Struck against a stationary object": [
+    "Bone fracture", "Lacerations or open wounds", "Contusions and bruising", "Superficial injuries", "Concussion and/or internal injuries",
+  ],
+  "Lifting and handling injuries": [
+    "Strains and sprains", "Dislocation without fracture", "Bone fracture",
+  ],
+  "Slip, trip, fall at the same level": [
+    "Bone fracture", "Strains and sprains", "Lacerations or open wounds", "Contusions and bruising",
+    "Concussion and/or internal injuries", "Superficial injuries", "Dislocation without fracture",
+  ],
+  "Fall from height": [
+    "Bone fracture", "Crush injury leading to brain or organ damage", "Loss of consciousness caused by head injury or asphyxia",
+    "Lacerations or open wounds", "Contusions and bruising", "Concussion and/or internal injuries", "Amputation", "Dislocation without fracture",
+  ],
+  "Trapped by something collapsing": [
+    "Bone fracture", "Crush injury leading to brain or organ damage", "Amputation",
+    "Loss of consciousness caused by head injury or asphyxia", "Lacerations or open wounds", "Asphyxia or poisoning",
+    "Injury within an enclosed space leading to hypothermia, or heat-induced illness, or resuscitation, or hospitalisation for over 24 hours",
+  ],
+  "Drowned or asphyxiated": [
+    "Asphyxia or poisoning", "Loss of consciousness caused by head injury or asphyxia",
+    "Injury within an enclosed space leading to hypothermia, or heat-induced illness, or resuscitation, or hospitalisation for over 24 hours",
+  ],
+  "Exposure to harmful substance": [
+    "Asphyxia or poisoning", "Burns", "Serious burns", "Loss of or reduction of sight",
+    "Loss of consciousness caused by head injury or asphyxia",
+    "Injury within an enclosed space leading to hypothermia, or heat-induced illness, or resuscitation, or hospitalisation for over 24 hours",
+  ],
+  "Exposed to fire": [
+    "Burns", "Serious burns", "Loss of or reduction of sight", "Asphyxia or poisoning",
+    "Loss of consciousness caused by head injury or asphyxia", "Scalping requiring hospital treatment", "Lacerations or open wounds",
+  ],
+  "Exposed to explosion": [
+    "Burns", "Serious burns", "Bone fracture", "Loss of or reduction of sight",
+    "Loss of consciousness caused by head injury or asphyxia", "Lacerations or open wounds", "Concussion and/or internal injuries", "Amputation",
+  ],
+  "Contact with electricity": [
+    "Electric shock", "Burns", "Serious burns", "Loss of consciousness caused by head injury or asphyxia", "Bone fracture",
+  ],
+  "Injured by an animal": [
+    "Lacerations or open wounds", "Contusions and bruising", "Strains and sprains", "Bone fracture", "Superficial injuries",
+  ],
+  "Physical assault": [
+    "Bone fracture", "Lacerations or open wounds", "Contusions and bruising", "Concussion and/or internal injuries",
+    "Loss of consciousness caused by head injury or asphyxia", "Strains and sprains", "Superficial injuries",
+  ],
+  "Environment": [
+    "Strains and sprains", "Contusions and bruising", "Bone fracture", "Loss of consciousness caused by head injury or asphyxia",
+    "Asphyxia or poisoning",
+    "Injury within an enclosed space leading to hypothermia, or heat-induced illness, or resuscitation, or hospitalisation for over 24 hours",
+  ],
+  "Dangerous occurrence (RIDDOR)": INCIDENT_EFFECTS,
+  "Other": INCIDENT_EFFECTS,
+};
+
+const INCIDENT_CAUSES = Object.keys(CAUSE_EFFECT_MAP);
 
 const BODY_ZONES = [
   { id: "head", label: "Head", shape: "circle", cx: 60, cy: 24, r: 20 },
@@ -246,33 +299,74 @@ function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onCha
   );
 }
 
-function MultiPillSelect({ options, selected, onChange }: {
+function MultiSelectCombobox({ options, selected, onChange, placeholder, filtered }: {
   options: string[];
   selected: string[];
   onChange: (vals: string[]) => void;
+  placeholder: string;
+  filtered?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
   const toggle = (opt: string) => {
     onChange(selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt]);
   };
+  const label = selected.length === 0
+    ? placeholder
+    : selected.length === 1
+      ? selected[0].length > 40 ? selected[0].substring(0, 40) + "…" : selected[0]
+      : `${selected.length} selected`;
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map(opt => {
-        const isSelected = selected.includes(opt);
-        return (
-          <button
-            key={opt}
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
             type="button"
-            onClick={() => toggle(opt)}
-            className={`text-xs px-3 py-1.5 rounded border transition-colors ${
-              isSelected
-                ? "bg-module-accent text-module-accent-foreground border-module-accent font-medium"
-                : "bg-background text-foreground border-border hover:border-module-accent hover:text-module-accent"
-            }`}
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal text-left h-auto min-h-9 py-2 px-3"
           >
-            {opt}
-          </button>
-        );
-      })}
+            <span className={`truncate text-sm ${selected.length === 0 ? "text-muted-foreground" : "text-foreground"}`}>
+              {label}
+            </span>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search…" className="h-9" />
+            <CommandList className="max-h-56">
+              <CommandEmpty>No options found.</CommandEmpty>
+              <CommandGroup>
+                {options.map(opt => (
+                  <CommandItem
+                    key={opt}
+                    value={opt}
+                    onSelect={() => toggle(opt)}
+                    className="cursor-pointer"
+                  >
+                    <Check className={`mr-2 h-4 w-4 shrink-0 ${selected.includes(opt) ? "opacity-100 text-module-accent" : "opacity-0"}`} />
+                    <span className="text-sm leading-snug">{opt}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map(opt => (
+            <span key={opt} className="inline-flex items-center gap-1 text-xs bg-module-accent/10 text-module-accent border border-module-accent/20 rounded-full px-2.5 py-1 max-w-[280px]">
+              <span className="truncate">{opt}</span>
+              <button type="button" onClick={() => toggle(opt)} className="shrink-0 hover:text-destructive ml-0.5">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -390,6 +484,21 @@ function ReportIncidentDialog({
   const watchInjuries = form.watch("injuriesReported");
   const watchRiddor = form.watch("riddorReportable");
   const watchAffectedIsPublic = form.watch("affectedPersonIsPublic");
+
+  const filteredEffects = useMemo(() => {
+    if (selectedCauses.length === 0) return INCIDENT_EFFECTS;
+    const linked = new Set<string>();
+    selectedCauses.forEach(cause => {
+      (CAUSE_EFFECT_MAP[cause] ?? []).forEach(e => linked.add(e));
+    });
+    return INCIDENT_EFFECTS.filter(e => linked.has(e));
+  }, [selectedCauses]);
+
+  useEffect(() => {
+    if (selectedCauses.length > 0) {
+      setSelectedEffects(prev => prev.filter(e => filteredEffects.includes(e)));
+    }
+  }, [filteredEffects]);
 
   const filteredSites = sites.filter(s =>
     watchEntityId ? s.entityId === watchEntityId || s.companyId === watchEntityId : true
@@ -605,14 +714,36 @@ function ReportIncidentDialog({
 
             {/* ── Section 3: Cause ── */}
             <FormSection title="Cause">
-              <p className="text-xs text-muted-foreground -mt-2">Select all that apply</p>
-              <MultiPillSelect options={INCIDENT_CAUSES} selected={selectedCauses} onChange={setSelectedCauses} />
+              <p className="text-xs text-muted-foreground -mt-2">Select all causes that apply — this will filter the available effects below</p>
+              <MultiSelectCombobox
+                options={INCIDENT_CAUSES}
+                selected={selectedCauses}
+                onChange={setSelectedCauses}
+                placeholder="Select cause(s)…"
+              />
             </FormSection>
 
             {/* ── Section 4: Effect / Affect ── */}
             <FormSection title="Effect / Affect">
-              <p className="text-xs text-muted-foreground -mt-2">Select all that apply</p>
-              <MultiPillSelect options={INCIDENT_EFFECTS} selected={selectedEffects} onChange={setSelectedEffects} />
+              {selectedCauses.length > 0 ? (
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Showing <span className="font-medium text-foreground">{filteredEffects.length}</span> suggested effects based on selected cause{selectedCauses.length > 1 ? "s" : ""}.
+                  {filteredEffects.length < INCIDENT_EFFECTS.length && (
+                    <button type="button" className="ml-1 underline hover:text-foreground" onClick={() => setSelectedCauses([])}>
+                      Clear causes to see all effects
+                    </button>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground -mt-2">Select a cause above to filter this list, or choose from all effects</p>
+              )}
+              <MultiSelectCombobox
+                options={filteredEffects}
+                selected={selectedEffects}
+                onChange={setSelectedEffects}
+                placeholder="Select effect(s)…"
+                filtered={selectedCauses.length > 0}
+              />
             </FormSection>
 
             {/* ── Section 5: Affected / Injured Person ── */}
