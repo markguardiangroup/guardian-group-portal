@@ -231,7 +231,7 @@ const CAUSE_EFFECT_MAP: Record<string, string[]> = {
 
 const INCIDENT_CAUSES = Object.keys(CAUSE_EFFECT_MAP);
 
-const BODY_ZONES = [
+const BODY_ZONES_FRONT = [
   { id: "head", label: "Head", shape: "circle", cx: 60, cy: 24, r: 20 },
   { id: "neck", label: "Neck", shape: "rect", x: 54, y: 44, w: 12, h: 17, rx: 4 },
   { id: "l-shoulder", label: "L Shoulder", shape: "ellipse", cx: 20, cy: 62, rx: 14, ry: 12 },
@@ -256,39 +256,81 @@ const BODY_ZONES = [
   { id: "r-foot", label: "R Foot", shape: "ellipse", cx: 79, cy: 292, rx: 18, ry: 9 },
 ];
 
+const BODY_ZONES_BACK = [
+  { id: "head-b", label: "Head (Back)", shape: "circle", cx: 60, cy: 24, r: 20 },
+  { id: "neck-b", label: "Neck (Back)", shape: "rect", x: 54, y: 44, w: 12, h: 17, rx: 4 },
+  { id: "l-shoulder-b", label: "L Shoulder (Back)", shape: "ellipse", cx: 20, cy: 62, rx: 14, ry: 12 },
+  { id: "r-shoulder-b", label: "R Shoulder (Back)", shape: "ellipse", cx: 100, cy: 62, rx: 14, ry: 12 },
+  { id: "upper-back", label: "Upper Back", shape: "rect", x: 34, y: 58, w: 52, h: 42, rx: 4 },
+  { id: "lower-back", label: "Lower Back", shape: "rect", x: 34, y: 100, w: 52, h: 40, rx: 4 },
+  { id: "l-upper-arm-b", label: "L Upper Arm (Back)", shape: "rect", x: 6, y: 74, w: 18, h: 44, rx: 7 },
+  { id: "r-upper-arm-b", label: "R Upper Arm (Back)", shape: "rect", x: 96, y: 74, w: 18, h: 44, rx: 7 },
+  { id: "l-forearm-b", label: "L Forearm (Back)", shape: "rect", x: 5, y: 118, w: 17, h: 42, rx: 6 },
+  { id: "r-forearm-b", label: "R Forearm (Back)", shape: "rect", x: 98, y: 118, w: 17, h: 42, rx: 6 },
+  { id: "l-hand-b", label: "L Hand (Back)", shape: "ellipse", cx: 13, cy: 167, rx: 12, ry: 11 },
+  { id: "r-hand-b", label: "R Hand (Back)", shape: "ellipse", cx: 107, cy: 167, rx: 12, ry: 11 },
+  { id: "l-buttock", label: "L Buttock", shape: "rect", x: 32, y: 140, w: 24, h: 28, rx: 5 },
+  { id: "r-buttock", label: "R Buttock", shape: "rect", x: 64, y: 140, w: 24, h: 28, rx: 5 },
+  { id: "l-hamstring", label: "L Hamstring", shape: "rect", x: 33, y: 168, w: 22, h: 52, rx: 7 },
+  { id: "r-hamstring", label: "R Hamstring", shape: "rect", x: 65, y: 168, w: 22, h: 52, rx: 7 },
+  { id: "l-knee-b", label: "L Knee (Back)", shape: "ellipse", cx: 43, cy: 224, rx: 14, ry: 10 },
+  { id: "r-knee-b", label: "R Knee (Back)", shape: "ellipse", cx: 77, cy: 224, rx: 14, ry: 10 },
+  { id: "l-calf", label: "L Calf", shape: "rect", x: 33, y: 234, w: 20, h: 50, rx: 6 },
+  { id: "r-calf", label: "R Calf", shape: "rect", x: 67, y: 234, w: 20, h: 50, rx: 6 },
+  { id: "l-foot-b", label: "L Foot (Back)", shape: "ellipse", cx: 41, cy: 292, rx: 18, ry: 9 },
+  { id: "r-foot-b", label: "R Foot (Back)", shape: "ellipse", cx: 79, cy: 292, rx: 18, ry: 9 },
+];
+
+const ALL_BODY_ZONES = [...BODY_ZONES_FRONT, ...BODY_ZONES_BACK];
+
 function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onChange: (zones: string[]) => void }) {
+  const [view, setView] = useState<"front" | "back">("front");
+  const zones = view === "front" ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
+
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter(z => z !== id) : [...selected, id]);
   };
-  const baseStyle = { cursor: "pointer", strokeWidth: 1.5, stroke: "#d1d5db", transition: "fill 0.15s" };
+  const baseStyle = { cursor: "pointer", strokeWidth: 1.5, transition: "fill 0.15s" };
   const getFill = (id: string) => selected.includes(id) ? "#ef4444" : "#fde68a";
   const getStroke = (id: string) => selected.includes(id) ? "#b91c1c" : "#d97706";
 
+  const renderZone = (zone: typeof zones[0]) => {
+    const fill = getFill(zone.id);
+    const stroke = getStroke(zone.id);
+    const props = { key: zone.id, fill, stroke, style: baseStyle, onClick: () => toggle(zone.id) };
+    if (zone.shape === "circle") return <circle {...props} cx={(zone as any).cx} cy={(zone as any).cy} r={(zone as any).r}><title>{zone.label}</title></circle>;
+    if (zone.shape === "ellipse") return <ellipse {...props} cx={(zone as any).cx} cy={(zone as any).cy} rx={(zone as any).rx} ry={(zone as any).ry}><title>{zone.label}</title></ellipse>;
+    return <rect {...props} x={(zone as any).x} y={(zone as any).y} width={(zone as any).w} height={(zone as any).h} rx={(zone as any).rx}><title>{zone.label}</title></rect>;
+  };
+
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
+      <div className="flex rounded-md border overflow-hidden text-xs font-medium">
+        <button
+          type="button"
+          onClick={() => setView("front")}
+          className={`px-4 py-1.5 transition-colors ${view === "front" ? "bg-module-accent text-module-accent-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+        >
+          Front
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("back")}
+          className={`px-4 py-1.5 transition-colors ${view === "back" ? "bg-module-accent text-module-accent-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+        >
+          Back
+        </button>
+      </div>
       <svg viewBox="0 0 120 308" className="w-36 h-auto" style={{ userSelect: "none" }}>
-        {BODY_ZONES.map(zone => {
-          const fill = getFill(zone.id);
-          const stroke = getStroke(zone.id);
-          if (zone.shape === "circle") {
-            return <circle key={zone.id} cx={zone.cx} cy={zone.cy} r={zone.r} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
-              <title>{zone.label}</title></circle>;
-          } else if (zone.shape === "ellipse") {
-            return <ellipse key={zone.id} cx={zone.cx} cy={zone.cy} rx={zone.rx} ry={zone.ry} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
-              <title>{zone.label}</title></ellipse>;
-          } else {
-            return <rect key={zone.id} x={zone.x} y={zone.y} width={zone.w} height={zone.h} rx={zone.rx} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
-              <title>{zone.label}</title></rect>;
-          }
-        })}
+        {zones.map(renderZone)}
         <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
         <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
       </svg>
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center max-w-[200px]">
+        <div className="flex flex-wrap gap-1 justify-center max-w-[220px]">
           {selected.map(id => (
             <span key={id} className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded px-1.5 py-0.5">
-              {BODY_ZONES.find(z => z.id === id)?.label}
+              {ALL_BODY_ZONES.find(z => z.id === id)?.label}
               <button type="button" onClick={() => toggle(id)} className="hover:text-red-900"><X className="h-2.5 w-2.5" /></button>
             </span>
           ))}
@@ -348,7 +390,7 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
               value={search}
               onValueChange={setSearch}
             />
-            <CommandList className="max-h-56">
+            <CommandList className="max-h-56 overflow-y-auto">
               {visibleOptions.length === 0 && <CommandEmpty>No options found.</CommandEmpty>}
               <CommandGroup>
                 {visibleOptions.map(opt => (
@@ -715,13 +757,6 @@ function ReportIncidentDialog({
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="incidentNature" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nature of injury / illness</FormLabel>
-                  <FormControl><Textarea placeholder="Describe the nature and extent of any injuries or illness sustained..." className="resize-none" rows={3} {...field} data-testid="textarea-nature" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
             </FormSection>
 
             {/* ── Section 3: Cause ── */}
@@ -854,13 +889,6 @@ function ReportIncidentDialog({
                       </FormItem>
                     )} />
                   )}
-                  <FormField control={form.control} name="witnesses" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Witnesses</FormLabel>
-                      <FormControl><Input placeholder="Names and contact details of any witnesses" {...field} data-testid="input-witnesses" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
                 </div>
               </div>
             </FormSection>
