@@ -212,7 +212,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             <div>
               <h1 className="text-3xl font-semibold">
                 {moduleLabels[module]}
-                <span className="font-normal text-muted-foreground text-2xl"> — Sites</span>
+                <span className="font-normal text-muted-foreground text-2xl"> — Site Documents</span>
               </h1>
               <p className="text-base mt-1 text-muted-foreground">
                 Select a site to view and manage its documents
