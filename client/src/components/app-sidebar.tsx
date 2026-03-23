@@ -24,6 +24,8 @@ import {
   Compass,
   AlertTriangle,
   Briefcase,
+  Cloud,
+  Award,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -73,9 +75,9 @@ const moduleNavItems: {
     themeClass: "theme-hs",
     module: "health_safety",
     subItems: [
-      { title: "Sites", url: "/health-safety/sites" },
+      { title: "Sites", url: "/health-safety/sites", icon: MapPin },
       { title: "Incidents", url: "/health-safety/incidents", icon: AlertTriangle },
-      { title: "Cloud Share", url: "/health-safety/cloud-share" },
+      { title: "Cloud Share", url: "/health-safety/cloud-share", icon: Cloud },
     ],
   },
   {
@@ -86,8 +88,8 @@ const moduleNavItems: {
     themeClass: "theme-hr",
     module: "human_resources",
     subItems: [
-      { title: "Sites", url: "/human-resources/sites" },
-      { title: "Cloud Share", url: "/human-resources/cloud-share" },
+      { title: "Sites", url: "/human-resources/sites", icon: MapPin },
+      { title: "Cloud Share", url: "/human-resources/cloud-share", icon: Cloud },
     ],
   },
   {
@@ -98,9 +100,9 @@ const moduleNavItems: {
     themeClass: "theme-el",
     module: "employment_law",
     subItems: [
-      { title: "Sites", url: "/employment-law/sites" },
+      { title: "Sites", url: "/employment-law/sites", icon: MapPin },
       { title: "Cases", url: "/employment-law/cases", icon: Briefcase },
-      { title: "Cloud Share", url: "/employment-law/cloud-share" },
+      { title: "Cloud Share", url: "/employment-law/cloud-share", icon: Cloud },
     ],
   },
   {
@@ -110,8 +112,8 @@ const moduleNavItems: {
     themeClass: "theme-toolkit",
     module: "training" as ModuleType,
     subItems: [
-      { title: "Dashboard", url: "/toolkit" },
-      { title: "Templates", url: "/toolkit/browse" },
+      { title: "Dashboard", url: "/toolkit", icon: LayoutDashboard },
+      { title: "Templates", url: "/toolkit/browse", icon: BookOpen },
     ],
   },
   {
@@ -121,10 +123,10 @@ const moduleNavItems: {
     themeClass: "theme-training",
     module: "training" as ModuleType,
     subItems: [
-      { title: "Dashboard", url: "/training/dashboard", adminOnly: true },
-      { title: "Dashboard", url: "/training/my-training", clientOnly: true },
-      { title: "Courses", url: "/training" },
-      { title: "Certificates", url: "/training/certificates" },
+      { title: "Dashboard", url: "/training/dashboard", icon: LayoutDashboard, adminOnly: true },
+      { title: "Dashboard", url: "/training/my-training", icon: LayoutDashboard, clientOnly: true },
+      { title: "Courses", url: "/training", icon: BookOpen },
+      { title: "Certificates", url: "/training/certificates", icon: Award },
     ],
   },
   {
@@ -135,7 +137,7 @@ const moduleNavItems: {
     module: "support",
     noColor: true,
     subItems: [
-      { title: "Dashboard", url: "/support" },
+      { title: "Dashboard", url: "/support", icon: LayoutDashboard },
     ],
   },
   {
@@ -146,7 +148,7 @@ const moduleNavItems: {
     module: "reports",
     noColor: true,
     subItems: [
-      { title: "Dashboard", url: "/reports" },
+      { title: "Dashboard", url: "/reports", icon: LayoutDashboard },
     ],
   },
 ];
