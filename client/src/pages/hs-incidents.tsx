@@ -1999,6 +1999,7 @@ const registerTypeConfig = {
     color: "text-red-600 dark:text-red-400",
     activeClass: "bg-red-500 dark:bg-red-600 text-white border-red-500 dark:border-red-600 shadow-sm",
     inactiveClass: "bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-500 dark:hover:bg-red-600 hover:text-white hover:border-red-500",
+    reportButtonClass: "bg-red-500 hover:bg-red-600 text-white border-transparent",
     reportLabel: "Report Incident",
     registerTitle: "Incident Register",
     description: "Workplace incidents and accidents",
@@ -2014,6 +2015,7 @@ const registerTypeConfig = {
     color: "text-amber-600 dark:text-amber-400",
     activeClass: "bg-amber-500 dark:bg-amber-600 text-white border-amber-500 dark:border-amber-600 shadow-sm",
     inactiveClass: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-500 dark:hover:bg-amber-600 hover:text-white hover:border-amber-500",
+    reportButtonClass: "bg-amber-500 hover:bg-amber-600 text-white border-transparent",
     reportLabel: "Report Near Miss",
     registerTitle: "Near Miss Register",
     description: "Events that could have caused harm but didn't",
@@ -2029,6 +2031,7 @@ const registerTypeConfig = {
     color: "text-green-600 dark:text-green-400",
     activeClass: "bg-green-600 dark:bg-green-700 text-white border-green-600 dark:border-green-700 shadow-sm",
     inactiveClass: "bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-600 dark:hover:bg-green-700 hover:text-white hover:border-green-600",
+    reportButtonClass: "bg-green-600 hover:bg-green-700 text-white border-transparent",
     reportLabel: "Report Good Practice",
     registerTitle: "Good Practice Register",
     description: "Positive safety behaviours and best practices",
@@ -2183,26 +2186,16 @@ function IncidentsListView() {
                 </div>
               </div>
             )}
-            {registerType === "incident" ? (
-              <Button
-                className="bg-module-accent hover:bg-module-accent/90"
-                onClick={() => setShowReportDialog(true)}
-                data-testid="button-report-incident"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Report Incident
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                disabled
-                title="Coming soon — form not yet available"
-                data-testid={`button-report-${registerType}`}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                {activeConfig.reportLabel}
-              </Button>
-            )}
+            <Button
+              className={activeConfig.reportButtonClass}
+              onClick={registerType === "incident" ? () => setShowReportDialog(true) : undefined}
+              disabled={registerType !== "incident"}
+              title={registerType !== "incident" ? "Coming soon — form not yet available" : undefined}
+              data-testid={registerType === "incident" ? "button-report-incident" : `button-report-${registerType}`}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {activeConfig.reportLabel}
+            </Button>
           </div>
         </div>
       </div>
