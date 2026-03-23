@@ -284,50 +284,46 @@ const BODY_ZONES_BACK = [
 const ALL_BODY_ZONES = [...BODY_ZONES_FRONT, ...BODY_ZONES_BACK];
 
 function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onChange: (zones: string[]) => void }) {
-  const [view, setView] = useState<"front" | "back">("front");
-  const zones = view === "front" ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
-
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter(z => z !== id) : [...selected, id]);
   };
+
   const baseStyle = { cursor: "pointer", strokeWidth: 1.5, transition: "fill 0.15s" };
   const getFill = (id: string) => selected.includes(id) ? "#ef4444" : "#fde68a";
   const getStroke = (id: string) => selected.includes(id) ? "#b91c1c" : "#d97706";
 
-  const renderZone = (zone: typeof zones[0]) => {
-    const fill = getFill(zone.id);
-    const stroke = getStroke(zone.id);
-    const props = { key: zone.id, fill, stroke, style: baseStyle, onClick: () => toggle(zone.id) };
-    if (zone.shape === "circle") return <circle {...props} cx={(zone as any).cx} cy={(zone as any).cy} r={(zone as any).r}><title>{zone.label}</title></circle>;
-    if (zone.shape === "ellipse") return <ellipse {...props} cx={(zone as any).cx} cy={(zone as any).cy} rx={(zone as any).rx} ry={(zone as any).ry}><title>{zone.label}</title></ellipse>;
-    return <rect {...props} x={(zone as any).x} y={(zone as any).y} width={(zone as any).w} height={(zone as any).h} rx={(zone as any).rx}><title>{zone.label}</title></rect>;
-  };
+  const renderZones = (zones: typeof BODY_ZONES_FRONT) =>
+    zones.map(zone => {
+      const fill = getFill(zone.id);
+      const stroke = getStroke(zone.id);
+      const props = { key: zone.id, fill, stroke, style: baseStyle, onClick: () => toggle(zone.id) };
+      if (zone.shape === "circle") return <circle {...props} cx={(zone as any).cx} cy={(zone as any).cy} r={(zone as any).r}><title>{zone.label}</title></circle>;
+      if (zone.shape === "ellipse") return <ellipse {...props} cx={(zone as any).cx} cy={(zone as any).cy} rx={(zone as any).rx} ry={(zone as any).ry}><title>{zone.label}</title></ellipse>;
+      return <rect {...props} x={(zone as any).x} y={(zone as any).y} width={(zone as any).w} height={(zone as any).h} rx={(zone as any).rx}><title>{zone.label}</title></rect>;
+    });
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex rounded-md border overflow-hidden text-xs font-medium">
-        <button
-          type="button"
-          onClick={() => setView("front")}
-          className={`px-4 py-1.5 transition-colors ${view === "front" ? "bg-module-accent text-module-accent-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-        >
-          Front
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("back")}
-          className={`px-4 py-1.5 transition-colors ${view === "back" ? "bg-module-accent text-module-accent-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-        >
-          Back
-        </button>
+      <div className="flex gap-6 items-start">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Front</span>
+          <svg viewBox="0 0 120 308" className="w-28 h-auto" style={{ userSelect: "none" }}>
+            {renderZones(BODY_ZONES_FRONT)}
+            <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
+            <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
+          </svg>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Back</span>
+          <svg viewBox="0 0 120 308" className="w-28 h-auto" style={{ userSelect: "none" }}>
+            {renderZones(BODY_ZONES_BACK)}
+            <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
+            <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
+          </svg>
+        </div>
       </div>
-      <svg viewBox="0 0 120 308" className="w-36 h-auto" style={{ userSelect: "none" }}>
-        {zones.map(renderZone)}
-        <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
-        <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
-      </svg>
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1 justify-center max-w-[220px]">
+      {selected.length > 0 ? (
+        <div className="flex flex-wrap gap-1 justify-center max-w-[300px]">
           {selected.map(id => (
             <span key={id} className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded px-1.5 py-0.5">
               {ALL_BODY_ZONES.find(z => z.id === id)?.label}
@@ -335,8 +331,9 @@ function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onCha
             </span>
           ))}
         </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Click areas on either diagram to mark injuries</p>
       )}
-      {selected.length === 0 && <p className="text-xs text-muted-foreground">Click body areas to mark injuries</p>}
     </div>
   );
 }
