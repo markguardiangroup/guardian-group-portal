@@ -283,6 +283,43 @@ const BODY_ZONES_BACK = [
 
 const ALL_BODY_ZONES = [...BODY_ZONES_FRONT, ...BODY_ZONES_BACK];
 
+function BodyDiagramViewer({ selected }: { selected: string[] }) {
+  const getFill = (id: string) => selected.includes(id) ? "#ef4444" : "#fde68a";
+  const getStroke = (id: string) => selected.includes(id) ? "#b91c1c" : "#d97706";
+  const baseStyle = { strokeWidth: 1.5 };
+
+  const renderZones = (zones: typeof BODY_ZONES_FRONT) =>
+    zones.map(zone => {
+      const fill = getFill(zone.id);
+      const stroke = getStroke(zone.id);
+      const props = { key: zone.id, fill, stroke, style: baseStyle };
+      if (zone.shape === "circle") return <circle {...props} cx={(zone as any).cx} cy={(zone as any).cy} r={(zone as any).r}><title>{zone.label}</title></circle>;
+      if (zone.shape === "ellipse") return <ellipse {...props} cx={(zone as any).cx} cy={(zone as any).cy} rx={(zone as any).rx} ry={(zone as any).ry}><title>{zone.label}</title></ellipse>;
+      return <rect {...props} x={(zone as any).x} y={(zone as any).y} width={(zone as any).w} height={(zone as any).h} rx={(zone as any).rx}><title>{zone.label}</title></rect>;
+    });
+
+  return (
+    <div className="flex gap-6 items-start">
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Front</span>
+        <svg viewBox="0 0 120 308" className="w-24 h-auto">
+          {renderZones(BODY_ZONES_FRONT)}
+          <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
+          <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
+        </svg>
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Back</span>
+        <svg viewBox="0 0 120 308" className="w-24 h-auto">
+          {renderZones(BODY_ZONES_BACK)}
+          <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
+          <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onChange: (zones: string[]) => void }) {
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter(z => z !== id) : [...selected, id]);
@@ -1512,214 +1549,267 @@ function IncidentDetailView({ id }: { id: string }) {
         {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            {/* Incident Details */}
+            {/* Incident Details — full form mirror */}
             <Card>
               <CardHeader className="border-b">
                 <CardTitle className="text-lg">Incident Details</CardTitle>
               </CardHeader>
-              <CardContent className="pt-5 space-y-5">
-                {/* Overview grid */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Incident Type</p>
-                    <p className="mt-1 flex items-center gap-2 font-medium text-sm">{incident.incidentType}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Incident Date &amp; Time</p>
-                    <p className="mt-1 font-medium text-sm">
-                      {format(new Date(incident.incidentDate), "d MMMM yyyy")}
-                      {incident.incidentTime ? ` at ${incident.incidentTime}` : ""}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Reported By</p>
-                    <p className="mt-1 font-medium text-sm">{incident.reportedByName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Record Created</p>
-                    <p className="mt-1 font-medium text-sm">{format(new Date(incident.createdAt), "d MMM yyyy, HH:mm")}</p>
-                  </div>
-                  {incident.locationDetails && (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Location</p>
-                      <p className="mt-1 text-sm">{incident.locationDetails}</p>
+              <CardContent className="pt-0 divide-y">
+
+                {/* ── Section 1: Overview ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Overview</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Incident Type</p>
+                      <p className="text-sm font-medium">{incident.incidentType}</p>
                     </div>
-                  )}
-                  {incident.machineryInvolved && (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Machinery / Equipment Involved</p>
-                      <p className="mt-1 text-sm">{incident.machineryInvolved}</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Severity</p>
+                      <p className="text-sm font-medium capitalize">{incident.severity}</p>
                     </div>
-                  )}
-                  {incident.resolvedAt && (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Resolved On</p>
-                      <p className="mt-1 text-sm text-emerald-600 font-medium">{format(new Date(incident.resolvedAt), "d MMM yyyy")}</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Date of Incident</p>
+                      <p className="text-sm font-medium">{format(new Date(incident.incidentDate), "d MMMM yyyy")}</p>
                     </div>
-                  )}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Time of Incident</p>
+                      {incident.incidentTime
+                        ? <p className="text-sm font-medium">{incident.incidentTime}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Location / Where Did It Happen</p>
+                      {incident.locationDetails
+                        ? <p className="text-sm">{incident.locationDetails}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                  </div>
                 </div>
 
-                <Separator />
-
-                {/* Description */}
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Description of Incident</p>
+                {/* ── Section 2: Description ── */}
+                <div className="py-5 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Description of Incident</p>
                   <p className="text-sm leading-relaxed">{incident.description}</p>
                 </div>
 
-                {/* Cause & Effect */}
-                {((incident.incidentCause?.length > 0) || (incident.incidentEffect?.length > 0)) && (
-                  <>
-                    <Separator />
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {incident.incidentCause?.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Cause(s)</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {incident.incidentCause.map((c: string) => (
-                              <Badge key={c} variant="outline" className="text-xs font-normal">{c}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {incident.incidentEffect?.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Effect / Affect</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {incident.incidentEffect.map((e: string) => (
-                              <Badge key={e} variant="outline" className="text-xs font-normal">{e}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                <Separator />
-
-                {/* Affected / Injured Person */}
-                {(incident.affectedPersonName || incident.affectedPersonJobTitle || incident.affectedPersonAddress) && (
-                  <>
+                {/* ── Section 3: Cause, Effect & Machinery ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Cause, Effect &amp; Equipment</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
-                        Affected / Injured Person
-                        {incident.affectedPersonIsPublic && <Badge variant="outline" className="ml-2 text-xs">Member of Public</Badge>}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                        {incident.affectedPersonName && <div><span className="text-muted-foreground">Name: </span>{incident.affectedPersonName}</div>}
-                        {incident.affectedPersonJobTitle && <div><span className="text-muted-foreground">{incident.affectedPersonIsPublic ? "Role/Occupation: " : "Job Title: "}</span>{incident.affectedPersonJobTitle}</div>}
-                        {incident.affectedPersonAddress && <div className="sm:col-span-2"><span className="text-muted-foreground">Address: </span>{incident.affectedPersonAddress}</div>}
-                      </div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Cause(s) of Incident</p>
+                      {incident.incidentCause?.length > 0
+                        ? <div className="flex flex-wrap gap-1.5">{incident.incidentCause.map((c: string) => <Badge key={c} variant="outline" className="text-xs font-normal">{c}</Badge>)}</div>
+                        : <p className="text-sm text-muted-foreground italic">None selected</p>}
                     </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Injury Details & Body Diagram */}
-                {(incident.injuriesReported || incident.bodyDiagramMarkers) && (
-                  <>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Injuries Sustained</p>
-                      {incident.injuryDetails && <p className="text-sm leading-relaxed mb-2">{incident.injuryDetails}</p>}
-                      {incident.bodyDiagramMarkers && (() => {
-                        try {
-                          const zones: string[] = JSON.parse(incident.bodyDiagramMarkers);
-                          return zones.length > 0 ? (
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1.5">Marked body areas:</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {zones.map(id => (
-                                  <Badge key={id} variant="outline" className="text-xs font-normal bg-red-50 text-red-700 border-red-200">
-                                    {ALL_BODY_ZONES.find(z => z.id === id)?.label ?? id}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null;
-                        } catch { return null; }
-                      })()}
+                      <p className="text-xs text-muted-foreground mb-1.5">Effect / Affect</p>
+                      {incident.incidentEffect?.length > 0
+                        ? <div className="flex flex-wrap gap-1.5">{incident.incidentEffect.map((e: string) => <Badge key={e} variant="outline" className="text-xs font-normal">{e}</Badge>)}</div>
+                        : <p className="text-sm text-muted-foreground italic">None selected</p>}
                     </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Immediate Actions & Recommendations — always shown */}
-                <Separator />
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Immediate Actions Taken</p>
-                    {incident.immediateActions
-                      ? <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
-                      : <p className="text-sm text-muted-foreground italic">Not provided</p>}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Recommendations</p>
-                    {incident.recommendations
-                      ? <p className="text-sm leading-relaxed">{incident.recommendations}</p>
-                      : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Machinery / Equipment Involved</p>
+                      {incident.machineryInvolved
+                        ? <p className="text-sm">{incident.machineryInvolved}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
                   </div>
                 </div>
 
-                {/* RIDDOR */}
-                {incident.riddorReportable && (
-                  <>
+                {/* ── Section 4: Affected Person ── */}
+                <div className="py-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Affected / Injured Person</p>
+                    {incident.affectedPersonIsPublic && <Badge variant="outline" className="text-xs">Member of Public</Badge>}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">RIDDOR Details</p>
-                      <div className="text-sm space-y-1">
-                        <div><span className="text-muted-foreground">Reportable: </span><span className="font-medium text-red-600">Yes</span></div>
-                        {incident.riddorResponsiblePerson && <div><span className="text-muted-foreground">Responsible Person: </span>{incident.riddorResponsiblePerson}</div>}
-                      </div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Member of Public</p>
+                      <p className="text-sm font-medium">{incident.affectedPersonIsPublic ? "Yes" : "No"}</p>
                     </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Reporting Person */}
-                {(incident.reportingPersonName || incident.reportingPersonJobTitle) && (
-                  <>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Person Who Reported This Incident</p>
-                      <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                        {incident.reportingPersonName && <div><span className="text-muted-foreground">Name: </span>{incident.reportingPersonName}</div>}
-                        {incident.reportingPersonJobTitle && <div><span className="text-muted-foreground">Job Title: </span>{incident.reportingPersonJobTitle}</div>}
-                        {incident.reportingPersonAddress && <div className="sm:col-span-2"><span className="text-muted-foreground">Address: </span>{incident.reportingPersonAddress}</div>}
-                      </div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
+                      {incident.affectedPersonName
+                        ? <p className="text-sm">{incident.affectedPersonName}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Declaration */}
-                {incident.declarationName && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">Declaration</p>
-                    <div className="text-sm space-y-1">
-                      <div><span className="text-muted-foreground">Signed by: </span><span className="font-medium italic">{incident.declarationSignature || incident.declarationName}</span></div>
-                      {incident.declarationDate && <div><span className="text-muted-foreground">Date: </span>{incident.declarationDate}</div>}
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">{incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title"}</p>
+                      {incident.affectedPersonJobTitle
+                        ? <p className="text-sm">{incident.affectedPersonJobTitle}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Address</p>
+                      {incident.affectedPersonAddress
+                        ? <p className="text-sm">{incident.affectedPersonAddress}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                   </div>
-                )}
+                </div>
 
-                {(incident.rootCause || incident.correctiveActions) && (
-                  <>
-                    <Separator />
+                {/* ── Section 5: Injury Location & Body Diagram ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Injury Location</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Injuries Were Sustained</p>
+                      <p className={`text-sm font-medium ${incident.injuriesReported ? "text-red-600" : ""}`}>
+                        {incident.injuriesReported ? "Yes" : "No"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Injury Details</p>
+                      {incident.injuryDetails
+                        ? <p className="text-sm">{incident.injuryDetails}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-3">Body Diagram — Areas Affected</p>
+                    {(() => {
+                      let zones: string[] = [];
+                      try { if (incident.bodyDiagramMarkers) zones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
+                      return (
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                          <BodyDiagramViewer selected={zones} />
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground mb-1.5">Marked areas:</p>
+                            {zones.length > 0
+                              ? <div className="flex flex-wrap gap-1.5">{zones.map(id => <Badge key={id} variant="outline" className="text-xs font-normal bg-red-50 text-red-700 border-red-200">{ALL_BODY_ZONES.find(z => z.id === id)?.label ?? id}</Badge>)}</div>
+                              : <p className="text-sm text-muted-foreground italic">No areas marked</p>}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* ── Section 6: Actions & Recommendations ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions Taken &amp; Recommendations</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Immediate Actions Taken</p>
+                      {incident.immediateActions
+                        ? <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Recommendations</p>
+                      {incident.recommendations
+                        ? <p className="text-sm leading-relaxed">{incident.recommendations}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Section 7: RIDDOR ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">RIDDOR</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reportable</p>
+                      <p className={`text-sm font-medium ${incident.riddorReportable ? "text-red-600" : ""}`}>
+                        {incident.riddorReportable ? "Yes" : "No"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
+                      {incident.riddorResponsiblePerson
+                        ? <p className="text-sm">{incident.riddorResponsiblePerson}</p>
+                        : <p className="text-sm text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Section 8: Witnesses ── */}
+                <div className="py-5 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
+                  {incident.witnesses
+                    ? <p className="text-sm leading-relaxed">{incident.witnesses}</p>
+                    : <p className="text-sm text-muted-foreground italic">No witnesses recorded</p>}
+                </div>
+
+                {/* ── Section 9: Person Reporting ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Person Reporting This Incident</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
+                      {incident.reportingPersonName
+                        ? <p className="text-sm">{incident.reportingPersonName}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Job Title</p>
+                      {incident.reportingPersonJobTitle
+                        ? <p className="text-sm">{incident.reportingPersonJobTitle}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground mb-0.5">Address</p>
+                      {incident.reportingPersonAddress
+                        ? <p className="text-sm">{incident.reportingPersonAddress}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Section 10: Declaration ── */}
+                <div className="py-5 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Declaration</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
+                      {incident.declarationName
+                        ? <p className="text-sm">{incident.declarationName}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Date</p>
+                      {incident.declarationDate
+                        ? <p className="text-sm">{incident.declarationDate}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-muted-foreground mb-1">Signature</p>
+                      {incident.declarationSignature
+                        ? <p className="text-base italic font-medium border-b border-foreground/40 inline-block pb-0.5 min-w-[200px]">{incident.declarationSignature}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Investigation Notes (admin/post-incident) ── */}
+                {(incident.rootCause || incident.correctiveActions || incident.resolvedAt) && (
+                  <div className="py-5 space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Notes</p>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Root Cause</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">Root Cause</p>
                         {incident.rootCause
                           ? <p className="text-sm leading-relaxed">{incident.rootCause}</p>
                           : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Corrective Actions</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">Corrective Actions</p>
                         {incident.correctiveActions
                           ? <p className="text-sm leading-relaxed">{incident.correctiveActions}</p>
                           : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                       </div>
+                      {incident.resolvedAt && (
+                        <div className="sm:col-span-2">
+                          <p className="text-xs text-muted-foreground mb-0.5">Resolved On</p>
+                          <p className="text-sm font-medium text-emerald-600">{format(new Date(incident.resolvedAt), "d MMMM yyyy")}</p>
+                        </div>
+                      )}
                     </div>
-                  </>
+                  </div>
                 )}
+
               </CardContent>
             </Card>
 
