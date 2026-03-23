@@ -307,9 +307,16 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
   filtered?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
   const toggle = (opt: string) => {
     onChange(selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt]);
   };
+
+  const visibleOptions = search.trim()
+    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
   const label = selected.length === 0
     ? placeholder
     : selected.length === 1
@@ -318,7 +325,7 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
 
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(""); }}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -334,12 +341,17 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search…" className="h-9" />
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Search…"
+              className="h-9"
+              value={search}
+              onValueChange={setSearch}
+            />
             <CommandList className="max-h-56">
-              <CommandEmpty>No options found.</CommandEmpty>
+              {visibleOptions.length === 0 && <CommandEmpty>No options found.</CommandEmpty>}
               <CommandGroup>
-                {options.map(opt => (
+                {visibleOptions.map(opt => (
                   <CommandItem
                     key={opt}
                     value={opt}
