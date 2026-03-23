@@ -410,6 +410,16 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
                 ))}
               </CommandGroup>
             </CommandList>
+            <div className="border-t p-2">
+              <Button
+                type="button"
+                size="sm"
+                className="w-full"
+                onClick={() => { setOpen(false); setSearch(""); }}
+              >
+                Done{selected.length > 0 ? ` (${selected.length} selected)` : ""}
+              </Button>
+            </div>
           </Command>
         </PopoverContent>
       </Popover>
