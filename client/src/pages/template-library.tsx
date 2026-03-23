@@ -375,6 +375,28 @@ function DroppableFolderContent({
   );
 }
 
+function DroppableFolderAccordionItem({
+  folderId,
+  isOver,
+  children,
+  className,
+}: {
+  folderId: string;
+  isOver: boolean;
+  children: ReactNode;
+  className?: string;
+}) {
+  const { setNodeRef } = useDroppable({ id: `folder-header-${folderId}`, data: { folderId } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`${className || ""} transition-all ${isOver ? "ring-2 ring-primary ring-offset-1 rounded-lg" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 function DroppableUnassignedContent({
   moduleId,
   isOver,
@@ -1788,10 +1810,11 @@ export default function TemplateLibraryPage() {
     
     // Root level folders get gradient styling
     const isRootLevel = depth === 0;
+    const isFolderOver = overDropId === `folder-header-${folder.id}` || overDropId === `folder-${folder.id}`;
     
     return (
+      <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isFolderOver && activeTemplateId !== null}>
       <AccordionItem 
-        key={folder.id} 
         value={folder.id} 
         className={`border rounded-lg mb-2 overflow-hidden ${isRootLevel ? moduleBorderColors[folderModule] : "border-border"}`}
       >
@@ -1858,6 +1881,7 @@ export default function TemplateLibraryPage() {
           </DroppableFolderContent>
         </AccordionContent>
       </AccordionItem>
+      </DroppableFolderAccordionItem>
     );
   };
   
