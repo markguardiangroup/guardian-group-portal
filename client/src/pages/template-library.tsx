@@ -1798,7 +1798,6 @@ export default function TemplateLibraryPage() {
       activationConstraint: { distance: 8 },
     })
   );
-  const activeSensors = isAdmin ? sensors : [];
   
   // Folder tree renderer
   const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType) => {
@@ -2074,7 +2073,7 @@ export default function TemplateLibraryPage() {
             </Card>
           ) : (
             <DndContext
-              sensors={activeSensors}
+              sensors={sensors}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
