@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   GraduationCap,
+  Award,
   Search,
   FileText,
   Calendar,
@@ -152,21 +153,24 @@ export default function TrainingCertificates() {
   };
 
   return (
-    <div className="container px-6 py-6 space-y-6 dash-animate">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-            <GraduationCap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+    <div className="theme-training dash-animate">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+            <Award className="h-7 w-7 text-module-accent-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Training Certificates</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-semibold">
+              Training
+              <span className="font-normal text-muted-foreground text-2xl"> — Certificates</span>
+            </h1>
+            <p className="text-base mt-1 text-muted-foreground">
               Manage training certificates and track renewals
             </p>
           </div>
         </div>
-
       </div>
+      <div className="container px-6 py-6 space-y-6">
 
       {/* Module Tabs - Enhanced Prominence */}
       <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border mb-6">
@@ -458,6 +462,7 @@ export default function TrainingCertificates() {
           </DialogContent>
         </Dialog>
       )}
+      </div>
     </div>
   );
 }

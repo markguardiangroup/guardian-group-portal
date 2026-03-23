@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import {
   GraduationCap,
+  LayoutDashboard,
   Calendar,
   CheckCircle,
   Clock,
@@ -294,26 +295,34 @@ export default function TrainingDashboard() {
   }
 
   return (
-    <div className="container px-6 py-6 dash-animate">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-purple-600" />
-            Training Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            Manage training bookings and track completion
-          </p>
+    <div className="theme-training dash-animate">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <LayoutDashboard className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                Training
+                <span className="font-normal text-muted-foreground text-2xl"> — Dashboard</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground">
+                Manage training bookings and track completion
+              </p>
+            </div>
+          </div>
+          <Button 
+            onClick={() => setBookingDialog(true)}
+            className="bg-purple-600 hover:bg-purple-700"
+            data-testid="button-book-training"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Book Training
+          </Button>
         </div>
-        <Button 
-          onClick={() => setBookingDialog(true)}
-          className="bg-purple-600 hover:bg-purple-700"
-          data-testid="button-book-training"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Book Training
-        </Button>
       </div>
+      <div className="container px-6 py-6">
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -968,6 +977,7 @@ export default function TrainingDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
