@@ -587,6 +587,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Drag-and-drop for folder view (privileged users only)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const activeSensors = isPrivilegedUser ? sensors : [];
   const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
 
   const moveDocumentMutation = useMutation({
@@ -911,7 +912,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Folder View */}
       {viewMode === "folder" && (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={activeSensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="space-y-4">
           {/* No site selected message */}
           {!hierarchySiteId && (

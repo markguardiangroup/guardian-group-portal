@@ -1798,6 +1798,7 @@ export default function TemplateLibraryPage() {
       activationConstraint: { distance: 8 },
     })
   );
+  const activeSensors = isAdmin ? sensors : [];
   
   // Folder tree renderer
   const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType) => {
@@ -1813,7 +1814,7 @@ export default function TemplateLibraryPage() {
     const isFolderOver = overDropId === `folder-header-${folder.id}` || overDropId === `folder-${folder.id}`;
     
     return (
-      <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isFolderOver && activeTemplateId !== null}>
+      <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isAdmin && isFolderOver && activeTemplateId !== null}>
       <AccordionItem 
         value={folder.id} 
         className={`border rounded-lg mb-2 overflow-hidden ${isRootLevel ? moduleBorderColors[folderModule] : "border-border"}`}
@@ -2073,7 +2074,7 @@ export default function TemplateLibraryPage() {
             </Card>
           ) : (
             <DndContext
-              sensors={sensors}
+              sensors={activeSensors}
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
