@@ -545,6 +545,12 @@ function ReportIncidentDialog({
     },
   });
 
+  useEffect(() => {
+    if (bodyZones.length > 0) {
+      form.setValue("injuriesReported", true);
+    }
+  }, [bodyZones]);
+
   const watchEntityId = form.watch("entityId");
   const watchInjuries = form.watch("injuriesReported");
   const watchRiddor = form.watch("riddorReportable");
