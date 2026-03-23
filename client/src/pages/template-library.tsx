@@ -417,6 +417,24 @@ function DroppableUnassignedContent({
   );
 }
 
+function DraggableTemplateCard({ template, isAdmin, renderCard }: {
+  template: DocumentTemplate;
+  isAdmin: boolean;
+  renderCard: (dragHandleProps: Record<string, unknown> | undefined) => JSX.Element | null;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: template.id,
+    data: { template },
+    disabled: !isAdmin,
+  });
+
+  return (
+    <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...attributes}>
+      {renderCard(listeners as Record<string, unknown> | undefined)}
+    </div>
+  );
+}
+
 export default function TemplateLibraryPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1775,24 +1793,6 @@ export default function TemplateLibraryPage() {
   };
 
   // Sortable template card wrapper for drag-and-drop
-  const DraggableTemplateCard = ({ template }: { template: DocumentTemplate }) => {
-    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-      id: template.id,
-      data: { template },
-      disabled: !isAdmin,
-    });
-
-    return (
-      <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...attributes}>
-        <TemplateCard
-          template={template}
-          isDraggable={isAdmin}
-          dragHandleProps={listeners}
-        />
-      </div>
-    );
-  };
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
@@ -1865,7 +1865,18 @@ export default function TemplateLibraryPage() {
                 </p>
               )}
               {templatesInFolder.map(template => (
-                <DraggableTemplateCard key={template.id} template={template} />
+                <DraggableTemplateCard
+                  key={template.id}
+                  template={template}
+                  isAdmin={isAdmin}
+                  renderCard={(dragHandleProps) => (
+                    <TemplateCard
+                      template={template}
+                      isDraggable={isAdmin}
+                      dragHandleProps={dragHandleProps}
+                    />
+                  )}
+                />
               ))}
               {children.length > 0 && (
                 <Accordion 
@@ -2133,7 +2144,18 @@ export default function TemplateLibraryPage() {
                               </p>
                             ) : (
                               unassignedTemplates.map(template => (
-                                <DraggableTemplateCard key={template.id} template={template} />
+                                <DraggableTemplateCard
+                                  key={template.id}
+                                  template={template}
+                                  isAdmin={isAdmin}
+                                  renderCard={(dragHandleProps) => (
+                                    <TemplateCard
+                                      template={template}
+                                      isDraggable={isAdmin}
+                                      dragHandleProps={dragHandleProps}
+                                    />
+                                  )}
+                                />
                               ))
                             )}
                           </div>
