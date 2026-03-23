@@ -1644,26 +1644,22 @@ function IncidentDetailView({ id }: { id: string }) {
                   </>
                 )}
 
-                {/* Immediate Actions & Recommendations */}
-                {(incident.immediateActions || incident.recommendations) && (
-                  <>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {incident.immediateActions && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Immediate Actions Taken</p>
-                          <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
-                        </div>
-                      )}
-                      {incident.recommendations && (
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Recommendations</p>
-                          <p className="text-sm leading-relaxed">{incident.recommendations}</p>
-                        </div>
-                      )}
-                    </div>
-                    <Separator />
-                  </>
-                )}
+                {/* Immediate Actions & Recommendations — always shown */}
+                <Separator />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Immediate Actions Taken</p>
+                    {incident.immediateActions
+                      ? <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
+                      : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Recommendations</p>
+                    {incident.recommendations
+                      ? <p className="text-sm leading-relaxed">{incident.recommendations}</p>
+                      : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                  </div>
+                </div>
 
                 {/* RIDDOR */}
                 {incident.riddorReportable && (
@@ -1705,17 +1701,24 @@ function IncidentDetailView({ id }: { id: string }) {
                   </div>
                 )}
 
-                {incident.rootCause && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Root Cause</p>
-                    <p className="text-sm leading-relaxed">{incident.rootCause}</p>
-                  </div>
-                )}
-                {incident.correctiveActions && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Corrective Actions</p>
-                    <p className="text-sm leading-relaxed">{incident.correctiveActions}</p>
-                  </div>
+                {(incident.rootCause || incident.correctiveActions) && (
+                  <>
+                    <Separator />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Root Cause</p>
+                        {incident.rootCause
+                          ? <p className="text-sm leading-relaxed">{incident.rootCause}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-1">Corrective Actions</p>
+                        {incident.correctiveActions
+                          ? <p className="text-sm leading-relaxed">{incident.correctiveActions}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
