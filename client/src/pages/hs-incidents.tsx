@@ -1374,7 +1374,7 @@ function IncidentDetailView({ id }: { id: string }) {
                             </p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/")) && (
+                            {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/") || doc.mimeType === "text/html") && (
                               <Button
                                 variant="ghost"
                                 size="icon"
