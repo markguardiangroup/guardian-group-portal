@@ -109,7 +109,6 @@ import {
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
-  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
@@ -422,14 +421,18 @@ function DraggableTemplateCard({ template, isAdmin, renderCard }: {
   isAdmin: boolean;
   renderCard: (dragHandleProps: Record<string, unknown> | undefined) => JSX.Element | null;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: template.id,
     data: { template },
     disabled: !isAdmin,
   });
 
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 999 : undefined }
+    : { opacity: isDragging ? 0.5 : 1 };
+
   return (
-    <div ref={setNodeRef} style={{ opacity: isDragging ? 0.4 : 1 }} {...attributes}>
+    <div ref={setNodeRef} style={style} {...attributes}>
       {renderCard(listeners as Record<string, unknown> | undefined)}
     </div>
   );
@@ -2230,17 +2233,6 @@ export default function TemplateLibraryPage() {
                 </Card>
               )}
 
-              <DragOverlay>
-                {activeTemplateId && (() => {
-                  const t = templates.find(t => t.id === activeTemplateId);
-                  return t ? (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-card border rounded-lg shadow-lg opacity-90">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{t.name}</span>
-                    </div>
-                  ) : null;
-                })()}
-              </DragOverlay>
             </div>
           </DndContext>
           )}
