@@ -74,7 +74,7 @@ const moduleNavItems: {
     themeClass: "theme-hs",
     module: "health_safety",
     subItems: [
-      { title: "Sites", url: "/health-safety/sites", icon: MapPin },
+      { title: "Site Documents", url: "/health-safety/sites", icon: MapPin },
       { title: "Incidents", url: "/health-safety/incidents", icon: ShieldAlert },
       { title: "Cloud Share", url: "/health-safety/cloud-share", icon: Cloud },
     ],
@@ -87,7 +87,7 @@ const moduleNavItems: {
     themeClass: "theme-hr",
     module: "human_resources",
     subItems: [
-      { title: "Sites", url: "/human-resources/sites", icon: MapPin },
+      { title: "Site Documents", url: "/human-resources/sites", icon: MapPin },
       { title: "Cloud Share", url: "/human-resources/cloud-share", icon: Cloud },
     ],
   },
@@ -99,7 +99,7 @@ const moduleNavItems: {
     themeClass: "theme-el",
     module: "employment_law",
     subItems: [
-      { title: "Sites", url: "/employment-law/sites", icon: MapPin },
+      { title: "Site Documents", url: "/employment-law/sites", icon: MapPin },
       { title: "Cases", url: "/employment-law/cases", icon: Briefcase },
       { title: "Cloud Share", url: "/employment-law/cloud-share", icon: Cloud },
     ],
