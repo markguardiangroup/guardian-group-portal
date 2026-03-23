@@ -437,7 +437,7 @@ function MultiSelectCombobox({ options, selected, onChange, placeholder, filtere
 }
 
 const reportSchema = z.object({
-  title: z.string().min(5, "Title must be at least 5 characters"),
+  title: z.string().optional().default(""),
   description: z.string().min(10, "Description must be at least 10 characters"),
   incidentNature: z.string().optional(),
   incidentType: z.string().min(1, "Please select an incident type"),
@@ -631,7 +631,16 @@ function ReportIncidentDialog({
     },
   });
 
-  const onSubmit = (values: ReportFormValues) => mutation.mutate(values);
+  const onSubmit = (values: ReportFormValues) => {
+    const dateStr = format(new Date(values.incidentDate), "dd/MM/yyyy");
+    const causeLabel = selectedCauses.length === 0
+      ? "Incident"
+      : selectedCauses.length === 1
+        ? selectedCauses[0]
+        : `${selectedCauses[0]} (+${selectedCauses.length - 1} more)`;
+    const autoTitle = `${causeLabel} – ${dateStr}`;
+    mutation.mutate({ ...values, title: autoTitle });
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -646,15 +655,6 @@ function ReportIncidentDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
-            {/* Title */}
-            <FormField control={form.control} name="title" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Incident Title *</FormLabel>
-                <FormControl><Input placeholder="Brief description of the incident" {...field} data-testid="input-incident-title" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
 
             {/* ── Section 1: Incident Overview ── */}
             <FormSection title="Incident Overview">
