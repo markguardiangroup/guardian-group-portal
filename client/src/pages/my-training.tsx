@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import {
   GraduationCap,
+  LayoutDashboard,
   Calendar,
   CheckCircle,
   Clock,
@@ -155,19 +156,24 @@ export default function MyTraining() {
   }
 
   return (
-    <div className="space-y-6 p-8 dash-animate">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-purple-600" />
-            Training Dashboard
-          </h1>
-          <p className="text-muted-foreground">
-            View your booked training courses, certificates and access information
-          </p>
+    <div className="theme-training dash-animate">
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+            <LayoutDashboard className="h-7 w-7 text-module-accent-foreground" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold">
+              Training
+              <span className="font-normal text-muted-foreground text-2xl"> — Dashboard</span>
+            </h1>
+            <p className="text-base mt-1 text-muted-foreground">
+              View your booked training courses, certificates and access information
+            </p>
+          </div>
         </div>
       </div>
+      <div className="space-y-6 px-8 py-6">
 
       {/* Filters & Metrics Card */}
       <Card>
@@ -554,6 +560,7 @@ export default function MyTraining() {
           </DialogContent>
         </Dialog>
       )}
+      </div>
     </div>
   );
 }
