@@ -161,6 +161,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
   const ModuleIcon = module === "health_safety" ? HardHat : Users;
+  const dashboardSubtitle = module === "health_safety"
+    ? "Safety Document Compliance"
+    : module === "human_resources"
+    ? "HR Document Compliance"
+    : "Legal Document Compliance";
   const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
   
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -387,7 +392,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             <div>
               <h1 className="text-3xl font-semibold">
                 {config.name}
-                <span className="font-normal text-muted-foreground text-2xl"> - Module compliance overview</span>
+                <span className="font-normal text-muted-foreground text-2xl"> — {dashboardSubtitle}</span>
               </h1>
               <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
                 {isPrivilegedUser && (
