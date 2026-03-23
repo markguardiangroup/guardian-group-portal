@@ -85,6 +85,8 @@ import {
   ThumbsUp,
   AlertCircle,
   CheckCircle2,
+  LayoutDashboard,
+  TrendingUp,
 } from "lucide-react";
 import { PdfViewer } from "@/components/pdf-viewer";
 import {
@@ -2045,6 +2047,7 @@ const registerTypeConfig = {
 
 function IncidentsListView() {
   const { user } = useAuth();
+  const [view, setView] = useState<"dashboard" | "register">("dashboard");
   const [registerType, setRegisterType] = useState<RegisterType>("incident");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -2186,31 +2189,49 @@ function IncidentsListView() {
                 </div>
               </div>
             )}
-            <Button
-              className={activeConfig.reportButtonClass}
-              onClick={registerType === "incident" ? () => setShowReportDialog(true) : undefined}
-              disabled={registerType !== "incident"}
-              title={registerType !== "incident" ? "Coming soon — form not yet available" : undefined}
-              data-testid={registerType === "incident" ? "button-report-incident" : `button-report-${registerType}`}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {activeConfig.reportLabel}
-            </Button>
+            {view === "register" && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setView("dashboard")}
+                  data-testid="button-view-dashboard"
+                >
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  View Dashboard
+                </Button>
+                <Button
+                  className={activeConfig.reportButtonClass}
+                  onClick={registerType === "incident" ? () => setShowReportDialog(true) : undefined}
+                  disabled={registerType !== "incident"}
+                  title={registerType !== "incident" ? "Coming soon — form not yet available" : undefined}
+                  data-testid={registerType === "incident" ? "button-report-incident" : `button-report-${registerType}`}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {activeConfig.reportLabel}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="space-y-6 p-8 dash-animate">
-        {/* Register Type Toggle */}
+      {/* Toggle bar — always visible below the header */}
+      <div className="px-8 py-4 border-b bg-background">
         <div className="grid w-full grid-cols-3 gap-2 p-1 rounded-xl bg-muted/50 border">
           {(["incident", "near_miss", "good_practice"] as RegisterType[]).map((type) => {
             const cfg = registerTypeConfig[type];
             const Icon = cfg.icon;
-            const isActive = registerType === type;
+            const isActive = view === "register" && registerType === type;
             return (
               <button
                 key={type}
-                onClick={() => { setRegisterType(type); setSearchQuery(""); setStatusFilter("all"); setSeverityFilter("all"); }}
+                onClick={() => {
+                  setRegisterType(type);
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                  setSeverityFilter("all");
+                  setView("register");
+                }}
                 data-testid={`toggle-register-${type}`}
                 className={`flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-lg font-medium transition-all border ${
                   isActive ? cfg.activeClass : cfg.inactiveClass
@@ -2222,7 +2243,130 @@ function IncidentsListView() {
             );
           })}
         </div>
+      </div>
 
+      {/* Dashboard overview */}
+      {view === "dashboard" && (
+        <div className="p-8 space-y-8 dash-animate">
+          <div>
+            <h2 className="text-xl font-semibold mb-1">Overview</h2>
+            <p className="text-muted-foreground text-sm">Select a register below to view, manage, and report incidents across your organisation.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Incidents card */}
+            <button
+              onClick={() => { setRegisterType("incident"); setView("register"); }}
+              data-testid="dashboard-card-incident"
+              className="text-left group rounded-xl border-2 border-red-200 dark:border-red-800 bg-white dark:bg-card hover:border-red-400 dark:hover:border-red-600 hover:shadow-lg transition-all p-6 focus:outline-none focus:ring-2 focus:ring-red-400"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-100 dark:bg-red-950/40">
+                  <ShieldAlert className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <ChevronRight className="h-5 w-5 text-red-300 group-hover:text-red-500 transition-colors mt-1" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">Incident Register</h3>
+              <p className="text-sm text-muted-foreground mb-5">Workplace incidents and accidents requiring formal reporting and investigation.</p>
+              <div className="grid grid-cols-3 gap-2 border-t pt-4">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.active}</div>
+                  <div className="text-xs text-muted-foreground">Active</div>
+                </div>
+                <div className="text-center border-x">
+                  <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{stats.critical}</div>
+                  <div className="text-xs text-muted-foreground">Unreviewed</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.resolved}</div>
+                  <div className="text-xs text-muted-foreground">Closed</div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors">
+                <span>View Incident Register</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </button>
+
+            {/* Near Miss card */}
+            <button
+              onClick={() => { setRegisterType("near_miss"); setView("register"); }}
+              data-testid="dashboard-card-near-miss"
+              className="text-left group rounded-xl border-2 border-amber-200 dark:border-amber-800 bg-white dark:bg-card hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-lg transition-all p-6 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950/40">
+                  <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <ChevronRight className="h-5 w-5 text-amber-300 group-hover:text-amber-500 transition-colors mt-1" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">Near Miss Register</h3>
+              <p className="text-sm text-muted-foreground mb-5">Events that could have caused harm but didn't — early warning signals worth recording.</p>
+              <div className="grid grid-cols-3 gap-2 border-t pt-4">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-amber-600 dark:text-amber-400">0</div>
+                  <div className="text-xs text-muted-foreground">Reported</div>
+                </div>
+                <div className="text-center border-x">
+                  <div className="text-xl font-bold text-amber-600 dark:text-amber-400">0</div>
+                  <div className="text-xs text-muted-foreground">In Review</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-amber-600 dark:text-amber-400">0</div>
+                  <div className="text-xs text-muted-foreground">Closed</div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400 group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                <span>View Near Miss Register</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </button>
+
+            {/* Good Practice card */}
+            <button
+              onClick={() => { setRegisterType("good_practice"); setView("register"); }}
+              data-testid="dashboard-card-good-practice"
+              className="text-left group rounded-xl border-2 border-green-200 dark:border-green-800 bg-white dark:bg-card hover:border-green-400 dark:hover:border-green-600 hover:shadow-lg transition-all p-6 focus:outline-none focus:ring-2 focus:ring-green-400"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100 dark:bg-green-950/40">
+                  <ThumbsUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <ChevronRight className="h-5 w-5 text-green-300 group-hover:text-green-500 transition-colors mt-1" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">Good Practice Register</h3>
+              <p className="text-sm text-muted-foreground mb-5">Positive safety behaviours and best practices worth recognising and sharing.</p>
+              <div className="grid grid-cols-3 gap-2 border-t pt-4">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">0</div>
+                  <div className="text-xs text-muted-foreground">Logged</div>
+                </div>
+                <div className="text-center border-x">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">0</div>
+                  <div className="text-xs text-muted-foreground">Shared</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">0</div>
+                  <div className="text-xs text-muted-foreground">Actioned</div>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400 group-hover:text-green-700 dark:group-hover:text-green-300 transition-colors">
+                <span>View Good Practice Register</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </button>
+          </div>
+
+          {/* Quick tip */}
+          <div className="flex items-start gap-3 rounded-lg border bg-muted/30 px-5 py-4 text-sm text-muted-foreground">
+            <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-module-accent" />
+            <span>Regular reporting across all three registers builds a complete picture of your organisation's safety culture. Use the toggles above to navigate between registers at any time.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Register view */}
+      {view === "register" && (
+      <div className="space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
           {activeConfig.statCards.map((card, i) => {
@@ -2462,6 +2606,7 @@ function IncidentsListView() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       <ReportIncidentDialog
         open={showReportDialog}
