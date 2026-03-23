@@ -9112,7 +9112,7 @@ export async function registerRoutes(
 
   // ─── Incident Report HTML Generator ─────────────────────────────────────────
 
-  function generateIncidentReportHtml(incident: any, siteName: string, companyName: string): string {
+  function generateIncidentReportHtml(incident: any, siteName: string, companyName: string, imageUrls: string[] = []): string {
     const fmt = (d: string | Date | null) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
     const bool = (v: boolean) => v ? "Yes" : "No";
     const field = (label: string, value: string | null | undefined) =>
@@ -9205,6 +9205,13 @@ export async function registerRoutes(
         ${field("Corrective Actions", incident.correctiveActions)}
       </table>
     </section>
+    ${imageUrls.length > 0 ? `
+    <section>
+      <h2>Photographs</h2>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:8px">
+        ${imageUrls.map((url, i) => `<div style="aspect-ratio:1;overflow:hidden;border-radius:6px;border:1px solid #e5e7eb"><img src="${url}" alt="Photo ${i + 1}" style="width:100%;height:100%;object-fit:cover;display:block" /></div>`).join("")}
+      </div>
+    </section>` : ""}
   </div>
   <div class="footer">
     <span>This is the original incident report as submitted. Generated ${new Date().toLocaleString("en-GB")}.</span>
@@ -9215,9 +9222,9 @@ export async function registerRoutes(
 </html>`;
   }
 
-  async function uploadIncidentReportDocument(incident: any, user: any, siteName: string, companyName: string): Promise<void> {
+  async function uploadIncidentReportDocument(incident: any, user: any, siteName: string, companyName: string, imageUrls: string[] = []): Promise<void> {
     try {
-      const html = generateIncidentReportHtml(incident, siteName, companyName);
+      const html = generateIncidentReportHtml(incident, siteName, companyName, imageUrls);
       const buffer = Buffer.from(html, "utf-8");
       const objectStorageService = new ObjectStorageService();
       const privateObjectDir = objectStorageService.getPrivateObjectDir();
@@ -9269,6 +9276,66 @@ export async function registerRoutes(
       console.error("Failed to generate incident report document:", err);
     }
   }
+
+  // Upload a file (photo or document) attached to an incident
+  app.post("/api/incidents/:id/upload", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const rawFileName = req.headers["x-file-name"] as string | undefined;
+      if (!rawFileName) return res.status(400).json({ error: "Missing x-file-name header" });
+      const fileName = decodeURIComponent(rawFileName);
+      const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
+
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const objectId = crypto.randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(buffer, { contentType, metadata: { originalName: fileName } });
+      const objectPath = `/objects/uploads/${objectId}`;
+
+      const doc = await storage.createDocument({
+        title: fileName,
+        comments: `Attachment for incident ${incident.incidentReference}`,
+        module: "health_safety",
+        type: "incident_report",
+        entityId: incident.entityId,
+        siteId: incident.siteId,
+        incidentId: incident.id,
+        folderId: incident.folderId || null,
+        fileName,
+        fileUrl: objectPath,
+        fileSize: buffer.length,
+        mimeType: contentType,
+        uploadedBy: user.id,
+        status: "compliant",
+        approvalStatus: "approved",
+        source: "upload",
+      });
+
+      res.json({ objectPath, fileUrl: objectPath, documentId: doc.id });
+    } catch (error) {
+      console.error("Error uploading incident file:", error);
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
 
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
@@ -9327,18 +9394,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/incidents/:id/regenerate-report", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/incidents/:id/regenerate-report", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const imageUrls: string[] = Array.isArray(req.body?.imageUrls) ? req.body.imageUrls : [];
 
       const [site, company] = await Promise.all([
         storage.getSite(incident.siteId).catch(() => null),
         storage.getCompany(incident.entityId).catch(() => null),
       ]);
 
-      await uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
+      await uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company", imageUrls);
       await storage.createAuditLog({
         action: "incident_updated",
         userId: user.id,

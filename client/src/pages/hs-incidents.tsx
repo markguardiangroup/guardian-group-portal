@@ -80,6 +80,8 @@ import {
   Shield,
   Eye,
   Filter,
+  ImagePlus,
+  Paperclip,
 } from "lucide-react";
 import { PdfViewer } from "@/components/pdf-viewer";
 import {
@@ -167,6 +169,8 @@ function ReportIncidentDialog({
 }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [docFiles, setDocFiles] = useState<File[]>([]);
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
@@ -194,18 +198,56 @@ function ReportIncidentDialog({
     watchEntityId ? s.entityId === watchEntityId || s.companyId === watchEntityId : true
   );
 
+  const uploadFileToIncident = async (file: File, incidentId: string): Promise<string> => {
+    const response = await fetch(`/api/incidents/${incidentId}/upload`, {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "x-file-name": encodeURIComponent(file.name),
+      },
+      body: file,
+      credentials: "include",
+    });
+    if (!response.ok) throw new Error(`Failed to upload ${file.name}`);
+    const result = await response.json();
+    return result.fileUrl as string;
+  };
+
   const mutation = useMutation({
-    mutationFn: (data: ReportFormValues) => apiRequest("POST", "/api/incidents", {
-      ...data,
-      incidentDate: new Date(data.incidentDate).toISOString(),
-    }),
-    onSuccess: async (res: any) => {
+    mutationFn: async (data: ReportFormValues) => {
+      const res = await apiRequest("POST", "/api/incidents", {
+        ...data,
+        incidentDate: new Date(data.incidentDate).toISOString(),
+      });
+      const incident = await res.json();
+      const incidentId = incident.id;
+
+      const imageUrls: string[] = [];
+      for (const photo of photoFiles) {
+        const fileUrl = await uploadFileToIncident(photo, incidentId);
+        imageUrls.push(fileUrl);
+      }
+      for (const doc of docFiles) {
+        await uploadFileToIncident(doc, incidentId);
+      }
+      if (imageUrls.length > 0) {
+        await fetch(`/api/incidents/${incidentId}/regenerate-report`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrls }),
+          credentials: "include",
+        });
+      }
+      return incident;
+    },
+    onSuccess: (incident: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
       toast({ title: "Incident reported", description: "The incident has been recorded successfully." });
       form.reset();
+      setPhotoFiles([]);
+      setDocFiles([]);
       onClose();
-      // Navigate to the new incident detail page
-      if (res?.id) navigate(`/health-safety/incidents/${res.id}`);
+      if (incident?.id) navigate(`/health-safety/incidents/${incident.id}`);
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to report incident.", variant: "destructive" });
@@ -373,11 +415,106 @@ function ReportIncidentDialog({
               )} />
             )}
 
+            {/* Photo uploads */}
+            <div className="space-y-3 rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Photos</p>
+                  <p className="text-xs text-muted-foreground">Included in the incident report</p>
+                </div>
+                <label className="cursor-pointer" data-testid="label-add-photos">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    data-testid="input-photos"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setPhotoFiles(prev => [...prev, ...files]);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <span><ImagePlus className="h-4 w-4 mr-1.5" />Add Photos</span>
+                  </Button>
+                </label>
+              </div>
+              {photoFiles.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {photoFiles.map((file, i) => (
+                    <div key={i} className="relative group aspect-square rounded-md overflow-hidden bg-muted border">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPhotoFiles(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-testid={`button-remove-photo-${i}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Document uploads */}
+            <div className="space-y-3 rounded-md border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Supporting Documents</p>
+                  <p className="text-xs text-muted-foreground">PDFs, Word files, spreadsheets</p>
+                </div>
+                <label className="cursor-pointer" data-testid="label-add-documents">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                    multiple
+                    className="sr-only"
+                    data-testid="input-documents"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setDocFiles(prev => [...prev, ...files]);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" asChild>
+                    <span><Paperclip className="h-4 w-4 mr-1.5" />Add Documents</span>
+                  </Button>
+                </label>
+              </div>
+              {docFiles.length > 0 && (
+                <ul className="space-y-1.5">
+                  {docFiles.map((file, i) => (
+                    <li key={i} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-2">
+                      <span className="flex items-center gap-2 truncate min-w-0">
+                        <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <span className="truncate">{file.name}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDocFiles(prev => prev.filter((_, idx) => idx !== i))}
+                        className="text-muted-foreground hover:text-destructive ml-2 flex-shrink-0"
+                        data-testid={`button-remove-doc-${i}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-submit-incident">
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Report Incident
+                {mutation.isPending ? "Submitting…" : "Report Incident"}
               </Button>
             </DialogFooter>
           </form>
