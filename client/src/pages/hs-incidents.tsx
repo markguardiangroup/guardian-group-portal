@@ -137,23 +137,190 @@ const statusConfig: Record<IncidentStatus, { label: string; icon: typeof AlertTr
   closed: { label: "Closed", icon: XCircle, className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" },
 };
 
+const INCIDENT_CAUSES = [
+  "Contact with machinery",
+  "Struck by object",
+  "Struck by moving vehicle",
+  "Struck against a stationary object",
+  "Lifting and handling injuries",
+  "Slip, trip, fall at the same level",
+  "Fall from height",
+  "Trapped by something collapsing",
+  "Drowned or asphyxiated",
+  "Exposure to harmful substance",
+  "Exposed to fire",
+  "Exposed to explosion",
+  "Contact with electricity",
+  "Injured by an animal",
+  "Physical assault",
+  "Environment",
+  "Dangerous occurrence (RIDDOR)",
+  "Other",
+];
+
+const INCIDENT_EFFECTS = [
+  "Bone fracture",
+  "Amputation",
+  "Loss of or reduction of sight",
+  "Crush injury leading to brain or organ damage",
+  "Serious burns",
+  "Scalping requiring hospital treatment",
+  "Loss of consciousness caused by head injury or asphyxia",
+  "Injury within an enclosed space leading to hypothermia, or heat-induced illness, or resuscitation, or hospitalisation for over 24 hours",
+  "Dislocation without fracture",
+  "Concussion and/or internal injuries",
+  "Lacerations or open wounds",
+  "Burns",
+  "Contusions and bruising",
+  "Asphyxia or poisoning",
+  "Strains and sprains",
+  "Superficial injuries",
+  "Electric shock",
+];
+
+const BODY_ZONES = [
+  { id: "head", label: "Head", shape: "circle", cx: 60, cy: 24, r: 20 },
+  { id: "neck", label: "Neck", shape: "rect", x: 54, y: 44, w: 12, h: 17, rx: 4 },
+  { id: "l-shoulder", label: "L Shoulder", shape: "ellipse", cx: 20, cy: 62, rx: 14, ry: 12 },
+  { id: "r-shoulder", label: "R Shoulder", shape: "ellipse", cx: 100, cy: 62, rx: 14, ry: 12 },
+  { id: "chest", label: "Chest", shape: "rect", x: 34, y: 58, w: 52, h: 42, rx: 4 },
+  { id: "abdomen", label: "Abdomen", shape: "rect", x: 34, y: 100, w: 52, h: 40, rx: 4 },
+  { id: "l-upper-arm", label: "L Upper Arm", shape: "rect", x: 6, y: 74, w: 18, h: 44, rx: 7 },
+  { id: "r-upper-arm", label: "R Upper Arm", shape: "rect", x: 96, y: 74, w: 18, h: 44, rx: 7 },
+  { id: "l-forearm", label: "L Forearm", shape: "rect", x: 5, y: 118, w: 17, h: 42, rx: 6 },
+  { id: "r-forearm", label: "R Forearm", shape: "rect", x: 98, y: 118, w: 17, h: 42, rx: 6 },
+  { id: "l-hand", label: "L Hand", shape: "ellipse", cx: 13, cy: 167, rx: 12, ry: 11 },
+  { id: "r-hand", label: "R Hand", shape: "ellipse", cx: 107, cy: 167, rx: 12, ry: 11 },
+  { id: "l-hip", label: "L Hip", shape: "rect", x: 32, y: 140, w: 24, h: 28, rx: 5 },
+  { id: "r-hip", label: "R Hip", shape: "rect", x: 64, y: 140, w: 24, h: 28, rx: 5 },
+  { id: "l-thigh", label: "L Thigh", shape: "rect", x: 33, y: 168, w: 22, h: 52, rx: 7 },
+  { id: "r-thigh", label: "R Thigh", shape: "rect", x: 65, y: 168, w: 22, h: 52, rx: 7 },
+  { id: "l-knee", label: "L Knee", shape: "ellipse", cx: 43, cy: 224, rx: 14, ry: 10 },
+  { id: "r-knee", label: "R Knee", shape: "ellipse", cx: 77, cy: 224, rx: 14, ry: 10 },
+  { id: "l-lower-leg", label: "L Lower Leg", shape: "rect", x: 33, y: 234, w: 20, h: 50, rx: 6 },
+  { id: "r-lower-leg", label: "R Lower Leg", shape: "rect", x: 67, y: 234, w: 20, h: 50, rx: 6 },
+  { id: "l-foot", label: "L Foot", shape: "ellipse", cx: 41, cy: 292, rx: 18, ry: 9 },
+  { id: "r-foot", label: "R Foot", shape: "ellipse", cx: 79, cy: 292, rx: 18, ry: 9 },
+];
+
+function BodyDiagramSelector({ selected, onChange }: { selected: string[]; onChange: (zones: string[]) => void }) {
+  const toggle = (id: string) => {
+    onChange(selected.includes(id) ? selected.filter(z => z !== id) : [...selected, id]);
+  };
+  const baseStyle = { cursor: "pointer", strokeWidth: 1.5, stroke: "#d1d5db", transition: "fill 0.15s" };
+  const getFill = (id: string) => selected.includes(id) ? "#ef4444" : "#fde68a";
+  const getStroke = (id: string) => selected.includes(id) ? "#b91c1c" : "#d97706";
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg viewBox="0 0 120 308" className="w-36 h-auto" style={{ userSelect: "none" }}>
+        {BODY_ZONES.map(zone => {
+          const fill = getFill(zone.id);
+          const stroke = getStroke(zone.id);
+          if (zone.shape === "circle") {
+            return <circle key={zone.id} cx={zone.cx} cy={zone.cy} r={zone.r} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
+              <title>{zone.label}</title></circle>;
+          } else if (zone.shape === "ellipse") {
+            return <ellipse key={zone.id} cx={zone.cx} cy={zone.cy} rx={zone.rx} ry={zone.ry} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
+              <title>{zone.label}</title></ellipse>;
+          } else {
+            return <rect key={zone.id} x={zone.x} y={zone.y} width={zone.w} height={zone.h} rx={zone.rx} fill={fill} stroke={stroke} style={baseStyle} onClick={() => toggle(zone.id)}>
+              <title>{zone.label}</title></rect>;
+          }
+        })}
+        <text x="18" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">L</text>
+        <text x="102" y="304" fontSize="7" fill="#6b7280" textAnchor="middle">R</text>
+      </svg>
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1 justify-center max-w-[200px]">
+          {selected.map(id => (
+            <span key={id} className="inline-flex items-center gap-1 text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded px-1.5 py-0.5">
+              {BODY_ZONES.find(z => z.id === id)?.label}
+              <button type="button" onClick={() => toggle(id)} className="hover:text-red-900"><X className="h-2.5 w-2.5" /></button>
+            </span>
+          ))}
+        </div>
+      )}
+      {selected.length === 0 && <p className="text-xs text-muted-foreground">Click body areas to mark injuries</p>}
+    </div>
+  );
+}
+
+function MultiPillSelect({ options, selected, onChange }: {
+  options: string[];
+  selected: string[];
+  onChange: (vals: string[]) => void;
+}) {
+  const toggle = (opt: string) => {
+    onChange(selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt]);
+  };
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => {
+        const isSelected = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+              isSelected
+                ? "bg-module-accent text-module-accent-foreground border-module-accent font-medium"
+                : "bg-background text-foreground border-border hover:border-module-accent hover:text-module-accent"
+            }`}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const reportSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
+  incidentNature: z.string().optional(),
   incidentType: z.string().min(1, "Please select an incident type"),
   severity: z.enum(["minor", "moderate", "major", "critical"]),
   siteId: z.string().min(1, "Please select a site"),
   entityId: z.string().min(1, "Company is required"),
   incidentDate: z.string().min(1, "Incident date is required"),
+  incidentTime: z.string().optional(),
+  locationDetails: z.string().optional(),
+  machineryInvolved: z.string().optional(),
+  incidentCause: z.array(z.string()).optional(),
+  incidentEffect: z.array(z.string()).optional(),
+  affectedPersonName: z.string().optional(),
+  affectedPersonAddress: z.string().optional(),
+  affectedPersonJobTitle: z.string().optional(),
+  affectedPersonIsPublic: z.boolean().default(false),
+  reportingPersonName: z.string().optional(),
+  reportingPersonAddress: z.string().optional(),
+  reportingPersonJobTitle: z.string().optional(),
+  bodyDiagramMarkers: z.string().optional(),
+  witnesses: z.string().optional(),
   injuriesReported: z.boolean().default(false),
-  riddorReportable: z.boolean().default(false),
   injuryDetails: z.string().optional(),
   immediateActions: z.string().optional(),
-  locationDetails: z.string().optional(),
-  witnesses: z.string().optional(),
+  recommendations: z.string().optional(),
+  riddorReportable: z.boolean().default(false),
+  riddorResponsiblePerson: z.string().optional(),
+  declarationName: z.string().optional(),
+  declarationSignature: z.string().optional(),
+  declarationDate: z.string().optional(),
 });
 
 type ReportFormValues = z.infer<typeof reportSchema>;
+
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground border-b pb-2">{title}</p>
+      {children}
+    </div>
+  );
+}
 
 // ─── Report Incident Dialog ───────────────────────────────────────────────────
 
@@ -176,28 +343,53 @@ function ReportIncidentDialog({
   const [, navigate] = useLocation();
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [docFiles, setDocFiles] = useState<File[]>([]);
+  const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+  const [selectedEffects, setSelectedEffects] = useState<string[]>([]);
+  const [bodyZones, setBodyZones] = useState<string[]>([]);
+
+  const today = new Date().toISOString().split("T")[0];
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(reportSchema),
     defaultValues: {
       title: "",
       description: "",
+      incidentNature: "",
       incidentType: "",
       severity: "minor",
       siteId: "",
       entityId: userRole === "client" && userCompanyId ? userCompanyId : "",
-      incidentDate: new Date().toISOString().split("T")[0],
+      incidentDate: today,
+      incidentTime: "",
+      locationDetails: "",
+      machineryInvolved: "",
+      incidentCause: [],
+      incidentEffect: [],
+      affectedPersonName: "",
+      affectedPersonAddress: "",
+      affectedPersonJobTitle: "",
+      affectedPersonIsPublic: false,
+      reportingPersonName: "",
+      reportingPersonAddress: "",
+      reportingPersonJobTitle: "",
+      bodyDiagramMarkers: "",
+      witnesses: "",
       injuriesReported: false,
-      riddorReportable: false,
       injuryDetails: "",
       immediateActions: "",
-      locationDetails: "",
-      witnesses: "",
+      recommendations: "",
+      riddorReportable: false,
+      riddorResponsiblePerson: "",
+      declarationName: "",
+      declarationSignature: "",
+      declarationDate: today,
     },
   });
 
   const watchEntityId = form.watch("entityId");
   const watchInjuries = form.watch("injuriesReported");
+  const watchRiddor = form.watch("riddorReportable");
+  const watchAffectedIsPublic = form.watch("affectedPersonIsPublic");
 
   const filteredSites = sites.filter(s =>
     watchEntityId ? s.entityId === watchEntityId || s.companyId === watchEntityId : true
@@ -223,6 +415,9 @@ function ReportIncidentDialog({
       const res = await apiRequest("POST", "/api/incidents", {
         ...data,
         incidentDate: new Date(data.incidentDate).toISOString(),
+        incidentCause: selectedCauses,
+        incidentEffect: selectedEffects,
+        bodyDiagramMarkers: bodyZones.length > 0 ? JSON.stringify(bodyZones) : null,
       });
       const incident = await res.json();
       const incidentId = incident.id;
@@ -251,6 +446,9 @@ function ReportIncidentDialog({
       form.reset();
       setPhotoFiles([]);
       setDocFiles([]);
+      setSelectedCauses([]);
+      setSelectedEffects([]);
+      setBodyZones([]);
       onClose();
       if (incident?.id) navigate(`/health-safety/incidents/${incident.id}`);
     },
@@ -263,16 +461,19 @@ function ReportIncidentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-module-accent" />
             Report Incident
           </DialogTitle>
+          <p className="text-sm text-muted-foreground">Please complete all relevant sections as accurately as possible.</p>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Title */}
             <FormField control={form.control} name="title" render={({ field }) => (
               <FormItem>
                 <FormLabel>Incident Title *</FormLabel>
@@ -281,245 +482,403 @@ function ReportIncidentDialog({
               </FormItem>
             )} />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="incidentType" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Incident Type *</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-incident-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {INCIDENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-              <FormField control={form.control} name="severity" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Severity *</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-severity"><SelectValue placeholder="Select severity" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="minor">Minor</SelectItem>
-                      <SelectItem value="moderate">Moderate</SelectItem>
-                      <SelectItem value="major">Major</SelectItem>
-                      <SelectItem value="critical">Critical</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {userRole !== "client" && (
-                <FormField control={form.control} name="entityId" render={({ field }) => (
+            {/* ── Section 1: Incident Overview ── */}
+            <FormSection title="Incident Overview">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="incidentType" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company *</FormLabel>
-                    <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.setValue("siteId", ""); }}>
+                    <FormLabel>Incident Type *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-company"><SelectValue placeholder="Select company" /></SelectTrigger>
+                        <SelectTrigger data-testid="select-incident-type"><SelectValue placeholder="Select type" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        {INCIDENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
-              )}
-
-              <FormField control={form.control} name="siteId" render={({ field }) => (
+                <FormField control={form.control} name="severity" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Severity *</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-severity"><SelectValue placeholder="Select severity" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="minor">Minor</SelectItem>
+                        <SelectItem value="moderate">Moderate</SelectItem>
+                        <SelectItem value="major">Major</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <div className={`grid gap-4 ${userRole !== "client" ? "grid-cols-2" : "grid-cols-1"}`}>
+                {userRole !== "client" && (
+                  <FormField control={form.control} name="entityId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company *</FormLabel>
+                      <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.setValue("siteId", ""); }}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-company"><SelectValue placeholder="Select company" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {companies.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+                <FormField control={form.control} name="siteId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Site *</FormLabel>
+                    <Select value={field.value} onValueChange={(v) => {
+                      field.onChange(v);
+                      const site = sites.find((s: any) => s.id === v);
+                      if (site) form.setValue("entityId", site.entityId || site.companyId || "");
+                    }}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-site"><SelectValue placeholder="Select site" /></SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {filteredSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="incidentDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Accident *</FormLabel>
+                    <FormControl><Input type="date" {...field} data-testid="input-incident-date" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="incidentTime" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time of Accident</FormLabel>
+                    <FormControl><Input type="time" {...field} data-testid="input-incident-time" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="locationDetails" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site *</FormLabel>
-                  <Select value={field.value} onValueChange={(v) => {
-                    field.onChange(v);
-                    const site = sites.find((s: any) => s.id === v);
-                    if (site) form.setValue("entityId", site.entityId || site.companyId || "");
-                  }}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-site"><SelectValue placeholder="Select site" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filteredSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Location Details</FormLabel>
+                  <FormControl><Input placeholder="Specific location within the site where the incident occurred" {...field} data-testid="input-location" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-
-              <FormField control={form.control} name="incidentDate" render={({ field }) => (
+              <FormField control={form.control} name="machineryInvolved" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Incident Date *</FormLabel>
-                  <FormControl><Input type="date" {...field} data-testid="input-incident-date" /></FormControl>
+                  <FormLabel>Machinery / Equipment / Others Involved</FormLabel>
+                  <FormControl><Input placeholder="Name any machinery, equipment or third parties involved" {...field} data-testid="input-machinery" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-            </div>
+            </FormSection>
 
-            <FormField control={form.control} name="description" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description *</FormLabel>
-                <FormControl><Textarea placeholder="Describe what happened in detail..." className="resize-none" rows={4} {...field} data-testid="textarea-description" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <FormField control={form.control} name="locationDetails" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location Details</FormLabel>
-                <FormControl><Input placeholder="Specific location within the site" {...field} data-testid="input-location" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <FormField control={form.control} name="immediateActions" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Immediate Actions Taken</FormLabel>
-                <FormControl><Textarea placeholder="What immediate steps were taken?" className="resize-none" rows={3} {...field} data-testid="textarea-immediate-actions" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <FormField control={form.control} name="witnesses" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Witnesses</FormLabel>
-                <FormControl><Input placeholder="Names of any witnesses present" {...field} data-testid="input-witnesses" /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-            <div className="space-y-3 rounded-md border p-4">
-              <p className="text-sm font-medium">Safety Flags</p>
-              <FormField control={form.control} name="injuriesReported" render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-injuries" /></FormControl>
-                  <FormLabel className="font-normal cursor-pointer">Injuries were sustained</FormLabel>
+            {/* ── Section 2: Description of Incident ── */}
+            <FormSection title="Description of Incident">
+              <FormField control={form.control} name="description" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>What happened — description & cause *</FormLabel>
+                  <FormControl><Textarea placeholder="Describe the sequence of events, what happened and the cause of the incident..." className="resize-none" rows={4} {...field} data-testid="textarea-description" /></FormControl>
+                  <FormMessage />
                 </FormItem>
               )} />
+              <FormField control={form.control} name="incidentNature" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nature of injury / illness</FormLabel>
+                  <FormControl><Textarea placeholder="Describe the nature and extent of any injuries or illness sustained..." className="resize-none" rows={3} {...field} data-testid="textarea-nature" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </FormSection>
+
+            {/* ── Section 3: Cause ── */}
+            <FormSection title="Cause">
+              <p className="text-xs text-muted-foreground -mt-2">Select all that apply</p>
+              <MultiPillSelect options={INCIDENT_CAUSES} selected={selectedCauses} onChange={setSelectedCauses} />
+            </FormSection>
+
+            {/* ── Section 4: Effect / Affect ── */}
+            <FormSection title="Effect / Affect">
+              <p className="text-xs text-muted-foreground -mt-2">Select all that apply</p>
+              <MultiPillSelect options={INCIDENT_EFFECTS} selected={selectedEffects} onChange={setSelectedEffects} />
+            </FormSection>
+
+            {/* ── Section 5: Affected / Injured Person ── */}
+            <FormSection title="Affected / Injured Person">
+              <FormField control={form.control} name="affectedPersonIsPublic" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Was the affected / injured person a member of the public?</FormLabel>
+                  <div className="flex gap-3 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => field.onChange(true)}
+                      className={`px-4 py-1.5 rounded border text-sm font-medium transition-colors ${field.value ? "bg-module-accent text-module-accent-foreground border-module-accent" : "bg-background border-border text-muted-foreground hover:border-module-accent"}`}
+                      data-testid="button-affected-public-yes"
+                    >Yes</button>
+                    <button
+                      type="button"
+                      onClick={() => field.onChange(false)}
+                      className={`px-4 py-1.5 rounded border text-sm font-medium transition-colors ${!field.value ? "bg-module-accent text-module-accent-foreground border-module-accent" : "bg-background border-border text-muted-foreground hover:border-module-accent"}`}
+                      data-testid="button-affected-public-no"
+                    >No</button>
+                  </div>
+                </FormItem>
+              )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="affectedPersonName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl><Input placeholder="Full name of the affected person" {...field} data-testid="input-affected-name" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="affectedPersonJobTitle" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{watchAffectedIsPublic ? "Role / Occupation" : "Job Title"}</FormLabel>
+                    <FormControl><Input placeholder={watchAffectedIsPublic ? "Role or occupation (if known)" : "Job title"} {...field} data-testid="input-affected-jobtitle" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="affectedPersonAddress" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl><Textarea placeholder="Address of the affected person" className="resize-none" rows={2} {...field} data-testid="textarea-affected-address" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </FormSection>
+
+            {/* ── Section 6: Reporting Person ── */}
+            <FormSection title="Person Reporting this Incident">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="reportingPersonName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl><Input placeholder="Full name of the reporting person" {...field} data-testid="input-reporting-name" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="reportingPersonJobTitle" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Title</FormLabel>
+                    <FormControl><Input placeholder="Job title" {...field} data-testid="input-reporting-jobtitle" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="reportingPersonAddress" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl><Textarea placeholder="Address of the reporting person" className="resize-none" rows={2} {...field} data-testid="textarea-reporting-address" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </FormSection>
+
+            {/* ── Section 7: Injury Location (Body Diagram) ── */}
+            <FormSection title="Injury Location">
+              <div className="flex gap-6 items-start">
+                <div className="flex-shrink-0">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">Click to mark injured areas</p>
+                  <BodyDiagramSelector selected={bodyZones} onChange={setBodyZones} />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <FormField control={form.control} name="injuriesReported" render={({ field }) => (
+                    <FormItem className="flex items-center gap-2 space-y-0 rounded-md border px-3 py-2.5">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-injuries" /></FormControl>
+                      <FormLabel className="font-normal cursor-pointer text-sm">Injuries were sustained</FormLabel>
+                    </FormItem>
+                  )} />
+                  {watchInjuries && (
+                    <FormField control={form.control} name="injuryDetails" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Injury Details</FormLabel>
+                        <FormControl><Textarea placeholder="Describe the injuries in detail..." className="resize-none" rows={4} {...field} data-testid="textarea-injury-details" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
+                  <FormField control={form.control} name="witnesses" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Witnesses</FormLabel>
+                      <FormControl><Input placeholder="Names and contact details of any witnesses" {...field} data-testid="input-witnesses" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+            </FormSection>
+
+            {/* ── Section 8: Actions & Recommendations ── */}
+            <FormSection title="Actions Taken & Recommendations">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="immediateActions" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Immediate Actions Taken</FormLabel>
+                    <FormControl><Textarea placeholder="What immediate steps were taken following the incident?" className="resize-none" rows={4} {...field} data-testid="textarea-immediate-actions" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="recommendations" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recommendations</FormLabel>
+                    <FormControl><Textarea placeholder="Recommended actions to prevent recurrence..." className="resize-none" rows={4} {...field} data-testid="textarea-recommendations" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+            </FormSection>
+
+            {/* ── Section 9: RIDDOR ── */}
+            <FormSection title="RIDDOR">
               <FormField control={form.control} name="riddorReportable" render={({ field }) => (
                 <FormItem className="flex items-center gap-2 space-y-0">
                   <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-riddor" /></FormControl>
-                  <FormLabel className="font-normal cursor-pointer">RIDDOR reportable</FormLabel>
+                  <div>
+                    <FormLabel className="font-medium cursor-pointer">This incident is RIDDOR reportable</FormLabel>
+                    <p className="text-xs text-muted-foreground">Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013</p>
+                  </div>
                 </FormItem>
               )} />
-            </div>
+              {watchRiddor && (
+                <FormField control={form.control} name="riddorResponsiblePerson" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Responsible Person for RIDDOR Report</FormLabel>
+                    <FormControl><Input placeholder="Name and job title of person responsible for submitting the RIDDOR report" {...field} data-testid="input-riddor-responsible" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+            </FormSection>
 
-            {watchInjuries && (
-              <FormField control={form.control} name="injuryDetails" render={({ field }) => (
+            {/* ── Section 10: Supporting Evidence ── */}
+            <FormSection title="Supporting Evidence">
+              {/* Photos */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Photos</p>
+                    <p className="text-xs text-muted-foreground">Included in the incident report</p>
+                  </div>
+                  <label className="cursor-pointer" data-testid="label-add-photos">
+                    <input type="file" accept="image/*" multiple className="sr-only" data-testid="input-photos"
+                      onChange={(e) => { const files = Array.from(e.target.files || []); setPhotoFiles(prev => [...prev, ...files]); e.target.value = ""; }} />
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span><ImagePlus className="h-4 w-4 mr-1.5" />Add Photos</span>
+                    </Button>
+                  </label>
+                </div>
+                {photoFiles.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2">
+                    {photoFiles.map((file, i) => (
+                      <div key={i} className="relative group aspect-square rounded-md overflow-hidden bg-muted border">
+                        <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setPhotoFiles(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid={`button-remove-photo-${i}`}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Documents */}
+              <div className="space-y-2 border-t pt-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Supporting Documents</p>
+                    <p className="text-xs text-muted-foreground">PDFs, Word files, spreadsheets</p>
+                  </div>
+                  <label className="cursor-pointer" data-testid="label-add-documents">
+                    <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple className="sr-only" data-testid="input-documents"
+                      onChange={(e) => { const files = Array.from(e.target.files || []); setDocFiles(prev => [...prev, ...files]); e.target.value = ""; }} />
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span><Paperclip className="h-4 w-4 mr-1.5" />Add Documents</span>
+                    </Button>
+                  </label>
+                </div>
+                {docFiles.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {docFiles.map((file, i) => (
+                      <li key={i} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-2">
+                        <span className="flex items-center gap-2 truncate min-w-0">
+                          <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <span className="truncate">{file.name}</span>
+                        </span>
+                        <button type="button" onClick={() => setDocFiles(prev => prev.filter((_, idx) => idx !== i))}
+                          className="text-muted-foreground hover:text-destructive ml-2 flex-shrink-0" data-testid={`button-remove-doc-${i}`}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </FormSection>
+
+            {/* ── Section 11: Declaration ── */}
+            <FormSection title="Declaration">
+              <div className="rounded-md bg-muted/40 border px-4 py-3 text-sm text-muted-foreground leading-relaxed">
+                I declare that the information given in this report is, to the best of my knowledge and belief, true and complete.
+                I understand that it is an offence to make a false statement in connection with the reporting of an injury or dangerous occurrence.
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="declarationName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name of Signatory</FormLabel>
+                    <FormControl><Input placeholder="Full name" {...field} data-testid="input-declaration-name" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="declarationDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date</FormLabel>
+                    <FormControl><Input type="date" {...field} data-testid="input-declaration-date" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <FormField control={form.control} name="declarationSignature" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Injury Details</FormLabel>
-                  <FormControl><Textarea placeholder="Describe the injuries sustained..." className="resize-none" rows={3} {...field} data-testid="textarea-injury-details" /></FormControl>
+                  <FormLabel>Digital Signature</FormLabel>
+                  <p className="text-xs text-muted-foreground">Type your full name below as your digital signature to confirm the declaration above.</p>
+                  <FormControl>
+                    <Input
+                      placeholder="Type your full name to sign"
+                      className="font-serif italic text-base"
+                      {...field}
+                      data-testid="input-declaration-signature"
+                    />
+                  </FormControl>
+                  {field.value && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Signed: <span className="font-serif italic text-foreground">{field.value}</span>
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )} />
-            )}
-
-            {/* Photo uploads */}
-            <div className="space-y-3 rounded-md border p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Photos</p>
-                  <p className="text-xs text-muted-foreground">Included in the incident report</p>
-                </div>
-                <label className="cursor-pointer" data-testid="label-add-photos">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    data-testid="input-photos"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setPhotoFiles(prev => [...prev, ...files]);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span><ImagePlus className="h-4 w-4 mr-1.5" />Add Photos</span>
-                  </Button>
-                </label>
-              </div>
-              {photoFiles.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {photoFiles.map((file, i) => (
-                    <div key={i} className="relative group aspect-square rounded-md overflow-hidden bg-muted border">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPhotoFiles(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        data-testid={`button-remove-photo-${i}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Document uploads */}
-            <div className="space-y-3 rounded-md border p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Supporting Documents</p>
-                  <p className="text-xs text-muted-foreground">PDFs, Word files, spreadsheets</p>
-                </div>
-                <label className="cursor-pointer" data-testid="label-add-documents">
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-                    multiple
-                    className="sr-only"
-                    data-testid="input-documents"
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      setDocFiles(prev => [...prev, ...files]);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <span><Paperclip className="h-4 w-4 mr-1.5" />Add Documents</span>
-                  </Button>
-                </label>
-              </div>
-              {docFiles.length > 0 && (
-                <ul className="space-y-1.5">
-                  {docFiles.map((file, i) => (
-                    <li key={i} className="flex items-center justify-between text-sm bg-muted/50 rounded px-3 py-2">
-                      <span className="flex items-center gap-2 truncate min-w-0">
-                        <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                        <span className="truncate">{file.name}</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setDocFiles(prev => prev.filter((_, idx) => idx !== i))}
-                        className="text-muted-foreground hover:text-destructive ml-2 flex-shrink-0"
-                        data-testid={`button-remove-doc-${i}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            </FormSection>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
               <Button type="submit" disabled={mutation.isPending} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-submit-incident">
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mutation.isPending ? "Submitting…" : "Report Incident"}
+                {mutation.isPending ? "Submitting…" : "Submit Incident Report"}
               </Button>
             </DialogFooter>
           </form>
