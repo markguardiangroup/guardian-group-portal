@@ -22,7 +22,6 @@ import {
   MessageSquare,
   CalendarDays,
   Compass,
-  AlertTriangle,
   Briefcase,
   Cloud,
   Award,
@@ -76,7 +75,7 @@ const moduleNavItems: {
     module: "health_safety",
     subItems: [
       { title: "Sites", url: "/health-safety/sites", icon: MapPin },
-      { title: "Incidents", url: "/health-safety/incidents", icon: AlertTriangle },
+      { title: "Incidents", url: "/health-safety/incidents", icon: ShieldAlert },
       { title: "Cloud Share", url: "/health-safety/cloud-share", icon: Cloud },
     ],
   },
@@ -125,7 +124,7 @@ const moduleNavItems: {
     subItems: [
       { title: "Dashboard", url: "/training/dashboard", icon: LayoutDashboard, adminOnly: true },
       { title: "Dashboard", url: "/training/my-training", icon: LayoutDashboard, clientOnly: true },
-      { title: "Courses", url: "/training", icon: BookOpen },
+      { title: "Courses", url: "/training", icon: GraduationCap },
       { title: "Certificates", url: "/training/certificates", icon: Award },
     ],
   },
