@@ -1166,7 +1166,7 @@ export default function CompanyDetail() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle className="text-base">Company Details</CardTitle>
               </CardHeader>
@@ -1260,48 +1260,6 @@ export default function CompanyDetail() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Compliance Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {aggregatedCompliance.totalDocuments > 0 ? (
-                  <>
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-sm font-medium">Overall Compliance</span>
-                      <span className="text-sm text-muted-foreground">{complianceScore}%</span>
-                    </div>
-                    <Progress value={complianceScore} className="h-2 mb-4" />
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                      <div>
-                        <p className="text-xl font-semibold">{aggregatedCompliance.totalDocuments}</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
-                      <div>
-                        <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                          {aggregatedCompliance.compliantDocuments}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Compliant</p>
-                      </div>
-                      <div>
-                        <p className="text-xl font-semibold text-amber-600 dark:text-amber-400">
-                          {aggregatedCompliance.reviewRequired}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Review</p>
-                      </div>
-                      <div>
-                        <p className="text-xl font-semibold text-red-600 dark:text-red-400">
-                          {aggregatedCompliance.overdueDocuments}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Overdue</p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No compliance data available</p>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Module Document Summary */}
