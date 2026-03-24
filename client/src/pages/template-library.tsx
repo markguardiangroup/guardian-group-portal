@@ -2549,39 +2549,16 @@ export default function TemplateLibraryPage() {
             {bulkShared.visibility === "public" && (
               <div className="space-y-2">
                 <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
-                <div className="flex gap-2 mb-2">
-                  <Button type="button" size="sm" variant={!bulkShared.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                    data-testid="button-bulk-select-existing-toolkit-folder">
-                    Select Existing
-                  </Button>
-                  <Button type="button" size="sm" variant={bulkShared.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: true, toolkitFolderId: "" })}
-                    data-testid="button-bulk-create-new-toolkit-folder">
-                    <Plus className="h-4 w-4 mr-1" />Create New
-                  </Button>
-                </div>
-                {!bulkShared.createNewToolkitFolder ? (
-                  <>
-                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v })}>
-                      <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
-                      <SelectContent>
-                        {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
-                      <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-1 p-3 border rounded-md bg-muted/30">
-                    <Label htmlFor="bulk-new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
-                    <Input id="bulk-new-toolkit-folder-name" value={bulkShared.newToolkitFolderName}
-                      onChange={(e) => setBulkShared({ ...bulkShared, newToolkitFolderName: e.target.value })}
-                      placeholder="e.g., HR Policies" data-testid="input-bulk-new-toolkit-folder-name" />
-                  </div>
+                <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false })}>
+                  <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
+                  <SelectContent>
+                    {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
+                  <p className="text-xs text-muted-foreground">No Toolkit folders available for this module.</p>
                 )}
               </div>
             )}
@@ -2590,40 +2567,16 @@ export default function TemplateLibraryPage() {
             {bulkShared.visibility !== "public" && (
             <div className="space-y-2">
               <Label>Template Library Folder <span className="text-destructive">*</span></Label>
-              <div className="flex gap-2 mb-2">
-                <Button type="button" size="sm" variant={!bulkShared.createNewFolder ? "default" : "outline"}
-                  onClick={() => setBulkShared({ ...bulkShared, createNewFolder: false, newFolderName: "" })}
-                  data-testid="button-bulk-select-existing-folder">
-                  Select Existing
-                </Button>
-                <Button type="button" size="sm" variant={bulkShared.createNewFolder ? "default" : "outline"}
-                  onClick={() => setBulkShared({ ...bulkShared, createNewFolder: true, folderTemplateId: "" })}
-                  data-testid="button-bulk-create-new-folder">
-                  <Plus className="h-4 w-4 mr-1" />Create New
-                </Button>
-              </div>
-              {!bulkShared.createNewFolder ? (
-                <>
-                  <Select value={bulkShared.folderTemplateId} onValueChange={(v) => setBulkShared({ ...bulkShared, folderTemplateId: v })}>
-                    <SelectTrigger data-testid="select-bulk-template-folder"><SelectValue placeholder="Select a folder" /></SelectTrigger>
-                    <SelectContent>
-                      {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive)).map(f => (
-                        <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive).length === 0 && (
-                    <p className="text-xs text-muted-foreground">No folders available. Click "Create New" to add one.</p>
-                  )}
-                </>
-              ) : (
-                <div className="space-y-1 p-3 border rounded-md bg-muted/30">
-                  <Label htmlFor="bulk-new-folder-name" className="text-sm">Folder Name</Label>
-                  <Input id="bulk-new-folder-name" value={bulkShared.newFolderName}
-                    onChange={(e) => setBulkShared({ ...bulkShared, newFolderName: e.target.value })}
-                    placeholder="e.g., Policies" data-testid="input-bulk-new-folder-name" />
-                  <p className="text-xs text-muted-foreground">A unique code will be generated automatically</p>
-                </div>
+              <Select value={bulkShared.folderTemplateId} onValueChange={(v) => setBulkShared({ ...bulkShared, folderTemplateId: v, createNewFolder: false })}>
+                <SelectTrigger data-testid="select-bulk-template-folder"><SelectValue placeholder="Select a folder" /></SelectTrigger>
+                <SelectContent>
+                  {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive)).map(f => (
+                    <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive).length === 0 && (
+                <p className="text-xs text-muted-foreground">No folders available for this module.</p>
               )}
             </div>
             )}
