@@ -4845,6 +4845,60 @@ export async function registerRoutes(
     }
   });
 
+  // Company stats: document counts by module, case count, incident count
+  app.get("/api/companies/:companyId/stats", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+
+      if (user.role === "consultant") {
+        if (!isProConsultant(user)) {
+          const assignments = await storage.getConsultantSites(user.id);
+          const siteCompanyIds = new Set<string>();
+          for (const a of assignments) {
+            const site = await storage.getSite(a.siteId);
+            if (site) siteCompanyIds.add(site.companyId);
+          }
+          if (!siteCompanyIds.has(company.id)) return res.status(403).json({ error: "Access denied" });
+        }
+      } else if (user.role === "client") {
+        if (user.companyId !== company.id) return res.status(403).json({ error: "Access denied" });
+      } else if (user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const companyId = req.params.companyId;
+
+      const docRows = await pool.query(
+        `SELECT module, COUNT(*) as count FROM documents WHERE entity_id = $1 AND is_archived = false GROUP BY module`,
+        [companyId]
+      );
+      const documents: Record<string, number> = {};
+      for (const row of docRows.rows) documents[row.module] = parseInt(row.count, 10);
+
+      const caseRow = await pool.query(
+        `SELECT COUNT(*) as count FROM cases WHERE entity_id = $1 AND is_archived = false`,
+        [companyId]
+      );
+      const incidentRow = await pool.query(
+        `SELECT COUNT(*) as count FROM incidents WHERE entity_id = $1`,
+        [companyId]
+      );
+
+      res.json({
+        documents,
+        cases: parseInt(caseRow.rows[0].count, 10),
+        incidents: parseInt(incidentRow.rows[0].count, 10),
+      });
+    } catch (error) {
+      console.error("Company stats error:", error);
+      res.status(500).json({ error: "Failed to fetch company stats" });
+    }
+  });
+
   // Create company
   app.post("/api/companies", requireAuth, async (req, res) => {
     try {
@@ -5248,6 +5302,44 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get entity error:", error);
       res.status(500).json({ error: "Failed to fetch entity" });
+    }
+  });
+
+  // Site stats: document counts by module, case count, incident count
+  app.get("/api/sites/:siteId/stats", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const canAccess = await canUserAccessSite(user, req.params.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const siteId = req.params.siteId;
+
+      const docRows = await pool.query(
+        `SELECT module, COUNT(*) as count FROM documents WHERE site_id = $1 AND is_archived = false GROUP BY module`,
+        [siteId]
+      );
+      const documents: Record<string, number> = {};
+      for (const row of docRows.rows) documents[row.module] = parseInt(row.count, 10);
+
+      const caseRow = await pool.query(
+        `SELECT COUNT(*) as count FROM cases WHERE site_id = $1 AND is_archived = false`,
+        [siteId]
+      );
+      const incidentRow = await pool.query(
+        `SELECT COUNT(*) as count FROM incidents WHERE site_id = $1`,
+        [siteId]
+      );
+
+      res.json({
+        documents,
+        cases: parseInt(caseRow.rows[0].count, 10),
+        incidents: parseInt(incidentRow.rows[0].count, 10),
+      });
+    } catch (error) {
+      console.error("Site stats error:", error);
+      res.status(500).json({ error: "Failed to fetch site stats" });
     }
   });
 
