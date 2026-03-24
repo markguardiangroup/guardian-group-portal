@@ -46,6 +46,16 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { Site, ModuleType } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -126,6 +136,8 @@ export default function DocumentUpload() {
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
 
   // Read pre-fill params from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -154,6 +166,24 @@ export default function DocumentUpload() {
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
+
+  const { data: moduleTemplates } = useQuery<any[]>({
+    queryKey: ["/api/document-templates", initialModule],
+    queryFn: async () => {
+      const res = await fetch(`/api/document-templates?module=${initialModule}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const hasRelevantTemplates = (moduleTemplates?.length ?? 0) > 0;
+
+  const handleUploadFromScratch = () => {
+    if (hasRelevantTemplates) {
+      setShowTemplatePrompt(true);
+    } else {
+      setShowUploadForm(true);
+    }
+  };
 
   const form = useForm<DocumentUploadForm>({
     resolver: zodResolver(documentUploadSchema),
@@ -535,33 +565,49 @@ export default function DocumentUpload() {
         </div>
       </div>
 
-      {isAdminOrConsultant && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-md">
-                  <BookOpen className="h-5 w-5 text-primary" />
+      {!showUploadForm && (
+        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+          {isAdminOrConsultant && (
+            <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
+              <CardContent className="py-6 flex flex-col items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <BookOpen className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <p className="font-medium">Looking to create a document from a template?</p>
-                  <p className="text-sm text-muted-foreground">
-                    Use the Template Library to create standardized compliance documents with pre-filled site details.
+                <div className="flex-1">
+                  <p className="font-semibold text-base">Create from Template</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Use a pre-built template with standardised content and compliance settings.
                   </p>
                 </div>
+                <Link href={`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`} className="w-full">
+                  <Button className="w-full" data-testid="button-create-from-template">
+                    Create from Template
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="border-muted hover:bg-muted/30 transition-colors">
+            <CardContent className="py-6 flex flex-col items-start gap-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <Upload className="h-6 w-6 text-muted-foreground" />
               </div>
-              <Link href={`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`}>
-                <Button data-testid="button-create-from-template">
-                  Create from Template
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex-1">
+                <p className="font-semibold text-base">Upload from Scratch</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload an existing document from your computer without using a template.
+                </p>
+              </div>
+              <Button variant="outline" className="w-full" onClick={handleUploadFromScratch} data-testid="button-upload-from-scratch">
+                Upload from Scratch
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {showUploadForm && <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -1159,7 +1205,45 @@ export default function DocumentUpload() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </div>}
+
+      <AlertDialog open={showTemplatePrompt} onOpenChange={setShowTemplatePrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Templates Available
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              There are templates available for this module that can save you time and ensure compliance standards are met. Would you like to use a template instead?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-primary hover:bg-primary/90"
+              onClick={() => {
+                setShowTemplatePrompt(false);
+                navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
+              }}
+              data-testid="button-prompt-switch-template"
+            >
+              Switch to Template
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </AlertDialogAction>
+            <AlertDialogAction
+              className="border border-input bg-background text-foreground hover:bg-muted shadow-none"
+              onClick={() => {
+                setShowTemplatePrompt(false);
+                setShowUploadForm(true);
+              }}
+              data-testid="button-prompt-continue"
+            >
+              Continue Without Template
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
