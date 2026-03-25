@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useSiteFilter } from "@/hooks/use-site-filter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -152,9 +151,10 @@ export default function UserManagement() {
   const canAddUser = isAdmin || isPro;
   const isConsultant = user?.role === "consultant";
   const { toast } = useToast();
-  const { selectedCompany, handleCompanyChange } = useSiteFilter();
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const companyFilter = selectedCompany || "all";
-  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const setCompanyFilter = (val: string) => setSelectedCompany(val === "all" ? null : val);
+  const handleCompanyChange = (val: string | null) => setSelectedCompany(val);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");

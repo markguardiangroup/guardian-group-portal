@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,7 +96,9 @@ const moduleLabels: Record<ModuleType, string> = {
 function ModuleSitesView({ module }: { module: ModuleType }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { selectedCompany, handleCompanyChange, setSelectedSiteId } = useSiteFilter();
+  const { setSelectedSiteId } = useSiteFilter();
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const handleCompanyChange = (company: string | null) => setSelectedCompany(company);
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const basePath =
