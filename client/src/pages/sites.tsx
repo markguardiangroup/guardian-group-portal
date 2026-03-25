@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,9 +80,10 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
 export default function Sites() {
   const { user } = useAuth();
-  const { selectedCompany, handleCompanyChange } = useSiteFilter();
-  const companyFilter = selectedCompany || "all";
-  const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
+  const [localSelectedCompany, setLocalSelectedCompany] = useState<string | null>(null);
+  const handleCompanyChange = (val: string | null) => setLocalSelectedCompany(val);
+  const companyFilter = localSelectedCompany || "all";
+  const setCompanyFilter = (val: string) => setLocalSelectedCompany(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
   const [myAssignedOnly, setMyAssignedOnly] = useState(false);
