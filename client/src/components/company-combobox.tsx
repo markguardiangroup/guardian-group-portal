@@ -24,7 +24,7 @@ interface SiteWithCompany {
 }
 
 interface CompanyComboboxProps {
-  sites: SiteWithCompany[];
+  sites?: SiteWithCompany[];
   value: string | null;
   onValueChange: (value: string | null) => void;
   placeholder?: string;
@@ -34,7 +34,7 @@ interface CompanyComboboxProps {
 }
 
 export function CompanyCombobox({
-  sites,
+  sites = [],
   value,
   onValueChange,
   placeholder = "Select company...",
