@@ -108,6 +108,7 @@ export default function DevelopmentRoadmap() {
   const [completingItem, setCompletingItem] = useState<RoadmapItem | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
@@ -173,12 +174,13 @@ export default function DevelopmentRoadmap() {
 
   const filteredItems = roadmapItems.filter(item => {
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;
+    const matchesType = filterType === "all" || item.category === filterType;
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = !query || 
       item.title.toLowerCase().includes(query) || 
       (item.description && item.description.toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query));
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesType && matchesSearch;
   });
 
   const groupedItems = {
@@ -219,6 +221,17 @@ export default function DevelopmentRoadmap() {
                 <SelectItem value="planned">Planned</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[160px]" data-testid="select-filter-type">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.entries(categoryConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
