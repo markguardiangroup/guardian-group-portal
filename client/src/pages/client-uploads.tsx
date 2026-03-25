@@ -72,6 +72,7 @@ import {
 } from "lucide-react";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 
 type ClientUploadModule = "health_safety" | "human_resources" | "employment_law";
 
@@ -195,8 +196,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const { selectedSiteId, setSelectedSiteId, selectedCompany, setSelectedCompany } = useSiteFilter();
   const [selectedFolder, setSelectedFolder] = useState<ClientUploadFolderWithMeta | null>(null);
   const [checkedFileIds, setCheckedFileIds] = useState<Set<string>>(new Set());
 
