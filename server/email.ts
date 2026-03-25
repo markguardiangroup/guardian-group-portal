@@ -7,8 +7,12 @@ const FROM_NAME = "Guardian Group";
 
 const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 
-// Use a high-quality logo URL for the email header
-const LOGO_URL = "https://guardiangroup.co.uk/wp-content/uploads/2021/04/Guardian-Group-Logo-Retina.png";
+// Use the app's own hosted logo — falls back through available domain env vars
+const APP_BASE_URL = process.env.APP_BASE_URL ||
+  (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "");
+const LOGO_URL = APP_BASE_URL
+  ? `${APP_BASE_URL}/guardian-logo.jpg`
+  : "https://guardiangroup.co.uk/wp-content/uploads/2021/04/Guardian-Group-Logo-Retina.png";
 
 export async function sendInvitationEmail({
   to,
