@@ -42,7 +42,6 @@ const SERVICE_CARDS = [
 ];
 
 export default function Login() {
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -127,25 +126,7 @@ export default function Login() {
     },
   });
 
-  const isLoading = loginMutation.isPending || isLoggingIn || isLoadingPage;
-
-  const devLogin = async (username: string) => {
-    try {
-      setIsLoggingIn(true);
-      queryClient.clear();
-      await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password: "admin123" }),
-        credentials: "include",
-      });
-      setIsLoadingPage(true);
-      window.location.href = "/";
-    } catch (e) {
-      console.error("Login failed", e);
-      setIsLoggingIn(false);
-    }
-  };
+  const isLoading = loginMutation.isPending || isLoadingPage;
 
   return (
     <div className="min-h-screen flex">
@@ -360,32 +341,6 @@ export default function Login() {
               </Button>
             </form>
           </Form>
-
-          {/* Dev accounts */}
-          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Quick access – demo accounts</p>
-            <div className="space-y-2">
-              {[
-                { label: "Admin", username: "admin", color: "bg-slate-800 hover:bg-slate-900", testId: "button-dev-login-admin" },
-                { label: "Consultant (Jane)", username: "jane.smith", color: "bg-emerald-600 hover:bg-emerald-700", testId: "button-dev-login-consultant-jane" },
-                { label: "Pro Consultant (John)", username: "john.doe", color: "bg-emerald-600 hover:bg-emerald-700", testId: "button-dev-login-consultant" },
-                { label: "Client (Sarah)", username: "sarah.johnson", color: "bg-sky-600 hover:bg-sky-700", testId: "button-dev-login-client" },
-                { label: "Client (Mike)", username: "mike.brown", color: "bg-sky-600 hover:bg-sky-700", testId: "button-dev-login-client-mike" },
-              ].map(({ label, username, color, testId }) => (
-                <div key={username} className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-600 truncate">{label}</span>
-                  <button
-                    type="button"
-                    onClick={() => devLogin(username)}
-                    data-testid={testId}
-                    className={`shrink-0 rounded-md px-3 py-1 text-xs font-medium text-white transition-colors ${color}`}
-                  >
-                    Login
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
         )}
       </div>
