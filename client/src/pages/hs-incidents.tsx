@@ -1206,6 +1206,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+  const [detailsMinimised, setDetailsMinimised] = useState(false);
 
   const navigatePhoto = useCallback((direction: "prev" | "next", photoList: any[]) => {
     setLightboxPhoto(current => {
@@ -1552,8 +1553,22 @@ function IncidentDetailView({ id }: { id: string }) {
             {/* Incident Details — full form mirror */}
             <Card>
               <CardHeader className="border-b">
-                <CardTitle className="text-lg">Incident Details</CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-lg">Incident Details</CardTitle>
+                  <button
+                    onClick={() => setDetailsMinimised(v => !v)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-toggle-incident-details"
+                  >
+                    {detailsMinimised ? (
+                      <><ChevronDown className="h-4 w-4" /><span>Expand</span></>
+                    ) : (
+                      <><ChevronUp className="h-4 w-4" /><span>Minimise</span></>
+                    )}
+                  </button>
+                </div>
               </CardHeader>
+              {!detailsMinimised && (
               <CardContent className="pt-0 divide-y">
 
                 {/* ── Section 1: Overview ── */}
@@ -1811,6 +1826,7 @@ function IncidentDetailView({ id }: { id: string }) {
                 )}
 
               </CardContent>
+              )}
             </Card>
 
             {/* Action Items / Milestones */}
