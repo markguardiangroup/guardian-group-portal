@@ -655,6 +655,14 @@ function ReportIncidentDialog({
   const watchInjuries = form.watch("injuriesReported");
   const watchRiddor = form.watch("riddorReportable");
   const watchAffectedIsPublic = form.watch("affectedPersonIsPublic");
+  const watchReportingName = form.watch("reportingPersonName");
+  const declarationNameTouched = useRef(false);
+
+  useEffect(() => {
+    if (!declarationNameTouched.current && watchReportingName !== undefined) {
+      form.setValue("declarationName", watchReportingName);
+    }
+  }, [watchReportingName]);
 
   const filteredEffects = useMemo(() => {
     if (selectedCauses.length === 0) return INCIDENT_EFFECTS;
@@ -1142,7 +1150,14 @@ function ReportIncidentDialog({
                 <FormField control={form.control} name="declarationName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name of Signatory</FormLabel>
-                    <FormControl><Input placeholder="Full name" {...field} data-testid="input-declaration-name" /></FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder="Full name"
+                        {...field}
+                        onChange={(e) => { declarationNameTouched.current = true; field.onChange(e); }}
+                        data-testid="input-declaration-name"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
