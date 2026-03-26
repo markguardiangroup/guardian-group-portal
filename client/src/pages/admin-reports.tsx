@@ -123,7 +123,7 @@ export default function AdminReports() {
 
   return (
     <div className="space-y-6 p-8 dash-animate">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-2">
             <ShieldAlert className="h-8 w-8" />

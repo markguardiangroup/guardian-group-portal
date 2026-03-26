@@ -1903,7 +1903,7 @@ export default function TemplateLibraryPage() {
   
   return (
     <div className="p-6 space-y-6 dash-animate">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <BookOpen className="h-6 w-6" />

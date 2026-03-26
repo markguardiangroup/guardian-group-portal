@@ -279,7 +279,7 @@ export default function SiteModuleAccess() {
 
   return (
     <div className="space-y-6 p-8 dash-animate">
-      <div>
+      <div className="sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
         <h1 className="text-3xl font-semibold">Site Module Access</h1>
         <p className="mt-1 text-muted-foreground">
           Manage which modules each site can access ({sites.length} sites)

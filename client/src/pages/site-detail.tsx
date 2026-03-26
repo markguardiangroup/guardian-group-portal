@@ -1310,7 +1310,7 @@ export default function SiteDetail() {
 
   return (
     <div className="flex flex-col gap-6 p-6 dash-animate">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
         <Button
           variant="ghost"
           size="icon"

@@ -1065,7 +1065,7 @@ export default function CompanyDetail() {
   return (
     <div className="space-y-6 p-8 dash-animate">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />
         </Button>

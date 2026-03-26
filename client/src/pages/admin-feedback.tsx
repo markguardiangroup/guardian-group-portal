@@ -139,7 +139,7 @@ export default function AdminFeedback() {
 
   return (
     <div className="container mx-auto p-6 space-y-8 dash-animate">
-      <div>
+      <div className="sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
         <h1 className="text-3xl font-bold tracking-tight">Feedback</h1>
         <p className="text-muted-foreground">
           Internal feedback and collaboration for the Guardian Group team.

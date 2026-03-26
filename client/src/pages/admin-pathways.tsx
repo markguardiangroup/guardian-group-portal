@@ -600,7 +600,7 @@ export default function AdminPathways() {
 
   return (
     <div className="space-y-6 dash-animate p-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
         <div className="flex items-start gap-3">
           <Compass className="h-7 w-7 text-primary mt-0.5 shrink-0" />
           <div>

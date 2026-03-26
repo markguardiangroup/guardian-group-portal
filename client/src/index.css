@@ -513,9 +513,11 @@
   }
 }
 
-/* Coloured header band – no entrance animation so it feels persistent across navigation */
+/* Coloured header band – sticky so it stays at the top while content scrolls */
 .dash-header {
-  /* intentionally static – content area uses dash-animate for staggered entrance */
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 /* Each direct child of .dash-animate gets a staggered entrance */

@@ -442,7 +442,7 @@ export default function ModuleAccessRequests() {
 
   return (
     <div className="space-y-6 p-8 dash-animate">
-      <div>
+      <div className="sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
         <h1 className="text-3xl font-semibold">Module Requests</h1>
         <p className="mt-1 text-muted-foreground">
           Manage and review entity requests for module access
