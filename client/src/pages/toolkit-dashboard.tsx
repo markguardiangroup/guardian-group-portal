@@ -1,10 +1,11 @@
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookMarked, DownloadCloud, TrendingUp, Download, FolderOpen, HardHat, Briefcase, Scale, X } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { CountUp } from "@/components/ui/count-up";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -42,37 +43,6 @@ interface DownloadStats {
   }[];
 }
 
-function TickerNumber({ value, className }: { value: number; className?: string }) {
-  const [animKey, setAnimKey] = useState(0);
-  const [displayed, setDisplayed] = useState(value);
-  const prevRef = useRef(value);
-  const mountedRef = useRef(false);
-
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
-    if (prevRef.current === value) return;
-    prevRef.current = value;
-    setDisplayed(value);
-    setAnimKey(k => k + 1);
-  }, [value]);
-
-  return (
-    <span
-      key={animKey}
-      className={className}
-      style={{
-        display: "inline-block",
-        animation: animKey > 0 ? "tickerUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both" : "none",
-      }}
-      data-testid="ticker-number"
-    >
-      {displayed}
-    </span>
-  );
-}
 
 export default function ToolkitDashboard() {
   const { user } = useAuth();
@@ -198,7 +168,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-total-downloads">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : <TickerNumber value={stats?.totalDownloads ?? 0} />}
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.totalDownloads ?? 0} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {contextName ? `For ${contextName}` : "All time, all companies"}
@@ -213,7 +183,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-downloads-30days">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : <TickerNumber value={stats?.downloadsLast30Days ?? 0} />}
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.downloadsLast30Days ?? 0} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
             </CardContent>
@@ -263,7 +233,7 @@ export default function ToolkitDashboard() {
                   {isLoading ? (
                     <Skeleton className="h-8 w-12" />
                   ) : (
-                    <TickerNumber value={stats?.downloadsByModule?.[key] ?? 0} />
+                    <CountUp value={stats?.downloadsByModule?.[key] ?? 0} />
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Total downloads</p>

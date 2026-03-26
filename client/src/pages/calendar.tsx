@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { CountUp } from "@/components/ui/count-up";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -520,7 +521,7 @@ export default function CalendarPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary" data-testid="text-total-events">{isLoading ? "–" : stats.total}</div>
+              <div className="text-2xl font-bold text-primary" data-testid="text-total-events">{isLoading ? "–" : <CountUp value={stats.total} />}</div>
               <p className="text-xs text-muted-foreground">Total events</p>
             </CardContent>
           </Card>
@@ -532,7 +533,7 @@ export default function CalendarPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-overdue-events">{isLoading ? "–" : stats.overdue}</div>
+              <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-overdue-events">{isLoading ? "–" : <CountUp value={stats.overdue} />}</div>
               <p className="text-xs text-muted-foreground">Require attention</p>
             </CardContent>
           </Card>
@@ -544,7 +545,7 @@ export default function CalendarPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-upcoming-events">{isLoading ? "–" : stats.upcoming}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-upcoming-events">{isLoading ? "–" : <CountUp value={stats.upcoming} />}</div>
               <p className="text-xs text-muted-foreground">Scheduled ahead</p>
             </CardContent>
           </Card>

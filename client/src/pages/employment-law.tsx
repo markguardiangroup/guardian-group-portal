@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { CountUp } from "@/components/ui/count-up";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -414,7 +415,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">{openCases}</div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} /></div>}
               <p className="text-xs text-muted-foreground">Currently being managed</p>
             </CardContent>
           </Card>
@@ -426,7 +427,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{urgentCases}</div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={urgentCases} /></div>}
               <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
             </CardContent>
           </Card>
@@ -438,7 +439,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400">{resolvedCases}</div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} /></div>}
               <p className="text-xs text-muted-foreground">Successfully completed</p>
             </CardContent>
           </Card>
