@@ -2984,7 +2984,6 @@ function IncidentsListView() {
 
   const { data: overdueActionsData } = useQuery<{ count: number }>({
     queryKey: ["/api/incidents/overdue-actions-count"],
-    enabled: registerType === "incident",
   });
 
   const stats = {
@@ -3140,12 +3139,12 @@ function IncidentsListView() {
                   <div className="text-xs text-muted-foreground">Active</div>
                 </div>
                 <div className="text-center border-x">
-                  <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{stats.critical}</div>
-                  <div className="text-xs text-muted-foreground">Unreviewed</div>
+                  <div className={`text-xl font-bold ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>{stats.riddor}</div>
+                  <div className="text-xs text-muted-foreground">RIDDOR</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-green-600 dark:text-green-400">{stats.resolved}</div>
-                  <div className="text-xs text-muted-foreground">Closed</div>
+                  <div className={`text-xl font-bold ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`}>{stats.overdueActions}</div>
+                  <div className="text-xs text-muted-foreground">Open Actions</div>
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors">
