@@ -9708,8 +9708,7 @@ export async function registerRoutes(
     try {
       const user = (req.session as any).user;
       const isPrivileged = user?.role === "admin" || user?.role === "consultant";
-      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : user.entityId);
-      const now = new Date();
+      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
       let openCount = 0;
       for (const incident of allIncidents) {
         const milestones = await storage.getIncidentMilestones(incident.id);
