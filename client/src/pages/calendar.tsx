@@ -493,13 +493,18 @@ export default function CalendarPage() {
     <div>
       {/* Header — title only, filters live in the cards */}
       <div className="dash-header bg-muted/30 border-b border-t-4 border-t-primary px-8 py-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary">
-            <CalendarDays className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold">Calendar</h1>
-            <p className="text-muted-foreground">Key dates across all modules</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary">
+              <CalendarDays className="h-7 w-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                Calendar
+                <span className="font-normal text-muted-foreground text-2xl"> — Key dates across all modules</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]" />
+            </div>
           </div>
         </div>
       </div>
