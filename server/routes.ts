@@ -5045,6 +5045,19 @@ export async function registerRoutes(
       if (searchTag !== undefined) updates.searchTag = searchTag || null;
       if (employeeRange !== undefined) updates.employeeRange = employeeRange || null;
       if (industry !== undefined) updates.industry = industry || null;
+
+      // If a contactUserId is being set, auto-populate contact fields from the user's profile
+      // (only if those fields weren't explicitly provided in the request)
+      let contactUser: any = null;
+      if (contactUserId) {
+        contactUser = await storage.getUser(contactUserId);
+        if (contactUser && contactUser.role === "client" && contactUser.companyId === req.params.id) {
+          if (updates.contactName === undefined) updates.contactName = contactUser.fullName || null;
+          if (updates.contactEmail === undefined) updates.contactEmail = contactUser.email || null;
+          if (updates.contactPhone === undefined) updates.contactPhone = contactUser.phone || contactUser.mobile || null;
+          if (updates.contactPosition === undefined) updates.contactPosition = contactUser.jobTitle || null;
+        }
+      }
       
       const company = await storage.updateCompany(req.params.id, updates);
       
@@ -5054,7 +5067,7 @@ export async function registerRoutes(
       
       // Auto-assign primary contact user to all company sites
       if (contactUserId) {
-        const contactUser = await storage.getUser(contactUserId);
+        if (!contactUser) contactUser = await storage.getUser(contactUserId);
         if (contactUser && contactUser.role === "client" && contactUser.companyId === req.params.id) {
           const companySites = await storage.getSitesByCompanyId(req.params.id);
           for (const site of companySites) {

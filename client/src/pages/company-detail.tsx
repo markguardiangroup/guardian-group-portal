@@ -1905,29 +1905,38 @@ export default function CompanyDetail() {
               </p>
 
               {/* Company primary contact — read-only */}
-              <div className="mb-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
-                {company?.contactName ? (
-                  <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-3">
-                    <div className="mt-0.5 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <UserIcon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-medium">{company.contactName}</p>
-                      {company.contactPosition && <p className="text-muted-foreground text-xs">{company.contactPosition}</p>}
-                      <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-muted-foreground">
-                        {company.contactEmail && <span>{company.contactEmail}</span>}
-                        {company.contactPhone && <span>{company.contactPhone}</span>}
+              {(() => {
+                const linkedUser = company?.contactUserId ? companyUsers.find(u => u.id === company.contactUserId) : null;
+                const displayName = company?.contactName || linkedUser?.fullName;
+                const displayPosition = company?.contactPosition || linkedUser?.jobTitle;
+                const displayEmail = company?.contactEmail || linkedUser?.email;
+                const displayPhone = company?.contactPhone || linkedUser?.phone || linkedUser?.mobile;
+                return (
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
+                    {displayName ? (
+                      <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-3">
+                        <div className="mt-0.5 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <UserIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium">{displayName}</p>
+                          {displayPosition && <p className="text-muted-foreground text-xs">{displayPosition}</p>}
+                          <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-muted-foreground">
+                            {displayEmail && <span>{displayEmail}</span>}
+                            {displayPhone && <span>{displayPhone}</span>}
+                          </div>
+                          <p className="text-xs text-primary mt-1">Will be automatically assigned to this site</p>
+                        </div>
                       </div>
-                      <p className="text-xs text-primary mt-1">Will be automatically assigned to this site</p>
-                    </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
+                        No primary contact set for this company.
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
-                    No primary contact set for this company.
-                  </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Additional users */}
               <div>

@@ -607,29 +607,38 @@ export default function Sites() {
               ) : (
                 <>
                   {/* Company primary contact — read-only */}
-                  <div className="mb-3">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
-                    {selectedCompany?.contactName ? (
-                      <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-3">
-                        <div className="mt-0.5 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Users className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium">{selectedCompany.contactName}</p>
-                          {selectedCompany.contactPosition && <p className="text-muted-foreground text-xs">{selectedCompany.contactPosition}</p>}
-                          <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-muted-foreground">
-                            {selectedCompany.contactEmail && <span>{selectedCompany.contactEmail}</span>}
-                            {selectedCompany.contactPhone && <span>{selectedCompany.contactPhone}</span>}
+                  {(() => {
+                    const linkedUser = selectedCompany?.contactUserId ? allUsers.find(u => u.id === selectedCompany.contactUserId) : null;
+                    const displayName = selectedCompany?.contactName || linkedUser?.fullName;
+                    const displayPosition = selectedCompany?.contactPosition || linkedUser?.jobTitle;
+                    const displayEmail = selectedCompany?.contactEmail || linkedUser?.email;
+                    const displayPhone = selectedCompany?.contactPhone || linkedUser?.phone || linkedUser?.mobile;
+                    return (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
+                        {displayName ? (
+                          <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-3">
+                            <div className="mt-0.5 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              <Users className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium">{displayName}</p>
+                              {displayPosition && <p className="text-muted-foreground text-xs">{displayPosition}</p>}
+                              <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-muted-foreground">
+                                {displayEmail && <span>{displayEmail}</span>}
+                                {displayPhone && <span>{displayPhone}</span>}
+                              </div>
+                              <p className="text-xs text-primary mt-1">Will be automatically assigned to this site</p>
+                            </div>
                           </div>
-                          <p className="text-xs text-primary mt-1">Will be automatically assigned to this site</p>
-                        </div>
+                        ) : (
+                          <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
+                            No primary contact set for this company.
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
-                        No primary contact set for this company.
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
 
                   {/* Additional users */}
                   <div>
