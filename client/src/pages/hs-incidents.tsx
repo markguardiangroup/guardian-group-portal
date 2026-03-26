@@ -1206,7 +1206,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
-  const [detailsMinimised, setDetailsMinimised] = useState(false);
+  const [detailsMinimised, setDetailsMinimised] = useState(true);
 
   const navigatePhoto = useCallback((direction: "prev" | "next", photoList: any[]) => {
     setLightboxPhoto(current => {
@@ -2212,6 +2212,26 @@ function IncidentDetailView({ id }: { id: string }) {
           <div className="space-y-5">
             <Card>
               <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="text-center mb-3">
+                  <p className="text-2xl font-bold">{completedMilestones}<span className="text-muted-foreground text-lg">/{totalMilestones}</span></p>
+                  <p className="text-xs text-muted-foreground">actions completed</p>
+                </div>
+                <Progress value={milestoneProgress} className="h-2" />
+                <div className="flex justify-between mt-1.5">
+                  <span className="text-xs text-muted-foreground">{Math.round(milestoneProgress)}% done</span>
+                  <span className="text-xs text-muted-foreground">{totalMilestones - completedMilestones} remaining</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base">Overview</CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
@@ -2279,26 +2299,6 @@ function IncidentDetailView({ id }: { id: string }) {
                 </CardContent>
               </Card>
             )}
-
-            <Card>
-              <CardHeader className="border-b pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-3">
-                  <p className="text-2xl font-bold">{completedMilestones}<span className="text-muted-foreground text-lg">/{totalMilestones}</span></p>
-                  <p className="text-xs text-muted-foreground">actions completed</p>
-                </div>
-                <Progress value={milestoneProgress} className="h-2" />
-                <div className="flex justify-between mt-1.5">
-                  <span className="text-xs text-muted-foreground">{Math.round(milestoneProgress)}% done</span>
-                  <span className="text-xs text-muted-foreground">{totalMilestones - completedMilestones} remaining</span>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Audit Trail */}
             <Card>
