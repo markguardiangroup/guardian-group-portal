@@ -9579,6 +9579,23 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
+      let openCount = 0;
+      for (const incident of allIncidents) {
+        const milestones = await storage.getIncidentMilestones(incident.id);
+        openCount += milestones.filter(m => !m.isCompleted).length;
+      }
+      res.json({ count: openCount });
+    } catch (error) {
+      console.error("Error fetching open actions count:", error);
+      res.status(500).json({ error: "Failed to fetch open actions count" });
+    }
+  });
+
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
@@ -9701,23 +9718,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating incident:", error);
       res.status(500).json({ error: "Failed to update incident" });
-    }
-  });
-
-  app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
-    try {
-      const user = (req.session as any).user;
-      const isPrivileged = user?.role === "admin" || user?.role === "consultant";
-      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
-      let openCount = 0;
-      for (const incident of allIncidents) {
-        const milestones = await storage.getIncidentMilestones(incident.id);
-        openCount += milestones.filter(m => !m.isCompleted).length;
-      }
-      res.json({ count: openCount });
-    } catch (error) {
-      console.error("Error fetching overdue actions count:", error);
-      res.status(500).json({ error: "Failed to fetch overdue actions count" });
     }
   });
 
