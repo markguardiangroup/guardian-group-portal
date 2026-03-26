@@ -155,18 +155,20 @@ export default function TrainingCertificates() {
   return (
     <div className="theme-training dash-animate">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
-            <Award className="h-7 w-7 text-module-accent-foreground" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold">
-              Training
-              <span className="font-normal text-muted-foreground text-2xl"> — Certificates</span>
-            </h1>
-            <p className="text-base mt-1 text-muted-foreground">
-              Manage training certificates and track renewals
-            </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <Award className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                Training
+                <span className="font-normal text-muted-foreground text-2xl"> — Certificates</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
+                Manage training certificates and track renewals
+              </p>
+            </div>
           </div>
         </div>
       </div>

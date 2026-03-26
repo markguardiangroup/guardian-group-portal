@@ -592,16 +592,18 @@ export default function Training() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Page header — static training purple, matches dash-header style */}
       <div className="theme-training dash-header flex-shrink-0 bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
-            <GraduationCap className="h-7 w-7 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold">
-              Training
-              <span className="font-normal text-muted-foreground text-2xl"> - Courses</span>
-            </h1>
-            <p className="text-base mt-1 text-muted-foreground">Browse and book training courses</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
+              <GraduationCap className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                Training
+                <span className="font-normal text-muted-foreground text-2xl"> — Courses</span>
+              </h1>
+              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">Browse and book training courses</p>
+            </div>
           </div>
         </div>
       </div>

@@ -660,7 +660,7 @@ export default function ToolkitBrowse() {
             <div>
               <h1 className="text-3xl font-semibold">
                 Toolkit
-                <span className="font-normal text-muted-foreground text-2xl"> - Browse Templates</span>
+                <span className="font-normal text-muted-foreground text-2xl"> — Browse Templates</span>
               </h1>
               <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
                 Browse and download document templates organised by category.

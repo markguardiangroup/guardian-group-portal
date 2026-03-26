@@ -145,7 +145,7 @@ export default function ToolkitDashboard() {
             <div>
               <h1 className="text-3xl font-semibold">
                 Toolkit
-                <span className="font-normal text-muted-foreground text-2xl"> - Template overview</span>
+                <span className="font-normal text-muted-foreground text-2xl"> — Template overview</span>
               </h1>
               <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
                 {isPrivilegedUser && (
