@@ -471,14 +471,14 @@ export default function Sites() {
       )}
 
       <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Site</DialogTitle>
             <DialogDescription>
               Create a new site for a company
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="company">Company <span className="text-destructive">*</span></Label>
               <Select
