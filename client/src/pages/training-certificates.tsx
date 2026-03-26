@@ -153,7 +153,7 @@ export default function TrainingCertificates() {
   };
 
   return (
-    <div className="theme-training dash-animate">
+    <div className="theme-training">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -172,7 +172,7 @@ export default function TrainingCertificates() {
           </div>
         </div>
       </div>
-      <div className="container px-6 py-6 space-y-6">
+      <div className="container px-6 py-6 space-y-6 dash-animate">
 
       {/* Module Tabs - Enhanced Prominence */}
       <div className="grid w-full grid-cols-4 gap-2 p-1 rounded-xl bg-muted/50 border mb-6">
