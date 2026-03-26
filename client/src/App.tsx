@@ -368,14 +368,18 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 
       const unlocked = (module: string) => moduleAccess[module] && moduleAccess[module] !== "locked";
 
-      if (unlocked("health_safety")) p(["/api/dashboard", "health_safety", null, null], "/api/dashboard/health_safety");
-      if (unlocked("human_resources")) p(["/api/dashboard", "human_resources", null, null], "/api/dashboard/human_resources");
-      if (unlocked("employment_law")) p(["/api/dashboard/employment_law", null, null], "/api/dashboard/employment_law");
+      // Site Documents pages — preload documents and missing-required-templates for each enabled module
+      for (const module of ["health_safety", "human_resources", "employment_law"] as const) {
+        if (unlocked(module)) {
+          p(["/api/documents/module", module], `/api/documents/module/${module}`);
+          p(["/api/missing-required-templates", module], `/api/missing-required-templates?module=${module}`);
+        }
+      }
     };
 
     run();
 
-    // All other pages (documents, cases, incidents, training, support, toolkit, reports)
+    // All other pages (cases, incidents, training, support, toolkit, reports)
     // load their own data on first visit and show skeleton states while fetching.
   }, [userId]);
 
