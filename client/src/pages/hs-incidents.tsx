@@ -2867,8 +2867,6 @@ const registerTypeConfig = {
     description: "Workplace incidents and accidents",
     statCards: [
       { title: "Active Incidents", key: "active", colorClass: "border-l-module-accent", iconColor: "text-module-accent", bg: "bg-module-accent/10", sub: "Reported or under review" },
-      { title: "High Severity", key: "critical", colorClass: "border-l-red-500", iconColor: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/40", sub: "Major or critical severity" },
-      { title: "Resolved", key: "resolved", colorClass: "border-l-green-500", iconColor: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/40", sub: "Successfully closed" },
     ],
   },
   near_miss: {
@@ -3232,30 +3230,22 @@ function IncidentsListView() {
       {view === "register" && (
       <div className="space-y-6 p-8 dash-animate">
         {/* Stat cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          {activeConfig.statCards.map((card, i) => {
-            const statVal = registerType === "incident" ? stats[card.key as keyof typeof stats] : 0;
-            const StatIcon = i === 0 ? AlertOctagon : i === 1 ? Flag : CheckCircle2;
-            return (
-              <Card key={card.title} className={`border-l-4 ${card.colorClass}`}>
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                  <div className={`rounded-full ${card.bg} p-2`}>
-                    <StatIcon className={`h-4 w-4 ${card.iconColor}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${card.iconColor}`} data-testid={`text-stat-${i}-${registerType}`}>{statVal}</div>
-                  <p className="text-xs text-muted-foreground">{card.sub}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Key metrics — incident register only */}
-        {registerType === "incident" && (
-          <div className="grid gap-4 md:grid-cols-2">
+        {registerType === "incident" ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* Active incidents */}
+            <Card className="border-l-4 border-l-module-accent">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Incidents</CardTitle>
+                <div className="rounded-full bg-module-accent/10 p-2">
+                  <AlertOctagon className="h-4 w-4 text-module-accent" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-module-accent" data-testid="text-stat-0-incident">{stats.active}</div>
+                <p className="text-xs text-muted-foreground">Reported or under review</p>
+              </CardContent>
+            </Card>
+            {/* RIDDOR */}
             <Card className={`border-l-4 ${stats.riddor > 0 ? "border-l-red-500" : "border-l-slate-300"}`}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">RIDDOR Reportable</CardTitle>
@@ -3268,6 +3258,7 @@ function IncidentsListView() {
                 <p className="text-xs text-muted-foreground">Incidents requiring RIDDOR report</p>
               </CardContent>
             </Card>
+            {/* Open actions */}
             <Card className={`border-l-4 ${stats.overdueActions > 0 ? "border-l-orange-500" : "border-l-slate-300"}`}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Open Actions</CardTitle>
@@ -3280,6 +3271,27 @@ function IncidentsListView() {
                 <p className="text-xs text-muted-foreground">Incomplete action items across all incidents</p>
               </CardContent>
             </Card>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            {activeConfig.statCards.map((card, i) => {
+              const statVal = 0;
+              const StatIcon = i === 0 ? AlertOctagon : i === 1 ? Flag : CheckCircle2;
+              return (
+                <Card key={card.title} className={`border-l-4 ${card.colorClass}`}>
+                  <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                    <div className={`rounded-full ${card.bg} p-2`}>
+                      <StatIcon className={`h-4 w-4 ${card.iconColor}`} />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className={`text-2xl font-bold ${card.iconColor}`} data-testid={`text-stat-${i}-${registerType}`}>{statVal}</div>
+                    <p className="text-xs text-muted-foreground">{card.sub}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
