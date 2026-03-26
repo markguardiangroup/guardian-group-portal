@@ -518,6 +518,69 @@ function FormSection({ title, children }: { title: string; children: React.React
   );
 }
 
+function BulletListInput({
+  value,
+  onChange,
+  placeholder,
+  "data-testid": testId,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  "data-testid"?: string;
+}) {
+  const [draft, setDraft] = useState("");
+  const items = value ? value.split("\n").filter(Boolean) : [];
+
+  const addItem = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    onChange([...items, trimmed].join("\n"));
+    setDraft("");
+  };
+
+  const removeItem = (idx: number) => {
+    const next = items.filter((_, i) => i !== idx);
+    onChange(next.join("\n"));
+  };
+
+  return (
+    <div className="space-y-2">
+      {items.length > 0 && (
+        <ul className="space-y-1.5 rounded-md border bg-background p-2">
+          {items.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              <span className="mt-0.5 h-4 w-4 shrink-0 text-module-accent">•</span>
+              <span className="flex-1 leading-snug">{item}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                aria-label="Remove item"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addItem(); } }}
+          placeholder={placeholder}
+          data-testid={testId}
+          className="flex-1"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addItem} disabled={!draft.trim()}>
+          Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Report Incident Dialog ───────────────────────────────────────────────────
 
 function ReportIncidentDialog({
@@ -953,14 +1016,28 @@ function ReportIncidentDialog({
                 <FormField control={form.control} name="immediateActions" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Immediate Actions Taken</FormLabel>
-                    <FormControl><Textarea placeholder="What immediate steps were taken following the incident?" className="resize-none" rows={4} {...field} data-testid="textarea-immediate-actions" /></FormControl>
+                    <FormControl>
+                      <BulletListInput
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Type an action and press Enter or Add…"
+                        data-testid="input-immediate-actions"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="recommendations" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Recommendations</FormLabel>
-                    <FormControl><Textarea placeholder="Recommended actions to prevent recurrence..." className="resize-none" rows={4} {...field} data-testid="textarea-recommendations" /></FormControl>
+                    <FormControl>
+                      <BulletListInput
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Type a recommendation and press Enter or Add…"
+                        data-testid="input-recommendations"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -1709,15 +1786,33 @@ function IncidentDetailView({ id }: { id: string }) {
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions Taken &amp; Recommendations</p>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Immediate Actions Taken</p>
-                      {incident.immediateActions
-                        ? <p className="text-sm leading-relaxed">{incident.immediateActions}</p>
+                      <p className="text-xs text-muted-foreground mb-1.5">Immediate Actions Taken</p>
+                      {incident.immediateActions && incident.immediateActions.trim()
+                        ? (
+                          <ul className="space-y-1">
+                            {incident.immediateActions.split("\n").filter(Boolean).map((item, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="mt-0.5 text-module-accent shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )
                         : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Recommendations</p>
-                      {incident.recommendations
-                        ? <p className="text-sm leading-relaxed">{incident.recommendations}</p>
+                      <p className="text-xs text-muted-foreground mb-1.5">Recommendations</p>
+                      {incident.recommendations && incident.recommendations.trim()
+                        ? (
+                          <ul className="space-y-1">
+                            {incident.recommendations.split("\n").filter(Boolean).map((item, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="mt-0.5 text-module-accent shrink-0">•</span>
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )
                         : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                   </div>
