@@ -370,13 +370,13 @@ function CasesList() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-row items-center gap-2">
                   {isPrivilegedUser && (
                     <CompanyCombobox
                       sites={sites}
                       value={selectedCompany}
                       onValueChange={handleCompanyChange}
-                      className="w-[280px]"
+                      className="w-[200px]"
                       testId="select-company-cases"
                     />
                   )}
@@ -384,7 +384,7 @@ function CasesList() {
                     sites={isPrivilegedUser ? filteredSites : sites}
                     value={selectedSiteId}
                     onValueChange={handleSiteChange}
-                    className="w-[280px]"
+                    className="w-[200px]"
                     testId="select-site-cases"
                   />
                 </div>

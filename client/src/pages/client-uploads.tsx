@@ -1055,19 +1055,19 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-row items-center gap-2">
                   <CompanyCombobox
                     sites={sites}
                     value={selectedCompany}
                     onValueChange={handleCompanyChange}
-                    className="w-[280px]"
+                    className="w-[200px]"
                     testId="select-company-cloudshare"
                   />
                   <SiteCombobox
                     sites={filteredSites}
                     value={selectedSiteId}
                     onValueChange={handleSiteChange}
-                    className="w-[280px]"
+                    className="w-[200px]"
                     testId="select-site-cloudshare"
                   />
                 </div>
