@@ -1615,10 +1615,11 @@ function IncidentDetailView({ id }: { id: string }) {
           </div>
           {isPrivileged && (
             <Button
-              variant="outline"
               onClick={() => setShowStatusDialog(true)}
               data-testid="button-update-status"
+              className="bg-module-accent hover:bg-module-accent/90 gap-2"
             >
+              <RotateCcw className="h-4 w-4" />
               Update Status
             </Button>
           )}
