@@ -3109,11 +3109,6 @@ function IncidentsListView() {
             </button>
           </div>
 
-          {/* Quick tip */}
-          <div className="flex items-start gap-3 rounded-lg border bg-muted/30 px-5 py-4 text-sm text-muted-foreground">
-            <TrendingUp className="h-4 w-4 mt-0.5 shrink-0 text-module-accent" />
-            <span>Regular reporting across all three registers builds a complete picture of your organisation's safety culture. Use the toggles above to navigate between registers at any time.</span>
-          </div>
         </div>
       )}
 
