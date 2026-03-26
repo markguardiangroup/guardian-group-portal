@@ -314,7 +314,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     </div>
 
                     {allTotal > 0 ? (
-                      <div className="mb-4">
+                      <div className="mb-4 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -340,7 +340,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="mb-4 py-2 text-center">
+                      <div className="mb-4 min-h-[38px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
                       </div>
                     )}
@@ -464,7 +464,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     {/* Compliance bar */}
                     {total > 0 ? (
-                      <div className="mb-4">
+                      <div className="mb-4 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -496,7 +496,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="mb-4 py-2 text-center">
+                      <div className="mb-4 min-h-[38px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
                       </div>
                     )}
