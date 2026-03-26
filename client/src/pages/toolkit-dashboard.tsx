@@ -137,7 +137,7 @@ export default function ToolkitDashboard() {
   return (
     <div className="theme-toolkit">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:min-h-[78px]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
               <BookMarked className="h-7 w-7 text-module-accent-foreground" />
