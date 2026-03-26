@@ -2212,26 +2212,6 @@ function IncidentDetailView({ id }: { id: string }) {
 
           {/* Sidebar */}
           <div className="space-y-5">
-            <Card>
-              <CardHeader className="border-b pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="text-center mb-3">
-                  <p className="text-2xl font-bold">{completedMilestones}<span className="text-muted-foreground text-lg">/{totalMilestones}</span></p>
-                  <p className="text-xs text-muted-foreground">actions completed</p>
-                </div>
-                <Progress value={milestoneProgress} className="h-2" />
-                <div className="flex justify-between mt-1.5">
-                  <span className="text-xs text-muted-foreground">{Math.round(milestoneProgress)}% done</span>
-                  <span className="text-xs text-muted-foreground">{totalMilestones - completedMilestones} remaining</span>
-                </div>
-              </CardContent>
-            </Card>
-
             {(incident.injuriesReported || incident.riddorReportable) && (
               <Card className="border-red-200 dark:border-red-900">
                 <CardHeader className="border-b border-red-200 dark:border-red-900 pb-3">
