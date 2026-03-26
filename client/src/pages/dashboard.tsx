@@ -1221,7 +1221,7 @@ export default function Dashboard() {
   const showContentSkeleton = isLoading || isAuthLoading || sitesLoading;
 
   return (
-    <div className="theme-dashboard">
+    <div className="theme-dashboard flex flex-col h-full">
       {/* Dashboard Header */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1293,7 +1293,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-    <div className="space-y-8 p-8 dash-animate">
+    <div id="page-content" className="flex-1 overflow-auto space-y-8 p-8 dash-animate">
 
       {showContentSkeleton ? (
         <>

@@ -63,6 +63,7 @@ function ScrollToTop() {
   const [location] = useLocation();
   useEffect(() => {
     document.getElementById("main-content")?.scrollTo(0, 0);
+    document.getElementById("page-content")?.scrollTo(0, 0);
   }, [location]);
   return null;
 }

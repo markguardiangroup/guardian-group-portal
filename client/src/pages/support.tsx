@@ -755,8 +755,8 @@ export default function Support() {
   const isLoading = sitesLoading || requestsLoading;
 
   return (
-    <div className="space-y-6 p-8 dash-animate">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
         <div>
           <h1 className="text-3xl font-semibold">Support</h1>
           <p className="mt-1 text-muted-foreground">
@@ -765,6 +765,8 @@ export default function Support() {
         </div>
         {sites.length > 0 && <CreateSupportRequestDialog sites={sites} onSuccess={() => {}} />}
       </div>
+
+      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 
       {isPrivilegedUser && (
         <div className="flex flex-wrap items-center gap-3">
@@ -914,6 +916,7 @@ export default function Support() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

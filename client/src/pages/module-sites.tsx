@@ -201,7 +201,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     module === "health_safety" ? HardHat : module === "employment_law" ? Scale : Users;
 
   return (
-    <div className={`module-page theme-${module === "health_safety" ? "hs" : module === "human_resources" ? "hr" : module === "employment_law" ? "el" : "training"}`}>
+    <div className={`module-page theme-${module === "health_safety" ? "hs" : module === "human_resources" ? "hr" : module === "employment_law" ? "el" : "training"} flex flex-col h-full`}>
       {/* Page header */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -234,7 +234,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       </div>
 
       {/* Sites grid */}
-      <div className="p-8">
+      <div id="page-content" className="flex-1 overflow-auto p-8">
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (

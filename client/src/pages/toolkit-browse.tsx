@@ -650,7 +650,7 @@ export default function ToolkitBrowse() {
       : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" };
 
   return (
-    <div className="theme-toolkit">
+    <div className="theme-toolkit flex flex-col h-full">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -681,7 +681,7 @@ export default function ToolkitBrowse() {
           </div>
         </div>
       </div>
-    <div className="space-y-7 p-6 dash-animate">
+    <div id="page-content" className="flex-1 overflow-auto space-y-7 p-6 dash-animate">
 
       {/* Find a Document — prominent banner */}
       <div

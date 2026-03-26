@@ -2882,7 +2882,7 @@ function IncidentsListView() {
   };
 
   return (
-    <div className="theme-hs">
+    <div className="theme-hs flex flex-col h-full">
       {/* Module header */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -2995,6 +2995,8 @@ function IncidentsListView() {
           })}
         </div>
       </div>
+
+      <div id="page-content" className="flex-1 overflow-auto">
 
       {/* Dashboard overview */}
       {view === "dashboard" && (
@@ -3367,6 +3369,7 @@ function IncidentsListView() {
         userRole={user?.role || "client"}
         userCompanyId={user?.companyId || null}
       />
+      </div>
     </div>
   );
 }

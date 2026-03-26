@@ -156,7 +156,7 @@ export default function MyTraining() {
   }
 
   return (
-    <div className="theme-training dash-animate">
+    <div className="theme-training flex flex-col h-full">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -175,7 +175,7 @@ export default function MyTraining() {
           </div>
         </div>
       </div>
-      <div className="space-y-6 px-8 py-6">
+      <div id="page-content" className="flex-1 overflow-auto space-y-6 px-8 py-6 dash-animate">
 
       {/* Filters & Metrics Card */}
       <Card>

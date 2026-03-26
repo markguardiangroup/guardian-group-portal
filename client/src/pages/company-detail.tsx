@@ -1063,9 +1063,9 @@ export default function CompanyDetail() {
     : 0;
 
   return (
-    <div className="space-y-6 p-8 dash-animate">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-4 sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
+      <div className="flex items-center gap-4 shrink-0 px-8 py-6 bg-background border-b">
         <Button variant="ghost" size="icon" onClick={() => navigate("/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -1104,6 +1104,8 @@ export default function CompanyDetail() {
           )}
         </div>
       </div>
+
+      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
@@ -2079,6 +2081,7 @@ export default function CompanyDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -295,7 +295,7 @@ export default function TrainingDashboard() {
   }
 
   return (
-    <div className="theme-training">
+    <div className="theme-training flex flex-col h-full">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -322,7 +322,7 @@ export default function TrainingDashboard() {
           </Button>
         </div>
       </div>
-      <div className="container px-6 py-6 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto container px-6 py-6 dash-animate">
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

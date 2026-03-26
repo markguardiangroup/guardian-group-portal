@@ -333,7 +333,7 @@ function CasesList() {
   }).length;
 
   return (
-    <div className="theme-el">
+    <div className="theme-el flex flex-col h-full">
       {/* Module Header with tinted background */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -407,7 +407,7 @@ function CasesList() {
         </div>
       </div>
       
-      <div className="space-y-6 p-8 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
       <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-pink-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -2134,7 +2134,7 @@ function EmploymentLawDashboardView() {
   }, [selectedSiteId, selectedCompany]);
 
   return (
-    <div className="theme-el">
+    <div className="theme-el flex flex-col h-full">
       {/* Module Header with tinted background */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -2168,7 +2168,7 @@ function EmploymentLawDashboardView() {
         </div>
       </div>
       
-      <div className="space-y-8 p-8 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto space-y-8 p-8 dash-animate">
 
         {/* Compliance Section */}
         {(() => {

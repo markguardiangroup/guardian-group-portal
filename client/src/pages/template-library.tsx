@@ -1902,8 +1902,8 @@ export default function TemplateLibraryPage() {
   const isLoading = templatesLoading || foldersLoading || docTypesLoading;
   
   return (
-    <div className="p-6 space-y-6 dash-animate">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
             <BookOpen className="h-6 w-6" />
@@ -1914,6 +1914,7 @@ export default function TemplateLibraryPage() {
           </p>
         </div>
       </div>
+      <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -3973,6 +3974,7 @@ export default function TemplateLibraryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

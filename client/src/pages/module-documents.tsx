@@ -803,7 +803,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   };
 
   return (
-    <div className={`${themeClass}`}>
+    <div className={`${themeClass} flex flex-col h-full`}>
       {/* Module Header with tinted background */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -907,7 +907,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </div>
       </div>
 
-      <div className="space-y-6 p-8">
+      <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8">
 
 
       {/* Folder View */}

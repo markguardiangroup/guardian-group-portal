@@ -107,7 +107,7 @@ export default function ToolkitDashboard() {
   }
 
   return (
-    <div className="theme-toolkit">
+    <div className="theme-toolkit flex flex-col h-full">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -160,7 +160,7 @@ export default function ToolkitDashboard() {
         </div>
       </div>
 
-      <div className="p-8 space-y-6 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto p-8 space-y-6 dash-animate">
         {/* Total summary cards */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card data-testid="card-total-downloads">

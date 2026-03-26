@@ -138,13 +138,14 @@ export default function AdminFeedback() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-8 dash-animate">
-      <div className="sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b">
         <h1 className="text-3xl font-bold tracking-tight">Feedback</h1>
         <p className="text-muted-foreground">
           Internal feedback and collaboration for the Guardian Group team.
         </p>
       </div>
+      <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       <Card>
         <CardHeader>
@@ -366,6 +367,7 @@ export default function AdminFeedback() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

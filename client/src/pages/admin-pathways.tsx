@@ -599,8 +599,8 @@ export default function AdminPathways() {
   }
 
   return (
-    <div className="space-y-6 dash-animate p-6">
-      <div className="flex items-start justify-between gap-3 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Compass className="h-7 w-7 text-primary mt-0.5 shrink-0" />
           <div>
@@ -615,6 +615,7 @@ export default function AdminPathways() {
           New Pathway
         </Button>
       </div>
+      <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       {isLoading ? (
         <div className="text-center py-16 text-muted-foreground">Loading pathways...</div>
@@ -818,6 +819,7 @@ export default function AdminPathways() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

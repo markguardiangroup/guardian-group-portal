@@ -493,7 +493,7 @@ export default function CalendarPage() {
   }), [events]);
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       {/* Header — title only, filters live in the cards */}
       <div className="dash-header bg-muted/30 border-b border-t-4 border-t-primary px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -512,7 +512,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <div className="space-y-6 p-8 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border-l-4 border-l-primary">

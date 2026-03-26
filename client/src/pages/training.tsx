@@ -748,7 +748,7 @@ export default function Training() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div id="page-content" className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="p-6 space-y-6">
             <div className="grid gap-4 md:grid-cols-3">

@@ -122,8 +122,8 @@ export default function AdminReports() {
   }
 
   return (
-    <div className="space-y-6 p-8 dash-animate">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-2">
             <ShieldAlert className="h-8 w-8" />
@@ -134,6 +134,8 @@ export default function AdminReports() {
           </p>
         </div>
       </div>
+
+      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 
       <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
         <CardContent className="p-4">
@@ -341,6 +343,7 @@ export default function AdminReports() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

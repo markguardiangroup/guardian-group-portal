@@ -438,9 +438,8 @@ export default function TrainingLibrary() {
   const ModuleIcon = moduleIcons[activeModule] || GraduationCap;
 
   return (
-    <div className="p-6 space-y-6 dash-animate">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${moduleBgColors[activeModule]}`}>
             <GraduationCap className={`h-6 w-6 ${moduleColors[activeModule]}`} />
@@ -478,6 +477,7 @@ export default function TrainingLibrary() {
           </div>
         )}
       </div>
+      <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       {/* Module Tabs - Enhanced Prominence */}
       <Tabs value={activeModule} onValueChange={(v) => setActiveModule(v as ModuleType)}>
@@ -1013,6 +1013,7 @@ export default function TrainingLibrary() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

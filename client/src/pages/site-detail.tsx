@@ -1309,8 +1309,8 @@ export default function SiteDetail() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 dash-animate">
-      <div className="flex items-center gap-4 sticky top-0 z-10 bg-background -mx-6 px-6 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -1340,6 +1340,7 @@ export default function SiteDetail() {
           </div>
         </div>
       </div>
+      <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-4">
@@ -1535,6 +1536,7 @@ export default function SiteDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

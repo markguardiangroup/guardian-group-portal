@@ -511,11 +511,9 @@
   }
 }
 
-/* Coloured header band – sticky so it stays at the top while content scrolls */
+/* Coloured header band – sits outside the page scroll container; no sticky needed */
 .dash-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 /* Each direct child of .dash-animate gets a staggered entrance */

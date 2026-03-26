@@ -639,7 +639,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
 
   if (selectedFolder) {
     return (
-      <div className={themeClass} data-testid="folder-contents-view">
+      <div className={`${themeClass} flex flex-col h-full`} data-testid="folder-contents-view">
         <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-5">
           <div className="flex items-center gap-2">
             <Button
@@ -660,7 +660,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           </div>
         </div>
 
-        <div className="p-6 space-y-4 dash-animate">
+        <div id="page-content" className="flex-1 overflow-auto p-6 space-y-4 dash-animate">
 
         <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border bg-muted/30">
           <div className="flex-1 min-w-0">
@@ -1016,7 +1016,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   }
 
   return (
-    <div className={themeClass} data-testid="folder-list-view">
+    <div className={`${themeClass} flex flex-col h-full`} data-testid="folder-list-view">
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -1088,7 +1088,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         </div>
       </div>
 
-      <div className="p-6 space-y-5 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto p-6 space-y-5 dash-animate">
 
       {isClient ? (
         <div className="rounded-lg border bg-card overflow-hidden" data-testid="client-help-card">

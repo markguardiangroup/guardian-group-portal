@@ -879,8 +879,8 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="space-y-6 p-8 dash-animate">
-      <div className="flex items-start justify-between gap-4 sticky top-0 z-10 bg-background -mx-8 px-8 pb-4">
+    <div className="flex flex-col h-full">
+      <div className="flex items-start justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
         <div>
           <h1 className="text-3xl font-semibold">Users</h1>
           <p className="mt-1 text-muted-foreground">
@@ -894,6 +894,8 @@ export default function UserManagement() {
           </Button>
         )}
       </div>
+
+      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -2456,6 +2458,7 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }
