@@ -622,11 +622,7 @@ export default function CompanyDetail() {
     county: "",
     postalCode: "",
     country: "",
-    contactName: "",
-    contactPosition: "",
-    contactPhone: "",
-    contactEmail: "",
-    contactUserId: "", // ID of selected user for contact
+    additionalUserIds: [] as string[],
   });
 
   const { data: company, isLoading, error } = useQuery<CompanyWithSites>({
@@ -672,34 +668,6 @@ export default function CompanyDetail() {
   const companyTabUsers = [...tabConsultants, ...tabClients];
 
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-
-  // Handler to select a user as site contact
-  const handleSelectSiteContactUser = (userId: string) => {
-    if (userId === "none") {
-      // Clear contact fields
-      setNewSiteForm({
-        ...newSiteForm,
-        contactUserId: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
-      });
-      return;
-    }
-    
-    const selectedUser = companyUsers.find((u) => u.id === userId);
-    if (selectedUser) {
-      setNewSiteForm({
-        ...newSiteForm,
-        contactUserId: userId,
-        contactName: selectedUser.fullName || "",
-        contactPosition: selectedUser.jobTitle || "",
-        contactPhone: selectedUser.phone || selectedUser.mobile || "",
-        contactEmail: selectedUser.email || "",
-      });
-    }
-  };
 
   // Handler to select a user as company contact
   const handleSelectCompanyContactUser = (userId: string) => {
@@ -811,11 +779,18 @@ export default function CompanyDetail() {
   const createSiteMutation = useMutation({
     mutationFn: async (data: typeof newSiteForm) => {
       const response = await apiRequest("POST", "/api/sites", { ...data, companyId });
-      return response.json();
+      const site = await response.json();
+      for (const userId of data.additionalUserIds) {
+        try {
+          await apiRequest("POST", `/api/sites/${site.id}/client-assignments`, { clientId: userId });
+        } catch {}
+      }
+      return site;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setAddSiteDialogOpen(false);
       setNewSiteForm({
         name: "",
@@ -825,11 +800,7 @@ export default function CompanyDetail() {
         county: "",
         postalCode: "",
         country: "",
-        contactName: "",
-        contactPosition: "",
-        contactPhone: "",
-        contactEmail: "",
-        contactUserId: "",
+        additionalUserIds: [],
       });
       toast({
         title: "Site created",
@@ -1928,68 +1899,73 @@ export default function CompanyDetail() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Primary Site Contact (Optional)</h4>
+              <h4 className="text-sm font-medium mb-1">Site Management</h4>
               <p className="text-sm text-muted-foreground mb-3">
-                Select a registered user from this company to be the primary contact for this site.
+                The company's primary contact is automatically assigned. You can also add other users to manage this site.
               </p>
-              
-              {companyUsers.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-site-contact-user">Select Contact</Label>
-                    <Select
-                      value={newSiteForm.contactUserId || "none"}
-                      onValueChange={handleSelectSiteContactUser}
-                    >
-                      <SelectTrigger id="new-site-contact-user" data-testid="select-site-contact-user">
-                        <SelectValue placeholder="Select a user..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No contact selected</SelectItem>
-                        {companyUsers.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.fullName} {u.jobTitle ? `- ${u.jobTitle}` : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
 
-                  {newSiteForm.contactUserId && (
-                    <div className="rounded-md border p-3 bg-muted/50">
-                      <h5 className="text-xs font-medium text-muted-foreground mb-2">Contact Details (from user profile)</h5>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Name:</span>{" "}
-                          <span className="font-medium">{newSiteForm.contactName || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Position:</span>{" "}
-                          <span className="font-medium">{newSiteForm.contactPosition || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Phone:</span>{" "}
-                          <span className="font-medium">{newSiteForm.contactPhone || "—"}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Email:</span>{" "}
-                          <span className="font-medium">{newSiteForm.contactEmail || "—"}</span>
-                        </div>
-                      </div>
+              {/* Company primary contact — read-only */}
+              <div className="mb-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
+                {company?.contactName ? (
+                  <div className="rounded-md border bg-muted/40 p-3 text-sm flex items-start gap-3">
+                    <div className="mt-0.5 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <UserIcon className="h-4 w-4 text-primary" />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-md border border-dashed p-4 text-center">
-                  <UserIcon className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">
-                    No users available in this company yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    You can add users in the <strong>Users</strong> section and then assign them as site contacts.
-                  </p>
-                </div>
-              )}
+                    <div className="min-w-0">
+                      <p className="font-medium">{company.contactName}</p>
+                      {company.contactPosition && <p className="text-muted-foreground text-xs">{company.contactPosition}</p>}
+                      <div className="flex flex-wrap gap-x-3 mt-1 text-xs text-muted-foreground">
+                        {company.contactEmail && <span>{company.contactEmail}</span>}
+                        {company.contactPhone && <span>{company.contactPhone}</span>}
+                      </div>
+                      <p className="text-xs text-primary mt-1">Will be automatically assigned to this site</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
+                    No primary contact set for this company.
+                  </div>
+                )}
+              </div>
+
+              {/* Additional users */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Additional Users</p>
+                {companyUsers.filter(u => u.id !== company?.contactUserId).length > 0 ? (
+                  <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+                    {companyUsers
+                      .filter(u => u.id !== company?.contactUserId)
+                      .map((u) => {
+                        const checked = newSiteForm.additionalUserIds.includes(u.id);
+                        return (
+                          <label key={u.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40">
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              checked={checked}
+                              data-testid={`checkbox-site-user-${u.id}`}
+                              onChange={() => {
+                                setNewSiteForm(prev => ({
+                                  ...prev,
+                                  additionalUserIds: checked
+                                    ? prev.additionalUserIds.filter(id => id !== u.id)
+                                    : [...prev.additionalUserIds, u.id],
+                                }));
+                              }}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium leading-tight">{u.fullName}</p>
+                              {u.jobTitle && <p className="text-xs text-muted-foreground">{u.jobTitle}</p>}
+                            </div>
+                          </label>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No other users in this company.</p>
+                )}
+              </div>
             </div>
 
             <DialogFooter>
