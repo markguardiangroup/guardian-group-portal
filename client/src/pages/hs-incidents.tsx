@@ -687,7 +687,7 @@ function ReportIncidentDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="theme-hs max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-module-accent" />
@@ -2422,7 +2422,7 @@ function IncidentDetailView({ id }: { id: string }) {
 
       {/* Document Preview Dialog */}
       <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
-        <DialogContent className="h-[80vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+        <DialogContent className="theme-hs h-[80vh] flex flex-col p-0 gap-0 overflow-hidden" style={{ maxWidth: "860px" }}>
           <DialogHeader className="px-5 py-4 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -2493,7 +2493,7 @@ function IncidentDetailView({ id }: { id: string }) {
 
       {/* Edit Title & Notes Dialog */}
       <Dialog open={!!editingDoc} onOpenChange={(open) => { if (!open) setEditingDoc(null); }}>
-        <DialogContent className="max-w-md" data-testid="dialog-edit-doc">
+        <DialogContent className="theme-hs max-w-md" data-testid="dialog-edit-doc">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {editingDoc?.mimeType?.startsWith("image/") ? (
@@ -2545,7 +2545,7 @@ function IncidentDetailView({ id }: { id: string }) {
 
       {/* Status Dialog */}
       <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
-        <DialogContent>
+        <DialogContent className="theme-hs">
           <DialogHeader>
             <DialogTitle>Update Incident Status</DialogTitle>
           </DialogHeader>
@@ -2611,7 +2611,7 @@ function AddMilestoneDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="theme-hs">
         <DialogHeader>
           <DialogTitle>Add Action Item</DialogTitle>
         </DialogHeader>
