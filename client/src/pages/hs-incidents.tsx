@@ -1555,17 +1555,19 @@ function IncidentDetailView({ id }: { id: string }) {
               <CardHeader className="border-b">
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="text-lg">Incident Details</CardTitle>
-                  <button
+                  <Button
+                    variant={detailsMinimised ? "default" : "outline"}
+                    size="sm"
                     onClick={() => setDetailsMinimised(v => !v)}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="gap-1.5"
                     data-testid="button-toggle-incident-details"
                   >
                     {detailsMinimised ? (
-                      <><ChevronDown className="h-4 w-4" /><span>Expand</span></>
+                      <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
                     ) : (
-                      <><ChevronUp className="h-4 w-4" /><span>Minimise</span></>
+                      <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </CardHeader>
               {!detailsMinimised && (
@@ -2230,6 +2232,31 @@ function IncidentDetailView({ id }: { id: string }) {
               </CardContent>
             </Card>
 
+            {(incident.injuriesReported || incident.riddorReportable) && (
+              <Card className="border-red-200 dark:border-red-900">
+                <CardHeader className="border-b border-red-200 dark:border-red-900 pb-3">
+                  <CardTitle className="text-base text-red-700 dark:text-red-400 flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    Safety Flags
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  {incident.injuriesReported && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="font-medium">Injuries reported</span>
+                    </div>
+                  )}
+                  {incident.riddorReportable && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="font-medium">RIDDOR reportable</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base">Overview</CardTitle>
@@ -2274,31 +2301,6 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
               </CardContent>
             </Card>
-
-            {(incident.injuriesReported || incident.riddorReportable) && (
-              <Card className="border-red-200 dark:border-red-900">
-                <CardHeader className="border-b border-red-200 dark:border-red-900 pb-3">
-                  <CardTitle className="text-base text-red-700 dark:text-red-400 flex items-center gap-2">
-                    <Flag className="h-4 w-4" />
-                    Safety Flags
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3">
-                  {incident.injuriesReported && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
-                      <span className="font-medium">Injuries reported</span>
-                    </div>
-                  )}
-                  {incident.riddorReportable && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
-                      <span className="font-medium">RIDDOR reportable</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {/* Audit Trail */}
             <Card>
