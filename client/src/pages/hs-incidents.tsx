@@ -2984,10 +2984,17 @@ function IncidentsListView() {
     });
   }, [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany, registerType]);
 
+  const { data: overdueActionsData } = useQuery<{ count: number }>({
+    queryKey: ["/api/incidents/overdue-actions-count"],
+    enabled: registerType === "incident",
+  });
+
   const stats = {
     active: incidents.filter(i => i.status === "reported" || i.status === "under_review").length,
     critical: incidents.filter(i => i.severity === "major" || i.severity === "critical").length,
     resolved: incidents.filter(i => i.status === "resolved" || i.status === "closed").length,
+    riddor: incidents.filter(i => i.riddorReportable).length,
+    overdueActions: overdueActionsData?.count ?? 0,
   };
 
   return (
@@ -3245,6 +3252,36 @@ function IncidentsListView() {
             );
           })}
         </div>
+
+        {/* Key metrics — incident register only */}
+        {registerType === "incident" && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className={`border-l-4 ${stats.riddor > 0 ? "border-l-red-500" : "border-l-slate-300"}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">RIDDOR Reportable</CardTitle>
+                <div className={`rounded-full p-2 ${stats.riddor > 0 ? "bg-red-100 dark:bg-red-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                  <ClipboardList className={`h-4 w-4 ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400"}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} data-testid="text-stat-riddor">{stats.riddor}</div>
+                <p className="text-xs text-muted-foreground">Incidents requiring RIDDOR report</p>
+              </CardContent>
+            </Card>
+            <Card className={`border-l-4 ${stats.overdueActions > 0 ? "border-l-orange-500" : "border-l-slate-300"}`}>
+              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue Actions</CardTitle>
+                <div className={`rounded-full p-2 ${stats.overdueActions > 0 ? "bg-orange-100 dark:bg-orange-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                  <Clock className={`h-4 w-4 ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-slate-400"}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`} data-testid="text-stat-overdue-actions">{stats.overdueActions}</div>
+                <p className="text-xs text-muted-foreground">Action items past their due date</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Table card */}
         <Card>

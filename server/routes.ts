@@ -9704,6 +9704,24 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : user.entityId);
+      const now = new Date();
+      let overdueCount = 0;
+      for (const incident of allIncidents) {
+        const milestones = await storage.getIncidentMilestones(incident.id);
+        overdueCount += milestones.filter(m => !m.isCompleted && m.dueDate && new Date(m.dueDate) < now).length;
+      }
+      res.json({ count: overdueCount });
+    } catch (error) {
+      console.error("Error fetching overdue actions count:", error);
+      res.status(500).json({ error: "Failed to fetch overdue actions count" });
+    }
+  });
+
   app.get("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
     try {
       const milestones = await storage.getIncidentMilestones(req.params.id);
