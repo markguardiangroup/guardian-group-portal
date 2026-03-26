@@ -270,11 +270,48 @@ export default function Settings() {
     });
   };
 
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        throw new Error("New passwords do not match");
+      }
+      if (passwordForm.newPassword.length < 8) {
+        throw new Error("New password must be at least 8 characters");
+      }
+      const response = await apiRequest("POST", "/api/auth/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to change password");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleChangePassword = () => {
-    toast({
-      title: "Password Changed",
-      description: "Your password has been updated successfully.",
-    });
+    changePasswordMutation.mutate();
   };
 
   return (
@@ -681,7 +718,9 @@ export default function Settings() {
                     id="currentPassword" 
                     type="password" 
                     placeholder="Enter current password"
-                    data-testid="input-current-password" 
+                    data-testid="input-current-password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -689,8 +728,10 @@ export default function Settings() {
                   <Input 
                     id="newPassword" 
                     type="password" 
-                    placeholder="Enter new password"
-                    data-testid="input-new-password" 
+                    placeholder="Enter new password (min. 8 characters)"
+                    data-testid="input-new-password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
@@ -699,13 +740,19 @@ export default function Settings() {
                     id="confirmPassword" 
                     type="password" 
                     placeholder="Confirm new password"
-                    data-testid="input-confirm-password" 
+                    data-testid="input-confirm-password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
                   />
                 </div>
                 <div className="flex justify-end pt-2">
-                  <Button onClick={handleChangePassword} data-testid="button-change-password">
+                  <Button 
+                    onClick={handleChangePassword} 
+                    data-testid="button-change-password"
+                    disabled={changePasswordMutation.isPending}
+                  >
                     <Key className="mr-2 h-4 w-4" />
-                    Change Password
+                    {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
                   </Button>
                 </div>
               </CardContent>

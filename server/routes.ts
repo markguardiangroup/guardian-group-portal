@@ -672,6 +672,53 @@ export async function registerRoutes(
     next();
   };
 
+  // Change password (authenticated users only)
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.session?.userId;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify the current password
+      let currentValid = false;
+      if (user.password.startsWith("$2")) {
+        currentValid = await bcrypt.compare(currentPassword, user.password);
+      } else {
+        currentValid = user.password === currentPassword;
+      }
+
+      if (!currentValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+      await storage.updateUser(userId, { password: hashedPassword });
+
+      await storage.createAuditLog({
+        action: "password_changed",
+        userId: user.id,
+        userName: user.fullName,
+        details: "User changed their password via settings",
+      });
+
+      res.json({ success: true, message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
   // Helper: check if a consultant user has the pro tier
   // Function definition moved to before its first usage in Companies list route
 
