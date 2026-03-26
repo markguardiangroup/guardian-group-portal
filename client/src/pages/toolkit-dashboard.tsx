@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookMarked, DownloadCloud, TrendingUp, Download, FolderOpen, HardHat, Briefcase, Scale, X } from "lucide-react";
 
@@ -67,6 +67,7 @@ export default function ToolkitDashboard() {
 
   const statsQueryKey = ["/api/toolkit/stats", activeCompany];
 
+  const wasLoadingRef = useRef(false);
   const { data: stats, isLoading } = useQuery<DownloadStats>({
     queryKey: statsQueryKey,
     queryFn: async () => {
@@ -76,6 +77,7 @@ export default function ToolkitDashboard() {
       return res.json();
     },
   });
+  if (isLoading) wasLoadingRef.current = true;
 
   const contextName = activeCompany ?? null;
 
@@ -168,7 +170,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-total-downloads">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.totalDownloads ?? 0} />}
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.totalDownloads ?? 0} animate={wasLoadingRef.current} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {contextName ? `For ${contextName}` : "All time, all companies"}
@@ -183,7 +185,7 @@ export default function ToolkitDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold" data-testid="text-downloads-30days">
-                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.downloadsLast30Days ?? 0} />}
+                {isLoading ? <Skeleton className="h-9 w-16" /> : <CountUp value={stats?.downloadsLast30Days ?? 0} animate={wasLoadingRef.current} />}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
             </CardContent>
@@ -233,7 +235,7 @@ export default function ToolkitDashboard() {
                   {isLoading ? (
                     <Skeleton className="h-8 w-12" />
                   ) : (
-                    <CountUp value={stats?.downloadsByModule?.[key] ?? 0} />
+                    <CountUp value={stats?.downloadsByModule?.[key] ?? 0} animate={wasLoadingRef.current} />
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">Total downloads</p>

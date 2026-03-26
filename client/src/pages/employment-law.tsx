@@ -215,6 +215,7 @@ function CasesList() {
   // Determine site filter for API
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
+  const casesWasLoadingRef = useRef(false);
   const { data: cases, isLoading } = useQuery<Case[]>({
     queryKey: ["/api/cases", siteId, selectedCompanyId, showArchived],
     placeholderData: keepPreviousData,
@@ -235,7 +236,8 @@ function CasesList() {
       return res.json();
     },
   });
-  
+  if (isLoading) casesWasLoadingRef.current = true;
+
   // Archive mutation
   const archiveCaseMutation = useMutation({
     mutationFn: async (caseId: string) => {
@@ -415,7 +417,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} /></div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} animate={casesWasLoadingRef.current} /></div>}
               <p className="text-xs text-muted-foreground">Currently being managed</p>
             </CardContent>
           </Card>
@@ -427,7 +429,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={urgentCases} /></div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={urgentCases} animate={casesWasLoadingRef.current} /></div>}
               <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
             </CardContent>
           </Card>
@@ -439,7 +441,7 @@ function CasesList() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} /></div>}
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} animate={casesWasLoadingRef.current} /></div>}
               <p className="text-xs text-muted-foreground">Successfully completed</p>
             </CardContent>
           </Card>

@@ -2,17 +2,23 @@ import { useEffect, useRef, useState } from "react";
 
 interface CountUpProps {
   value: number;
+  animate?: boolean;
   duration?: number;
   className?: string;
 }
 
-export function CountUp({ value, duration = 600, className }: CountUpProps) {
-  const [displayed, setDisplayed] = useState(0);
+export function CountUp({ value, animate = true, duration = 600, className }: CountUpProps) {
+  const [displayed, setDisplayed] = useState(animate ? 0 : value);
   const rafRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
-  const startValueRef = useRef(0);
+  const startValueRef = useRef(animate ? 0 : value);
 
   useEffect(() => {
+    if (!animate) {
+      setDisplayed(value);
+      return;
+    }
+
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
 
     const from = startValueRef.current;
@@ -38,7 +44,7 @@ export function CountUp({ value, duration = 600, className }: CountUpProps) {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [value, duration]);
+  }, [value, animate, duration]);
 
   return <span className={className}>{displayed}</span>;
 }
