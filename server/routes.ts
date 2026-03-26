@@ -9710,12 +9710,12 @@ export async function registerRoutes(
       const isPrivileged = user?.role === "admin" || user?.role === "consultant";
       const allIncidents = await storage.getIncidents(isPrivileged ? undefined : user.entityId);
       const now = new Date();
-      let overdueCount = 0;
+      let openCount = 0;
       for (const incident of allIncidents) {
         const milestones = await storage.getIncidentMilestones(incident.id);
-        overdueCount += milestones.filter(m => !m.isCompleted && m.dueDate && new Date(m.dueDate) < now).length;
+        openCount += milestones.filter(m => !m.isCompleted).length;
       }
-      res.json({ count: overdueCount });
+      res.json({ count: openCount });
     } catch (error) {
       console.error("Error fetching overdue actions count:", error);
       res.status(500).json({ error: "Failed to fetch overdue actions count" });
