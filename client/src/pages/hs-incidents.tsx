@@ -2394,11 +2394,10 @@ function IncidentDetailView({ id }: { id: string }) {
               </CardHeader>
               <CardContent className="pt-5">
                 {!incident.invCompletedAt && !incident.invFirstAidGiven && !incident.invContributingFactors && !incident.invConclusion ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm text-muted-foreground">No follow-up investigation recorded yet.</p>
+                  <div className="flex items-center justify-between py-2">
+                    <p className="text-sm text-muted-foreground italic">No follow-up investigation recorded yet.</p>
                     {isPrivileged && (
-                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
+                      <Button variant="outline" size="sm" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
                         Start Investigation
                       </Button>
                     )}
