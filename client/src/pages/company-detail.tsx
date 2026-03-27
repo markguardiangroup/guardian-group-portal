@@ -2246,16 +2246,34 @@ export default function CompanyDetail() {
 
       {/* Send Invite Confirmation Dialog */}
       <Dialog open={!!inviteConfirmUser} onOpenChange={(open) => { if (!open) setInviteConfirmUser(null); }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle>{inviteConfirmUser?.status === "invited" ? "Resend Invitation" : "Send Invitation"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Send Invitation
+            </DialogTitle>
+            <DialogDescription>
+              This will send an invitation email to the user so they can set up their account and log in.
+            </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            {inviteConfirmUser?.status === "invited" 
-              ? `Resend invitation email to ${inviteConfirmUser.fullName}?`
-              : `Send invitation email to ${inviteConfirmUser?.fullName}?`}
-          </p>
-          <DialogFooter>
+          {inviteConfirmUser && (
+            <div className="py-2 space-y-3">
+              <div className="rounded-lg bg-muted/60 p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium">{inviteConfirmUser.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Email</span>
+                  <span className="font-medium">{inviteConfirmUser.email}</span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to send an invitation to this user?
+              </p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setInviteConfirmUser(null)} data-testid="button-cancel-invite">Cancel</Button>
             <Button
               onClick={() => {
