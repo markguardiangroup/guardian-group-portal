@@ -1611,17 +1611,26 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
           {/* ── Documents used / reviewed ── */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Document used / reviewed</h3>
-            <div className="flex flex-wrap gap-2">
-              {DOCUMENT_OPTIONS.map(doc => (
-                <button key={doc} type="button" onClick={() => toggleDocument(doc)}
-                  className={`px-3 py-1.5 rounded text-sm border transition-colors ${documentsReviewed.includes(doc) ? "bg-module-accent text-white border-module-accent" : "bg-background border-border text-foreground hover:bg-muted"}`}
-                  data-testid={`toggle-doc-${doc.substring(0, 12).replace(/\s/g, "-").toLowerCase()}`}>
-                  {doc}
-                </button>
-              ))}
-            </div>
+            <MultiSelectCombobox
+              options={DOCUMENT_OPTIONS}
+              selected={documentsReviewed}
+              onChange={setDocumentsReviewed}
+              placeholder="Select documents reviewed…"
+            />
             {documentsReviewed.includes("Other (please detail below)") && (
               <Input value={documentsOther} onChange={e => setDocumentsOther(e.target.value)} placeholder="Please detail other documents reviewed..." data-testid="input-inv-docs-other" />
+            )}
+            {documentsReviewed.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {documentsReviewed.map(doc => (
+                  <Badge key={doc} variant="secondary" className="text-xs font-normal gap-1">
+                    {doc}
+                    <button type="button" onClick={() => setDocumentsReviewed(prev => prev.filter(d => d !== doc))} className="ml-0.5 hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             )}
             <div>
               <p className="text-sm text-muted-foreground mb-1">Add all relevant documents, additional images and comments:</p>
