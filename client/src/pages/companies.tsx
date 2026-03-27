@@ -1187,7 +1187,29 @@ export default function Companies() {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-1">Site Address</h4>
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-sm font-medium">Site Address</h4>
+                {pendingCompanyData && (pendingCompanyData.addressLine1 || pendingCompanyData.city) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs px-2"
+                    onClick={() => setSiteData(prev => ({
+                      ...prev,
+                      addressLine1: pendingCompanyData.addressLine1,
+                      addressLine2: pendingCompanyData.addressLine2,
+                      city: pendingCompanyData.city,
+                      county: pendingCompanyData.county,
+                      postalCode: pendingCompanyData.postalCode,
+                      country: pendingCompanyData.country,
+                    }))}
+                    data-testid="button-copy-company-address"
+                  >
+                    Copy company address
+                  </Button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mb-3">The physical location of this site.</p>
               <div className="space-y-3">
                 <div className="grid gap-2">
