@@ -6996,11 +6996,12 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can manage company module access" });
       }
       
-      const { healthSafety, humanResources, employmentLaw, support, reports } = req.body;
+      const { healthSafety, humanResources, employmentLaw, training, toolkit, support, reports } = req.body;
       
       // At least one module should be specified
       if (healthSafety === undefined && humanResources === undefined && 
-          employmentLaw === undefined && support === undefined && reports === undefined) {
+          employmentLaw === undefined && training === undefined && toolkit === undefined &&
+          support === undefined && reports === undefined) {
         return res.status(400).json({ error: "At least one module access setting is required" });
       }
       
@@ -7008,6 +7009,8 @@ export async function registerRoutes(
         healthSafety,
         humanResources,
         employmentLaw,
+        training,
+        toolkit,
         support,
         reports,
       });
@@ -7020,6 +7023,8 @@ export async function registerRoutes(
         healthSafety: company.healthSafetyAccess,
         humanResources: company.humanResourcesAccess,
         employmentLaw: company.employmentLawAccess,
+        training: company.trainingAccess,
+        toolkit: company.toolkitAccess,
         support: company.supportAccess,
         reports: company.reportsAccess,
       });
