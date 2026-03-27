@@ -1687,6 +1687,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+  const [showInvViewDialog, setShowInvViewDialog] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<IncidentMilestone | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -2398,126 +2399,42 @@ function IncidentDetailView({ id }: { id: string }) {
                     <p className="text-sm text-muted-foreground italic">No follow-up investigation recorded yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-6 divide-y">
-
-                    {/* About the injured person */}
-                    {(incident.invFirstAidGiven !== null || incident.invHospitalVisit !== null || incident.invAbsentFromWork !== null) && (
-                      <div className="pt-0 space-y-3">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">About the Injured Person</p>
-                        <div className="grid gap-3 sm:grid-cols-3">
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">First Aid Given</p>
-                            <p className="text-sm font-medium">{incident.invFirstAidGiven === null ? <span className="italic text-muted-foreground">—</span> : incident.invFirstAidGiven ? "Yes" : "No"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">Hospital Visit</p>
-                            <p className="text-sm font-medium">{incident.invHospitalVisit === null ? <span className="italic text-muted-foreground">—</span> : incident.invHospitalVisit ? "Yes" : "No"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-0.5">Absent from Work</p>
-                            <p className="text-sm font-medium">
-                              {incident.invAbsentFromWork === null ? <span className="italic text-muted-foreground">—</span> : incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` — ${incident.invAbsentTimeframe}` : ""}` : "No"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Witnesses */}
-                    {(incident.invWitnessesPresent !== null || incident.invWitnesses) && (
-                      <div className="pt-4 space-y-3">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
-                        <p className="text-sm"><span className="text-muted-foreground">Witnesses present:</span> <span className="font-medium">{incident.invWitnessesPresent ? "Yes" : "No"}</span></p>
-                        {incident.invWitnessesPresent && incident.invWitnesses && (() => {
-                          let ws: InvWitness[] = [];
-                          try { ws = JSON.parse(incident.invWitnesses); } catch {}
-                          return ws.length > 0 ? (
-                            <div className="space-y-1">
-                              {ws.map((w, i) => (
-                                <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    )}
-
-                    {/* Equipment */}
-                    {incident.invEquipmentInvolved !== null && (
-                      <div className="pt-4 space-y-3">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equipment Involved</p>
-                        <p className="text-sm"><span className="text-muted-foreground">Equipment involved:</span> <span className="font-medium">{incident.invEquipmentInvolved ? "Yes" : "No"}</span></p>
-                        {incident.invEquipmentInvolved && incident.invEquipment && (() => {
-                          let eqs: InvEquipment[] = [];
-                          try { eqs = JSON.parse(incident.invEquipment); } catch {}
-                          const filled = eqs.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
-                          return filled.length > 0 ? (
-                            <div className="space-y-1">
-                              {filled.map((eq, i) => (
-                                <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Type</p><p className="font-medium">{eq.type || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Make / Model</p><p>{eq.makeModel || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Serial / Reg. No.</p><p>{eq.serialNo || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Last Inspection</p><p>{eq.lastInspection || "—"}</p></div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
-                        {(incident.invOperators || incident.invOperatorsQualified !== null) && (
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            {incident.invOperators && <div><p className="text-xs text-muted-foreground mb-0.5">Operators</p><p className="text-sm">{incident.invOperators}</p></div>}
-                            {incident.invOperatorsQualified !== null && <div><p className="text-xs text-muted-foreground mb-0.5">Operators Qualified</p><p className="text-sm font-medium">{incident.invOperatorsQualified ? "Yes" : "No"}</p></div>}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Documents */}
-                    {(incident.invDocumentsReviewed?.length > 0 || incident.invDocumentsComments) && (
-                      <div className="pt-4 space-y-3">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents Used / Reviewed</p>
-                        {incident.invDocumentsReviewed?.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {incident.invDocumentsReviewed.map((doc: string) => (
-                              <Badge key={doc} variant="secondary" className="text-xs font-normal">{doc}</Badge>
-                            ))}
-                          </div>
-                        )}
-                        {incident.invDocumentsOther && <p className="text-sm"><span className="text-muted-foreground">Other:</span> {incident.invDocumentsOther}</p>}
-                        {incident.invDocumentsComments && <p className="text-sm leading-relaxed">{incident.invDocumentsComments}</p>}
-                      </div>
-                    )}
-
-                    {/* Investigation Findings */}
-                    {(incident.invContributingFactors || incident.invPrimaryCause || incident.invRootCause) && (
-                      <div className="pt-4 space-y-4">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Findings</p>
-                        {incident.invContributingFactors && (
-                          <div><p className="text-xs text-muted-foreground mb-0.5">Assessment of contributing factors and timeline</p><p className="text-sm leading-relaxed">{incident.invContributingFactors}</p></div>
-                        )}
-                        {incident.invPrimaryCause && (
-                          <div><p className="text-xs text-muted-foreground mb-0.5">Primary cause (if known)</p><p className="text-sm leading-relaxed">{incident.invPrimaryCause}</p></div>
-                        )}
-                        {incident.invRootCause && (
-                          <div><p className="text-xs text-muted-foreground mb-0.5">Root cause analysis</p><p className="text-sm leading-relaxed">{incident.invRootCause}</p></div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Conclusion */}
+                  <div className="space-y-3">
+                    {/* Compact summary row */}
+                    <div className="flex flex-wrap gap-2">
+                      {incident.invCompletedAt && (
+                        <Badge variant="outline" className="text-xs gap-1 text-module-accent border-module-accent/30">
+                          <CheckCircle className="h-3 w-3" />
+                          Completed {format(new Date(incident.invCompletedAt), "dd MMM yyyy")}
+                        </Badge>
+                      )}
+                      {incident.invFirstAidGiven !== null && (
+                        <Badge variant="secondary" className="text-xs">First Aid: {incident.invFirstAidGiven ? "Yes" : "No"}</Badge>
+                      )}
+                      {incident.invHospitalVisit !== null && (
+                        <Badge variant="secondary" className="text-xs">Hospital: {incident.invHospitalVisit ? "Yes" : "No"}</Badge>
+                      )}
+                      {incident.invAbsentFromWork !== null && (
+                        <Badge variant="secondary" className="text-xs">Absent: {incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` (${incident.invAbsentTimeframe})` : ""}` : "No"}</Badge>
+                      )}
+                      {incident.invWitnessesPresent !== null && (
+                        <Badge variant="secondary" className="text-xs">Witnesses: {incident.invWitnessesPresent ? "Yes" : "No"}</Badge>
+                      )}
+                      {incident.invEquipmentInvolved !== null && (
+                        <Badge variant="secondary" className="text-xs">Equipment: {incident.invEquipmentInvolved ? "Yes" : "No"}</Badge>
+                      )}
+                      {incident.invDocumentsReviewed?.length > 0 && (
+                        <Badge variant="secondary" className="text-xs">{incident.invDocumentsReviewed.length} doc{incident.invDocumentsReviewed.length !== 1 ? "s" : ""} reviewed</Badge>
+                      )}
+                    </div>
+                    {/* Conclusion snippet */}
                     {incident.invConclusion && (
-                      <div className="pt-4 space-y-2">
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion &amp; Recommendations</p>
-                        <p className="text-sm leading-relaxed">{incident.invConclusion}</p>
-                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{incident.invConclusion}</p>
                     )}
-
+                    <Button variant="outline" size="sm" onClick={() => setShowInvViewDialog(true)} data-testid="button-view-investigation">
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Full Investigation
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -3282,6 +3199,136 @@ function IncidentDetailView({ id }: { id: string }) {
             invalidateAudit();
           }}
         />
+      )}
+
+      {/* Full Investigation View Dialog */}
+      {incident && (
+        <Dialog open={showInvViewDialog} onOpenChange={setShowInvViewDialog}>
+          <DialogContent className="theme-hs max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-module-accent" />
+                Follow Up Investigation — {incident.incidentReference}
+              </DialogTitle>
+              {incident.invCompletedAt && (
+                <p className="text-sm text-muted-foreground">Completed {format(new Date(incident.invCompletedAt), "dd MMM yyyy")}{incident.invCompletedBy ? ` by ${incident.invCompletedBy}` : ""}</p>
+              )}
+            </DialogHeader>
+
+            <div className="space-y-6 divide-y pt-2">
+              {/* About the injured person */}
+              {(incident.invFirstAidGiven !== null || incident.invHospitalVisit !== null || incident.invAbsentFromWork !== null) && (
+                <div className="pt-0 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">About the Injured Person</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div><p className="text-xs text-muted-foreground mb-0.5">First Aid Given</p><p className="text-sm font-medium">{incident.invFirstAidGiven === null ? "—" : incident.invFirstAidGiven ? "Yes" : "No"}</p></div>
+                    <div><p className="text-xs text-muted-foreground mb-0.5">Hospital Visit</p><p className="text-sm font-medium">{incident.invHospitalVisit === null ? "—" : incident.invHospitalVisit ? "Yes" : "No"}</p></div>
+                    <div><p className="text-xs text-muted-foreground mb-0.5">Absent from Work</p><p className="text-sm font-medium">{incident.invAbsentFromWork === null ? "—" : incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` — ${incident.invAbsentTimeframe}` : ""}` : "No"}</p></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Witnesses */}
+              {(incident.invWitnessesPresent !== null || incident.invWitnesses) && (
+                <div className="pt-4 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
+                  <p className="text-sm"><span className="text-muted-foreground">Witnesses present:</span> <span className="font-medium">{incident.invWitnessesPresent ? "Yes" : "No"}</span></p>
+                  {incident.invWitnessesPresent && incident.invWitnesses && (() => {
+                    let ws: InvWitness[] = [];
+                    try { ws = JSON.parse(incident.invWitnesses); } catch {}
+                    return ws.length > 0 ? (
+                      <div className="space-y-1">
+                        {ws.map((w, i) => (
+                          <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
+              {/* Equipment */}
+              {incident.invEquipmentInvolved !== null && (
+                <div className="pt-4 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equipment Involved</p>
+                  <p className="text-sm"><span className="text-muted-foreground">Equipment involved:</span> <span className="font-medium">{incident.invEquipmentInvolved ? "Yes" : "No"}</span></p>
+                  {incident.invEquipmentInvolved && incident.invEquipment && (() => {
+                    let eqs: InvEquipment[] = [];
+                    try { eqs = JSON.parse(incident.invEquipment); } catch {}
+                    const filled = eqs.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
+                    return filled.length > 0 ? (
+                      <div className="space-y-1">
+                        {filled.map((eq, i) => (
+                          <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Type</p><p className="font-medium">{eq.type || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Make / Model</p><p>{eq.makeModel || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Serial / Reg. No.</p><p>{eq.serialNo || "—"}</p></div>
+                            <div><p className="text-xs text-muted-foreground mb-0.5">Last Inspection</p><p>{eq.lastInspection || "—"}</p></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                  {(incident.invOperators || incident.invOperatorsQualified !== null) && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {incident.invOperators && <div><p className="text-xs text-muted-foreground mb-0.5">Operators</p><p className="text-sm">{incident.invOperators}</p></div>}
+                      {incident.invOperatorsQualified !== null && <div><p className="text-xs text-muted-foreground mb-0.5">Operators Qualified</p><p className="text-sm font-medium">{incident.invOperatorsQualified ? "Yes" : "No"}</p></div>}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Documents */}
+              {(incident.invDocumentsReviewed?.length > 0 || incident.invDocumentsComments) && (
+                <div className="pt-4 space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents Used / Reviewed</p>
+                  {incident.invDocumentsReviewed?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {incident.invDocumentsReviewed.map((doc: string) => (
+                        <Badge key={doc} variant="secondary" className="text-xs font-normal">{doc}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  {incident.invDocumentsOther && <p className="text-sm"><span className="text-muted-foreground">Other:</span> {incident.invDocumentsOther}</p>}
+                  {incident.invDocumentsComments && <p className="text-sm leading-relaxed">{incident.invDocumentsComments}</p>}
+                </div>
+              )}
+
+              {/* Investigation Findings */}
+              {(incident.invContributingFactors || incident.invPrimaryCause || incident.invRootCause) && (
+                <div className="pt-4 space-y-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Findings</p>
+                  {incident.invContributingFactors && <div><p className="text-xs text-muted-foreground mb-0.5">Assessment of contributing factors and timeline</p><p className="text-sm leading-relaxed">{incident.invContributingFactors}</p></div>}
+                  {incident.invPrimaryCause && <div><p className="text-xs text-muted-foreground mb-0.5">Primary cause (if known)</p><p className="text-sm leading-relaxed">{incident.invPrimaryCause}</p></div>}
+                  {incident.invRootCause && <div><p className="text-xs text-muted-foreground mb-0.5">Root cause analysis</p><p className="text-sm leading-relaxed">{incident.invRootCause}</p></div>}
+                </div>
+              )}
+
+              {/* Conclusion */}
+              {incident.invConclusion && (
+                <div className="pt-4 space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion &amp; Recommendations</p>
+                  <p className="text-sm leading-relaxed">{incident.invConclusion}</p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="mt-4">
+              {isPrivileged && (
+                <Button variant="outline" size="sm" onClick={() => { setShowInvViewDialog(false); setShowFollowUpDialog(true); }} data-testid="button-edit-from-view">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit Investigation
+                </Button>
+              )}
+              <Button size="sm" className="bg-module-accent hover:bg-module-accent/90" onClick={() => setShowInvViewDialog(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
