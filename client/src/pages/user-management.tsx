@@ -986,16 +986,20 @@ export default function UserManagement() {
                   className={u.role !== "admin" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
                 >
                   <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                    <button
+                      className="flex items-center gap-3 text-left hover:opacity-75 transition-opacity"
+                      onClick={() => setViewingUser(u)}
+                      data-testid={`button-view-name-${u.id}`}
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
                         {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>
                       <div>
-                        <p className="font-medium">{u.fullName}</p>
+                        <p className="font-medium underline-offset-2 hover:underline">{u.fullName}</p>
                         <p className="text-xs text-muted-foreground">{u.email}</p>
                         <p className="text-xs text-muted-foreground">{u.username}</p>
                       </div>
-                    </div>
+                    </button>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">

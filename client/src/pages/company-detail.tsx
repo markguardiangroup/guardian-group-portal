@@ -71,6 +71,7 @@ import {
   BookOpen,
   RefreshCw,
   MoreVertical,
+  Smartphone,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -131,6 +132,18 @@ interface UserWithAssignments {
   phone?: string | null;
   mobile?: string | null;
 }
+
+const roleColors: Record<string, string> = {
+  admin: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  consultant: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  client: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+};
+
+const roleLabels: Record<string, string> = {
+  admin: "Administrator",
+  consultant: "Consultant",
+  client: "Client",
+};
 
 function ComplianceIndicator({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
@@ -646,6 +659,7 @@ export default function CompanyDetail() {
   } | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
   const INDUSTRY_OPTIONS = [
     "Agriculture & Forestry",
@@ -1478,13 +1492,19 @@ export default function CompanyDetail() {
                           return (
                             <div key={u.id} data-testid={`row-consultant-${u.id}`}>
                               <div className="flex items-center gap-4 px-4 py-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                                  {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-sm font-medium truncate block">{u.fullName}</span>
-                                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                                </div>
+                                <button
+                                  className="flex items-center gap-3 text-left hover:opacity-75 transition-opacity min-w-0 flex-1"
+                                  onClick={() => setViewingUser(u)}
+                                  data-testid={`button-view-consultant-${u.id}`}
+                                >
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                                    {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-sm font-medium truncate block hover:underline underline-offset-2">{u.fullName}</span>
+                                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                  </div>
+                                </button>
                                 <div className="flex items-center gap-2 shrink-0">
                                   <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
                                     {u.consultantTier ? (u.consultantTier.charAt(0).toUpperCase() + u.consultantTier.slice(1)) : "Standard"}
@@ -1541,20 +1561,26 @@ export default function CompanyDetail() {
                           return (
                             <div key={u.id} data-testid={`row-client-${u.id}`}>
                               <div className="flex items-center gap-4 px-4 py-3">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                                  {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium truncate">{u.fullName}</span>
-                                    {isPrimary && (
-                                      <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
-                                        Primary Contact
-                                      </Badge>
-                                    )}
+                                <button
+                                  className="flex items-center gap-3 text-left hover:opacity-75 transition-opacity min-w-0 flex-1"
+                                  onClick={() => setViewingUser(u)}
+                                  data-testid={`button-view-client-${u.id}`}
+                                >
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                                    {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                                   </div>
-                                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                                </div>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-medium truncate hover:underline underline-offset-2">{u.fullName}</span>
+                                      {isPrimary && (
+                                        <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
+                                          Primary Contact
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                  </div>
+                                </button>
                                 <div className="flex items-center gap-2 shrink-0">
                                   {isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
                                     <Button
@@ -2243,6 +2269,110 @@ export default function CompanyDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* User Profile Dialog */}
+      <Dialog open={!!viewingUser} onOpenChange={(open) => { if (!open) setViewingUser(null); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>User Profile</DialogTitle>
+            <DialogDescription>Full profile information</DialogDescription>
+          </DialogHeader>
+          {viewingUser && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-xl font-medium shrink-0">
+                  {viewingUser.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{viewingUser.fullName}</h3>
+                  <div className="flex items-center gap-2 flex-wrap mt-1">
+                    <Badge variant="outline" className={roleColors[viewingUser.role]}>
+                      {roleLabels[viewingUser.role]}
+                    </Badge>
+                    {viewingUser.referenceNumber && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {viewingUser.referenceNumber}
+                      </Badge>
+                    )}
+                    <Badge
+                      variant={viewingUser.status === "active" ? "default" : "outline"}
+                      className={
+                        viewingUser.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                        viewingUser.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                        viewingUser.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
+                        viewingUser.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                      }
+                    >
+                      {viewingUser.status === "site_required" ? "Site Required" :
+                       viewingUser.status === "invite_required" ? "Invite Required" :
+                       viewingUser.status.charAt(0).toUpperCase() + viewingUser.status.slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground">Contact Information</h4>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span>{viewingUser.email}</span>
+                  </div>
+                  {viewingUser.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span>{viewingUser.phone}</span>
+                    </div>
+                  )}
+                  {viewingUser.mobile && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Smartphone className="h-4 w-4 text-muted-foreground" />
+                      <span>{viewingUser.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(viewingUser.jobTitle || viewingUser.department) && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Work Information</h4>
+                  <div className="grid gap-2">
+                    {viewingUser.jobTitle && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        <span>{viewingUser.jobTitle}</span>
+                      </div>
+                    )}
+                    {viewingUser.department && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>{viewingUser.department}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {viewingUser.siteAssignments && viewingUser.siteAssignments.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Assigned Sites</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingUser.siteAssignments.map((a) => (
+                      <Badge key={a.siteId} variant="outline">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {a.siteName}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingUser(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Send Invite Confirmation Dialog */}
       <Dialog open={!!inviteConfirmUser} onOpenChange={(open) => { if (!open) setInviteConfirmUser(null); }}>
