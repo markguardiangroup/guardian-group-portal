@@ -1048,7 +1048,31 @@ export default function Companies() {
 
             {!editingCompany && (
               <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-1">Module Access</h4>
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-sm font-medium">Module Access</h4>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs px-2"
+                    onClick={() => {
+                      const allEnabled = Object.values(moduleAccessData).every(Boolean);
+                      const newValue = !allEnabled;
+                      setModuleAccessData({
+                        healthSafety: newValue,
+                        humanResources: newValue,
+                        employmentLaw: newValue,
+                        training: newValue,
+                        toolkit: newValue,
+                        support: newValue,
+                        reports: newValue,
+                      });
+                    }}
+                    data-testid="button-toggle-all-modules"
+                  >
+                    {Object.values(moduleAccessData).every(Boolean) ? "Disable All" : "Enable All"}
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground mb-3">Select which modules this company can access.</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
