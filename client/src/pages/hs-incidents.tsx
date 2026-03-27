@@ -2399,41 +2399,21 @@ function IncidentDetailView({ id }: { id: string }) {
                     <p className="text-sm text-muted-foreground italic">No follow-up investigation recorded yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {/* Compact summary row */}
-                    <div className="flex flex-wrap gap-2">
-                      {incident.invCompletedAt && (
-                        <Badge variant="outline" className="text-xs gap-1 text-module-accent border-module-accent/30">
-                          <CheckCircle className="h-3 w-3" />
-                          Completed {format(new Date(incident.invCompletedAt), "dd MMM yyyy")}
-                        </Badge>
-                      )}
-                      {incident.invFirstAidGiven !== null && (
-                        <Badge variant="secondary" className="text-xs">First Aid: {incident.invFirstAidGiven ? "Yes" : "No"}</Badge>
-                      )}
-                      {incident.invHospitalVisit !== null && (
-                        <Badge variant="secondary" className="text-xs">Hospital: {incident.invHospitalVisit ? "Yes" : "No"}</Badge>
-                      )}
-                      {incident.invAbsentFromWork !== null && (
-                        <Badge variant="secondary" className="text-xs">Absent: {incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` (${incident.invAbsentTimeframe})` : ""}` : "No"}</Badge>
-                      )}
-                      {incident.invWitnessesPresent !== null && (
-                        <Badge variant="secondary" className="text-xs">Witnesses: {incident.invWitnessesPresent ? "Yes" : "No"}</Badge>
-                      )}
-                      {incident.invEquipmentInvolved !== null && (
-                        <Badge variant="secondary" className="text-xs">Equipment: {incident.invEquipmentInvolved ? "Yes" : "No"}</Badge>
-                      )}
-                      {incident.invDocumentsReviewed?.length > 0 && (
-                        <Badge variant="secondary" className="text-xs">{incident.invDocumentsReviewed.length} doc{incident.invDocumentsReviewed.length !== 1 ? "s" : ""} reviewed</Badge>
-                      )}
-                    </div>
-                    {/* Conclusion snippet */}
-                    {incident.invConclusion && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{incident.invConclusion}</p>
-                    )}
-                    <Button variant="outline" size="sm" onClick={() => setShowInvViewDialog(true)} data-testid="button-view-investigation">
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Full Investigation
+                  <div className="flex items-center justify-between py-1">
+                    <p className="text-sm text-muted-foreground">
+                      {incident.invCompletedAt
+                        ? <>Investigation completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span></>
+                        : "Investigation in progress"}
+                    </p>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowInvViewDialog(true)}
+                      className="bg-module-accent hover:bg-module-accent/90 gap-1.5"
+                      data-testid="button-view-investigation"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                      View Details
                     </Button>
                   </div>
                 )}
