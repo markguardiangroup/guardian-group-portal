@@ -220,6 +220,7 @@ export default function Companies() {
   });
   const [originalCompanyName, setOriginalCompanyName] = useState("");
   const [websiteError, setWebsiteError] = useState<string | null>(null);
+  const [companyNameError, setCompanyNameError] = useState<string | null>(null);
 
   const toTitleCase = (str: string): string => {
     return str
@@ -460,6 +461,7 @@ export default function Companies() {
     });
     setPendingModuleAccess(null);
     setWebsiteError(null);
+    setCompanyNameError(null);
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -557,9 +559,19 @@ export default function Companies() {
   };
 
   const handleSubmit = () => {
+    setCompanyNameError(null);
     if (!formData.name.trim()) {
       toast({ title: "Company name is required", variant: "destructive" });
       return;
+    }
+    if (!editingCompany) {
+      const duplicate = (data?.companies || []).find(
+        (c) => c.name.trim().toLowerCase() === formData.name.trim().toLowerCase()
+      );
+      if (duplicate) {
+        setCompanyNameError("A company with this name already exists");
+        return;
+      }
     }
     if (!formData.industry) {
       toast({ title: "Industry is required", variant: "destructive" });
@@ -830,7 +842,10 @@ export default function Companies() {
                   id="company-name"
                   placeholder="e.g., Acme Manufacturing Ltd"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    if (companyNameError) setCompanyNameError(null);
+                  }}
                   onBlur={(e) => {
                     const value = e.target.value.trim();
                     if (value && value !== originalCompanyName) {
@@ -842,7 +857,7 @@ export default function Companies() {
                     }
                   }}
                   data-testid="input-company-name"
-                  className="flex-1"
+                  className={`flex-1 ${companyNameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
                 {formData.name && originalCompanyName && toTitleCase(originalCompanyName) !== originalCompanyName && (
                   <Button
@@ -861,6 +876,9 @@ export default function Companies() {
                   </Button>
                 )}
               </div>
+              {companyNameError && (
+                <p className="text-sm text-destructive">{companyNameError}</p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-number">Company Number</Label>

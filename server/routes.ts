@@ -4994,6 +4994,14 @@ export async function registerRoutes(
       if (!site || !site.name || !site.name.trim()) {
         return res.status(400).json({ error: "At least one site with a name is required when creating a company" });
       }
+
+      const existingCompanies = await storage.getCompanies();
+      const duplicate = existingCompanies.find(
+        (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase()
+      );
+      if (duplicate) {
+        return res.status(409).json({ error: "A company with this name already exists" });
+      }
       
       const company = await storage.createCompany({
         name: name.trim(),
