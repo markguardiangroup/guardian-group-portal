@@ -170,6 +170,7 @@ function CasesList() {
   }, [urlSiteId, urlCompany]);
   const [showArchived, setShowArchived] = useState(false);
   const [caseToArchive, setCaseToArchive] = useState<Case | null>(null);
+  const [metricDialog, setMetricDialog] = useState<null | "cases_active" | "cases_resolved" | "overdue" | "upcoming">(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -435,62 +436,155 @@ function CasesList() {
       <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
       <div className="grid gap-4 md:grid-cols-3">
           {/* Tile 1: Cases — active + resolved split */}
-          <Card className="border-l-4 border-l-pink-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cases</CardTitle>
+          <div className="rounded-lg border-l-4 border-l-pink-500 border bg-card shadow-sm transition-all hover:shadow-md">
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <div className="text-sm font-medium">Cases</div>
               <div className="rounded-full bg-pink-100 dark:bg-pink-900/40 p-2">
                 <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </div>
-            </CardHeader>
-            <CardContent className="pt-1">
+            </div>
+            <div className="p-6 pt-1">
               {isLoading ? (
                 <div className="space-y-2">
                   <Skeleton className="h-6 w-28" />
                   <Skeleton className="h-6 w-28" />
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Active</span>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setMetricDialog("cases_active")}
+                    className="w-full flex items-center justify-between rounded-md px-1 py-1 hover:bg-pink-50 dark:hover:bg-pink-950/30 transition-colors group"
+                    data-testid="stat-card-cases-active"
+                  >
+                    <span className="text-xs text-muted-foreground group-hover:text-pink-600 transition-colors">Active</span>
                     <span className="text-lg font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} animate={casesWasLoadingRef.current} /></span>
-                  </div>
-                  <div className="border-t pt-1.5 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Resolved</span>
+                  </button>
+                  <div className="border-t" />
+                  <button
+                    onClick={() => setMetricDialog("cases_resolved")}
+                    className="w-full flex items-center justify-between rounded-md px-1 py-1 hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors group"
+                    data-testid="stat-card-cases-resolved"
+                  >
+                    <span className="text-xs text-muted-foreground group-hover:text-green-600 transition-colors">Resolved</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} animate={casesWasLoadingRef.current} /></span>
-                  </div>
+                  </button>
+                  <p className="text-xs text-muted-foreground px-1 pt-0.5">Click row to view list</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Tile 2: Overdue Deadlines */}
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue Deadlines</CardTitle>
-              <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
-                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <button
+            onClick={() => setMetricDialog("overdue")}
+            data-testid="stat-card-overdue"
+            className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-400/40 ${overdueCases > 0 ? "border-l-red-500 hover:bg-red-50 dark:hover:bg-red-950/20" : "border-l-slate-300"}`}
+          >
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <div className="text-sm font-medium">Overdue Deadlines</div>
+              <div className={`rounded-full p-2 ${overdueCases > 0 ? "bg-red-100 dark:bg-red-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                <AlertTriangle className={`h-4 w-4 ${overdueCases > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400"}`} />
               </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-red-600 dark:text-red-400"><CountUp value={overdueCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Deadline already passed</p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="p-6 pt-0">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className={`text-2xl font-bold ${overdueCases > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}><CountUp value={overdueCases} animate={casesWasLoadingRef.current} /></div>}
+              <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
+            </div>
+          </button>
 
           {/* Tile 3: Upcoming Deadlines */}
-          <Card className="border-l-4 border-l-amber-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
-              <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
-                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <button
+            onClick={() => setMetricDialog("upcoming")}
+            data-testid="stat-card-upcoming"
+            className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400/40 ${upcomingCases > 0 ? "border-l-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20" : "border-l-slate-300"}`}
+          >
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <div className="text-sm font-medium">Upcoming Deadlines</div>
+              <div className={`rounded-full p-2 ${upcomingCases > 0 ? "bg-amber-100 dark:bg-amber-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                <Clock className={`h-4 w-4 ${upcomingCases > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-400"}`} />
               </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={upcomingCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Due within 7 days</p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="p-6 pt-0">
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className={`text-2xl font-bold ${upcomingCases > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}><CountUp value={upcomingCases} animate={casesWasLoadingRef.current} /></div>}
+              <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
+            </div>
+          </button>
         </div>
+
+        {/* Metric breakdown dialog */}
+        <Dialog open={metricDialog !== null} onOpenChange={(open) => { if (!open) setMetricDialog(null); }}>
+          <DialogContent className="theme-el sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {metricDialog === "cases_active" && <><Briefcase className="h-5 w-5 text-pink-600" /> Active Cases</>}
+                {metricDialog === "cases_resolved" && <><CheckCircle className="h-5 w-5 text-green-600" /> Resolved Cases</>}
+                {metricDialog === "overdue" && <><AlertTriangle className="h-5 w-5 text-red-500" /> Overdue Deadlines</>}
+                {metricDialog === "upcoming" && <><Clock className="h-5 w-5 text-amber-500" /> Upcoming Deadlines</>}
+              </DialogTitle>
+              <DialogDescription>
+                {metricDialog === "cases_active" && "Cases currently open, under investigation, or with a hearing scheduled."}
+                {metricDialog === "cases_resolved" && "Cases that have been resolved or closed."}
+                {metricDialog === "overdue" && "Cases with a response deadline, hearing date, or milestone that has already passed."}
+                {metricDialog === "upcoming" && "Cases with a deadline due within the next 7 days."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-2 space-y-2 max-h-96 overflow-y-auto">
+              {(() => {
+                let listCases: any[] = [];
+                if (metricDialog === "cases_active") {
+                  listCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled");
+                } else if (metricDialog === "cases_resolved") {
+                  listCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed");
+                } else if (metricDialog === "overdue") {
+                  listCases = activeCases.filter(c => {
+                    if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
+                    if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;
+                    if (c.overduesMilestoneDueDate) return true;
+                    return false;
+                  });
+                } else if (metricDialog === "upcoming") {
+                  listCases = activeCases.filter(c => {
+                    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
+                    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
+                    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+                    return false;
+                  });
+                }
+                if (listCases.length === 0) {
+                  return <div className="py-8 text-center text-muted-foreground text-sm">No cases to display.</div>;
+                }
+                return listCases.map((c) => {
+                  const deadline = getCaseDisplayDeadline(c);
+                  return (
+                    <Link key={c.id} href={`/employment-law/cases/${c.id}`} onClick={() => setMetricDialog(null)}>
+                      <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/60 cursor-pointer transition-colors group">
+                        <div className="min-w-0">
+                          <span className="text-xs font-mono font-semibold text-module-accent">{c.caseReference}</span>
+                          <p className="text-sm font-medium truncate mt-0.5 group-hover:text-module-accent transition-colors">{c.employeeName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{c.caseType?.replace(/_/g, " ")}</p>
+                        </div>
+                        <div className="ml-4 shrink-0 flex items-center gap-2">
+                          {deadline && (metricDialog === "overdue" || metricDialog === "upcoming") && (
+                            <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 ${isPast(deadline.date) ? "bg-red-100 dark:bg-red-900/40" : "bg-amber-100 dark:bg-amber-900/40"}`}>
+                              <Clock className={`h-3 w-3 ${isPast(deadline.date) ? "text-red-600" : "text-amber-600"}`} />
+                              <span className={`text-xs font-semibold ${isPast(deadline.date) ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>
+                                {format(deadline.date, "MMM d")}
+                              </span>
+                            </div>
+                          )}
+                          {(metricDialog === "cases_active" || metricDialog === "cases_resolved") && (
+                            <CaseStatusBadge status={c.status as CaseStatus} />
+                          )}
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-module-accent transition-colors" />
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                });
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
 
       <Card>
         <CardHeader>
