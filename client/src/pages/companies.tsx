@@ -827,7 +827,7 @@ export default function Companies() {
           resetForm();
         }
       }}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingCompany ? "Edit Company" : "Add New Company"}</DialogTitle>
             <DialogDescription>
@@ -1164,7 +1164,7 @@ export default function Companies() {
         }
         setIsSiteModalOpen(open);
       }}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPinned className="h-5 w-5" />
