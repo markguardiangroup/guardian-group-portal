@@ -328,26 +328,31 @@ function CasesList() {
   const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
   const resolvedCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed").length;
 
-  // Returns the nearest deadline from hearingDate, responseDeadline, or case milestones
-  const getCaseNearestDeadline = (c: any): { date: Date; label: string } | null => {
+  // Returns deadline display info for the table column (nearest date, any type)
+  const getCaseDisplayDeadline = (c: any): { date: Date; label: string } | null => {
     const candidates: { date: Date; label: string }[] = [];
     if (c.responseDeadline) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
     if (c.hearingDate) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
-    if (c.nextMilestoneDueDate) candidates.push({ date: new Date(c.nextMilestoneDueDate), label: "Milestone" });
+    if (c.overduesMilestoneDueDate) candidates.push({ date: new Date(c.overduesMilestoneDueDate), label: "Milestone" });
+    if (c.upcomingMilestoneDueDate) candidates.push({ date: new Date(c.upcomingMilestoneDueDate), label: "Milestone" });
     if (candidates.length === 0) return null;
     return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
   };
 
+  // Overdue: has any past deadline from case fields OR from overdue milestones
   const overdueCases = activeCases.filter(c => {
-    const nearest = getCaseNearestDeadline(c);
-    if (!nearest) return false;
-    return isPast(nearest.date);
+    if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
+    if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;
+    if (c.overduesMilestoneDueDate) return true;
+    return false;
   }).length;
 
+  // Upcoming: has any future deadline within 7 days from case fields OR upcoming milestones within 7 days
   const upcomingCases = activeCases.filter(c => {
-    const nearest = getCaseNearestDeadline(c);
-    if (!nearest) return false;
-    return isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7;
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
+    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
+    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+    return false;
   }).length;
 
   const urgentCases = overdueCases + upcomingCases;
@@ -612,7 +617,7 @@ function CasesList() {
                     </TableCell>
                     <TableCell>
                       {(() => {
-                        const nearest = getCaseNearestDeadline(caseItem);
+                        const nearest = getCaseDisplayDeadline(caseItem);
                         if (!nearest) return <span className="text-muted-foreground">-</span>;
                         return (
                           <div className={`flex items-center gap-1 text-sm ${
@@ -994,6 +999,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setShowMilestoneDialog(false);
       toast({ title: "Milestone added successfully" });
     },
@@ -1006,6 +1012,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       toast({ title: "Milestone completed" });
     },
   });
@@ -1017,6 +1024,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       toast({ title: "Milestone reopened" });
     },
   });
@@ -1028,6 +1036,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       setEditingMilestone(null);
       toast({ title: "Milestone updated" });
     },
@@ -1040,6 +1049,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       toast({ title: "Milestone deleted" });
     },
   });
@@ -2050,25 +2060,18 @@ function EmploymentLawDashboardView() {
   const activeCases = cases?.filter(c => !c.isArchived) || [];
   const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
 
-  const getCaseNearestDeadline2 = (c: any): { date: Date; label: string } | null => {
-    const candidates: { date: Date; label: string }[] = [];
-    if (c.responseDeadline) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
-    if (c.hearingDate) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
-    if (c.nextMilestoneDueDate) candidates.push({ date: new Date(c.nextMilestoneDueDate), label: "Milestone" });
-    if (candidates.length === 0) return null;
-    return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
-  };
-
   const overdueCases2 = activeCases.filter(c => {
-    const nearest = getCaseNearestDeadline2(c);
-    if (!nearest) return false;
-    return isPast(nearest.date);
+    if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
+    if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;
+    if (c.overduesMilestoneDueDate) return true;
+    return false;
   }).length;
 
   const upcomingCases2 = activeCases.filter(c => {
-    const nearest = getCaseNearestDeadline2(c);
-    if (!nearest) return false;
-    return isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7;
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
+    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
+    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+    return false;
   }).length;
 
   const urgentCases = overdueCases2 + upcomingCases2;

@@ -6197,22 +6197,30 @@ export async function registerRoutes(
         return false;
       });
 
-      // Attach the earliest non-completed milestone dueDate to each case
+      // Attach milestone deadline info to each case (split: overdue vs upcoming)
       const caseIds = filteredCases.map(c => c.id);
       const allMilestones = await storage.getCaseMilestonesForCases(caseIds);
-      const milestoneByCaseId: Record<string, Date | null> = {};
+      const now = new Date();
+      const overdueByCase: Record<string, Date | null> = {};
+      const upcomingByCase: Record<string, Date | null> = {};
       for (const m of allMilestones) {
         if (!m.isCompleted && m.dueDate) {
-          const existing = milestoneByCaseId[m.caseId];
           const mDate = new Date(m.dueDate);
-          if (!existing || mDate < existing) {
-            milestoneByCaseId[m.caseId] = mDate;
+          if (mDate < now) {
+            // Overdue: keep the earliest (most overdue)
+            const ex = overdueByCase[m.caseId];
+            if (!ex || mDate < ex) overdueByCase[m.caseId] = mDate;
+          } else {
+            // Upcoming: keep the earliest (soonest)
+            const ex = upcomingByCase[m.caseId];
+            if (!ex || mDate < ex) upcomingByCase[m.caseId] = mDate;
           }
         }
       }
       const casesWithMilestones = filteredCases.map(c => ({
         ...c,
-        nextMilestoneDueDate: milestoneByCaseId[c.id] ?? null,
+        overduesMilestoneDueDate: overdueByCase[c.id] ?? null,
+        upcomingMilestoneDueDate: upcomingByCase[c.id] ?? null,
       }));
 
       res.json(casesWithMilestones);
