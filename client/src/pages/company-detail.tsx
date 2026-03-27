@@ -1556,57 +1556,55 @@ export default function CompanyDetail() {
                                   <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <Badge
-                                    variant={u.status === "active" ? "default" : "outline"}
-                                    className={
-                                      u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
-                                      u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
-                                      u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
-                                      u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
-                                    }
-                                  >
-                                    {u.status === "active" ? (
-                                      <><UserCheck className="h-3 w-3 mr-1" />Active</>
-                                    ) : u.status === "invited" ? (
-                                      <><Clock className="h-3 w-3 mr-1" />Invited</>
-                                    ) : u.status === "invite_required" ? (
-                                      <><Mail className="h-3 w-3 mr-1" />Invite Required</>
-                                    ) : u.status === "site_required" ? (
-                                      <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
-                                    ) : u.status === "locked" ? (
-                                      <><XCircle className="h-3 w-3 mr-1" />Locked</>
-                                    ) : (
-                                      <><XCircle className="h-3 w-3 mr-1" />Inactive</>
-                                    )}
-                                  </Badge>
-                                  {isAdmin && (u.status === "invite_required" || u.status === "invited") && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-user-actions-${u.id}`}>
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        {u.status === "invite_required" && (
-                                          <DropdownMenuItem 
-                                            onClick={() => setInviteConfirmUser(u)}
-                                            data-testid={`button-send-invite-${u.id}`}
-                                          >
-                                            <Mail className="h-4 w-4 mr-2" />
-                                            Send Invitation
-                                          </DropdownMenuItem>
-                                        )}
-                                        {u.status === "invited" && (
-                                          <DropdownMenuItem 
-                                            onClick={() => setInviteConfirmUser(u)}
-                                            data-testid={`button-resend-invite-${u.id}`}
-                                          >
-                                            <RefreshCw className="h-4 w-4 mr-2" />
-                                            Resend Invitation
-                                          </DropdownMenuItem>
-                                        )}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
+                                  {isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setInviteConfirmUser(u)}
+                                      className={
+                                        u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30" :
+                                        u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30" : ""
+                                      }
+                                      data-testid={`button-send-invite-${u.id}`}
+                                    >
+                                      {u.status === "active" ? (
+                                        <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                                      ) : u.status === "invited" ? (
+                                        <><Clock className="h-3 w-3 mr-1" />Invited</>
+                                      ) : u.status === "invite_required" ? (
+                                        <><Mail className="h-3 w-3 mr-1" />Invite Required</>
+                                      ) : u.status === "site_required" ? (
+                                        <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
+                                      ) : u.status === "locked" ? (
+                                        <><XCircle className="h-3 w-3 mr-1" />Locked</>
+                                      ) : (
+                                        <><XCircle className="h-3 w-3 mr-1" />Inactive</>
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <Badge
+                                      variant={u.status === "active" ? "default" : "outline"}
+                                      className={
+                                        u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                                        u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+                                        u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
+                                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                                      }
+                                    >
+                                      {u.status === "active" ? (
+                                        <><UserCheck className="h-3 w-3 mr-1" />Active</>
+                                      ) : u.status === "invited" ? (
+                                        <><Clock className="h-3 w-3 mr-1" />Invited</>
+                                      ) : u.status === "invite_required" ? (
+                                        <><Mail className="h-3 w-3 mr-1" />Invite Required</>
+                                      ) : u.status === "site_required" ? (
+                                        <><AlertTriangle className="h-3 w-3 mr-1" />Site Required</>
+                                      ) : u.status === "locked" ? (
+                                        <><XCircle className="h-3 w-3 mr-1" />Locked</>
+                                      ) : (
+                                        <><XCircle className="h-3 w-3 mr-1" />Inactive</>
+                                      )}
+                                    </Badge>
                                   )}
                                   {clientSites.length > 0 ? (
                                     <button
