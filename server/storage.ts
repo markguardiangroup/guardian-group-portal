@@ -743,7 +743,7 @@ export class MemStorage implements IStorage {
     const [company] = await db.insert(companiesTable).values({
       ...insertCompany,
       referenceNumber,
-      status: insertCompany.status ?? "active",
+      status: insertCompany.status ?? "pending",
       healthSafetyAccess: insertCompany.healthSafetyAccess ?? false,
       humanResourcesAccess: insertCompany.humanResourcesAccess ?? false,
       employmentLawAccess: insertCompany.employmentLawAccess ?? false,
