@@ -5087,6 +5087,8 @@ export async function registerRoutes(
           if (updates.contactEmail === undefined) updates.contactEmail = contactUser.email || null;
           if (updates.contactPhone === undefined) updates.contactPhone = contactUser.phone || contactUser.mobile || null;
           if (updates.contactPosition === undefined) updates.contactPosition = contactUser.jobTitle || null;
+          // Auto-update status from pending to active when a primary contact is set
+          if (updates.status === undefined) updates.status = "active";
         }
       }
       
@@ -5130,6 +5132,36 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update company error:", error);
       res.status(500).json({ error: "Failed to update company" });
+    }
+  });
+
+  // Update company status only
+  app.patch("/api/companies/:id/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      if (user.role !== "admin" && !isProConsultant(user)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can update company status" });
+      }
+      
+      const { status } = req.body;
+      if (!status || !["pending", "active", "on_hold", "inactive"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status value" });
+      }
+      
+      const company = await storage.updateCompany(req.params.id, { status });
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      res.json(company);
+    } catch (error) {
+      console.error("Update company status error:", error);
+      res.status(500).json({ error: "Failed to update company status" });
     }
   });
 

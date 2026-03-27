@@ -33,7 +33,7 @@ export type DocumentStatus = "compliant" | "review_required" | "overdue";
 export type ApprovalStatus = "pending" | "review_required" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
 
 // Company status
-export type CompanyStatus = "active" | "inactive" | "pending";
+export type CompanyStatus = "pending" | "active" | "on_hold" | "inactive";
 
 // Companies table (parent of sites)
 export const companies = pgTable("companies", {
@@ -58,7 +58,7 @@ export const companies = pgTable("companies", {
   searchTag: text("search_tag"),
   industry: text("industry"),
   employeeRange: text("employee_range"),
-  status: text("status").$type<CompanyStatus>().notNull().default("active"),
+  status: text("status").$type<CompanyStatus>().notNull().default("pending"),
   // Module access - set at company level, applies to all sites and users
   healthSafetyAccess: boolean("health_safety_access").notNull().default(false),
   humanResourcesAccess: boolean("human_resources_access").notNull().default(false),

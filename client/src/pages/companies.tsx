@@ -67,13 +67,32 @@ function CompanyCard({
   onView,
   onDelete,
   isAdmin,
+  isConsultant,
 }: { 
   company: CompanyWithSiteCount; 
   onEdit: (company: CompanyWithSiteCount) => void;
   onView: (companyId: string) => void;
   onDelete: (company: CompanyWithSiteCount) => void;
   isAdmin: boolean;
+  isConsultant?: boolean;
 }) {
+  const { toast } = useToast();
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  const handleStatusChange = async (newStatus: string) => {
+    setStatusLoading(true);
+    try {
+      const response = await apiRequest("PATCH", `/api/companies/${company.id}/status`, { status: newStatus });
+      await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({ title: `Status updated to ${newStatus}` });
+    } catch {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   return (
     <Card className="hover-elevate cursor-pointer" onClick={() => onView(company.id)}>
       <CardContent className="p-4">
@@ -102,9 +121,38 @@ function CompanyCard({
                 <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
                   {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
                 </Badge>
-                <Badge variant={company.status === "active" ? "default" : "secondary"}>
-                  {company.status}
-                </Badge>
+                {(isAdmin || isConsultant) ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Badge 
+                        variant={company.status === "active" ? "default" : "secondary"} 
+                        className="cursor-pointer"
+                        data-testid={`badge-status-${company.id}`}
+                      >
+                        {company.status}
+                      </Badge>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {["pending", "active", "on_hold", "inactive"].map((status) => (
+                        <DropdownMenuItem
+                          key={status}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(status);
+                          }}
+                          disabled={statusLoading || status === company.status}
+                          data-testid={`button-status-${status}-${company.id}`}
+                        >
+                          {status}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Badge variant={company.status === "active" ? "default" : "secondary"}>
+                    {company.status}
+                  </Badge>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" data-testid={`button-company-menu-${company.id}`}>
@@ -761,6 +809,7 @@ export default function Companies() {
                 onView={handleView}
                 onDelete={(c) => { setDeleteTarget(c); setDeleteConfirmText(""); }}
                 isAdmin={isAdmin}
+                isConsultant={isProConsultant}
               />
             ))}
           </div>
