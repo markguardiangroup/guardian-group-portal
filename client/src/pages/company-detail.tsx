@@ -931,7 +931,7 @@ export default function CompanyDetail() {
     try {
       const response = await apiRequest("PATCH", `/api/companies/${companyId}/status`, { status: newStatus });
       await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: `Status updated to ${formatStatusDisplay(newStatus)}` });
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });
