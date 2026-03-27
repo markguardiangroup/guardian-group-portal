@@ -221,6 +221,7 @@ function CasesList() {
   const { data: cases, isLoading } = useQuery<Case[]>({
     queryKey: ["/api/cases", siteId, selectedCompanyId, showArchived],
     placeholderData: keepPreviousData,
+    staleTime: 0,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) {
