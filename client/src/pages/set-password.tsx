@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Shield, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { PdfViewer } from "@/components/pdf-viewer";
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
   <div className="flex items-center gap-2 text-xs">
@@ -39,6 +41,7 @@ export default function SetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<"terms" | "privacy" | null>(null);
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
@@ -330,48 +333,66 @@ export default function SetPassword() {
                   <p className="text-xs text-muted-foreground">
                     Please review and accept the following documents to continue.
                   </p>
-                  {termsAvailable && (
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id="accept-terms"
-                        checked={acceptedTerms}
-                        onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
-                        data-testid="checkbox-accept-terms"
-                      />
-                      <label htmlFor="accept-terms" className="text-sm leading-relaxed cursor-pointer">
-                        I have read and agree to the{" "}
-                        <button
-                          type="button"
-                          className="text-primary underline underline-offset-2 font-medium"
-                          onClick={() => window.open("/api/legal-documents/terms/view", "_blank")}
-                          data-testid="link-terms"
+                  <div className="space-y-3">
+                    {termsAvailable && (
+                      <div className="space-y-2">
+                        <div
+                          className="flex items-center gap-3 rounded-lg border border-muted bg-muted/30 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setPreviewDoc("terms")}
+                          data-testid="card-preview-terms"
                         >
-                          Terms & Conditions
-                        </button>
-                      </label>
-                    </div>
-                  )}
-                  {privacyAvailable && (
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        id="accept-privacy"
-                        checked={acceptedPrivacy}
-                        onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
-                        data-testid="checkbox-accept-privacy"
-                      />
-                      <label htmlFor="accept-privacy" className="text-sm leading-relaxed cursor-pointer">
-                        I have read and acknowledge the{" "}
-                        <button
-                          type="button"
-                          className="text-primary underline underline-offset-2 font-medium"
-                          onClick={() => window.open("/api/legal-documents/privacy/view", "_blank")}
-                          data-testid="link-privacy"
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">Terms & Conditions</p>
+                            <p className="text-xs text-muted-foreground">Click to preview document</p>
+                          </div>
+                          <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                        <div className="flex items-center gap-3 px-1">
+                          <Checkbox
+                            id="accept-terms"
+                            checked={acceptedTerms}
+                            onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                            data-testid="checkbox-accept-terms"
+                          />
+                          <label htmlFor="accept-terms" className="text-sm leading-relaxed cursor-pointer">
+                            I have read and agree to the Terms & Conditions
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                    {privacyAvailable && (
+                      <div className="space-y-2">
+                        <div
+                          className="flex items-center gap-3 rounded-lg border border-muted bg-muted/30 p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setPreviewDoc("privacy")}
+                          data-testid="card-preview-privacy"
                         >
-                          Privacy Policy
-                        </button>
-                      </label>
-                    </div>
-                  )}
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium">Privacy Policy</p>
+                            <p className="text-xs text-muted-foreground">Click to preview document</p>
+                          </div>
+                          <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                        <div className="flex items-center gap-3 px-1">
+                          <Checkbox
+                            id="accept-privacy"
+                            checked={acceptedPrivacy}
+                            onCheckedChange={(checked) => setAcceptedPrivacy(checked === true)}
+                            data-testid="checkbox-accept-privacy"
+                          />
+                          <label htmlFor="accept-privacy" className="text-sm leading-relaxed cursor-pointer">
+                            I have read and acknowledge the Privacy Policy
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -394,6 +415,28 @@ export default function SetPassword() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Legal document preview dialog */}
+      <Dialog open={previewDoc !== null} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="h-[80vh] flex flex-col p-0 overflow-hidden" style={{ maxWidth: "860px" }}>
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>
+              {previewDoc === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+            </DialogTitle>
+            <DialogDescription>
+              Preview of the legal document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 w-full bg-white min-h-0 relative">
+            {previewDoc && (
+              <PdfViewer url={`/api/legal-documents/${previewDoc}/view`} />
+            )}
+          </div>
+          <DialogFooter className="p-4 border-t">
+            <Button onClick={() => setPreviewDoc(null)}>Close Preview</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
