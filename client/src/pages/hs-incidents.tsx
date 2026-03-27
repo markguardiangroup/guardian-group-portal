@@ -2394,13 +2394,8 @@ function IncidentDetailView({ id }: { id: string }) {
               </CardHeader>
               <CardContent className="pt-5">
                 {!incident.invCompletedAt && !incident.invFirstAidGiven && !incident.invContributingFactors && !incident.invConclusion ? (
-                  <div className="flex items-center justify-between py-2">
+                  <div className="py-2">
                     <p className="text-sm text-muted-foreground italic">No follow-up investigation recorded yet.</p>
-                    {isPrivileged && (
-                      <Button variant="outline" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
-                        Start Investigation
-                      </Button>
-                    )}
                   </div>
                 ) : (
                   <div className="space-y-6 divide-y">
