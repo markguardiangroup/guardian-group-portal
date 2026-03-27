@@ -705,6 +705,7 @@ export default function CompanyDetail() {
       return response.json();
     },
     enabled: !!companyId,
+    staleTime: 0,
   });
 
   // Fetch all users to filter for company users (clients in this company)
