@@ -2388,37 +2388,26 @@ function IncidentDetailView({ id }: { id: string }) {
                     <CardDescription>Record findings from the post-incident investigation</CardDescription>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {isPrivileged && (
+                    {/* No data yet: show Complete button */}
+                    {isPrivileged && !incident.invCompletedAt && incident.invFirstAidGiven === null && !incident.invContributingFactors && !incident.invConclusion && (
                       <Button size="sm" onClick={() => setShowFollowUpDialog(true)} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-open-follow-up">
                         <Pencil className="mr-2 h-4 w-4" />
-                        {incident.invCompletedAt ? "Edit Investigation" : "Complete Investigation"}
+                        Complete Investigation
                       </Button>
                     )}
+                    {/* Data exists: show only the toggle */}
                     {(incident.invCompletedAt || incident.invFirstAidGiven !== null || incident.invContributingFactors || incident.invConclusion) && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")}
-                          className="gap-1.5"
-                          data-testid="button-export-investigation"
-                          title="Export investigation as HTML report"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span>Export</span>
-                        </Button>
-                        <Button
-                          variant={invDetailsMinimised ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setInvDetailsMinimised(v => !v)}
-                          className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
-                          data-testid="button-toggle-inv-details"
-                        >
-                          {invDetailsMinimised
-                            ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
-                            : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
-                        </Button>
-                      </>
+                      <Button
+                        variant={invDetailsMinimised ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setInvDetailsMinimised(v => !v)}
+                        className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
+                        data-testid="button-toggle-inv-details"
+                      >
+                        {invDetailsMinimised
+                          ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
+                          : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -2431,6 +2420,25 @@ function IncidentDetailView({ id }: { id: string }) {
                 </CardContent>
               ) : !invDetailsMinimised && (
                 <CardContent className="pt-0 divide-y">
+
+                  {/* ─ Inline toolbar ─ */}
+                  <div className="py-3 flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {incident.invCompletedAt
+                        ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy ? <> by <span className="font-medium text-foreground">{incident.invCompletedBy}</span></> : ""}</>
+                        : <span className="italic">Investigation in progress</span>}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {isPrivileged && (
+                        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
+                          <Pencil className="h-3 w-3" />Edit All
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")} data-testid="button-export-investigation">
+                        <Download className="h-3 w-3" />Export Report
+                      </Button>
+                    </div>
+                  </div>
 
                   {/* ─ About the Injured Person ─ */}
                   <div className="py-5 space-y-3">
