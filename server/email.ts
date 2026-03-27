@@ -7,11 +7,16 @@ const FROM_NAME = "Guardian Group";
 
 const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 
-// Use the app's own hosted logo — falls back through available domain env vars
+// ---------------------------------------------------------------------------
+// Email logo
+// Place your logo file at:  client/public/email-assets/logo.png
+// (PNG, JPG or SVG — any format browsers can display inline)
+// The file is served as a static asset and embedded in every outgoing email.
+// ---------------------------------------------------------------------------
 const APP_BASE_URL = process.env.APP_BASE_URL ||
   (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "");
 const LOGO_URL = APP_BASE_URL
-  ? `${APP_BASE_URL}/guardian-logo.jpg`
+  ? `${APP_BASE_URL}/email-assets/logo.jpg`
   : "https://guardiangroup.co.uk/wp-content/uploads/2021/04/Guardian-Group-Logo-Retina.png";
 
 export async function sendInvitationEmail({
@@ -39,7 +44,7 @@ export async function sendInvitationEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
           <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
@@ -112,7 +117,7 @@ export async function sendPasswordResetEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
           <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
@@ -195,7 +200,7 @@ export async function sendDocumentApprovalEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
           <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
@@ -296,7 +301,7 @@ export async function sendClientSignOffEmail({
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
-          <img src="${LOGO_URL}" alt="Guardian Group" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
           <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
         </div>
         
