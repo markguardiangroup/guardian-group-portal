@@ -1052,7 +1052,7 @@ export default function UserManagement() {
                     <Badge 
                       variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : "secondary"}
                       className={
-                        u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+                        u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors" :
                         u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" :
                         u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" :
                         u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
@@ -1060,8 +1060,8 @@ export default function UserManagement() {
                       onClick={u.status === "site_required" ? () => {
                         setUserNeedingSiteAssignment(u);
                         setShowSiteAssignmentMessage(true);
-                      } : u.status === "invite_required" ? () => setInviteConfirmUser(u) : undefined}
-                      data-testid={u.status === "site_required" ? `badge-status-clickable-${u.id}` : u.status === "invite_required" ? `badge-invite-required-${u.id}` : `badge-status-${u.id}`}
+                      } : u.status === "invite_required" || u.status === "invited" ? () => setInviteConfirmUser(u) : undefined}
+                      data-testid={u.status === "site_required" ? `badge-status-clickable-${u.id}` : u.status === "invite_required" ? `badge-invite-required-${u.id}` : u.status === "invited" ? `badge-invited-${u.id}` : `badge-status-${u.id}`}
                     >
                       {u.status === "active" ? (
                         <><UserCheck className="h-3 w-3 mr-1" />Active</>
