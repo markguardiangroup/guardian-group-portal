@@ -69,6 +69,8 @@ import {
   BarChart2,
   GraduationCap,
   BookOpen,
+  RefreshCw,
+  MoreVertical,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -643,6 +645,7 @@ export default function CompanyDetail() {
     newUserId: string;
   } | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
   const INDUSTRY_OPTIONS = [
     "Agriculture & Forestry",
@@ -886,6 +889,20 @@ export default function CompanyDetail() {
         description: "Failed to create site. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+
+  const resendInviteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("POST", `/api/users/${userId}/resend-invite`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Invitation sent successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to send invitation", variant: "destructive" });
     },
   });
 
@@ -1562,6 +1579,35 @@ export default function CompanyDetail() {
                                       <><XCircle className="h-3 w-3 mr-1" />Inactive</>
                                     )}
                                   </Badge>
+                                  {isAdmin && (u.status === "invite_required" || u.status === "invited") && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-user-actions-${u.id}`}>
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        {u.status === "invite_required" && (
+                                          <DropdownMenuItem 
+                                            onClick={() => setInviteConfirmUser(u)}
+                                            data-testid={`button-send-invite-${u.id}`}
+                                          >
+                                            <Mail className="h-4 w-4 mr-2" />
+                                            Send Invitation
+                                          </DropdownMenuItem>
+                                        )}
+                                        {u.status === "invited" && (
+                                          <DropdownMenuItem 
+                                            onClick={() => setInviteConfirmUser(u)}
+                                            data-testid={`button-resend-invite-${u.id}`}
+                                          >
+                                            <RefreshCw className="h-4 w-4 mr-2" />
+                                            Resend Invitation
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
                                   {clientSites.length > 0 ? (
                                     <button
                                       onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
@@ -2199,6 +2245,37 @@ export default function CompanyDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Invite Confirmation Dialog */}
+      <Dialog open={!!inviteConfirmUser} onOpenChange={(open) => { if (!open) setInviteConfirmUser(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{inviteConfirmUser?.status === "invited" ? "Resend Invitation" : "Send Invitation"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {inviteConfirmUser?.status === "invited" 
+              ? `Resend invitation email to ${inviteConfirmUser.fullName}?`
+              : `Send invitation email to ${inviteConfirmUser?.fullName}?`}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteConfirmUser(null)} data-testid="button-cancel-invite">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (inviteConfirmUser) {
+                  resendInviteMutation.mutate(inviteConfirmUser.id, {
+                    onSuccess: () => setInviteConfirmUser(null),
+                    onError: () => setInviteConfirmUser(null),
+                  });
+                }
+              }}
+              disabled={resendInviteMutation.isPending}
+              data-testid="button-confirm-send-invite"
+            >
+              {resendInviteMutation.isPending ? "Sending..." : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
