@@ -3328,16 +3328,21 @@ function IncidentsListView() {
                     <div className="py-8 text-center text-muted-foreground text-sm">No open actions — all action items are completed.</div>
                   ) : (
                     openActionsBreakdown.map((item) => (
-                      <div key={item.incidentId} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="min-w-0">
-                          <span className="text-xs font-mono font-semibold text-module-accent">{item.incidentReference}</span>
-                          <p className="text-sm font-medium truncate mt-0.5">{item.title}</p>
+                      <Link key={item.incidentId} href={`/health-safety/incidents/${item.incidentId}`} onClick={() => setMetricDialog(null)}>
+                        <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/60 cursor-pointer transition-colors group">
+                          <div className="min-w-0">
+                            <span className="text-xs font-mono font-semibold text-module-accent">{item.incidentReference}</span>
+                            <p className="text-sm font-medium truncate mt-0.5 group-hover:text-module-accent transition-colors">{item.title}</p>
+                          </div>
+                          <div className="ml-4 shrink-0 flex items-center gap-2">
+                            <div className="flex items-center gap-1 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2.5 py-1">
+                              <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{item.openCount}</span>
+                              <span className="text-xs text-orange-600/70 dark:text-orange-400/70">{item.openCount === 1 ? "open" : "open"}</span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-module-accent transition-colors" />
+                          </div>
                         </div>
-                        <div className="ml-4 shrink-0 flex items-center gap-1 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2.5 py-1">
-                          <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{item.openCount}</span>
-                          <span className="text-xs text-orange-600/70 dark:text-orange-400/70">{item.openCount === 1 ? "open" : "open"}</span>
-                        </div>
-                      </div>
+                      </Link>
                     ))
                   )
                 ) : (
@@ -3350,18 +3355,21 @@ function IncidentsListView() {
                     return list.length === 0 ? (
                       <div className="py-8 text-center text-muted-foreground text-sm">None found.</div>
                     ) : list.map((inc) => (
-                      <div key={inc.id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="min-w-0">
-                          <span className="text-xs font-mono font-semibold text-module-accent">{inc.incidentReference}</span>
-                          <p className="text-sm font-medium truncate mt-0.5">{inc.title}</p>
+                      <Link key={inc.id} href={`/health-safety/incidents/${inc.id}`} onClick={() => setMetricDialog(null)}>
+                        <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/60 cursor-pointer transition-colors group">
+                          <div className="min-w-0">
+                            <span className="text-xs font-mono font-semibold text-module-accent">{inc.incidentReference}</span>
+                            <p className="text-sm font-medium truncate mt-0.5 group-hover:text-module-accent transition-colors">{inc.title}</p>
+                          </div>
+                          <div className="ml-4 shrink-0 flex items-center gap-2">
+                            {metricDialog === "active"
+                              ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inc.status === "reported" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"}`}>{inc.status === "reported" ? "Reported" : "Under Review"}</span>
+                              : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">{inc.severity}</span>
+                            }
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-module-accent transition-colors" />
+                          </div>
                         </div>
-                        <div className="ml-4 shrink-0">
-                          {metricDialog === "active"
-                            ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inc.status === "reported" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"}`}>{inc.status === "reported" ? "Reported" : "Under Review"}</span>
-                            : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">{inc.severity}</span>
-                          }
-                        </div>
-                      </div>
+                      </Link>
                     ));
                   })()
                 )}
