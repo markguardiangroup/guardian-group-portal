@@ -2053,7 +2053,7 @@ function IncidentDetailView({ id }: { id: string }) {
                     variant={detailsMinimised ? "default" : "outline"}
                     size="sm"
                     onClick={() => setDetailsMinimised(v => !v)}
-                    className="gap-1.5"
+                    className={`gap-1.5 ${detailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
                     data-testid="button-toggle-incident-details"
                   >
                     {detailsMinimised ? (
@@ -3227,7 +3227,7 @@ function IncidentDetailView({ id }: { id: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingDoc(null)} disabled={isSavingEdit}>Cancel</Button>
-            <Button onClick={saveDocEdit} disabled={isSavingEdit} data-testid="button-save-doc-edit">
+            <Button onClick={saveDocEdit} disabled={isSavingEdit} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-save-doc-edit">
               {isSavingEdit ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save
             </Button>
