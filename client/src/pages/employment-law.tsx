@@ -75,6 +75,7 @@ import {
   User,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Scale,
   Users,
   Upload,
