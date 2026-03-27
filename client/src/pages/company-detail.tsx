@@ -70,6 +70,12 @@ import {
   GraduationCap,
   BookOpen,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
 
@@ -636,6 +642,7 @@ export default function CompanyDetail() {
     oldUserName: string;
     newUserId: string;
   } | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
   const INDUSTRY_OPTIONS = [
     "Agriculture & Forestry",
@@ -914,6 +921,20 @@ export default function CompanyDetail() {
     createSiteMutation.mutate(newSiteForm);
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    setStatusLoading(true);
+    try {
+      const response = await apiRequest("PATCH", `/api/companies/${companyId}/status`, { status: newStatus });
+      await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      toast({ title: `Status updated to ${newStatus}` });
+    } catch {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const openEditDialog = () => {
     if (company) {
       // Try to find the user whose details match the current contact
@@ -1158,9 +1179,35 @@ export default function CompanyDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={company.status === "active" ? "default" : "secondary"}>
-            {company.status}
-          </Badge>
+          {isAdmin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge 
+                  variant={company.status === "active" ? "default" : "secondary"} 
+                  className="cursor-pointer"
+                  data-testid={`badge-status-${company.id}`}
+                >
+                  {company.status}
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="bottom">
+                {["pending", "active", "on_hold", "inactive"].map((status) => (
+                  <DropdownMenuItem
+                    key={status}
+                    onClick={() => handleStatusChange(status)}
+                    disabled={statusLoading || status === company.status}
+                    data-testid={`button-status-${status}-${company.id}`}
+                  >
+                    {status}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Badge variant={company.status === "active" ? "default" : "secondary"}>
+              {company.status}
+            </Badge>
+          )}
           {isAdmin && (
             <Button onClick={openEditDialog} data-testid="button-edit-company">
               <Pencil className="mr-2 h-4 w-4" />
