@@ -9772,6 +9772,185 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Investigation Report Download ────────────────────────────────────────────
+  app.get("/api/incidents/:id/investigation-report", requireAuth, async (req, res) => {
+    try {
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
+      const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
+      const siteName = site?.name ?? "—";
+      const companyName = company?.name ?? "—";
+
+      const fmt = (d: string | Date | null | undefined) =>
+        d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
+      const boolVal = (v: boolean | null | undefined) =>
+        v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
+      const textVal = (v: string | null | undefined) =>
+        v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
+      const field = (label: string, value: string) =>
+        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+
+      let invWitnesses: { name: string; jobRole: string; company: string; statementAttached?: boolean | null }[] = [];
+      try { if (incident.invWitnesses) invWitnesses = JSON.parse(incident.invWitnesses); } catch {}
+
+      let invEquipment: { type: string; makeModel: string; serialNo: string; lastInspection: string }[] = [];
+      try { if (incident.invEquipment) invEquipment = JSON.parse(incident.invEquipment); } catch {}
+
+      const witnessRows = invWitnesses.length > 0
+        ? `<table style="width:100%;border-collapse:collapse;margin-top:8px">
+            <thead><tr>
+              <th class="th">Name</th><th class="th">Job Role</th><th class="th">Company</th><th class="th">Statement</th>
+            </tr></thead>
+            <tbody>${invWitnesses.map(w => `<tr>
+              <td class="td">${w.name || "—"}</td>
+              <td class="td">${w.jobRole || "—"}</td>
+              <td class="td">${w.company || "—"}</td>
+              <td class="td">${w.statementAttached === null || w.statementAttached === undefined ? "—" : w.statementAttached ? "Yes" : "No"}</td>
+            </tr>`).join("")}</tbody>
+          </table>`
+        : '<p class="empty">No witnesses recorded</p>';
+
+      const equipRows = invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection).length > 0
+        ? `<table style="width:100%;border-collapse:collapse;margin-top:8px">
+            <thead><tr>
+              <th class="th">Type</th><th class="th">Make / Model</th><th class="th">Serial / Reg. No.</th><th class="th">Last Inspection</th>
+            </tr></thead>
+            <tbody>${invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection).map(e => `<tr>
+              <td class="td">${e.type || "—"}</td>
+              <td class="td">${e.makeModel || "—"}</td>
+              <td class="td">${e.serialNo || "—"}</td>
+              <td class="td">${e.lastInspection || "—"}</td>
+            </tr>`).join("")}</tbody>
+          </table>`
+        : "";
+
+      const docsReviewed = Array.isArray(incident.invDocumentsReviewed) && incident.invDocumentsReviewed.length > 0
+        ? incident.invDocumentsReviewed.map((d: string) => `<span class="pill">${d}</span>`).join("")
+        : '<span class="empty">None recorded</span>';
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investigation Report – ${incident.incidentReference}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:24px}
+  .page{max-width:820px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+  .header{background:#1e293b;color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.6}
+  .ref-badge{display:inline-block;background:#fff;color:#1e293b;font-weight:700;font-size:13px;padding:4px 12px;border-radius:4px;margin-top:6px}
+  .accent-banner{padding:10px 32px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#16a34a}
+  .body{padding:24px 32px}
+  section{margin-bottom:24px}
+  section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:7px 0;vertical-align:top;border-bottom:1px solid #f3f4f6;font-size:13px}
+  td.label{width:210px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
+  td.value{color:#111827;line-height:1.5}
+  .empty{color:#9ca3af;font-style:italic}
+  .pill{display:inline-block;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
+  .th{text-align:left;font-size:11px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;padding:6px 8px;background:#f9fafb}
+  .td{padding:6px 8px;font-size:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
+  .footer{border-top:1px solid #e5e7eb;padding:14px 32px;background:#f9fafb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+  @media print{body{background:#fff;padding:0}.page{border:none;border-radius:0}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Guardian Group</div>
+      <h1>Follow Up Investigation Report</h1>
+      <div class="ref-badge">${incident.incidentReference}</div>
+    </div>
+    <div class="meta">
+      <div>${companyName}</div>
+      <div>${siteName}</div>
+      ${incident.invCompletedAt ? `<div>Completed: <strong>${fmt(incident.invCompletedAt)}</strong></div>` : ""}
+      ${incident.invCompletedBy ? `<div>Completed by: <strong>${incident.invCompletedBy}</strong></div>` : ""}
+      <div style="margin-top:4px;font-size:11px;opacity:.65">Generated ${new Date().toLocaleString("en-GB")}</div>
+    </div>
+  </div>
+  <div class="accent-banner">Follow Up Investigation – ${incident.title}</div>
+  <div class="body">
+
+    <section>
+      <h2>About the Injured Person</h2>
+      <table>
+        ${field("First Aid Given", boolVal(incident.invFirstAidGiven))}
+        ${field("Hospital Visit Required", boolVal(incident.invHospitalVisit))}
+        ${field("Absent from Work", boolVal(incident.invAbsentFromWork))}
+        ${incident.invAbsentFromWork ? field("Absence Timeframe", textVal(incident.invAbsentTimeframe)) : ""}
+      </table>
+    </section>
+
+    <section>
+      <h2>Witnesses</h2>
+      <table>
+        ${field("Witnesses Present", boolVal(incident.invWitnessesPresent))}
+      </table>
+      ${incident.invWitnessesPresent ? witnessRows : ""}
+    </section>
+
+    <section>
+      <h2>Equipment Involved</h2>
+      <table>
+        ${field("Equipment Involved", boolVal(incident.invEquipmentInvolved))}
+        ${incident.invEquipmentInvolved ? field("Operators", textVal(incident.invOperators)) : ""}
+        ${incident.invEquipmentInvolved ? field("Operators Qualified", boolVal(incident.invOperatorsQualified)) : ""}
+      </table>
+      ${incident.invEquipmentInvolved ? equipRows : ""}
+    </section>
+
+    <section>
+      <h2>Documents Used / Reviewed</h2>
+      <div style="margin-bottom:8px">${docsReviewed}</div>
+      <table>
+        ${incident.invDocumentsOther ? field("Other Documents", textVal(incident.invDocumentsOther)) : ""}
+        ${incident.invDocumentsComments ? field("Comments", textVal(incident.invDocumentsComments)) : ""}
+      </table>
+    </section>
+
+    <section>
+      <h2>Investigation Findings</h2>
+      <table>
+        ${field("Contributing Factors &amp; Timeline", textVal(incident.invContributingFactors))}
+        ${field("Primary Cause", textVal(incident.invPrimaryCause))}
+        ${field("Root Cause Analysis", textVal(incident.invRootCause))}
+      </table>
+    </section>
+
+    <section>
+      <h2>Conclusion &amp; Recommendations</h2>
+      <table>
+        ${field("Conclusion", textVal(incident.invConclusion))}
+      </table>
+    </section>
+
+  </div>
+  <div class="footer">
+    <span>Follow-up investigation report. Generated ${new Date().toLocaleString("en-GB")}.</span>
+    <span>${incident.incidentReference} &bull; Confidential</span>
+  </div>
+</div>
+</body>
+</html>`;
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="Investigation_Report_${incident.incidentReference}.html"`);
+      res.send(html);
+    } catch (error) {
+      console.error("Error generating investigation report:", error);
+      res.status(500).json({ error: "Failed to generate investigation report" });
+    }
+  });
+
   app.get("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
     try {
       const milestones = await storage.getIncidentMilestones(req.params.id);

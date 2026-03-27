@@ -2395,17 +2395,30 @@ function IncidentDetailView({ id }: { id: string }) {
                       </Button>
                     )}
                     {(incident.invCompletedAt || incident.invFirstAidGiven !== null || incident.invContributingFactors || incident.invConclusion) && (
-                      <Button
-                        variant={invDetailsMinimised ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setInvDetailsMinimised(v => !v)}
-                        className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
-                        data-testid="button-toggle-inv-details"
-                      >
-                        {invDetailsMinimised
-                          ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
-                          : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")}
+                          className="gap-1.5"
+                          data-testid="button-export-investigation"
+                          title="Export investigation as HTML report"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>Export</span>
+                        </Button>
+                        <Button
+                          variant={invDetailsMinimised ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setInvDetailsMinimised(v => !v)}
+                          className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
+                          data-testid="button-toggle-inv-details"
+                        >
+                          {invDetailsMinimised
+                            ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
+                            : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
