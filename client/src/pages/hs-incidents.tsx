@@ -1320,6 +1320,355 @@ function getAuditActionStyle(action: string): { icon: (props: any) => JSX.Elemen
   }
 }
 
+// ─── Yes / No Toggle Button ──────────────────────────────────────────────────
+
+function YesNo({ value, onChange, testPrefix }: { value: boolean | null; onChange: (v: boolean) => void; testPrefix?: string }) {
+  return (
+    <div className="flex gap-2">
+      <button type="button" onClick={() => onChange(true)}
+        data-testid={testPrefix ? `${testPrefix}-yes` : undefined}
+        className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${value === true ? "bg-module-accent text-white border-module-accent" : "bg-background border-border text-foreground hover:bg-muted"}`}>
+        Yes
+      </button>
+      <button type="button" onClick={() => onChange(false)}
+        data-testid={testPrefix ? `${testPrefix}-no` : undefined}
+        className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${value === false ? "bg-module-accent text-white border-module-accent" : "bg-background border-border text-foreground hover:bg-muted"}`}>
+        No
+      </button>
+    </div>
+  );
+}
+
+// ─── Follow Up Investigation Dialog ──────────────────────────────────────────
+
+const DOCUMENT_OPTIONS = [
+  "Risk assessments / Method statements / Standard operating procedures",
+  "Statutory inspection",
+  "Equipment inspection records",
+  "Induction records",
+  "Competency records",
+  "Short duration training / Toolbox talks",
+  "Diary information",
+  "Witness statements",
+  "Other (please detail below)",
+];
+
+type InvWitness = { name: string; jobRole: string; company: string; statementAttached: boolean | null };
+type InvEquipment = { type: string; makeModel: string; serialNo: string; lastInspection: string };
+
+const EMPTY_EQUIPMENT: InvEquipment = { type: "", makeModel: "", serialNo: "", lastInspection: "" };
+
+function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
+  incident: any;
+  open: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+
+  const [firstAidGiven, setFirstAidGiven] = useState<boolean | null>(null);
+  const [hospitalVisit, setHospitalVisit] = useState<boolean | null>(null);
+  const [absentFromWork, setAbsentFromWork] = useState<boolean | null>(null);
+  const [absentTimeframe, setAbsentTimeframe] = useState("");
+  const [witnessesPresent, setWitnessesPresent] = useState<boolean | null>(null);
+  const [invWitnesses, setInvWitnesses] = useState<InvWitness[]>([]);
+  const [equipmentInvolved, setEquipmentInvolved] = useState<boolean | null>(null);
+  const [invEquipment, setInvEquipment] = useState<InvEquipment[]>([EMPTY_EQUIPMENT, EMPTY_EQUIPMENT, EMPTY_EQUIPMENT]);
+  const [operators, setOperators] = useState("");
+  const [operatorsQualified, setOperatorsQualified] = useState<boolean | null>(null);
+  const [documentsReviewed, setDocumentsReviewed] = useState<string[]>([]);
+  const [documentsOther, setDocumentsOther] = useState("");
+  const [documentsComments, setDocumentsComments] = useState("");
+  const [contributingFactors, setContributingFactors] = useState("");
+  const [primaryCause, setPrimaryCause] = useState("");
+  const [invRootCause, setInvRootCause] = useState("");
+  const [conclusion, setConclusion] = useState("");
+
+  useEffect(() => {
+    if (!open || !incident) return;
+
+    setFirstAidGiven(incident.invFirstAidGiven ?? null);
+    setHospitalVisit(incident.invHospitalVisit ?? null);
+    setAbsentFromWork(incident.invAbsentFromWork ?? null);
+    setAbsentTimeframe(incident.invAbsentTimeframe ?? "");
+
+    // Witnesses: prefer saved investigation data, fall back to incident witnesses
+    if (incident.invWitnesses) {
+      try { setInvWitnesses(JSON.parse(incident.invWitnesses)); } catch { setInvWitnesses([]); }
+      setWitnessesPresent(incident.invWitnessesPresent ?? null);
+    } else if (incident.witnesses) {
+      try {
+        const parsed = JSON.parse(incident.witnesses);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setInvWitnesses(parsed.map((w: any) => ({ name: w.name ?? "", jobRole: w.jobRole ?? "", company: w.company ?? "", statementAttached: null })));
+          setWitnessesPresent(true);
+        } else { setInvWitnesses([]); setWitnessesPresent(null); }
+      } catch { setInvWitnesses([]); setWitnessesPresent(null); }
+    } else { setInvWitnesses([]); setWitnessesPresent(incident.invWitnessesPresent ?? null); }
+
+    // Equipment: prefer saved investigation data, fall back to machineryInvolved
+    if (incident.invEquipment) {
+      try {
+        const eq: InvEquipment[] = JSON.parse(incident.invEquipment);
+        const padded = [...eq];
+        while (padded.length < 3) padded.push({ ...EMPTY_EQUIPMENT });
+        setInvEquipment(padded);
+      } catch { setInvEquipment([{ ...EMPTY_EQUIPMENT }, { ...EMPTY_EQUIPMENT }, { ...EMPTY_EQUIPMENT }]); }
+      setEquipmentInvolved(incident.invEquipmentInvolved ?? null);
+    } else if (incident.machineryInvolved) {
+      setEquipmentInvolved(true);
+      setInvEquipment([
+        { type: incident.machineryInvolved, makeModel: "", serialNo: "", lastInspection: "" },
+        { ...EMPTY_EQUIPMENT },
+        { ...EMPTY_EQUIPMENT },
+      ]);
+    } else {
+      setEquipmentInvolved(incident.invEquipmentInvolved ?? null);
+      setInvEquipment([{ ...EMPTY_EQUIPMENT }, { ...EMPTY_EQUIPMENT }, { ...EMPTY_EQUIPMENT }]);
+    }
+
+    setOperators(incident.invOperators ?? "");
+    setOperatorsQualified(incident.invOperatorsQualified ?? null);
+    setDocumentsReviewed(incident.invDocumentsReviewed ?? []);
+    setDocumentsOther(incident.invDocumentsOther ?? "");
+    setDocumentsComments(incident.invDocumentsComments ?? "");
+    setContributingFactors(incident.invContributingFactors ?? "");
+    setPrimaryCause(incident.invPrimaryCause ?? "");
+    setInvRootCause(incident.invRootCause ?? "");
+    setConclusion(incident.invConclusion ?? "");
+  }, [open, incident]);
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("PATCH", `/api/incidents/${incident.id}`, data),
+    onSuccess: () => {
+      toast({ title: "Follow Up Investigation saved" });
+      onSaved();
+      onClose();
+    },
+    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+  });
+
+  const handleSave = () => {
+    const filledEquipment = invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
+    saveMutation.mutate({
+      invFirstAidGiven: firstAidGiven,
+      invHospitalVisit: hospitalVisit,
+      invAbsentFromWork: absentFromWork,
+      invAbsentTimeframe: absentTimeframe,
+      invWitnessesPresent: witnessesPresent,
+      invWitnesses: invWitnesses.length > 0 ? JSON.stringify(invWitnesses) : "",
+      invEquipmentInvolved: equipmentInvolved,
+      invEquipment: filledEquipment.length > 0 ? JSON.stringify(filledEquipment) : "",
+      invOperators: operators,
+      invOperatorsQualified: operatorsQualified,
+      invDocumentsReviewed: documentsReviewed,
+      invDocumentsOther: documentsOther,
+      invDocumentsComments: documentsComments,
+      invContributingFactors: contributingFactors,
+      invPrimaryCause: primaryCause,
+      invRootCause: invRootCause,
+      invConclusion: conclusion,
+      invCompletedAt: new Date().toISOString(),
+    });
+  };
+
+  const toggleDocument = (doc: string) =>
+    setDocumentsReviewed(prev => prev.includes(doc) ? prev.filter(d => d !== doc) : [...prev, doc]);
+
+  const addWitnessRow = () => setInvWitnesses(prev => [...prev, { name: "", jobRole: "", company: "", statementAttached: null }]);
+  const removeWitnessRow = (i: number) => setInvWitnesses(prev => prev.filter((_, idx) => idx !== i));
+  const updateWitnessField = (i: number, field: keyof InvWitness, value: any) =>
+    setInvWitnesses(prev => prev.map((w, idx) => idx === i ? { ...w, [field]: value } : w));
+  const updateEquipmentField = (i: number, field: keyof InvEquipment, value: string) =>
+    setInvEquipment(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="theme-hs max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-module-accent" />
+            Follow Up Investigation
+          </DialogTitle>
+          <DialogDescription>Complete the investigation details for this incident. Witness and equipment details are pre-filled from the initial report.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-8 py-2">
+
+          {/* ── About the injured person ── */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">About the injured person</h3>
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-medium mb-2">Was first aid treatment given</p>
+                <YesNo value={firstAidGiven} onChange={setFirstAidGiven} testPrefix="inv-firstaid" />
+              </div>
+              <div>
+                <p className="text-sm mb-2">Did the accident/incident result in the injured person visiting hospital?**</p>
+                <YesNo value={hospitalVisit} onChange={setHospitalVisit} testPrefix="inv-hospital" />
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Has the injured person been absent from work following the accident/incident?</p>
+                <YesNo value={absentFromWork} onChange={setAbsentFromWork} testPrefix="inv-absent" />
+                {absentFromWork && (
+                  <div className="mt-3 max-w-sm">
+                    <p className="text-sm text-muted-foreground mb-1">If yes, please select timeframe:</p>
+                    <Input value={absentTimeframe} onChange={e => setAbsentTimeframe(e.target.value)} placeholder="e.g. 2 Days" data-testid="input-inv-absent-timeframe" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Witnesses ── */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Witnesses</h3>
+            <div>
+              <p className="text-sm mb-2">Were there witnesses to the accident/incident?</p>
+              <YesNo value={witnessesPresent} onChange={setWitnessesPresent} testPrefix="inv-witnesses" />
+            </div>
+            {witnessesPresent && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">If yes, please complete the table below:</p>
+                <div className="border rounded-md overflow-x-auto">
+                  <table className="w-full text-sm min-w-[560px]">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[28%]">Name</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Job Role</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Company</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Witness Statement attached</th>
+                        <th className="px-3 py-2 w-16" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {invWitnesses.map((w, i) => (
+                        <tr key={i}>
+                          <td className="px-2 py-1.5"><Input value={w.name} onChange={e => updateWitnessField(i, "name", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-name-${i}`} /></td>
+                          <td className="px-2 py-1.5"><Input value={w.jobRole} onChange={e => updateWitnessField(i, "jobRole", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-jobrole-${i}`} /></td>
+                          <td className="px-2 py-1.5"><Input value={w.company} onChange={e => updateWitnessField(i, "company", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-company-${i}`} /></td>
+                          <td className="px-2 py-1.5"><YesNo value={w.statementAttached} onChange={v => updateWitnessField(i, "statementAttached", v)} testPrefix={`inv-witness-stmt-${i}`} /></td>
+                          <td className="px-2 py-1.5 text-right"><button type="button" onClick={() => removeWitnessRow(i)} className="text-xs text-destructive hover:underline">Remove</button></td>
+                        </tr>
+                      ))}
+                      {invWitnesses.length === 0 && (
+                        <tr><td colSpan={5} className="px-3 py-3 text-sm text-muted-foreground italic text-center">No witnesses added</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <button type="button" onClick={addWitnessRow} className="text-sm text-module-accent hover:underline font-medium" data-testid="button-add-inv-witness">+ Add witness row</button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Equipment involved ── */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Equipment involved</h3>
+            <div>
+              <p className="text-sm mb-2">Was any plant or equipment involved in the accident/incident? If yes please state type.</p>
+              <YesNo value={equipmentInvolved} onChange={setEquipmentInvolved} testPrefix="inv-equipment" />
+            </div>
+            {equipmentInvolved && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">If yes, please complete the table below:</p>
+                <div className="border rounded-md overflow-x-auto">
+                  <table className="w-full text-sm min-w-[560px]">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[28%]">Type of equipment</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Make / model</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Serial No. / Reg. No.</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Date of last statutory inspection</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {invEquipment.map((eq, i) => (
+                        <tr key={i}>
+                          <td className="px-2 py-1.5"><Input value={eq.type} onChange={e => updateEquipmentField(i, "type", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-equip-type-${i}`} /></td>
+                          <td className="px-2 py-1.5"><Input value={eq.makeModel} onChange={e => updateEquipmentField(i, "makeModel", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-equip-model-${i}`} /></td>
+                          <td className="px-2 py-1.5"><Input value={eq.serialNo} onChange={e => updateEquipmentField(i, "serialNo", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-equip-serial-${i}`} /></td>
+                          <td className="px-2 py-1.5"><Input type="date" value={eq.lastInspection} onChange={e => updateEquipmentField(i, "lastInspection", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-equip-inspection-${i}`} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm mb-1">Operator / Operators:</p>
+                    <Input value={operators} onChange={e => setOperators(e.target.value)} placeholder="Operator name(s)" data-testid="input-inv-operators" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-2">Operators qualified?</p>
+                    <YesNo value={operatorsQualified} onChange={setOperatorsQualified} testPrefix="inv-operators-qualified" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Documents used / reviewed ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Document used / reviewed</h3>
+            <div className="flex flex-wrap gap-2">
+              {DOCUMENT_OPTIONS.map(doc => (
+                <button key={doc} type="button" onClick={() => toggleDocument(doc)}
+                  className={`px-3 py-1.5 rounded text-sm border transition-colors ${documentsReviewed.includes(doc) ? "bg-module-accent text-white border-module-accent" : "bg-background border-border text-foreground hover:bg-muted"}`}
+                  data-testid={`toggle-doc-${doc.substring(0, 12).replace(/\s/g, "-").toLowerCase()}`}>
+                  {doc}
+                </button>
+              ))}
+            </div>
+            {documentsReviewed.includes("Other (please detail below)") && (
+              <Input value={documentsOther} onChange={e => setDocumentsOther(e.target.value)} placeholder="Please detail other documents reviewed..." data-testid="input-inv-docs-other" />
+            )}
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Add all relevant documents, additional images and comments:</p>
+              <Textarea value={documentsComments} onChange={e => setDocumentsComments(e.target.value)} rows={3} placeholder="- Add images here." className="resize-none" data-testid="textarea-inv-docs-comments" />
+            </div>
+          </div>
+
+          {/* ── Investigation findings ── */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Investigation findings</h3>
+            <p className="text-xs text-muted-foreground italic">HSE Guidance</p>
+            <div>
+              <p className="text-sm font-medium mb-1.5">Assessment of contributing factors and timeline</p>
+              <Textarea value={contributingFactors} onChange={e => setContributingFactors(e.target.value)} rows={3} className="resize-none" data-testid="textarea-inv-contributing-factors" />
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1.5">Primary cause (if known)</p>
+              <Textarea value={primaryCause} onChange={e => setPrimaryCause(e.target.value)} rows={3} className="resize-none" data-testid="textarea-inv-primary-cause" />
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1.5">Root cause analysis (consider human interactions along with systems and procedures)</p>
+              <Textarea value={invRootCause} onChange={e => setInvRootCause(e.target.value)} rows={3} className="resize-none" data-testid="textarea-inv-root-cause" />
+            </div>
+            <p className="text-xs text-muted-foreground italic">HSE Guidance</p>
+          </div>
+
+          {/* ── Conclusion ── */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Conclusion &amp; Recommendations</h3>
+            <p className="text-sm font-medium">Conclusion from investigation, recommendations and actions</p>
+            <p className="text-xs text-muted-foreground">(Actions should be listed in the actions register)</p>
+            <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" data-testid="textarea-inv-conclusion" />
+          </div>
+
+        </div>
+
+        <DialogFooter className="pt-4 border-t mt-2">
+          <Button variant="outline" onClick={onClose} data-testid="button-inv-cancel">Cancel</Button>
+          <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-inv-save">
+            {saveMutation.isPending ? "Saving…" : "Save Investigation"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Incident Detail View (Full Page) ────────────────────────────────────────
 
 function IncidentDetailView({ id }: { id: string }) {
@@ -1328,6 +1677,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const { toast } = useToast();
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<IncidentMilestone | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -2014,6 +2364,160 @@ function IncidentDetailView({ id }: { id: string }) {
 
               </CardContent>
               )}
+            </Card>
+
+            {/* ── Follow Up Investigation ── */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Search className="h-4 w-4 text-module-accent" />
+                    Follow Up Investigation
+                  </CardTitle>
+                  <CardDescription>Record findings from the post-incident investigation</CardDescription>
+                </div>
+                {isPrivileged && (
+                  <Button size="sm" onClick={() => setShowFollowUpDialog(true)} className="bg-module-accent hover:bg-module-accent/90 shrink-0" data-testid="button-open-follow-up">
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {incident.invCompletedAt ? "Edit Investigation" : "Complete Investigation"}
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="pt-5">
+                {!incident.invCompletedAt && !incident.invFirstAidGiven && !incident.invContributingFactors && !incident.invConclusion ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm text-muted-foreground">No follow-up investigation recorded yet.</p>
+                    {isPrivileged && (
+                      <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
+                        Start Investigation
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-6 divide-y">
+
+                    {/* About the injured person */}
+                    {(incident.invFirstAidGiven !== null || incident.invHospitalVisit !== null || incident.invAbsentFromWork !== null) && (
+                      <div className="pt-0 space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">About the Injured Person</p>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">First Aid Given</p>
+                            <p className="text-sm font-medium">{incident.invFirstAidGiven === null ? <span className="italic text-muted-foreground">—</span> : incident.invFirstAidGiven ? "Yes" : "No"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Hospital Visit</p>
+                            <p className="text-sm font-medium">{incident.invHospitalVisit === null ? <span className="italic text-muted-foreground">—</span> : incident.invHospitalVisit ? "Yes" : "No"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Absent from Work</p>
+                            <p className="text-sm font-medium">
+                              {incident.invAbsentFromWork === null ? <span className="italic text-muted-foreground">—</span> : incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` — ${incident.invAbsentTimeframe}` : ""}` : "No"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Witnesses */}
+                    {(incident.invWitnessesPresent !== null || incident.invWitnesses) && (
+                      <div className="pt-4 space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
+                        <p className="text-sm"><span className="text-muted-foreground">Witnesses present:</span> <span className="font-medium">{incident.invWitnessesPresent ? "Yes" : "No"}</span></p>
+                        {incident.invWitnessesPresent && incident.invWitnesses && (() => {
+                          let ws: InvWitness[] = [];
+                          try { ws = JSON.parse(incident.invWitnesses); } catch {}
+                          return ws.length > 0 ? (
+                            <div className="space-y-1">
+                              {ws.map((w, i) => (
+                                <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Equipment */}
+                    {incident.invEquipmentInvolved !== null && (
+                      <div className="pt-4 space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equipment Involved</p>
+                        <p className="text-sm"><span className="text-muted-foreground">Equipment involved:</span> <span className="font-medium">{incident.invEquipmentInvolved ? "Yes" : "No"}</span></p>
+                        {incident.invEquipmentInvolved && incident.invEquipment && (() => {
+                          let eqs: InvEquipment[] = [];
+                          try { eqs = JSON.parse(incident.invEquipment); } catch {}
+                          const filled = eqs.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
+                          return filled.length > 0 ? (
+                            <div className="space-y-1">
+                              {filled.map((eq, i) => (
+                                <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Type</p><p className="font-medium">{eq.type || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Make / Model</p><p>{eq.makeModel || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Serial / Reg. No.</p><p>{eq.serialNo || "—"}</p></div>
+                                  <div><p className="text-xs text-muted-foreground mb-0.5">Last Inspection</p><p>{eq.lastInspection || "—"}</p></div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
+                        {(incident.invOperators || incident.invOperatorsQualified !== null) && (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {incident.invOperators && <div><p className="text-xs text-muted-foreground mb-0.5">Operators</p><p className="text-sm">{incident.invOperators}</p></div>}
+                            {incident.invOperatorsQualified !== null && <div><p className="text-xs text-muted-foreground mb-0.5">Operators Qualified</p><p className="text-sm font-medium">{incident.invOperatorsQualified ? "Yes" : "No"}</p></div>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Documents */}
+                    {(incident.invDocumentsReviewed?.length > 0 || incident.invDocumentsComments) && (
+                      <div className="pt-4 space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents Used / Reviewed</p>
+                        {incident.invDocumentsReviewed?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {incident.invDocumentsReviewed.map((doc: string) => (
+                              <Badge key={doc} variant="secondary" className="text-xs font-normal">{doc}</Badge>
+                            ))}
+                          </div>
+                        )}
+                        {incident.invDocumentsOther && <p className="text-sm"><span className="text-muted-foreground">Other:</span> {incident.invDocumentsOther}</p>}
+                        {incident.invDocumentsComments && <p className="text-sm leading-relaxed">{incident.invDocumentsComments}</p>}
+                      </div>
+                    )}
+
+                    {/* Investigation Findings */}
+                    {(incident.invContributingFactors || incident.invPrimaryCause || incident.invRootCause) && (
+                      <div className="pt-4 space-y-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Findings</p>
+                        {incident.invContributingFactors && (
+                          <div><p className="text-xs text-muted-foreground mb-0.5">Assessment of contributing factors and timeline</p><p className="text-sm leading-relaxed">{incident.invContributingFactors}</p></div>
+                        )}
+                        {incident.invPrimaryCause && (
+                          <div><p className="text-xs text-muted-foreground mb-0.5">Primary cause (if known)</p><p className="text-sm leading-relaxed">{incident.invPrimaryCause}</p></div>
+                        )}
+                        {incident.invRootCause && (
+                          <div><p className="text-xs text-muted-foreground mb-0.5">Root cause analysis</p><p className="text-sm leading-relaxed">{incident.invRootCause}</p></div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Conclusion */}
+                    {incident.invConclusion && (
+                      <div className="pt-4 space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion &amp; Recommendations</p>
+                        <p className="text-sm leading-relaxed">{incident.invConclusion}</p>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+              </CardContent>
             </Card>
 
             {/* Action Items / Milestones */}
@@ -2763,6 +3267,19 @@ function IncidentDetailView({ id }: { id: string }) {
         onAdd={(data) => addMilestoneMutation.mutate(data)}
         isLoading={addMilestoneMutation.isPending}
       />
+
+      {/* Follow Up Investigation Dialog */}
+      {incident && (
+        <FollowUpInvestigationDialog
+          incident={incident}
+          open={showFollowUpDialog}
+          onClose={() => setShowFollowUpDialog(false)}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
+            invalidateAudit();
+          }}
+        />
+      )}
     </div>
   );
 }
