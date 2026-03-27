@@ -349,21 +349,19 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
           return (
             <div
               key={key}
-              className={`flex items-center justify-between rounded-lg border border-l-4 ${borderClass} px-3 py-2.5 transition-opacity ${enabled ? "" : "opacity-50"}`}
+              className={`flex items-center gap-2.5 rounded-lg border border-l-4 ${borderClass} px-3 py-2.5 transition-opacity ${enabled ? "" : "opacity-50"}`}
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${bgClass}`}>
-                  <Icon className={`h-4 w-4 ${iconClass}`} />
-                </div>
-                <Label htmlFor={`module-${key}`} className="font-medium text-sm cursor-pointer">{label}</Label>
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${bgClass}`}>
+                <Icon className={`h-4 w-4 ${iconClass}`} />
               </div>
+              <Label htmlFor={`module-${key}`} className="font-medium text-sm cursor-pointer">{label}</Label>
               <Switch
                 id={`module-${key}`}
                 checked={enabled}
                 onCheckedChange={(checked) => handleToggle(key, checked)}
                 disabled={!isAdmin || updateMutation.isPending}
                 data-testid={`switch-module-${key}`}
-                className="ml-4 shrink-0"
+                className="ml-1 shrink-0"
               />
             </div>
           );
