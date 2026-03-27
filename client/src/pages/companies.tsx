@@ -855,6 +855,12 @@ export default function Companies() {
                         setFormData({ ...formData, name: titleCased });
                       }
                     }
+                    if (!editingCompany && value) {
+                      const duplicate = (data?.companies || []).find(
+                        (c) => c.name.trim().toLowerCase() === value.toLowerCase()
+                      );
+                      setCompanyNameError(duplicate ? "A company with this name already exists" : null);
+                    }
                   }}
                   data-testid="input-company-name"
                   className={`flex-1 ${companyNameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
