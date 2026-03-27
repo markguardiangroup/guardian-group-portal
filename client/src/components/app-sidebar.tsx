@@ -109,7 +109,7 @@ const moduleNavItems: {
     icon: BookMarked,
     url: "/toolkit",
     themeClass: "theme-toolkit",
-    module: "training" as ModuleType,
+    module: "toolkit" as ModuleType,
     subItems: [
       { title: "Dashboard", url: "/toolkit", icon: LayoutDashboard },
       { title: "Templates", url: "/toolkit/browse", icon: BookOpen },
@@ -391,8 +391,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <SidebarMenu>
               {visibleModules.slice(0, 4).map((item) => {
                 const isModuleActive = location.startsWith(item.basePath ?? item.url);
-                const isTrainingModule = item.module === ("training" as ModuleType);
-                const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
+                const hasAccess = hasActiveAccess(item.module);
                 
                 if (!hasAccess) {
                   return (
@@ -483,8 +482,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
               {visibleModules.slice(4).map((item) => {
                 const isModuleActive = location.startsWith(item.basePath ?? item.url);
-                const isTrainingModule = item.module === ("training" as ModuleType);
-                const hasAccess = isTrainingModule ? true : hasActiveAccess(item.module);
+                const hasAccess = hasActiveAccess(item.module);
                 
                 if (!hasAccess) {
                   return (
