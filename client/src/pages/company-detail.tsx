@@ -1190,7 +1190,7 @@ export default function CompanyDetail() {
                   {company.status}
                 </Badge>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="bottom">
+              <DropdownMenuContent align="end">
                 {["pending", "active", "on_hold", "inactive"].map((status) => (
                   <DropdownMenuItem
                     key={status}
