@@ -290,7 +290,7 @@ const roleLabels: Record<UserRole, string> = {
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
   const { logout, isLoggingOut } = useAuth();
-  const { hasActiveAccess, hasVisibleAccess, isHidden } = useModuleAccess();
+  const { hasActiveAccess, hasVisibleAccess, isHidden, isLoading: moduleAccessLoading } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
   // Fetch support request counts for notification badge
@@ -391,7 +391,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <SidebarMenu>
               {visibleModules.slice(0, 4).map((item) => {
                 const isModuleActive = location.startsWith(item.basePath ?? item.url);
-                const hasAccess = hasActiveAccess(item.module);
+                const hasAccess = moduleAccessLoading || hasActiveAccess(item.module);
                 
                 if (!hasAccess) {
                   return (
@@ -482,7 +482,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
               {visibleModules.slice(4).map((item) => {
                 const isModuleActive = location.startsWith(item.basePath ?? item.url);
-                const hasAccess = hasActiveAccess(item.module);
+                const hasAccess = moduleAccessLoading || hasActiveAccess(item.module);
                 
                 if (!hasAccess) {
                   return (
