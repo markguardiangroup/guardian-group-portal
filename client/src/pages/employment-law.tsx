@@ -342,6 +342,26 @@ function CasesList() {
     return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
   };
 
+  // Returns nearest future-only deadline (for Upcoming Deadlines dialog)
+  const getCaseUpcomingDeadline = (c: any): { date: Date; label: string } | null => {
+    const candidates: { date: Date; label: string }[] = [];
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline))) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
+    if (c.hearingDate && isFuture(new Date(c.hearingDate))) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
+    if (c.upcomingMilestoneDueDate) candidates.push({ date: new Date(c.upcomingMilestoneDueDate), label: "Milestone" });
+    if (candidates.length === 0) return null;
+    return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+  };
+
+  // Returns nearest past-only deadline (for Overdue dialog)
+  const getCaseOverdueDeadline = (c: any): { date: Date; label: string } | null => {
+    const candidates: { date: Date; label: string }[] = [];
+    if (c.responseDeadline && isPast(new Date(c.responseDeadline))) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
+    if (c.hearingDate && isPast(new Date(c.hearingDate))) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
+    if (c.overduesMilestoneDueDate) candidates.push({ date: new Date(c.overduesMilestoneDueDate), label: "Milestone" });
+    if (candidates.length === 0) return null;
+    return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+  };
+
   // Overdue: has any past deadline from case fields OR from overdue milestones
   const overdueCases = activeCases.filter(c => {
     if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
@@ -556,7 +576,7 @@ function CasesList() {
                   return <div className="py-8 text-center text-muted-foreground text-sm">No cases to display.</div>;
                 }
                 return listCases.map((c) => {
-                  const deadline = getCaseDisplayDeadline(c);
+                  const deadline = metricDialog === "upcoming" ? getCaseUpcomingDeadline(c) : metricDialog === "overdue" ? getCaseOverdueDeadline(c) : getCaseDisplayDeadline(c);
                   return (
                     <Link key={c.id} href={`/employment-law/cases/${c.id}`} onClick={() => setMetricDialog(null)}>
                       <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/60 cursor-pointer transition-colors group">
