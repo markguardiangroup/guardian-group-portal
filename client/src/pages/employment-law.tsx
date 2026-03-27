@@ -2179,7 +2179,7 @@ function EmploymentLawDashboardView() {
           const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = score >= 90 ? "bg-emerald-500" : score >= 70 ? "bg-amber-500" : "bg-red-500";
           return (
-            <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-compliance-summary">
+            <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4" />
@@ -2222,7 +2222,7 @@ function EmploymentLawDashboardView() {
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => compliantCount > 0 && setDocsDialogFilter("req_compliant")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${compliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${compliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-el-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -2234,7 +2234,7 @@ function EmploymentLawDashboardView() {
                       </button>
                       <button
                         onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-el-non-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
@@ -2246,7 +2246,7 @@ function EmploymentLawDashboardView() {
                       </button>
                       <button
                         onClick={() => documentsMissingCount > 0 && setShowMissingDialog(true)}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-el-docs-missing"
                       >
                         <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
@@ -2266,7 +2266,7 @@ function EmploymentLawDashboardView() {
         })()}
 
         {/* Document Progress Card */}
-        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-el-document-progress">
+        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-el-document-progress">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -2283,7 +2283,7 @@ function EmploymentLawDashboardView() {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
                   onClick={() => (summary?.allDocuments || 0) > 0 && setDocsDialogFilter("total")}
-                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-el-total"
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -2294,7 +2294,7 @@ function EmploymentLawDashboardView() {
                 </button>
                 <button
                   onClick={() => (summary?.allCompliantDocuments || 0) > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allCompliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allCompliantDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-el-compliant"
                 >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -2305,7 +2305,7 @@ function EmploymentLawDashboardView() {
                 </button>
                 <button
                   onClick={() => (summary?.allReviewRequired || 0) > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-el-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
@@ -2316,7 +2316,7 @@ function EmploymentLawDashboardView() {
                 </button>
                 <button
                   onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
-                  className={`text-center rounded-md border p-3 transition-colors ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allOverdueDocuments || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-el-overdue"
                 >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
@@ -2331,7 +2331,7 @@ function EmploymentLawDashboardView() {
         </Card>
 
         {/* Case Overview Section */}
-        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-case-overview">
+        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-case-overview">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
@@ -2371,7 +2371,7 @@ function EmploymentLawDashboardView() {
         </Card>
 
         {/* Renewal Status Section */}
-        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-renewal-compliance">
+        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -2467,7 +2467,7 @@ function EmploymentLawDashboardView() {
         {/* Recent Documents and Cases Section */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent Documents */}
-          <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
+          <Card className="border-t-4 border-t-module-accent bg-muted/40">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
                 <CardTitle>Recent Documents</CardTitle>
@@ -2526,7 +2526,7 @@ function EmploymentLawDashboardView() {
           </Card>
 
           {/* Recent Cases */}
-          <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
+          <Card className="border-t-4 border-t-module-accent bg-muted/40">
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <div>
                 <CardTitle>Recent Cases</CardTitle>
