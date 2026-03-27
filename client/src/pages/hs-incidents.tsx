@@ -2056,7 +2056,10 @@ function IncidentDetailView({ id }: { id: string }) {
             <Card>
               <CardHeader className="border-b">
                 <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-lg">Incident Details</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-module-accent" />
+                    Incident Details
+                  </CardTitle>
                   <Button
                     variant={detailsMinimised ? "default" : "outline"}
                     size="sm"
@@ -2598,7 +2601,10 @@ function IncidentDetailView({ id }: { id: string }) {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
                 <div>
-                  <CardTitle className="text-lg">Action Items</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-module-accent" />
+                    Action Items
+                  </CardTitle>
                   <CardDescription>Track follow-up tasks and corrective actions</CardDescription>
                 </div>
                 {isPrivileged && (
@@ -2840,7 +2846,10 @@ function IncidentDetailView({ id }: { id: string }) {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
                 <div>
-                  <CardTitle className="text-lg">Documents</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Paperclip className="h-4 w-4 text-module-accent" />
+                    Documents
+                  </CardTitle>
                   <CardDescription>Reports and files attached to this incident</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3002,7 +3011,10 @@ function IncidentDetailView({ id }: { id: string }) {
 
             <Card>
               <CardHeader className="border-b pb-3">
-                <CardTitle className="text-base">Overview</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                  Overview
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 <div>
