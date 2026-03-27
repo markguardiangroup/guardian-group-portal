@@ -1640,19 +1640,21 @@ export class MemStorage implements IStorage {
   }
 
   // Company Module Access
-  async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean; reports: boolean } | undefined> {
+  async getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; training: boolean; toolkit: boolean; support: boolean; reports: boolean } | undefined> {
     const company = await this.getCompany(companyId);
     if (!company) return undefined;
     return {
       healthSafety: company.healthSafetyAccess,
       humanResources: company.humanResourcesAccess,
       employmentLaw: company.employmentLawAccess,
+      training: company.trainingAccess,
+      toolkit: company.toolkitAccess,
       support: company.supportAccess,
       reports: company.reportsAccess,
     };
   }
 
-  async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined> {
+  async setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; training?: boolean; toolkit?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined> {
     const company = await this.getCompany(companyId);
     if (!company) return undefined;
     
@@ -1660,6 +1662,8 @@ export class MemStorage implements IStorage {
     if (modules.healthSafety !== undefined) updateData.healthSafetyAccess = modules.healthSafety;
     if (modules.humanResources !== undefined) updateData.humanResourcesAccess = modules.humanResources;
     if (modules.employmentLaw !== undefined) updateData.employmentLawAccess = modules.employmentLaw;
+    if (modules.training !== undefined) updateData.trainingAccess = modules.training;
+    if (modules.toolkit !== undefined) updateData.toolkitAccess = modules.toolkit;
     if (modules.support !== undefined) updateData.supportAccess = modules.support;
     if (modules.reports !== undefined) updateData.reportsAccess = modules.reports;
     
@@ -1678,6 +1682,10 @@ export class MemStorage implements IStorage {
         return company.humanResourcesAccess;
       case "employment_law":
         return company.employmentLawAccess;
+      case "training":
+        return company.trainingAccess;
+      case "toolkit":
+        return company.toolkitAccess;
       case "support":
         return company.supportAccess;
       case "reports":

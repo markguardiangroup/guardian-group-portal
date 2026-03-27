@@ -67,6 +67,8 @@ import {
   HardHat,
   Scale,
   BarChart2,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
@@ -86,6 +88,8 @@ interface CompanyModuleAccess {
   healthSafety: boolean;
   humanResources: boolean;
   employmentLaw: boolean;
+  training: boolean;
+  toolkit: boolean;
   support: boolean;
   reports: boolean;
 }
@@ -261,7 +265,6 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     {
       key: "healthSafety" as const,
       label: "Health & Safety",
-      description: "Incidents, risk assessments, and site inspections",
       icon: HardHat,
       iconClass: "text-emerald-700 dark:text-emerald-400",
       bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
@@ -270,7 +273,6 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     {
       key: "humanResources" as const,
       label: "Human Resources",
-      description: "Employee documents, contracts, and HR policies",
       icon: Users,
       iconClass: "text-blue-700 dark:text-blue-400",
       bgClass: "bg-blue-50 dark:bg-blue-950/30",
@@ -279,16 +281,30 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     {
       key: "employmentLaw" as const,
       label: "Employment Law",
-      description: "Cases, milestones, and employment law matters",
       icon: Scale,
       iconClass: "text-pink-700 dark:text-pink-400",
       bgClass: "bg-pink-50 dark:bg-pink-950/30",
       borderClass: "border-l-pink-600 dark:border-l-pink-500",
     },
     {
+      key: "training" as const,
+      label: "Training",
+      icon: GraduationCap,
+      iconClass: "text-purple-700 dark:text-purple-400",
+      bgClass: "bg-purple-50 dark:bg-purple-950/30",
+      borderClass: "border-l-purple-600 dark:border-l-purple-500",
+    },
+    {
+      key: "toolkit" as const,
+      label: "Toolkit",
+      icon: BookOpen,
+      iconClass: "text-amber-700 dark:text-amber-400",
+      bgClass: "bg-amber-50 dark:bg-amber-950/30",
+      borderClass: "border-l-amber-600 dark:border-l-amber-500",
+    },
+    {
       key: "support" as const,
       label: "Support",
-      description: "Support requests and assistance tickets",
       icon: HelpCircle,
       iconClass: "text-cyan-700 dark:text-cyan-400",
       bgClass: "bg-cyan-50 dark:bg-cyan-950/30",
@@ -297,7 +313,6 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     {
       key: "reports" as const,
       label: "Reports",
-      description: "Compliance reports and analytics",
       icon: BarChart2,
       iconClass: "text-indigo-700 dark:text-indigo-400",
       bgClass: "bg-indigo-50 dark:bg-indigo-950/30",
@@ -328,22 +343,19 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
           Enable or disable modules for this company. Changes apply to all sites and users.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {modules.map(({ key, label, description, icon: Icon, iconClass, bgClass, borderClass }) => {
+      <CardContent className="space-y-2">
+        {modules.map(({ key, label, icon: Icon, iconClass, bgClass, borderClass }) => {
           const enabled = moduleAccess?.[key] ?? false;
           return (
             <div
               key={key}
-              className={`flex items-center justify-between rounded-lg border border-l-4 ${borderClass} p-4 transition-opacity ${enabled ? "" : "opacity-50"}`}
+              className={`flex items-center justify-between rounded-lg border border-l-4 ${borderClass} px-3 py-2.5 transition-opacity ${enabled ? "" : "opacity-50"}`}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${bgClass}`}>
-                  <Icon className={`h-5 w-5 ${iconClass}`} />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${bgClass}`}>
+                  <Icon className={`h-4 w-4 ${iconClass}`} />
                 </div>
-                <div className="min-w-0">
-                  <Label htmlFor={`module-${key}`} className="font-semibold text-sm cursor-pointer">{label}</Label>
-                  <p className="text-xs text-muted-foreground truncate">{description}</p>
-                </div>
+                <Label htmlFor={`module-${key}`} className="font-medium text-sm cursor-pointer">{label}</Label>
               </div>
               <Switch
                 id={`module-${key}`}

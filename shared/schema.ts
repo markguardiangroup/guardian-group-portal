@@ -63,6 +63,8 @@ export const companies = pgTable("companies", {
   healthSafetyAccess: boolean("health_safety_access").notNull().default(false),
   humanResourcesAccess: boolean("human_resources_access").notNull().default(false),
   employmentLawAccess: boolean("employment_law_access").notNull().default(false),
+  trainingAccess: boolean("training_access").notNull().default(false),
+  toolkitAccess: boolean("toolkit_access").notNull().default(false),
   supportAccess: boolean("support_access").notNull().default(false),
   reportsAccess: boolean("reports_access").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
