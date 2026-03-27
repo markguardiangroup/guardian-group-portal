@@ -9748,6 +9748,7 @@ export async function registerRoutes(
 
       if (updates.resolvedAt) updates.resolvedAt = new Date(updates.resolvedAt);
       if (updates.incidentDate) updates.incidentDate = new Date(updates.incidentDate);
+      if (updates.invCompletedAt) updates.invCompletedAt = new Date(updates.invCompletedAt);
 
       const incident = await storage.updateIncident(id, updates);
 
