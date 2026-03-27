@@ -79,6 +79,14 @@ import {
   Smartphone,
   Briefcase,
   LockKeyhole,
+  Activity,
+  FileText,
+  CheckCircle,
+  XCircle,
+  LogIn,
+  Send,
+  RotateCcw,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -161,6 +169,17 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
+  const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
+    queryKey: ["/api/users", viewingUser?.id, "activity"],
+    queryFn: async () => {
+      if (!viewingUser?.id) return [];
+      const res = await fetch(`/api/users/${viewingUser.id}/activity`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!viewingUser?.id,
+    staleTime: 0,
+  });
   const [statusConfirm, setStatusConfirm] = useState<{ user: UserWithAssignments; newStatus: "active" | "inactive" } | null>(null);
   const [editFormData, setEditFormData] = useState<{
     email: string;
@@ -1582,15 +1601,15 @@ export default function UserManagement() {
 
       {/* View Profile Dialog */}
       <Dialog open={!!viewingUser} onOpenChange={(open) => { if (!open) setViewingUser(null); }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[620px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>User Profile</DialogTitle>
             <DialogDescription>
-              Full profile information
+              Full profile information and activity history
             </DialogDescription>
           </DialogHeader>
           {viewingUser && (
-            <div className="space-y-6">
+            <div className="space-y-6 overflow-y-auto flex-1 pr-1">
               {/* User Header */}
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-xl font-medium">
@@ -1700,6 +1719,127 @@ export default function UserManagement() {
                   <p className="text-sm bg-muted p-3 rounded-md">{viewingUser.notes}</p>
                 </div>
               )}
+
+              {/* Activity Log */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Activity Log
+                </h4>
+                {isActivityLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex gap-3 items-start">
+                        <div className="h-7 w-7 rounded-full bg-muted animate-pulse flex-shrink-0" />
+                        <div className="flex-1 space-y-1.5 py-0.5">
+                          <div className="h-3.5 bg-muted animate-pulse rounded w-3/4" />
+                          <div className="h-3 bg-muted animate-pulse rounded w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : userActivityLogs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic py-2">No activity recorded yet.</p>
+                ) : (
+                  <div className="relative space-y-0">
+                    {/* Timeline line */}
+                    <div className="absolute left-3.5 top-4 bottom-4 w-px bg-border" />
+                    <div className="space-y-1">
+                      {userActivityLogs.slice(0, 25).map((log: any) => {
+                        const isActor = log.userId === viewingUser.id;
+                        let icon = <Activity className="h-3.5 w-3.5" />;
+                        let iconBg = "bg-muted text-muted-foreground";
+                        let label = log.details || log.action;
+                        switch (log.action) {
+                          case "email_sent":
+                            icon = <Send className="h-3.5 w-3.5" />;
+                            iconBg = "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+                            break;
+                          case "document_uploaded":
+                            icon = <FileText className="h-3.5 w-3.5" />;
+                            iconBg = "bg-muted text-muted-foreground";
+                            break;
+                          case "document_approved":
+                            icon = <CheckCircle className="h-3.5 w-3.5" />;
+                            iconBg = "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+                            break;
+                          case "document_signed_off":
+                            icon = <CheckCircle className="h-3.5 w-3.5" />;
+                            iconBg = "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+                            break;
+                          case "document_rejected":
+                            icon = <XCircle className="h-3.5 w-3.5" />;
+                            iconBg = "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400";
+                            break;
+                          case "changes_requested":
+                            icon = <RotateCcw className="h-3.5 w-3.5" />;
+                            iconBg = "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400";
+                            break;
+                          case "login":
+                            icon = <LogIn className="h-3.5 w-3.5" />;
+                            iconBg = "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400";
+                            break;
+                          case "user_activated":
+                            icon = <UserCheck className="h-3.5 w-3.5" />;
+                            iconBg = "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+                            break;
+                          case "comment_added":
+                            icon = <MessageSquare className="h-3.5 w-3.5" />;
+                            iconBg = "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400";
+                            break;
+                          case "password_change":
+                          case "password_changed":
+                          case "password_reset":
+                            icon = <LockKeyhole className="h-3.5 w-3.5" />;
+                            iconBg = "bg-muted text-muted-foreground";
+                            break;
+                          case "document_viewed":
+                          case "document_downloaded":
+                            icon = <Eye className="h-3.5 w-3.5" />;
+                            iconBg = "bg-muted text-muted-foreground";
+                            break;
+                        }
+                        const createdAt = new Date(log.createdAt);
+                        const now = new Date();
+                        const diffMs = now.getTime() - createdAt.getTime();
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffHours = Math.floor(diffMs / 3600000);
+                        const diffDays = Math.floor(diffMs / 86400000);
+                        let timeLabel: string;
+                        if (diffMins < 1) timeLabel = "Just now";
+                        else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
+                        else if (diffHours < 24) timeLabel = `${diffHours}h ago`;
+                        else if (diffDays === 1) timeLabel = "Yesterday";
+                        else if (diffDays < 7) timeLabel = `${diffDays}d ago`;
+                        else timeLabel = createdAt.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+                        return (
+                          <div key={log.id} className="flex gap-3 items-start pl-0 py-1.5 relative">
+                            <div className={`z-10 flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0 ${iconBg}`}>
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0 pt-0.5">
+                              <p className="text-sm leading-snug">
+                                {label}
+                                {!isActor && log.userName && (
+                                  <span className="text-muted-foreground"> — by {log.userName}</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5" title={createdAt.toLocaleString()}>
+                                {timeLabel}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {userActivityLogs.length > 25 && (
+                        <p className="text-xs text-muted-foreground pl-10 py-1">
+                          + {userActivityLogs.length - 25} more events not shown
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <DialogFooter>

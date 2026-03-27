@@ -848,6 +848,17 @@ export async function registerRoutes(
       if (targetUser.status === "invite_required") {
         await storage.updateUser(targetUser.id, { status: "invited" });
       }
+
+      await storage.createAuditLog({
+        action: "email_sent",
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        entityId: targetUser.id,
+        details: emailSent
+          ? `Invitation email sent to ${targetUser.fullName} (${targetUser.email})`
+          : `Invitation link generated for ${targetUser.fullName} (${targetUser.email}) — email delivery failed`,
+        metadata: JSON.stringify({ targetUserId: targetUser.id, emailType: "invitation" }),
+      });
       
       res.json({ 
         success: true, 
@@ -891,6 +902,21 @@ export async function registerRoutes(
   });
 
   // ==================== END AUTHENTICATED INVITATION ENDPOINTS ====================
+
+  // Get user activity log (admin/consultant only)
+  app.get("/api/users/:id/activity", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "consultant")) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+      const logs = await storage.getUserActivityLogs(req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Get user activity error:", error);
+      res.status(500).json({ error: "Failed to fetch user activity" });
+    }
+  });
 
   // Shared helper: slot-based compliance calculation
   const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
@@ -2145,7 +2171,7 @@ export async function registerRoutes(
                 supportRequestId: null,
                 module: body.module,
                 details: `Approval notification email sent to ${notifyUser.fullName} (${notifyUser.email})`,
-                metadata: null,
+                metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification" }),
               });
             }
           } catch (emailError) {
@@ -2365,7 +2391,7 @@ export async function registerRoutes(
                     supportRequestId: null,
                     module: existingDoc.module,
                     details: `Client sign-off notification email sent to consultant ${consultant.fullName} (${consultant.email})`,
-                    metadata: null,
+                    metadata: JSON.stringify({ targetUserId: consultant.id, emailType: "sign_off_notification" }),
                   });
                 }
               } catch (emailError) {
@@ -2395,7 +2421,7 @@ export async function registerRoutes(
                   supportRequestId: null,
                   module: existingDoc.module,
                   details: `Client sign-off notification email sent to admin ${admin.fullName} (${admin.email}) - no consultant assigned to site`,
-                  metadata: null,
+                  metadata: JSON.stringify({ targetUserId: admin.id, emailType: "sign_off_notification" }),
                 });
               } catch (emailError) {
                 console.error(`Failed to send sign-off notification to admin ${admin.id}:`, emailError);
@@ -2474,7 +2500,7 @@ export async function registerRoutes(
         supportRequestId: null,
         module: existingDoc.module,
         details: `Approval notification email sent to ${targetUser.fullName} (${targetUser.email})`,
-        metadata: null,
+        metadata: JSON.stringify({ targetUserId: targetUser.id, emailType: "approval_notification" }),
       });
 
       res.json({ success: true, message: `Approval notification sent to ${targetUser.fullName}` });

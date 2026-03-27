@@ -175,6 +175,7 @@ export interface IStorage {
   
   // Audit Logs
   getAuditLogs(documentId?: string, module?: ModuleType): Promise<AuditLog[]>;
+  getUserActivityLogs(userId: string): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   
   // Support Requests
@@ -967,6 +968,22 @@ export class MemStorage implements IStorage {
       logs = logs.filter(log => log.module === module);
     }
     return logs;
+  }
+
+  async getUserActivityLogs(userId: string): Promise<AuditLog[]> {
+    const allLogs = await db.select().from(auditLogsTable).orderBy(desc(auditLogsTable.createdAt));
+    return allLogs.filter(log => {
+      // Actions performed BY this user
+      if (log.userId === userId) return true;
+      // Events directed AT this user (email sent to them, etc.) stored in metadata
+      if (log.metadata) {
+        try {
+          const meta = JSON.parse(log.metadata);
+          if (meta.targetUserId === userId) return true;
+        } catch {}
+      }
+      return false;
+    });
   }
 
   async createAuditLog(insertLog: InsertAuditLog): Promise<AuditLog> {
