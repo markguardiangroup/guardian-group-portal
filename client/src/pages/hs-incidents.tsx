@@ -606,6 +606,12 @@ function ReportIncidentDialog({
   const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
   const [selectedEffects, setSelectedEffects] = useState<string[]>([]);
   const [bodyZones, setBodyZones] = useState<string[]>([]);
+  const [witnessEntries, setWitnessEntries] = useState<{ name: string; jobRole: string; company: string }[]>([]);
+
+  const addWitness = () => setWitnessEntries(prev => [...prev, { name: "", jobRole: "", company: "" }]);
+  const removeWitness = (i: number) => setWitnessEntries(prev => prev.filter((_, idx) => idx !== i));
+  const updateWitness = (i: number, field: "name" | "jobRole" | "company", value: string) =>
+    setWitnessEntries(prev => prev.map((w, idx) => idx === i ? { ...w, [field]: value } : w));
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -754,7 +760,9 @@ function ReportIncidentDialog({
         ? selectedCauses[0]
         : `${selectedCauses[0]} (+${selectedCauses.length - 1} more)`;
     const autoTitle = `${causeLabel} – ${dateStr}`;
-    mutation.mutate({ ...values, title: autoTitle });
+    const filledWitnesses = witnessEntries.filter(w => w.name.trim() || w.jobRole.trim() || w.company.trim());
+    const witnessesJson = filledWitnesses.length > 0 ? JSON.stringify(filledWitnesses) : "";
+    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson });
   };
 
   return (
@@ -992,7 +1000,40 @@ function ReportIncidentDialog({
               )} />
             </FormSection>
 
-            {/* ── Section 7: Injury Location (Body Diagram) ── */}
+            {/* ── Section 7: Witnesses ── */}
+            <FormSection title="Witnesses">
+              <p className="text-xs text-muted-foreground mb-3">Record any witnesses to the incident. Include their name, job role, and company.</p>
+              {witnessEntries.length === 0 && (
+                <p className="text-sm text-muted-foreground italic mb-3">No witnesses added yet.</p>
+              )}
+              <div className="space-y-3">
+                {witnessEntries.map((witness, i) => (
+                  <div key={i} className="rounded-md border p-3 space-y-2 relative" data-testid={`witness-entry-${i}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Witness {i + 1}</span>
+                      <button type="button" onClick={() => removeWitness(i)} className="text-xs text-destructive hover:underline" data-testid={`button-remove-witness-${i}`}>Remove</button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Full Name</label>
+                        <Input value={witness.name} onChange={e => updateWitness(i, "name", e.target.value)} placeholder="Full name" data-testid={`input-witness-name-${i}`} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Job Role</label>
+                        <Input value={witness.jobRole} onChange={e => updateWitness(i, "jobRole", e.target.value)} placeholder="Job role" data-testid={`input-witness-jobrole-${i}`} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Company</label>
+                        <Input value={witness.company} onChange={e => updateWitness(i, "company", e.target.value)} placeholder="Company" data-testid={`input-witness-company-${i}`} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addWitness} className="mt-2 text-sm text-module-accent hover:underline font-medium" data-testid="button-add-witness">+ Add Witness</button>
+            </FormSection>
+
+            {/* ── Section 8: Injury Location (Body Diagram) ── */}
             <FormSection title="Injury Location">
               <div className="flex gap-6 items-start">
                 <div className="flex-shrink-0">
@@ -1857,9 +1898,41 @@ function IncidentDetailView({ id }: { id: string }) {
                 {/* ── Section 8: Witnesses ── */}
                 <div className="py-5 space-y-3">
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
-                  {incident.witnesses
-                    ? <p className="text-sm leading-relaxed">{incident.witnesses}</p>
-                    : <p className="text-sm text-muted-foreground italic">No witnesses recorded</p>}
+                  {(() => {
+                    let witnesses: { name: string; jobRole: string; company: string }[] = [];
+                    if (incident.witnesses) {
+                      try {
+                        const parsed = JSON.parse(incident.witnesses);
+                        if (Array.isArray(parsed)) witnesses = parsed;
+                        else witnesses = [{ name: incident.witnesses, jobRole: "", company: "" }];
+                      } catch {
+                        witnesses = [{ name: incident.witnesses, jobRole: "", company: "" }];
+                      }
+                    }
+                    if (witnesses.length === 0) {
+                      return <p className="text-sm text-muted-foreground italic">No witnesses recorded</p>;
+                    }
+                    return (
+                      <div className="space-y-2">
+                        {witnesses.map((w, i) => (
+                          <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-3 gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
+                              <p className="text-sm font-medium">{w.name || <span className="italic text-muted-foreground">—</span>}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Job Role</p>
+                              <p className="text-sm">{w.jobRole || <span className="italic text-muted-foreground">—</span>}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Company</p>
+                              <p className="text-sm">{w.company || <span className="italic text-muted-foreground">—</span>}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* ── Section 9: Person Reporting ── */}

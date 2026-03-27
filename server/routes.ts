@@ -9290,6 +9290,15 @@ export async function registerRoutes(
     let bodyZones: string[] = [];
     try { if (incident.bodyDiagramMarkers) bodyZones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
 
+    let witnesses: { name: string; jobRole: string; company: string }[] = [];
+    try {
+      if (incident.witnesses) {
+        const parsed = JSON.parse(incident.witnesses);
+        if (Array.isArray(parsed)) witnesses = parsed;
+        else witnesses = [{ name: incident.witnesses, jobRole: "", company: "" }];
+      }
+    } catch { if (incident.witnesses?.trim()) witnesses = [{ name: incident.witnesses, jobRole: "", company: "" }]; }
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9390,6 +9399,27 @@ export async function registerRoutes(
         ${field("Address", incident.reportingPersonAddress)}
       </table>
     </section>
+
+    ${witnesses.length > 0 ? `
+    <section>
+      <h2>Witnesses</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:5px 0;font-size:11px;font-weight:600;color:#6b7280;border-bottom:2px solid #e5e7eb;padding-right:16px">Full Name</th>
+            <th style="text-align:left;padding:5px 0;font-size:11px;font-weight:600;color:#6b7280;border-bottom:2px solid #e5e7eb;padding-right:16px">Job Role</th>
+            <th style="text-align:left;padding:5px 0;font-size:11px;font-weight:600;color:#6b7280;border-bottom:2px solid #e5e7eb">Company</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${witnesses.map(w => `<tr>
+            <td style="padding:6px 16px 6px 0;font-size:13px;border-bottom:1px solid #f3f4f6;color:#111827">${w.name || '<span class="empty">—</span>'}</td>
+            <td style="padding:6px 16px 6px 0;font-size:13px;border-bottom:1px solid #f3f4f6;color:#111827">${w.jobRole || '<span class="empty">—</span>'}</td>
+            <td style="padding:6px 0;font-size:13px;border-bottom:1px solid #f3f4f6;color:#111827">${w.company || '<span class="empty">—</span>'}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </section>` : ""}
 
     <section>
       <h2>Injury Location</h2>
