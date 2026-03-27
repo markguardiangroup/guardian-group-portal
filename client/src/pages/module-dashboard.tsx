@@ -432,7 +432,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0);
           const documentsMissingCount = summary.missingRequiredDocuments || 0;
           return (
-            <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-compliance-summary">
+            <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4" />
@@ -460,7 +460,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-module-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -472,7 +472,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </button>
                       <button
                         onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${nonCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-module-non-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
@@ -484,7 +484,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       </button>
                       <button
                         onClick={() => documentsMissingCount > 0 && setShowMissingDialog(true)}
-                        className={`rounded-md border p-3 text-center w-full transition-colors ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${documentsMissingCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-module-docs-missing"
                       >
                         <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
@@ -501,7 +501,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         })()}
 
         {/* Document Progress Card */}
-        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-document-progress">
+        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-document-progress">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -513,7 +513,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
                   onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
-                  className={`text-center rounded-md border p-3 transition-colors ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-total"
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -524,7 +524,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </button>
                 <button
                   onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`text-center rounded-md border p-3 transition-colors ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-compliant"
                 >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -535,7 +535,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </button>
                 <button
                   onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
@@ -546,7 +546,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </button>
                 <button
                   onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
-                  className={`text-center rounded-md border p-3 transition-colors ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-overdue"
                 >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
@@ -560,7 +560,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         </Card>
 
       {/* Renewal Status Section */}
-      <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle" data-testid="card-renewal-compliance">
+      <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -655,7 +655,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-t-4 border-t-module-accent bg-module-accent-subtle">
+        <Card className="lg:col-span-2 border-t-4 border-t-module-accent bg-muted/40">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Recent Documents</CardTitle>
@@ -730,7 +730,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-t-4 border-t-module-accent bg-module-accent-subtle">
+        <Card className="border-t-4 border-t-module-accent bg-muted/40">
           <CardHeader>
             <CardTitle className="text-lg">Upcoming Reviews</CardTitle>
           </CardHeader>
