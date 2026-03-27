@@ -6,7 +6,10 @@ interface ModuleAccessData {
   health_safety: "active" | "visible" | "hidden";
   human_resources: "active" | "visible" | "hidden";
   employment_law: "active" | "visible" | "hidden";
+  training: "active" | "visible" | "hidden";
+  toolkit: "active" | "visible" | "hidden";
   support: "active" | "visible" | "hidden";
+  reports: "active" | "visible" | "hidden";
 }
 
 interface UseModuleAccessResult {

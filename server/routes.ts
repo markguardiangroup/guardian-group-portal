@@ -6834,6 +6834,8 @@ export async function registerRoutes(
           health_safety: "active",
           human_resources: "active",
           employment_law: "active",
+          training: "active",
+          toolkit: "active",
           support: "active",
           reports: "active",
         });
@@ -6846,6 +6848,8 @@ export async function registerRoutes(
           health_safety: "hidden",
           human_resources: "hidden",
           employment_law: "hidden",
+          training: "hidden",
+          toolkit: "hidden",
           support: "hidden",
           reports: "hidden",
         });
@@ -6858,6 +6862,8 @@ export async function registerRoutes(
           health_safety: "hidden",
           human_resources: "hidden",
           employment_law: "hidden",
+          training: "hidden",
+          toolkit: "hidden",
           support: "hidden",
           reports: "hidden",
         });
@@ -6868,6 +6874,8 @@ export async function registerRoutes(
         health_safety: companyAccess.healthSafety ? "active" : "hidden",
         human_resources: companyAccess.humanResources ? "active" : "hidden",
         employment_law: companyAccess.employmentLaw ? "active" : "hidden",
+        training: companyAccess.training ? "active" : "hidden",
+        toolkit: companyAccess.toolkit ? "active" : "hidden",
         support: companyAccess.support ? "active" : "hidden",
         reports: companyAccess.reports ? "active" : "hidden",
       });
