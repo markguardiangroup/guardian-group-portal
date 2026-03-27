@@ -26,6 +26,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -445,6 +446,7 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [moduleFilter, setModuleFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [metricDialog, setMetricDialog] = useState<null | "total" | "overdue" | "upcoming">(null);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
@@ -515,43 +517,114 @@ export default function CalendarPage() {
       <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-l-4 border-l-primary">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
+          <button
+            onClick={() => setMetricDialog("total")}
+            data-testid="stat-card-total"
+            className="text-left rounded-lg border-l-4 border border-l-primary bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <span className="text-sm font-medium">This Month</span>
               <div className="rounded-full bg-primary/10 p-2">
                 <CalendarDays className="h-4 w-4 text-primary" />
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-6 pt-0">
               <div className="text-2xl font-bold text-primary" data-testid="text-total-events">{isLoading ? "–" : <CountUp value={stats.total} animate={statsWasLoadingRef.current} />}</div>
-              <p className="text-xs text-muted-foreground">Total events</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-red-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-              <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
-                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <p className="text-xs text-muted-foreground">Total events · click to view</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setMetricDialog("overdue")}
+            data-testid="stat-card-overdue"
+            className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-400/40 ${stats.overdue > 0 ? "border-l-red-500 hover:bg-red-50 dark:hover:bg-red-950/20" : "border-l-slate-300"}`}
+          >
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <span className="text-sm font-medium">Overdue</span>
+              <div className={`rounded-full p-2 ${stats.overdue > 0 ? "bg-red-100 dark:bg-red-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                <AlertTriangle className={`h-4 w-4 ${stats.overdue > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400"}`} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400" data-testid="text-overdue-events">{isLoading ? "–" : <CountUp value={stats.overdue} animate={statsWasLoadingRef.current} />}</div>
-              <p className="text-xs text-muted-foreground">Require attention</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-              <div className="rounded-full bg-green-100 dark:bg-green-900/40 p-2">
-                <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="p-6 pt-0">
+              <div className={`text-2xl font-bold ${stats.overdue > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} data-testid="text-overdue-events">{isLoading ? "–" : <CountUp value={stats.overdue} animate={statsWasLoadingRef.current} />}</div>
+              <p className="text-xs text-muted-foreground">Require attention · click to view</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setMetricDialog("upcoming")}
+            data-testid="stat-card-upcoming"
+            className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-400/40 ${stats.upcoming > 0 ? "border-l-green-500 hover:bg-green-50 dark:hover:bg-green-950/20" : "border-l-slate-300"}`}
+          >
+            <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+              <span className="text-sm font-medium">Upcoming</span>
+              <div className={`rounded-full p-2 ${stats.upcoming > 0 ? "bg-green-100 dark:bg-green-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
+                <Clock className={`h-4 w-4 ${stats.upcoming > 0 ? "text-green-600 dark:text-green-400" : "text-slate-400"}`} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-upcoming-events">{isLoading ? "–" : <CountUp value={stats.upcoming} animate={statsWasLoadingRef.current} />}</div>
-              <p className="text-xs text-muted-foreground">Scheduled ahead</p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="p-6 pt-0">
+              <div className={`text-2xl font-bold ${stats.upcoming > 0 ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`} data-testid="text-upcoming-events">{isLoading ? "–" : <CountUp value={stats.upcoming} animate={statsWasLoadingRef.current} />}</div>
+              <p className="text-xs text-muted-foreground">Scheduled ahead · click to view</p>
+            </div>
+          </button>
         </div>
+
+        {/* Metric breakdown dialog */}
+        <Dialog open={metricDialog !== null} onOpenChange={open => { if (!open) setMetricDialog(null); }}>
+          <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {metricDialog === "total" && <><CalendarDays className="h-5 w-5 text-primary" /> This Month</>}
+                {metricDialog === "overdue" && <><AlertTriangle className="h-5 w-5 text-red-500" /> Overdue Events</>}
+                {metricDialog === "upcoming" && <><Clock className="h-5 w-5 text-green-500" /> Upcoming Events</>}
+              </DialogTitle>
+              <DialogDescription>
+                {metricDialog === "total" && `All ${stats.total} event${stats.total !== 1 ? "s" : ""} for ${format(currentMonth, "MMMM yyyy")}.`}
+                {metricDialog === "overdue" && "Events with a date that has already passed."}
+                {metricDialog === "upcoming" && "Events scheduled for a future date."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto space-y-2 pr-1">
+              {(() => {
+                const listEvents = metricDialog === "overdue"
+                  ? events.filter(e => e.isOverdue)
+                  : metricDialog === "upcoming"
+                  ? events.filter(e => !e.isOverdue)
+                  : events;
+                if (listEvents.length === 0) {
+                  return <div className="py-8 text-center text-muted-foreground text-sm">No events to display.</div>;
+                }
+                return [...listEvents]
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map(ev => {
+                    const cfg = MODULE_CONFIG[ev.module];
+                    return (
+                      <Link key={ev.id} href={ev.url} onClick={() => setMetricDialog(null)}>
+                        <div className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/60 cursor-pointer transition-colors group">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              {cfg && <cfg.icon className={`h-3.5 w-3.5 shrink-0 ${cfg.color}`} />}
+                              <span className="text-xs font-medium text-muted-foreground">{cfg?.label ?? ev.module}</span>
+                              <span className="text-xs text-muted-foreground">·</span>
+                              <span className="text-xs text-muted-foreground">{ev.type.replace(/_/g, " ")}</span>
+                            </div>
+                            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{ev.title}</p>
+                          </div>
+                          <div className="ml-4 shrink-0 flex items-center gap-2">
+                            <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 ${ev.isOverdue ? "bg-red-100 dark:bg-red-900/40" : "bg-green-100 dark:bg-green-900/40"}`}>
+                              <Clock className={`h-3 w-3 ${ev.isOverdue ? "text-red-600" : "text-green-600"}`} />
+                              <span className={`text-xs font-semibold ${ev.isOverdue ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
+                                {format(new Date(ev.date), "MMM d")}
+                              </span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  });
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Calendar card */}
         <Card>
