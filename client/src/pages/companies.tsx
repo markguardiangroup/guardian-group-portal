@@ -74,6 +74,9 @@ function CompanyCard({
   onDelete: (company: CompanyWithSiteCount) => void;
   isAdmin: boolean;
 }) {
+  const formatStatusDisplay = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
 
   return (
     <Card className="hover-elevate cursor-pointer" onClick={() => onView(company.id)}>
@@ -103,8 +106,12 @@ function CompanyCard({
                 <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
                   {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
                 </Badge>
-                <Badge variant={company.status === "active" ? "default" : "secondary"} data-testid={`badge-status-${company.id}`}>
-                  {company.status}
+                <Badge 
+                  variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")} 
+                  className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}
+                  data-testid={`badge-status-${company.id}`}
+                >
+                  {formatStatusDisplay(company.status)}
                 </Badge>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
