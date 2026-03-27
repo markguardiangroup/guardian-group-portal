@@ -1182,13 +1182,13 @@ export default function CompanyDetail() {
           {isAdmin ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Badge 
-                  variant={company.status === "active" ? "default" : "secondary"} 
-                  className="cursor-pointer"
-                  data-testid={`badge-status-${company.id}`}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  data-testid={`button-status-${company.id}`}
                 >
                   {company.status}
-                </Badge>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {["pending", "active", "on_hold", "inactive"].map((status) => (
@@ -1196,7 +1196,7 @@ export default function CompanyDetail() {
                     key={status}
                     onClick={() => handleStatusChange(status)}
                     disabled={statusLoading || status === company.status}
-                    data-testid={`button-status-${status}-${company.id}`}
+                    data-testid={`menu-item-status-${status}-${company.id}`}
                   >
                     {status}
                   </DropdownMenuItem>
