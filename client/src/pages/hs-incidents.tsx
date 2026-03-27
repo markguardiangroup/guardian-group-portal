@@ -2911,6 +2911,8 @@ function IncidentsListView() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
+  const [quickFilter, setQuickFilter] = useState<null | "active" | "riddor">(null);
+  const [showOpenActionsSheet, setShowOpenActionsSheet] = useState(false);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
   const activeConfig = registerTypeConfig[registerType];
@@ -2978,12 +2980,21 @@ function IncidentsListView() {
       const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
       const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
       const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
-      return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
+      const matchesQuickFilter =
+        !quickFilter ||
+        (quickFilter === "active" && (incident.status === "reported" || incident.status === "under_review")) ||
+        (quickFilter === "riddor" && incident.riddorReportable);
+      return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany && matchesQuickFilter;
     });
-  }, [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany, registerType]);
+  }, [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany, registerType, quickFilter]);
 
   const { data: overdueActionsData } = useQuery<{ count: number }>({
     queryKey: ["/api/incidents/overdue-actions-count"],
+  });
+
+  const { data: openActionsBreakdown = [], isLoading: breakdownLoading } = useQuery<{ incidentId: string; incidentReference: string; title: string; openCount: number }[]>({
+    queryKey: ["/api/incidents/open-actions-breakdown"],
+    enabled: showOpenActionsSheet,
   });
 
   const stats = {
@@ -3057,7 +3068,7 @@ function IncidentsListView() {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => setView("dashboard")}
+                  onClick={() => { setView("dashboard"); setQuickFilter(null); }}
                   data-testid="button-view-dashboard"
                 >
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -3094,6 +3105,7 @@ function IncidentsListView() {
                   setSearchQuery("");
                   setStatusFilter("all");
                   setSeverityFilter("all");
+                  setQuickFilter(null);
                   setView("register");
                 }}
                 data-testid={`toggle-register-${type}`}
@@ -3134,15 +3146,27 @@ function IncidentsListView() {
               <h3 className="text-lg font-semibold text-foreground mb-1">Incident Register</h3>
               <p className="text-sm text-muted-foreground mb-5">Workplace incidents and accidents requiring formal reporting and investigation.</p>
               <div className="grid grid-cols-3 gap-2 border-t pt-4">
-                <div className="text-center">
+                <div
+                  className="text-center rounded-md py-1 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setQuickFilter("active"); setRegisterType("incident"); setView("register"); }}
+                  title="Filter by Active incidents"
+                >
                   <div className="text-xl font-bold text-red-600 dark:text-red-400">{stats.active}</div>
                   <div className="text-xs text-muted-foreground">Active</div>
                 </div>
-                <div className="text-center border-x">
+                <div
+                  className="text-center border-x rounded-md py-1 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setQuickFilter("riddor"); setRegisterType("incident"); setView("register"); }}
+                  title="Filter by RIDDOR Reportable"
+                >
                   <div className={`text-xl font-bold ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>{stats.riddor}</div>
                   <div className="text-xs text-muted-foreground">RIDDOR</div>
                 </div>
-                <div className="text-center">
+                <div
+                  className="text-center rounded-md py-1 hover:bg-orange-50 dark:hover:bg-orange-950/30 cursor-pointer transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setRegisterType("incident"); setView("register"); setShowOpenActionsSheet(true); }}
+                  title="View Open Actions breakdown"
+                >
                   <div className={`text-xl font-bold ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`}>{stats.overdueActions}</div>
                   <div className="text-xs text-muted-foreground">Open Actions</div>
                 </div>
@@ -3230,47 +3254,111 @@ function IncidentsListView() {
       <div className="space-y-6 p-8 dash-animate">
         {/* Stat cards */}
         {registerType === "incident" ? (
+          <>
+          {quickFilter && (
+            <div className="flex items-center gap-2 px-1">
+              <div className="flex items-center gap-2 rounded-full bg-module-accent/10 px-3 py-1.5 text-sm text-module-accent font-medium">
+                <Filter className="h-3.5 w-3.5" />
+                Filtered: {quickFilter === "active" ? "Active Incidents" : "RIDDOR Reportable"}
+                <button onClick={() => setQuickFilter(null)} className="ml-1 rounded-full hover:bg-module-accent/20 p-0.5 transition-colors" data-testid="button-clear-quick-filter">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <span className="text-xs text-muted-foreground">{filteredIncidents.length} result{filteredIncidents.length !== 1 ? "s" : ""}</span>
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-3">
             {/* Active incidents */}
-            <Card className="border-l-4 border-l-module-accent">
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Incidents</CardTitle>
+            <button
+              onClick={() => setQuickFilter(qf => qf === "active" ? null : "active")}
+              data-testid="stat-card-active"
+              className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-module-accent/50 ${quickFilter === "active" ? "border-l-module-accent ring-2 ring-module-accent/30 bg-module-accent/5" : "border-l-module-accent"}`}
+            >
+              <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+                <div className="text-sm font-medium">Active Incidents</div>
                 <div className="rounded-full bg-module-accent/10 p-2">
                   <AlertOctagon className="h-4 w-4 text-module-accent" />
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="p-6 pt-0">
                 <div className="text-2xl font-bold text-module-accent" data-testid="text-stat-0-incident">{stats.active}</div>
-                <p className="text-xs text-muted-foreground">Reported or under review</p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-muted-foreground mt-1">Click to filter table</p>
+              </div>
+            </button>
             {/* RIDDOR */}
-            <Card className={`border-l-4 ${stats.riddor > 0 ? "border-l-red-500" : "border-l-slate-300"}`}>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">RIDDOR Reportable</CardTitle>
+            <button
+              onClick={() => setQuickFilter(qf => qf === "riddor" ? null : "riddor")}
+              data-testid="stat-card-riddor"
+              className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none ${quickFilter === "riddor" ? "ring-2 ring-red-400/40 bg-red-50 dark:bg-red-950/20" : ""} ${stats.riddor > 0 ? "border-l-red-500" : "border-l-slate-300"}`}
+            >
+              <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+                <div className="text-sm font-medium">RIDDOR Reportable</div>
                 <div className={`rounded-full p-2 ${stats.riddor > 0 ? "bg-red-100 dark:bg-red-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
                   <ClipboardList className={`h-4 w-4 ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400"}`} />
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="p-6 pt-0">
                 <div className={`text-2xl font-bold ${stats.riddor > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} data-testid="text-stat-riddor">{stats.riddor}</div>
-                <p className="text-xs text-muted-foreground">Incidents requiring RIDDOR report</p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-muted-foreground mt-1">Click to filter table</p>
+              </div>
+            </button>
             {/* Open actions */}
-            <Card className={`border-l-4 ${stats.overdueActions > 0 ? "border-l-orange-500" : "border-l-slate-300"}`}>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Open Actions</CardTitle>
+            <button
+              onClick={() => setShowOpenActionsSheet(true)}
+              data-testid="stat-card-open-actions"
+              className={`text-left rounded-lg border-l-4 border bg-card shadow-sm transition-all hover:shadow-md focus:outline-none ${stats.overdueActions > 0 ? "border-l-orange-500" : "border-l-slate-300"}`}
+            >
+              <div className="flex flex-row items-center justify-between gap-2 space-y-0 p-6 pb-2">
+                <div className="text-sm font-medium">Open Actions</div>
                 <div className={`rounded-full p-2 ${stats.overdueActions > 0 ? "bg-orange-100 dark:bg-orange-900/40" : "bg-slate-100 dark:bg-slate-800/40"}`}>
                   <Clock className={`h-4 w-4 ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-slate-400"}`} />
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="p-6 pt-0">
                 <div className={`text-2xl font-bold ${stats.overdueActions > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`} data-testid="text-stat-overdue-actions">{stats.overdueActions}</div>
-                <p className="text-xs text-muted-foreground">Incomplete action items across all incidents</p>
-              </CardContent>
-            </Card>
+                <p className="text-xs text-muted-foreground mt-1">Click to see breakdown</p>
+              </div>
+            </button>
           </div>
+
+          {/* Open Actions breakdown dialog */}
+          <Dialog open={showOpenActionsSheet} onOpenChange={setShowOpenActionsSheet}>
+            <DialogContent className="theme-hs sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                  Open Actions Breakdown
+                </DialogTitle>
+                <DialogDescription>
+                  Incidents with incomplete action items that require attention.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-2 space-y-2 max-h-80 overflow-y-auto">
+                {breakdownLoading ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">Loading…</div>
+                ) : openActionsBreakdown.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">No open actions — all action items are completed.</div>
+                ) : (
+                  openActionsBreakdown.map((item) => (
+                    <div key={item.incidentId} className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-semibold text-module-accent shrink-0">{item.incidentReference}</span>
+                        </div>
+                        <p className="text-sm font-medium truncate mt-0.5">{item.title}</p>
+                      </div>
+                      <div className="ml-4 shrink-0 flex items-center gap-1.5 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2.5 py-1">
+                        <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{item.openCount}</span>
+                        <span className="text-xs text-orange-600/70 dark:text-orange-400/70">{item.openCount === 1 ? "action" : "actions"}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+          </>
+        
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
             {activeConfig.statCards.map((card, i) => {

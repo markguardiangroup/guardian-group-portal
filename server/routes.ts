@@ -9596,6 +9596,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/incidents/open-actions-breakdown", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
+      const breakdown: { incidentId: string; incidentReference: string; title: string; openCount: number }[] = [];
+      for (const incident of allIncidents) {
+        const milestones = await storage.getIncidentMilestones(incident.id);
+        const openCount = milestones.filter(m => !m.isCompleted).length;
+        if (openCount > 0) {
+          breakdown.push({ incidentId: incident.id, incidentReference: incident.incidentReference, title: incident.title, openCount });
+        }
+      }
+      res.json(breakdown);
+    } catch (error) {
+      console.error("Error fetching open actions breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch open actions breakdown" });
+    }
+  });
+
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
