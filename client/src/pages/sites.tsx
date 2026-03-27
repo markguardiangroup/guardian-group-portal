@@ -473,7 +473,7 @@ export default function Sites() {
       )}
 
       <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Add New Site</DialogTitle>
             <DialogDescription>
