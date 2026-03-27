@@ -338,11 +338,19 @@ function CasesList() {
     return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
   };
 
-  const urgentCases = activeCases.filter(c => {
+  const overdueCases = activeCases.filter(c => {
     const nearest = getCaseNearestDeadline(c);
     if (!nearest) return false;
-    return isPast(nearest.date) || (isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7);
+    return isPast(nearest.date);
   }).length;
+
+  const upcomingCases = activeCases.filter(c => {
+    const nearest = getCaseNearestDeadline(c);
+    if (!nearest) return false;
+    return isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7;
+  }).length;
+
+  const urgentCases = overdueCases + upcomingCases;
 
   return (
     <div className="theme-el flex flex-col h-full">
@@ -421,40 +429,60 @@ function CasesList() {
       
       <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
       <div className="grid gap-4 md:grid-cols-3">
+          {/* Tile 1: Cases — active + resolved split */}
           <Card className="border-l-4 border-l-pink-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Cases</CardTitle>
+              <CardTitle className="text-sm font-medium">Cases</CardTitle>
               <div className="rounded-full bg-pink-100 dark:bg-pink-900/40 p-2">
                 <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </div>
             </CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Currently being managed</p>
+            <CardContent className="pt-1">
+              {isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-28" />
+                  <Skeleton className="h-6 w-28" />
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Active</span>
+                    <span className="text-lg font-bold text-pink-600 dark:text-pink-400"><CountUp value={openCases} animate={casesWasLoadingRef.current} /></span>
+                  </div>
+                  <div className="border-t pt-1.5 flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Resolved</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} animate={casesWasLoadingRef.current} /></span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Tile 2: Overdue Deadlines */}
+          <Card className="border-l-4 border-l-red-500">
+            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Overdue Deadlines</CardTitle>
+              <div className="rounded-full bg-red-100 dark:bg-red-900/40 p-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-red-600 dark:text-red-400"><CountUp value={overdueCases} animate={casesWasLoadingRef.current} /></div>}
+              <p className="text-xs text-muted-foreground">Deadline already passed</p>
+            </CardContent>
+          </Card>
+
+          {/* Tile 3: Upcoming Deadlines */}
           <Card className="border-l-4 border-l-amber-500">
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Urgent Deadlines</CardTitle>
+              <CardTitle className="text-sm font-medium">Upcoming Deadlines</CardTitle>
               <div className="rounded-full bg-amber-100 dark:bg-amber-900/40 p-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={urgentCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Overdue or due within 7 days</p>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-green-500">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Resolved Cases</CardTitle>
-              <div className="rounded-full bg-green-100 dark:bg-green-900/40 p-2">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-green-600 dark:text-green-400"><CountUp value={resolvedCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Successfully completed</p>
+              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={upcomingCases} animate={casesWasLoadingRef.current} /></div>}
+              <p className="text-xs text-muted-foreground">Due within 7 days</p>
             </CardContent>
           </Card>
         </div>
@@ -2031,11 +2059,19 @@ function EmploymentLawDashboardView() {
     return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
   };
 
-  const urgentCases = activeCases.filter(c => {
+  const overdueCases2 = activeCases.filter(c => {
     const nearest = getCaseNearestDeadline2(c);
     if (!nearest) return false;
-    return isPast(nearest.date) || (isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7);
+    return isPast(nearest.date);
   }).length;
+
+  const upcomingCases2 = activeCases.filter(c => {
+    const nearest = getCaseNearestDeadline2(c);
+    if (!nearest) return false;
+    return isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7;
+  }).length;
+
+  const urgentCases = overdueCases2 + upcomingCases2;
   
   // Get recent 5 documents and cases (excluding archived)
   const recentDocs = useMemo(() => {
@@ -2367,8 +2403,8 @@ function EmploymentLawDashboardView() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="grid gap-4 grid-cols-2">
-                {[1, 2].map(i => (
+              <div className="grid gap-3 grid-cols-3">
+                {[1, 2, 3].map(i => (
                   <div key={i} className="rounded-md border p-3 text-center">
                     <Skeleton className="h-7 w-10 mx-auto mb-1" />
                     <Skeleton className="h-3 w-16 mx-auto" />
@@ -2376,20 +2412,27 @@ function EmploymentLawDashboardView() {
                 ))}
               </div>
             ) : (
-              <div className="grid gap-4 grid-cols-2">
+              <div className="grid gap-3 grid-cols-3">
                 <div className="rounded-md border p-3 text-center" data-testid="card-el-active-cases">
                   <div className="flex items-center justify-center gap-1 text-pink-600 dark:text-pink-400">
                     <Briefcase className="h-4 w-4" />
                     <span className="text-2xl font-semibold">{openCases}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Active Cases</p>
+                  <p className="text-xs text-muted-foreground mt-1">Active</p>
                 </div>
-                <div className="rounded-md border p-3 text-center" data-testid="card-el-urgent">
-                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                <div className="rounded-md border p-3 text-center" data-testid="card-el-overdue">
+                  <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{urgentCases}</span>
+                    <span className="text-2xl font-semibold">{overdueCases2}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Urgent Deadlines</p>
+                  <p className="text-xs text-muted-foreground mt-1">Overdue</p>
+                </div>
+                <div className="rounded-md border p-3 text-center" data-testid="card-el-upcoming">
+                  <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-2xl font-semibold">{upcomingCases2}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Due Soon</p>
                 </div>
               </div>
             )}
