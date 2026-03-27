@@ -2002,46 +2002,53 @@ function IncidentDetailView({ id }: { id: string }) {
 
   return (
     <div className="theme-hs">
-      <div className="space-y-6 p-8">
-        {/* Header */}
-        <div className="flex items-start gap-4">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
+        <div className="px-8 py-4 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/health-safety/incidents")}
             data-testid="button-back"
+            className="shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold">{incident.incidentReference}</h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl font-bold">{incident.incidentReference}</h1>
               <Badge variant="outline" className={severity.className}>{severity.label}</Badge>
               <Badge variant="outline" className={statusCfg.className}>
                 <StatusIcon className="mr-1.5 h-3 w-3" />
                 {statusCfg.label}
               </Badge>
-              {incident.injuriesReported && (
-                <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>
-              )}
-              {incident.riddorReportable && (
-                <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>
-              )}
             </div>
-            <p className="mt-1 text-lg text-muted-foreground">{incident.title}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {site && (
+                <>
+                  <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">{site.name}</span>
+                  <span className="text-muted-foreground/40 text-sm">·</span>
+                </>
+              )}
+              <p className="text-sm text-muted-foreground truncate">{incident.title}</p>
+            </div>
           </div>
           {isPrivileged && (
             <Button
               onClick={() => setShowStatusDialog(true)}
               data-testid="button-update-status"
-              className="bg-module-accent hover:bg-module-accent/90 gap-2"
+              className="bg-module-accent hover:bg-module-accent/90 gap-2 shrink-0"
             >
               <RotateCcw className="h-4 w-4" />
               Update Status
             </Button>
           )}
         </div>
+      </div>
 
+      {/* Scrollable content */}
+      <div className="space-y-6 p-8">
         {/* Main Content Grid */}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
