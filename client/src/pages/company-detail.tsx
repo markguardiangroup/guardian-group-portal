@@ -64,6 +64,9 @@ import {
   ChevronDown,
   UserCheck,
   Clock,
+  HardHat,
+  Scale,
+  BarChart2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
@@ -255,11 +258,51 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
   };
 
   const modules = [
-    { key: "healthSafety" as const, label: "Health & Safety", icon: Shield, color: "text-emerald-600 dark:text-emerald-400" },
-    { key: "humanResources" as const, label: "Human Resources", icon: Heart, color: "text-blue-600 dark:text-blue-400" },
-    { key: "employmentLaw" as const, label: "Employment Law", icon: Briefcase, color: "text-purple-600 dark:text-purple-400" },
-    { key: "support" as const, label: "Support", icon: HelpCircle, color: "text-orange-600 dark:text-orange-400" },
-    { key: "reports" as const, label: "Reports", icon: FileText, color: "text-slate-600 dark:text-slate-400" },
+    {
+      key: "healthSafety" as const,
+      label: "Health & Safety",
+      description: "Incidents, risk assessments, and site inspections",
+      icon: HardHat,
+      iconClass: "text-emerald-700 dark:text-emerald-400",
+      bgClass: "bg-emerald-50 dark:bg-emerald-950/30",
+      borderClass: "border-l-emerald-600 dark:border-l-emerald-500",
+    },
+    {
+      key: "humanResources" as const,
+      label: "Human Resources",
+      description: "Employee documents, contracts, and HR policies",
+      icon: Users,
+      iconClass: "text-blue-700 dark:text-blue-400",
+      bgClass: "bg-blue-50 dark:bg-blue-950/30",
+      borderClass: "border-l-blue-600 dark:border-l-blue-500",
+    },
+    {
+      key: "employmentLaw" as const,
+      label: "Employment Law",
+      description: "Cases, milestones, and employment law matters",
+      icon: Scale,
+      iconClass: "text-pink-700 dark:text-pink-400",
+      bgClass: "bg-pink-50 dark:bg-pink-950/30",
+      borderClass: "border-l-pink-600 dark:border-l-pink-500",
+    },
+    {
+      key: "support" as const,
+      label: "Support",
+      description: "Support requests and assistance tickets",
+      icon: HelpCircle,
+      iconClass: "text-cyan-700 dark:text-cyan-400",
+      bgClass: "bg-cyan-50 dark:bg-cyan-950/30",
+      borderClass: "border-l-cyan-600 dark:border-l-cyan-500",
+    },
+    {
+      key: "reports" as const,
+      label: "Reports",
+      description: "Compliance reports and analytics",
+      icon: BarChart2,
+      iconClass: "text-indigo-700 dark:text-indigo-400",
+      bgClass: "bg-indigo-50 dark:bg-indigo-950/30",
+      borderClass: "border-l-indigo-600 dark:border-l-indigo-500",
+    },
   ];
 
   if (isLoading) {
@@ -268,9 +311,9 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
         <CardHeader>
           <CardTitle className="text-base">Module Access</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-8 w-full" />
+        <CardContent className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </CardContent>
       </Card>
@@ -281,28 +324,40 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Module Access</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-muted-foreground">
           Enable or disable modules for this company. Changes apply to all sites and users.
         </p>
-        {modules.map(({ key, label, icon: Icon, color }) => (
-          <div key={key} className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Icon className={`h-5 w-5 ${color}`} />
-              <Label htmlFor={`module-${key}`} className="font-medium">{label}</Label>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {modules.map(({ key, label, description, icon: Icon, iconClass, bgClass, borderClass }) => {
+          const enabled = moduleAccess?.[key] ?? false;
+          return (
+            <div
+              key={key}
+              className={`flex items-center justify-between rounded-lg border border-l-4 ${borderClass} p-4 transition-opacity ${enabled ? "" : "opacity-50"}`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${bgClass}`}>
+                  <Icon className={`h-5 w-5 ${iconClass}`} />
+                </div>
+                <div className="min-w-0">
+                  <Label htmlFor={`module-${key}`} className="font-semibold text-sm cursor-pointer">{label}</Label>
+                  <p className="text-xs text-muted-foreground truncate">{description}</p>
+                </div>
+              </div>
+              <Switch
+                id={`module-${key}`}
+                checked={enabled}
+                onCheckedChange={(checked) => handleToggle(key, checked)}
+                disabled={!isAdmin || updateMutation.isPending}
+                data-testid={`switch-module-${key}`}
+                className="ml-4 shrink-0"
+              />
             </div>
-            <Switch
-              id={`module-${key}`}
-              checked={moduleAccess?.[key] ?? false}
-              onCheckedChange={(checked) => handleToggle(key, checked)}
-              disabled={!isAdmin || updateMutation.isPending}
-              data-testid={`switch-module-${key}`}
-            />
-          </div>
-        ))}
+          );
+        })}
         {!isAdmin && (
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-xs text-muted-foreground pt-1">
             Only administrators can modify module access.
           </p>
         )}
@@ -323,16 +378,16 @@ const MODULE_LABELS: Record<string, string> = {
   employment_law: "Employment Law",
 };
 
-const MODULE_ICON: Record<string, typeof Shield> = {
-  health_safety: Shield,
+const MODULE_ICON: Record<string, typeof HardHat> = {
+  health_safety: HardHat,
   human_resources: Users,
-  employment_law: Briefcase,
+  employment_law: Scale,
 };
 
 const MODULE_COLOR: Record<string, string> = {
-  health_safety: "text-emerald-600 dark:text-emerald-400",
-  human_resources: "text-blue-600 dark:text-blue-400",
-  employment_law: "text-pink-600 dark:text-pink-400",
+  health_safety: "text-emerald-700 dark:text-emerald-400",
+  human_resources: "text-blue-700 dark:text-blue-400",
+  employment_law: "text-pink-700 dark:text-pink-400",
 };
 
 function RequiredDocumentsCard({ companyId }: { companyId: string }) {
