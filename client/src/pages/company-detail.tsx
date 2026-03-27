@@ -921,13 +921,17 @@ export default function CompanyDetail() {
     createSiteMutation.mutate(newSiteForm);
   };
 
+  const formatStatusDisplay = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   const handleStatusChange = async (newStatus: string) => {
     setStatusLoading(true);
     try {
       const response = await apiRequest("PATCH", `/api/companies/${companyId}/status`, { status: newStatus });
       await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      toast({ title: `Status updated to ${newStatus}` });
+      toast({ title: `Status updated to ${formatStatusDisplay(newStatus)}` });
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });
     } finally {
@@ -1183,11 +1187,12 @@ export default function CompanyDetail() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  variant="outline" 
+                  variant={company.status === "on_hold" ? "ghost" : "outline"} 
                   size="sm"
+                  className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-900" : ""}
                   data-testid={`button-status-${company.id}`}
                 >
-                  {company.status}
+                  {formatStatusDisplay(company.status)}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -1198,14 +1203,14 @@ export default function CompanyDetail() {
                     disabled={statusLoading || status === company.status}
                     data-testid={`menu-item-status-${status}-${company.id}`}
                   >
-                    {status}
+                    {formatStatusDisplay(status)}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Badge variant={company.status === "active" ? "default" : "secondary"}>
-              {company.status}
+              {formatStatusDisplay(company.status)}
             </Badge>
           )}
           {isAdmin && (
