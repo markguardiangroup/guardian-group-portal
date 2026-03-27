@@ -427,7 +427,7 @@ export default function Companies() {
 
   const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
-    enabled: isRequiredDocsOpen,
+    enabled: !!createdCompanyId,
   });
 
   const { data: newCompanyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
@@ -437,7 +437,7 @@ export default function Companies() {
       if (!response.ok) throw new Error("Failed to fetch module access");
       return response.json();
     },
-    enabled: isRequiredDocsOpen && !!createdCompanyId,
+    enabled: !!createdCompanyId,
   });
 
   const saveRequiredDocsMutation = useMutation({
