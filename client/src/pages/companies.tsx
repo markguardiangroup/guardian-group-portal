@@ -39,7 +39,14 @@ import {
   AlertTriangle,
   Users,
   RotateCcw,
+  HardHat,
+  Scale,
+  GraduationCap,
+  BookOpen,
+  HelpCircle,
+  BarChart2,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -221,6 +228,16 @@ export default function Companies() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(" ");
   };
+  const [moduleAccessData, setModuleAccessData] = useState({
+    healthSafety: false,
+    humanResources: false,
+    employmentLaw: false,
+    training: false,
+    toolkit: false,
+    support: false,
+    reports: false,
+  });
+  const [pendingModuleAccess, setPendingModuleAccess] = useState<typeof moduleAccessData | null>(null);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
@@ -277,12 +294,24 @@ export default function Companies() {
       });
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      if (data?.id && pendingModuleAccess) {
+        const hasAnyEnabled = Object.values(pendingModuleAccess).some(Boolean);
+        if (hasAnyEnabled) {
+          try {
+            await apiRequest("POST", `/api/companies/${data.id}/module-access`, pendingModuleAccess);
+            queryClient.invalidateQueries({ queryKey: ["/api/companies", data.id, "module-access"] });
+          } catch {
+            // Non-fatal: company was created, module access can be set on the detail page
+          }
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
+      setPendingModuleAccess(null);
       resetForm();
       setSiteData({
         name: "",
@@ -420,6 +449,16 @@ export default function Companies() {
       postalCode: "",
       country: "",
     });
+    setModuleAccessData({
+      healthSafety: false,
+      humanResources: false,
+      employmentLaw: false,
+      training: false,
+      toolkit: false,
+      support: false,
+      reports: false,
+    });
+    setPendingModuleAccess(null);
     setWebsiteError(null);
   };
 
@@ -573,6 +612,7 @@ export default function Companies() {
       updateMutation.mutate({ id: editingCompany.id, data: submittedData });
     } else {
       setPendingCompanyData({ ...submittedData });
+      setPendingModuleAccess({ ...moduleAccessData });
       setIsAddOpen(false);
       setSiteData({
         name: "",
@@ -1005,6 +1045,43 @@ export default function Companies() {
                 </div>
               </div>
             </div>
+
+            {!editingCompany && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-1">Module Access</h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which modules this company can access.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: "healthSafety", label: "Health & Safety", icon: HardHat, iconClass: "text-emerald-700 dark:text-emerald-400", bgClass: "bg-emerald-50 dark:bg-emerald-950/30" },
+                    { key: "humanResources", label: "Human Resources", icon: Users, iconClass: "text-blue-700 dark:text-blue-400", bgClass: "bg-blue-50 dark:bg-blue-950/30" },
+                    { key: "employmentLaw", label: "Employment Law", icon: Scale, iconClass: "text-pink-700 dark:text-pink-400", bgClass: "bg-pink-50 dark:bg-pink-950/30" },
+                    { key: "training", label: "Training", icon: GraduationCap, iconClass: "text-purple-700 dark:text-purple-400", bgClass: "bg-purple-50 dark:bg-purple-950/30" },
+                    { key: "toolkit", label: "Toolkit", icon: BookOpen, iconClass: "text-amber-700 dark:text-amber-400", bgClass: "bg-amber-50 dark:bg-amber-950/30" },
+                    { key: "support", label: "Support", icon: HelpCircle, iconClass: "text-cyan-700 dark:text-cyan-400", bgClass: "bg-cyan-50 dark:bg-cyan-950/30" },
+                    { key: "reports", label: "Reports", icon: BarChart2, iconClass: "text-indigo-700 dark:text-indigo-400", bgClass: "bg-indigo-50 dark:bg-indigo-950/30" },
+                  ].map(({ key, label, icon: Icon, iconClass, bgClass }) => {
+                    const enabled = moduleAccessData[key as keyof typeof moduleAccessData];
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-center gap-2 rounded-md border px-2.5 py-2 transition-opacity ${enabled ? "" : "opacity-60"}`}
+                      >
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded ${bgClass}`}>
+                          <Icon className={`h-3.5 w-3.5 ${iconClass}`} />
+                        </div>
+                        <Label htmlFor={`new-module-${key}`} className="text-xs font-medium flex-1 cursor-pointer truncate">{label}</Label>
+                        <Switch
+                          id={`new-module-${key}`}
+                          checked={enabled}
+                          onCheckedChange={(checked) => setModuleAccessData(prev => ({ ...prev, [key]: checked }))}
+                          data-testid={`switch-new-module-${key}`}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
           </div>
           <DialogFooter>
