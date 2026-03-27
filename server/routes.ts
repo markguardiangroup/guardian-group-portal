@@ -6197,7 +6197,25 @@ export async function registerRoutes(
         return false;
       });
 
-      res.json(filteredCases);
+      // Attach the earliest non-completed milestone dueDate to each case
+      const caseIds = filteredCases.map(c => c.id);
+      const allMilestones = await storage.getCaseMilestonesForCases(caseIds);
+      const milestoneByCaseId: Record<string, Date | null> = {};
+      for (const m of allMilestones) {
+        if (!m.isCompleted && m.dueDate) {
+          const existing = milestoneByCaseId[m.caseId];
+          const mDate = new Date(m.dueDate);
+          if (!existing || mDate < existing) {
+            milestoneByCaseId[m.caseId] = mDate;
+          }
+        }
+      }
+      const casesWithMilestones = filteredCases.map(c => ({
+        ...c,
+        nextMilestoneDueDate: milestoneByCaseId[c.id] ?? null,
+      }));
+
+      res.json(casesWithMilestones);
     } catch (error) {
       console.error("Get cases error:", error);
       res.status(500).json({ error: "Failed to fetch cases" });

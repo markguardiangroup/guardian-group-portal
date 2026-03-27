@@ -327,9 +327,21 @@ function CasesList() {
   const activeCases = cases?.filter(c => !c.isArchived) || [];
   const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
   const resolvedCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed").length;
+
+  // Returns the nearest deadline from hearingDate, responseDeadline, or case milestones
+  const getCaseNearestDeadline = (c: any): { date: Date; label: string } | null => {
+    const candidates: { date: Date; label: string }[] = [];
+    if (c.responseDeadline) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
+    if (c.hearingDate) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
+    if (c.nextMilestoneDueDate) candidates.push({ date: new Date(c.nextMilestoneDueDate), label: "Milestone" });
+    if (candidates.length === 0) return null;
+    return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+  };
+
   const urgentCases = activeCases.filter(c => {
-    if (!c.responseDeadline) return false;
-    return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
+    const nearest = getCaseNearestDeadline(c);
+    if (!nearest) return false;
+    return isPast(nearest.date) || (isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7);
   }).length;
 
   return (
@@ -430,7 +442,7 @@ function CasesList() {
             </CardHeader>
             <CardContent>
               {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold text-amber-600 dark:text-amber-400"><CountUp value={urgentCases} animate={casesWasLoadingRef.current} /></div>}
-              <p className="text-xs text-muted-foreground">Deadlines within 7 days</p>
+              <p className="text-xs text-muted-foreground">Overdue or due within 7 days</p>
             </CardContent>
           </Card>
           <Card className="border-l-4 border-l-green-500">
@@ -571,18 +583,21 @@ function CasesList() {
                       <CaseStatusBadge status={caseItem.status as CaseStatus} />
                     </TableCell>
                     <TableCell>
-                      {caseItem.responseDeadline ? (
-                        <div className={`flex items-center gap-1 text-sm ${
-                          isPast(new Date(caseItem.responseDeadline)) ? "text-red-600" :
-                          differenceInDays(new Date(caseItem.responseDeadline), new Date()) <= 7 ? "text-amber-600" :
-                          "text-muted-foreground"
-                        }`}>
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(caseItem.responseDeadline), "MMM d")}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      {(() => {
+                        const nearest = getCaseNearestDeadline(caseItem);
+                        if (!nearest) return <span className="text-muted-foreground">-</span>;
+                        return (
+                          <div className={`flex items-center gap-1 text-sm ${
+                            isPast(nearest.date) ? "text-red-600" :
+                            differenceInDays(nearest.date, new Date()) <= 7 ? "text-amber-600" :
+                            "text-muted-foreground"
+                          }`}>
+                            <Clock className="h-3 w-3" />
+                            <span>{format(nearest.date, "MMM d")}</span>
+                            <span className="text-xs opacity-70">({nearest.label})</span>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
@@ -2006,9 +2021,20 @@ function EmploymentLawDashboardView() {
   // Always exclude archived cases from metrics
   const activeCases = cases?.filter(c => !c.isArchived) || [];
   const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
+
+  const getCaseNearestDeadline2 = (c: any): { date: Date; label: string } | null => {
+    const candidates: { date: Date; label: string }[] = [];
+    if (c.responseDeadline) candidates.push({ date: new Date(c.responseDeadline), label: "Response" });
+    if (c.hearingDate) candidates.push({ date: new Date(c.hearingDate), label: "Hearing" });
+    if (c.nextMilestoneDueDate) candidates.push({ date: new Date(c.nextMilestoneDueDate), label: "Milestone" });
+    if (candidates.length === 0) return null;
+    return candidates.sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+  };
+
   const urgentCases = activeCases.filter(c => {
-    if (!c.responseDeadline) return false;
-    return isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7;
+    const nearest = getCaseNearestDeadline2(c);
+    if (!nearest) return false;
+    return isPast(nearest.date) || (isFuture(nearest.date) && differenceInDays(nearest.date, new Date()) <= 7);
   }).length;
   
   // Get recent 5 documents and cases (excluding archived)

@@ -101,7 +101,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, asc, desc, isNull, gt, count, sql } from "drizzle-orm";
+import { eq, and, asc, desc, isNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -215,6 +215,7 @@ export interface IStorage {
   
   // Case Milestones
   getCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
+  getCaseMilestonesForCases(caseIds: string[]): Promise<CaseMilestone[]>;
   getCaseMilestone(id: string): Promise<CaseMilestone | undefined>;
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
@@ -1428,6 +1429,12 @@ export class MemStorage implements IStorage {
       }
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
+  }
+
+  async getCaseMilestonesForCases(caseIds: string[]): Promise<CaseMilestone[]> {
+    if (caseIds.length === 0) return [];
+    return db.select().from(caseMilestonesTable)
+      .where(inArray(caseMilestonesTable.caseId, caseIds));
   }
 
   async createCaseMilestone(insertMilestone: InsertCaseMilestone): Promise<CaseMilestone> {
