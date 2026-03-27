@@ -2397,7 +2397,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="flex items-center justify-between py-2">
                     <p className="text-sm text-muted-foreground italic">No follow-up investigation recorded yet.</p>
                     {isPrivileged && (
-                      <Button variant="outline" size="sm" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
+                      <Button variant="outline" onClick={() => setShowFollowUpDialog(true)} data-testid="button-start-follow-up">
                         Start Investigation
                       </Button>
                     )}
