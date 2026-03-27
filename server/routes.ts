@@ -1248,7 +1248,7 @@ export async function registerRoutes(
           caseFilters.siteId = requestedSiteId;
         }
         const rawCases = await storage.getCases(caseFilters);
-        elCases = rawCases.filter(c => {
+        const filteredRawCases = rawCases.filter(c => {
           if (!c.isConfidential) return true;
           if (user.role === "admin") return true;
           if (user.role === "consultant") return true;
@@ -1257,6 +1257,29 @@ export async function registerRoutes(
           if (c.restrictedToUsers && c.restrictedToUsers.includes(user.id)) return true;
           return false;
         });
+        // Attach split milestone deadline fields (same as /api/cases)
+        const elCaseIds = filteredRawCases.map(c => c.id);
+        const elMilestones = await storage.getCaseMilestonesForCases(elCaseIds);
+        const elNow = new Date();
+        const elOverdueByCase: Record<string, Date | null> = {};
+        const elUpcomingByCase: Record<string, Date | null> = {};
+        for (const m of elMilestones) {
+          if (!m.isCompleted && m.dueDate) {
+            const mDate = new Date(m.dueDate);
+            if (mDate < elNow) {
+              const ex = elOverdueByCase[m.caseId];
+              if (!ex || mDate < ex) elOverdueByCase[m.caseId] = mDate;
+            } else {
+              const ex = elUpcomingByCase[m.caseId];
+              if (!ex || mDate < ex) elUpcomingByCase[m.caseId] = mDate;
+            }
+          }
+        }
+        elCases = filteredRawCases.map(c => ({
+          ...c,
+          overduesMilestoneDueDate: elOverdueByCase[c.id] ?? null,
+          upcomingMilestoneDueDate: elUpcomingByCase[c.id] ?? null,
+        }));
         elAllDocuments = documents;
       }
 

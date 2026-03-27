@@ -1083,6 +1083,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setShowStatusDialog(false);
       toast({ title: "Case updated successfully" });
     },
@@ -1096,6 +1097,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setShowMilestoneDialog(false);
       toast({ title: "Milestone added successfully" });
     },
@@ -1109,6 +1111,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone completed" });
     },
   });
@@ -1121,6 +1124,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone reopened" });
     },
   });
@@ -1133,6 +1137,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setEditingMilestone(null);
       toast({ title: "Milestone updated" });
     },
@@ -1146,6 +1151,7 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone deleted" });
     },
   });
@@ -2121,6 +2127,7 @@ function EmploymentLawDashboardView() {
   }>({
     queryKey: ["/api/dashboard/employment_law", siteId, selectedCompanyId],
     placeholderData: keepPreviousData,
+    staleTime: 0,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (siteId) params.set("siteId", siteId);
