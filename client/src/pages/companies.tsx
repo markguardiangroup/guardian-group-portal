@@ -132,7 +132,7 @@ function CompanyCard({
                         {company.status}
                       </Badge>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" side="bottom">
                       {["pending", "active", "on_hold", "inactive"].map((status) => (
                         <DropdownMenuItem
                           key={status}
