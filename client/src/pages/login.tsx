@@ -52,6 +52,7 @@ export default function Login() {
   const [isAccountLocked, setIsAccountLocked] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -104,6 +105,7 @@ export default function Login() {
       window.location.href = redirectTo;
     },
     onError: async (error: Error) => {
+      setIsSubmitting(false);
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
       const msg = error.message || "";
@@ -127,7 +129,7 @@ export default function Login() {
     },
   });
 
-  const isLoading = loginMutation.isPending || isLoadingPage;
+  const isLoading = isSubmitting || loginMutation.isPending || isLoadingPage;
 
   return (
     <div className="min-h-screen flex">
@@ -233,7 +235,7 @@ export default function Login() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(d => { setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-5">
+            <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-5">
 
               {isAccountLocked && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
