@@ -109,6 +109,7 @@ interface UserWithAssignments {
   companyId: string | null;
   status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
   lastLogin: string | null;
+  lastLoginAt?: string | null;
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
@@ -876,6 +877,7 @@ export default function UserManagement() {
                 <TableHead className="w-24">Role</TableHead>
                 <TableHead>Sites Assigned</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-32">Last Login</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -887,6 +889,7 @@ export default function UserManagement() {
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))}
@@ -982,13 +985,14 @@ export default function UserManagement() {
               <TableHead className="min-w-[160px]">Company</TableHead>
               <TableHead>Sites Assigned</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-32">Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"
                     ? "No users match your filters." 
                     : "No users found."}
@@ -1102,6 +1106,29 @@ export default function UserManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {(() => {
+                      const loginAt = u.lastLoginAt || u.lastLogin;
+                      if (!loginAt) return <span className="text-sm text-muted-foreground">Never</span>;
+                      const d = new Date(loginAt);
+                      const diffMs = Date.now() - d.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHours = Math.floor(diffMs / 3600000);
+                      const diffDays = Math.floor(diffMs / 86400000);
+                      let relative: string;
+                      if (diffMins < 1) relative = "Just now";
+                      else if (diffMins < 60) relative = `${diffMins}m ago`;
+                      else if (diffHours < 24) relative = `${diffHours}h ago`;
+                      else if (diffDays === 1) relative = "Yesterday";
+                      else if (diffDays < 7) relative = `${diffDays}d ago`;
+                      else relative = d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+                      return (
+                        <span className="text-sm text-muted-foreground" title={d.toLocaleString()}>
+                          {relative}
+                        </span>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" data-testid={`button-actions-${u.id}`}>
@@ -1179,7 +1206,7 @@ export default function UserManagement() {
                 </TableRow>,
                 isExpanded && (hasSites || u.role === "admin") && (
                   <TableRow key={`expand-${u.id}`} className="bg-muted/30">
-                    <TableCell colSpan={6} className="py-3 px-6">
+                    <TableCell colSpan={7} className="py-3 px-6">
                       <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
                         {u.role === "admin" ? "Access" : "Site Access"}
                       </p>
