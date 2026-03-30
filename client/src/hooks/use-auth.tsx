@@ -149,13 +149,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("dev_user");
       setDevUser(null);
       queryClient.clear();
-      window.location.replace("/login");
+      queryClient.setQueryData(["/api/auth/me"], null);
+      setIsSigningOut(false);
     },
     onError: () => {
       localStorage.removeItem("dev_user");
       setDevUser(null);
       queryClient.clear();
-      window.location.replace("/login");
+      queryClient.setQueryData(["/api/auth/me"], null);
+      setIsSigningOut(false);
     },
   });
 
