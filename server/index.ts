@@ -13,6 +13,16 @@ const app = express();
 app.set("trust proxy", 1);
 const httpServer = createServer(app);
 
+// 301 redirect: enforce www.guardiangroup.ai as canonical
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  if (host === "guardiangroup.ai") {
+    const url = `https://www.guardiangroup.ai${req.originalUrl}`;
+    return res.redirect(301, url);
+  }
+  next();
+});
+
 // Security headers with Helmet
 app.use(helmet({
   contentSecurityPolicy: {
