@@ -1166,8 +1166,10 @@ export default function Companies() {
       </Dialog>
 
       <Dialog open={isSiteModalOpen} onOpenChange={(open) => {
-        if (!open && pendingCompanyData) {
-          handleCancelSiteModal();
+        if (!open) {
+          // X button — just close everything without re-opening the company form
+          setIsSiteModalOpen(false);
+          setPendingCompanyData(null);
           return;
         }
         setIsSiteModalOpen(open);
