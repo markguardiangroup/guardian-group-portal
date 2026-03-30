@@ -373,8 +373,16 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
       p(["/api/companies"], "/api/companies");
       p(["/api/support-requests/counts"], "/api/support-requests/counts");
 
-      // Main dashboard
+      // Main dashboard – all queries used by the overview page (no site/company filter)
       p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
+      p(["/api/documents", null, null], "/api/documents");
+      p(["/api/missing-required-templates", null, null], "/api/missing-required-templates");
+
+      // Dashboard widgets
+      p(["/api/support-requests", null], "/api/support-requests");
+      p(["/api/training-bookings"], "/api/training-bookings");
+      p(["/api/incidents"], "/api/incidents");
+      p(["/api/cases"], "/api/cases");
 
       // Fetch module access first — skip prefetching dashboards for locked modules
       let moduleAccess: Record<string, string> = {};
