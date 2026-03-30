@@ -517,6 +517,11 @@ function AppRouter() {
 }
 
 function App() {
+  useEffect(() => {
+    const el = document.getElementById("nav-loader");
+    if (el) el.classList.remove("visible");
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="guardian-theme">
