@@ -68,6 +68,21 @@ function ScrollToTop() {
   return null;
 }
 
+function CanonicalTag() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const href = `https://www.guardiangroup.ai${location}`;
+    let link = document.querySelector<HTMLLinkElement>("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", href);
+  }, [location]);
+  return null;
+}
+
 function HealthSafetyDashboard() {
   return <ModuleDashboard module="health_safety" />;
 }
@@ -117,6 +132,7 @@ function Router() {
   return (
     <>
     <ScrollToTop />
+    <CanonicalTag />
     <Switch>
       <Route path="/" component={Dashboard} />
       
@@ -473,9 +489,12 @@ function AuthenticatedApp() {
 
 function PublicRoutes() {
   return (
-    <Switch>
-      <Route path="/set-password" component={SetPassword} />
-    </Switch>
+    <>
+      <CanonicalTag />
+      <Switch>
+        <Route path="/set-password" component={SetPassword} />
+      </Switch>
+    </>
   );
 }
 
