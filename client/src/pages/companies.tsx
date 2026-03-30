@@ -58,7 +58,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Info } from "lucide-react";
+import { FileText, Info, Copy } from "lucide-react";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User } from "@shared/schema";
 
 function CompanyCard({ 
@@ -1200,9 +1200,9 @@ export default function Companies() {
                 {pendingCompanyData && (pendingCompanyData.addressLine1 || pendingCompanyData.city) && (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-7 text-xs px-2"
+                    className="h-7 text-xs px-2.5 gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-50"
                     onClick={() => setSiteData(prev => ({
                       ...prev,
                       addressLine1: pendingCompanyData.addressLine1,
@@ -1214,6 +1214,7 @@ export default function Companies() {
                     }))}
                     data-testid="button-copy-company-address"
                   >
+                    <Copy className="h-3 w-3" />
                     Copy company address
                   </Button>
                 )}
