@@ -210,7 +210,7 @@ export default function Login() {
           </div>
         </div>
 
-        {isLoadingPage ? (
+        {isLoading ? (
           <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
               style={{ background: "linear-gradient(135deg, #0ea5e9, #818cf8)" }}>
