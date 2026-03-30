@@ -155,7 +155,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid credentials format" });
       }
 
-      const { username: loginIdentifier, password } = parseResult.data;
+      const { username: rawIdentifier, password } = parseResult.data;
+      const loginIdentifier = rawIdentifier.toLowerCase().trim();
       const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
       const userAgent = req.get("User-Agent") || "unknown";
 

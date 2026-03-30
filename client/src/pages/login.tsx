@@ -51,6 +51,7 @@ export default function Login() {
   const [resetUrl, setResetUrl] = useState<string | null>(null);
   const [isAccountLocked, setIsAccountLocked] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  const [capsLockOn, setCapsLockOn] = useState(false);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -310,6 +311,8 @@ export default function Login() {
                           placeholder="Enter your password"
                           className="h-11 pr-10 border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400"
                           data-testid="input-password"
+                          onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                          onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                           {...field}
                         />
                         <button
@@ -321,6 +324,12 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {capsLockOn && !showPassword && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-amber-600" data-testid="alert-caps-lock">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <span className="text-xs font-medium">Caps Lock is on</span>
+                        </div>
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
