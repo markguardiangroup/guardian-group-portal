@@ -1146,6 +1146,10 @@ export default function UserManagement() {
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit User
                             </DropdownMenuItem>
+                          </>
+                        )}
+                        {(isAdmin || isConsultant) && (
+                          <>
                             {u.status === "invite_required" && (
                               <DropdownMenuItem 
                                 onClick={() => setInviteConfirmUser(u)}
@@ -1164,6 +1168,10 @@ export default function UserManagement() {
                                 Resend Invitation
                               </DropdownMenuItem>
                             )}
+                          </>
+                        )}
+                        {isAdmin && (
+                          <>
                             {u.status === "locked" && (
                               <DropdownMenuItem 
                                 onClick={() => unlockUserMutation.mutate(u.id)}

@@ -790,8 +790,8 @@ export async function registerRoutes(
   app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can resend invitations" });
+      if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "consultant")) {
+        return res.status(403).json({ error: "Only admins and consultants can send invitations" });
       }
       
       const targetUser = await storage.getUser(req.params.userId);
