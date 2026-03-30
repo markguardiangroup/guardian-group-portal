@@ -98,6 +98,33 @@ export default function Login() {
     onSuccess: async (userData) => {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
+
+      // Prefetch all critical dashboard data while the loading screen is visible,
+      // so the dashboard renders fully populated on first paint with no skeleton flash.
+      const f = async (url: string) => {
+        const res = await fetch(url, { credentials: "include" });
+        if (!res.ok) throw new Error(`${res.status}`);
+        return res.json();
+      };
+      const p = (key: unknown[], url: string) =>
+        queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
+
+      const isClientUser = userData.role === "client";
+      await Promise.all([
+        p(["/api/sites"], "/api/sites"),
+        p(["/api/companies"], "/api/companies"),
+        p(["/api/user/module-access"], "/api/user/module-access"),
+        p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary"),
+        p(["/api/documents", null, null], "/api/documents"),
+        p(["/api/missing-required-templates", null, null], "/api/missing-required-templates"),
+        p(["/api/support-requests", null], "/api/support-requests"),
+        p(["/api/support-requests/counts"], "/api/support-requests/counts"),
+        p(["/api/training-bookings"], "/api/training-bookings"),
+        p(["/api/incidents"], "/api/incidents"),
+        p(["/api/cases"], "/api/cases"),
+      ]);
+
+      // All data is now in cache — set auth state and dashboard renders immediately
       queryClient.setQueryData(["/api/auth/me"], userData);
       const currentPath = window.location.pathname;
       if (!currentPath || currentPath === "/login") {
