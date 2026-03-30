@@ -324,13 +324,13 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      {capsLockOn && !showPassword && (
-                        <div className="flex items-center gap-1.5 mt-1.5 text-amber-600" data-testid="alert-caps-lock">
-                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                          <span className="text-xs font-medium">Caps Lock is on</span>
-                        </div>
-                      )}
                     </FormControl>
+                    {capsLockOn && !showPassword && (
+                      <div className="flex items-center gap-1.5 mt-1 text-amber-600" data-testid="alert-caps-lock">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span className="text-xs font-medium">Caps Lock is on</span>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
