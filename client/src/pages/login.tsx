@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -42,7 +43,7 @@ const SERVICE_CARDS = [
 ];
 
 export default function Login() {
-  const [isLoadingPage, setIsLoadingPage] = useState(false);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -92,17 +93,16 @@ export default function Login() {
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
       const res = await apiRequest("POST", "/api/auth/login", data);
-      return res;
+      return res.json();
     },
-    onSuccess: async () => {
-      setIsLoadingPage(true);
+    onSuccess: async (userData) => {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
-      queryClient.clear();
-      sessionStorage.setItem("freshLogin", "1");
-      const currentPath = window.location.pathname + window.location.search;
-      const redirectTo = currentPath && currentPath !== "/" && currentPath !== "/login" ? currentPath : "/";
-      window.location.href = redirectTo;
+      queryClient.setQueryData(["/api/auth/me"], userData);
+      const currentPath = window.location.pathname;
+      if (!currentPath || currentPath === "/login") {
+        setLocation("/");
+      }
     },
     onError: async (error: Error) => {
       setIsSubmitting(false);
@@ -129,7 +129,7 @@ export default function Login() {
     },
   });
 
-  const isLoading = isSubmitting || loginMutation.isPending || isLoadingPage;
+  const isLoading = isSubmitting || loginMutation.isPending;
 
   return (
     <div className="min-h-screen flex">
