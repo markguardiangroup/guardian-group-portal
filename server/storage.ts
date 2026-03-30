@@ -480,7 +480,7 @@ export class MemStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+      const [user] = await db.select().from(usersTable).where(sql`LOWER(username) = LOWER(${username})`);
       return user;
     } catch (error) {
       console.error("Error fetching user by username from DB:", error);
