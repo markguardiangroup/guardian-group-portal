@@ -1050,7 +1050,7 @@ export default function UserManagement() {
             Refresh
           </Button>
           {canAddUser && (
-            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+            <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
               <Plus className="h-4 w-4 mr-2" />
               Add User
             </Button>
