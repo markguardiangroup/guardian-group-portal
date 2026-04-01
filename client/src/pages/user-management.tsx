@@ -246,6 +246,8 @@ export default function UserManagement() {
   const [showManageSitesSaveConfirm, setShowManageSitesSaveConfirm] = useState(false);
   const [showManageSitesCancelConfirm, setShowManageSitesCancelConfirm] = useState(false);
   const [isSavingManageSites, setIsSavingManageSites] = useState(false);
+  const [manageSiteSearch, setManageSiteSearch] = useState("");
+  const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -404,6 +406,8 @@ export default function UserManagement() {
     setPendingRemoveSiteIds([]);
     setShowManageSitesSaveConfirm(false);
     setShowManageSitesCancelConfirm(false);
+    setManageSiteSearch("");
+    setExpandedCompanyIds(new Set());
     fetchUserSiteAssignments(u.id);
   };
 
@@ -414,6 +418,8 @@ export default function UserManagement() {
     setPendingRemoveSiteIds([]);
     setShowManageSitesSaveConfirm(false);
     setShowManageSitesCancelConfirm(false);
+    setManageSiteSearch("");
+    setExpandedCompanyIds(new Set());
   };
 
   const handleManageSitesCloseRequest = () => {
@@ -2587,42 +2593,101 @@ export default function UserManagement() {
             <div className="border-t pt-4">
               <Label className="text-sm font-medium mb-2 block">Available Sites</Label>
               {getAvailableSitesByCompanyForManage().length > 0 ? (
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                  {getAvailableSitesByCompanyForManage().map(({ company, sites: companySites }) => (
-                    <div key={company.id}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{company.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs px-2"
-                          onClick={() => manageSitesAddAllFromCompany(company.id)}
-                          data-testid={`button-manage-add-all-company-${company.id}`}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add All
-                        </Button>
+                <>
+                  {/* Search */}
+                  <div className="relative mb-3">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={manageSiteSearch}
+                      onChange={(e) => setManageSiteSearch(e.target.value)}
+                      placeholder="Search companies or sites…"
+                      className="pl-8 h-8 text-sm"
+                      data-testid="input-manage-site-search"
+                    />
+                  </div>
+
+                  {/* Grouped list */}
+                  {(() => {
+                    const query = manageSiteSearch.trim().toLowerCase();
+                    const allGroups = getAvailableSitesByCompanyForManage();
+                    const filtered = allGroups
+                      .map(({ company, sites: companySites }) => {
+                        const companyMatches = company.name.toLowerCase().includes(query);
+                        const matchingSites = companyMatches
+                          ? companySites
+                          : companySites.filter(s => s.name.toLowerCase().includes(query));
+                        return { company, sites: matchingSites, companyMatches };
+                      })
+                      .filter(g => g.sites.length > 0);
+
+                    if (filtered.length === 0) {
+                      return <p className="text-sm text-muted-foreground">No matching sites found.</p>;
+                    }
+
+                    return (
+                      <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+                        {filtered.map(({ company, sites: companySites }) => {
+                          const isOpen = query ? true : expandedCompanyIds.has(company.id);
+                          const toggleExpand = () => {
+                            setExpandedCompanyIds(prev => {
+                              const next = new Set(prev);
+                              if (next.has(company.id)) next.delete(company.id);
+                              else next.add(company.id);
+                              return next;
+                            });
+                          };
+                          return (
+                            <div key={company.id} className="rounded-md border">
+                              {/* Company header row */}
+                              <button
+                                type="button"
+                                onClick={toggleExpand}
+                                className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md text-left"
+                                data-testid={`button-toggle-company-${company.id}`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{company.name}</span>
+                                  <span className="text-xs text-muted-foreground">({companySites.length})</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs px-2 shrink-0"
+                                  onClick={(e) => { e.stopPropagation(); manageSitesAddAllFromCompany(company.id); }}
+                                  data-testid={`button-manage-add-all-company-${company.id}`}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add All
+                                </Button>
+                              </button>
+                              {/* Sites list */}
+                              {isOpen && (
+                                <div className="border-t">
+                                  {companySites.map((site) => (
+                                    <div key={site.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-muted/50 last:rounded-b-md">
+                                      <span className="text-sm pl-5">{site.name}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-xs px-2"
+                                        onClick={() => manageSitesAddSite(site.id)}
+                                        data-testid={`button-manage-add-site-${site.id}`}
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Add
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="space-y-1">
-                        {companySites.map((site) => (
-                          <div key={site.id} className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-muted/50">
-                            <span className="text-sm">{site.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-xs px-2"
-                              onClick={() => manageSitesAddSite(site.id)}
-                              data-testid={`button-manage-add-site-${site.id}`}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    );
+                  })()}
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">All available sites have been assigned.</p>
               )}
