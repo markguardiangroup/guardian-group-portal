@@ -737,7 +737,7 @@ export default function Companies() {
             Refresh
           </Button>
           {canCreateCompany && (
-            <Button size="sm" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
+            <Button size="sm" className="w-32" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
               Add Company
             </Button>

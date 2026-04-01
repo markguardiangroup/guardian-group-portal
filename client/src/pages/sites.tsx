@@ -348,7 +348,7 @@ export default function Sites() {
             Refresh
           </Button>
           {canCreateSite && (
-            <Button size="sm" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
+            <Button size="sm" className="w-32" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
               <Plus className="mr-2 h-4 w-4" />
               Add Site
             </Button>
