@@ -302,6 +302,14 @@ export async function registerRoutes(
       // Update last login timestamp
       await storage.updateUser(user.id, { lastLoginAt: new Date() });
 
+      // Invalidate any outstanding password-reset tokens — if the user just proved
+      // they know their password, any reset link in their inbox is now redundant.
+      try {
+        await storage.invalidateUserInvitations(user.id, "password_reset");
+      } catch (tokenErr) {
+        console.error("Failed to invalidate reset tokens on login:", tokenErr);
+      }
+
       // Set user in session
       (req.session as any).userId = user.id;
       (req.session as any).user = {
