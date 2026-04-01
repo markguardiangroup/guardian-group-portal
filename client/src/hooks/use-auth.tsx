@@ -210,7 +210,7 @@ function IdleWarningModal({
               cursor: "pointer",
             }}
           >
-            Log out
+            Log out now
           </button>
           <button
             onClick={onStay}
