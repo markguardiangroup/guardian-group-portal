@@ -45,6 +45,7 @@ import {
   BookOpen,
   HelpCircle,
   BarChart2,
+  RefreshCw,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -697,6 +698,13 @@ export default function Companies() {
 
   const isInitialLoad = isLoading && page === 1 && !debouncedSearch && statusFilter === "all";
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.refetchQueries({ queryKey: ["/api/companies"] });
+    setIsRefreshing(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
@@ -718,6 +726,16 @@ export default function Companies() {
               My Companies
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            data-testid="button-refresh-companies"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           {canCreateCompany && (
             <Button onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />

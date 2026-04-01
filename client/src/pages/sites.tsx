@@ -39,6 +39,7 @@ import {
   AlertTriangle,
   XCircle,
   Settings,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -305,6 +306,16 @@ export default function Sites() {
     return matchesSearch && matchesCompany && matchesCompliance;
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
+    ]);
+    setIsRefreshing(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
@@ -326,6 +337,16 @@ export default function Sites() {
               My Sites
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            data-testid="button-refresh-sites"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           {canCreateSite && (
             <Button onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
               <Plus className="mr-2 h-4 w-4" />

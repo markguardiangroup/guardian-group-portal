@@ -1017,6 +1017,18 @@ export default function UserManagement() {
     );
   }
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["/api/users"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/consultants"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
+    ]);
+    setIsRefreshing(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
@@ -1026,12 +1038,24 @@ export default function UserManagement() {
             {canAddUser ? "Manage users across the platform" : "View client users"}
           </p>
         </div>
-        {canAddUser && (
-          <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
-            <Plus className="h-4 w-4 mr-2" />
-            Add User
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            data-testid="button-refresh-users"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
           </Button>
-        )}
+          {canAddUser && (
+            <Button onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          )}
+        </div>
       </div>
 
       <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
