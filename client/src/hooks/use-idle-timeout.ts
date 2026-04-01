@@ -38,6 +38,8 @@ export function useIdleTimeout({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTimeoutRef = useRef(onTimeout);
+  // True while the warning modal is visible — activity events are ignored in this state
+  const warningActiveRef = useRef(false);
 
   useEffect(() => {
     onTimeoutRef.current = onTimeout;
@@ -55,11 +57,15 @@ export function useIdleTimeout({
   const resetTimer = useCallback(() => {
     if (!enabled) return;
 
+    // Clear warning state so the modal is dismissed
+    warningActiveRef.current = false;
     clearAll();
     setShowWarning(false);
     setSecondsRemaining(warningLeadMs / 1000);
 
     warningTimerRef.current = setTimeout(() => {
+      // Mark warning as active — activity events will now be ignored
+      warningActiveRef.current = true;
       setShowWarning(true);
       setSecondsRemaining(warningLeadMs / 1000);
 
@@ -82,12 +88,19 @@ export function useIdleTimeout({
 
   useEffect(() => {
     if (!enabled) {
+      warningActiveRef.current = false;
       clearAll();
       setShowWarning(false);
       return;
     }
 
-    const handle = () => resetTimer();
+    // Only reset timer on activity when the warning is NOT showing
+    const handle = () => {
+      if (!warningActiveRef.current) {
+        resetTimer();
+      }
+    };
+
     ACTIVITY_EVENTS.forEach((ev) =>
       document.addEventListener(ev, handle, { passive: true })
     );
