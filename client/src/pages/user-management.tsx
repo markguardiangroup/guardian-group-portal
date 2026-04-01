@@ -1205,10 +1205,6 @@ export default function UserManagement() {
                             )}
                           </>
                         )}
-                        <DropdownMenuItem>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Email
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
