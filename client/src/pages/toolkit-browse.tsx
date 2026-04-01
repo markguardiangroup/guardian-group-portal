@@ -594,7 +594,7 @@ export default function ToolkitBrowse() {
     mutationFn: async ({ name, module }: { name: string; module: ModuleType }) =>
       apiRequest("POST", "/api/toolkit/folders", { name, module }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit"] });
       setShowCreateFolder(false);
       setNewFolderName("");
       toast({ title: "Folder created", description: "The new folder has been added to the Toolkit." });

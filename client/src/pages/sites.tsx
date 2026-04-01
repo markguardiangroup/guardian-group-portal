@@ -147,8 +147,8 @@ export default function Sites() {
       return site;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Site created successfully" });
       setIsAddSiteOpen(false);
       setNewSite({

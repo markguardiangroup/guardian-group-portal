@@ -234,7 +234,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant assigned successfully" });
       setIsAssignDialogOpen(false);
       setSelectedConsultantId("");
@@ -249,7 +249,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
       await apiRequest("DELETE", `/api/sites/${siteId}/consultants/${consultantId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant removed successfully" });
     },
     onError: () => {
@@ -266,7 +266,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "consultants"] });
       toast({ title: "Consultant updated successfully" });
     },
     onError: () => {
@@ -494,7 +494,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
       toast({ title: "Client assigned to this site" });
     },
     onError: () => {
@@ -509,7 +509,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       return { success: true };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
       toast({ title: "Client site assignment removed" });
     },
     onError: (error: Error) => {
@@ -538,7 +538,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "users"] });
       toast({ title: "User updated successfully" });
       setEditingUser(null);
     },
@@ -959,10 +959,10 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   ];
 
   const invalidateSiteData = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+    queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+    queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
+    queryClient.refetchQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.refetchQueries({ queryKey: ["/api/missing-required-templates"] });
   };
 
   const addOverrideMutation = useMutation({
@@ -1242,8 +1242,8 @@ export default function SiteDetail() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Site updated successfully" });
       setIsEditSiteOpen(false);
     },

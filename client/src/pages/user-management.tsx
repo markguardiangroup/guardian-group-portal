@@ -411,7 +411,7 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({
         title: "User Updated",
         description: "User profile has been updated successfully.",
@@ -451,8 +451,8 @@ export default function UserManagement() {
       if (editingUser) {
         fetchUserSiteAssignments(editingUser.id);
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/consultants"] });
       toast({
         title: "Site Assigned",
         description: "Site has been assigned to the user successfully.",
@@ -480,8 +480,8 @@ export default function UserManagement() {
       if (editingUser) {
         fetchUserSiteAssignments(editingUser.id);
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/consultants"] });
       toast({
         title: "Site Removed",
         description: "Site has been removed from the user successfully.",
@@ -511,8 +511,8 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
       setShowSiteAssignmentMessage(false);
       setUserNeedingSiteAssignment(null);
       setSetPrimaryContact(false);
@@ -623,7 +623,7 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       setIsAddUserOpen(false);
       setNewUser({
         username: "",
@@ -687,7 +687,7 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       if (data.emailSent) {
         toast({
           title: "Invitation Email Sent",
@@ -716,7 +716,7 @@ export default function UserManagement() {
       return apiRequest("PATCH", `/api/users/${id}`, { status });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({
         title: variables.status === "active" ? "User Activated" : "User Deactivated",
         description: `User has been ${variables.status === "active" ? "activated" : "deactivated"} successfully.`,
@@ -737,7 +737,7 @@ export default function UserManagement() {
       return apiRequest("PATCH", `/api/users/${userId}`, { status: "active" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Account Unlocked", description: "The user account has been unlocked and set to active." });
     },
     onError: () => {
@@ -764,7 +764,7 @@ export default function UserManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({
         title: "User Deleted",
         description: "The user has been permanently deleted. All audit logs have been preserved.",

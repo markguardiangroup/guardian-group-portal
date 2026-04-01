@@ -188,7 +188,7 @@ export default function TrainingLibrary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-folders"] });
       setShowFolderDialog(false);
       resetFolderForm();
       toast({ title: "Folder created", description: "The training folder has been created." });
@@ -204,7 +204,7 @@ export default function TrainingLibrary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-folders"] });
       setEditingFolder(null);
       resetFolderForm();
       toast({ title: "Folder updated", description: "The training folder has been updated." });
@@ -219,7 +219,7 @@ export default function TrainingLibrary() {
       await apiRequest("DELETE", `/api/training-folders/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-folders"] });
       toast({ title: "Folder deleted", description: "The training folder has been removed." });
     },
     onError: (error) => {
@@ -256,7 +256,7 @@ export default function TrainingLibrary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-courses"] });
       setShowCourseDialog(false);
       resetCourseForm();
       toast({ title: "Course created", description: "The training course has been added to the library." });
@@ -283,7 +283,7 @@ export default function TrainingLibrary() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-courses"] });
       setEditingCourse(null);
       resetCourseForm();
       toast({ title: "Course updated", description: "The training course has been updated." });
@@ -298,7 +298,7 @@ export default function TrainingLibrary() {
       await apiRequest("DELETE", `/api/training-courses/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-courses"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-courses"] });
       toast({ title: "Course deleted", description: "The training course has been removed." });
     },
     onError: (error) => {

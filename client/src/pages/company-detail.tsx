@@ -269,8 +269,8 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "module-access"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies", companyId, "module-access"] });
+      queryClient.refetchQueries({ queryKey: ["/api/user/module-access"] });
       toast({
         title: "Module access updated",
         description: "The company's module access has been updated successfully.",
@@ -464,10 +464,10 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+    queryClient.refetchQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
+    queryClient.refetchQueries({ queryKey: ["/api/companies", companyId] });
+    queryClient.refetchQueries({ queryKey: ["/api/dashboard"] });
+    queryClient.refetchQueries({ queryKey: ["/api/missing-required-templates"] });
   };
 
   const addMutation = useMutation({
@@ -814,8 +814,8 @@ export default function CompanyDetail() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
       setEditFormOriginal(null);
       setEditDialogOpen(false);
       setUnsavedChangesOpen(false);
@@ -839,9 +839,9 @@ export default function CompanyDetail() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       setChangePrimaryContactOpen(false);
       setSelectedNewContactId("");
       toast({ title: "Primary contact updated", description: "The primary contact has been changed." });
@@ -896,9 +896,9 @@ export default function CompanyDetail() {
       return site;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       setAddSiteDialogOpen(false);
       setNewSiteForm({
         name: "",
@@ -930,7 +930,7 @@ export default function CompanyDetail() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Invitation sent successfully" });
     },
     onError: () => {
@@ -980,7 +980,7 @@ export default function CompanyDetail() {
     try {
       const response = await apiRequest("PATCH", `/api/companies/${companyId}/status`, { status: newStatus });
       await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
       toast({ title: `Status updated to ${formatStatusDisplay(newStatus)}` });
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });

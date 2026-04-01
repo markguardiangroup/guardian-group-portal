@@ -290,7 +290,7 @@ function DocumentsListView() {
       return apiRequest("POST", "/api/folders", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      queryClient.refetchQueries({ queryKey: ["/api/folders", selectedSiteId] });
       setShowCreateFolderDialog(false);
       setNewFolderName("");
       setNewFolderDescription("");
@@ -307,9 +307,9 @@ function DocumentsListView() {
       return apiRequest("POST", `/api/documents/${id}/archive`, { reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", "includeArchived"] });
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents", "includeArchived"] });
+      queryClient.refetchQueries({
         queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", "includeArchived"],
       });
       toast({
@@ -331,9 +331,9 @@ function DocumentsListView() {
       return apiRequest("POST", `/api/documents/${id}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", "includeArchived"] });
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents", "includeArchived"] });
+      queryClient.refetchQueries({
         queryKey: ["/api/sites", selectedSiteId, "modules", selectedModule, "documents-hierarchy", "includeArchived"],
       });
       toast({
@@ -355,7 +355,7 @@ function DocumentsListView() {
       return apiRequest("POST", `/api/sites/${selectedSiteId}/provision-folders`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      queryClient.refetchQueries({ queryKey: ["/api/folders", selectedSiteId] });
       setShowProvisionDialog(false);
       toast({ 
         title: "Folders provisioned", 
@@ -1211,13 +1211,13 @@ function DocumentDetailView({ id }: { id: string }) {
   }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const invalidateComplianceCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    queryClient.refetchQueries({ queryKey: ["/api/documents", id] });
+    queryClient.refetchQueries({ queryKey: ["/api/documents"] });
     queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-    queryClient.invalidateQueries({
+    queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+    queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
         return Array.isArray(key) && typeof key[0] === "string" && key[0].includes("documents-hierarchy");
@@ -1283,10 +1283,10 @@ function DocumentDetailView({ id }: { id: string }) {
       return apiRequest("POST", `/api/documents/${id}/approval`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents", id] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard"] });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({

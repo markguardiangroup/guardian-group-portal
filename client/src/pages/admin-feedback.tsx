@@ -45,7 +45,7 @@ export default function AdminFeedback() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
       setMessage("");
       toast({ title: "Feedback submitted", description: "Thank you for your feedback!" });
     },
@@ -57,7 +57,7 @@ export default function AdminFeedback() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
     },
   });
 
@@ -66,7 +66,7 @@ export default function AdminFeedback() {
       await apiRequest("POST", `/api/feedback/${id}/read`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
     },
   });
 
@@ -76,8 +76,8 @@ export default function AdminFeedback() {
       return res.json();
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback", variables.id, "comments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback", variables.id, "comments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
       setCommentContent("");
     },
   });
@@ -88,7 +88,7 @@ export default function AdminFeedback() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback", activeFeedbackId, "comments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback", activeFeedbackId, "comments"] });
     },
   });
 
@@ -97,7 +97,7 @@ export default function AdminFeedback() {
       await apiRequest("DELETE", `/api/feedback/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
       toast({ title: "Feedback deleted" });
     },
   });
@@ -108,7 +108,7 @@ export default function AdminFeedback() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/feedback"] });
+      queryClient.refetchQueries({ queryKey: ["/api/feedback"] });
       toast({ 
         title: data.status === "resolved" ? "Feedback resolved" : "Feedback reopened",
         description: data.status === "resolved" ? "The feedback has been marked as resolved." : "The feedback has been reopened."

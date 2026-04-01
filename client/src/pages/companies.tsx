@@ -309,14 +309,14 @@ export default function Companies() {
         if (hasAnyEnabled) {
           try {
             await apiRequest("POST", `/api/companies/${data.id}/module-access`, pendingModuleAccess);
-            queryClient.invalidateQueries({ queryKey: ["/api/companies", data.id, "module-access"] });
+            queryClient.refetchQueries({ queryKey: ["/api/companies", data.id, "module-access"] });
           } catch {
             // Non-fatal: company was created, module access can be set on the detail page
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
@@ -348,7 +348,7 @@ export default function Companies() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Company updated successfully" });
       setEditingCompany(null);
       resetForm();
@@ -364,9 +364,9 @@ export default function Companies() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Company and all associated data deleted successfully" });
       setDeleteTarget(null);
       setDeleteConfirmText("");
@@ -408,9 +408,9 @@ export default function Companies() {
     onSuccess: () => {
       const companyId = createdCompanyId;
       if (companyId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
+        queryClient.refetchQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Required documents saved" });
       setIsRequiredDocsOpen(false);
       setCreatedCompanyId(null);

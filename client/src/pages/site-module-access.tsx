@@ -163,7 +163,7 @@ export default function SiteModuleAccess() {
       return apiRequest("POST", `/api/sites/${siteId}/module-access`, { module, status });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/sites/${variables.siteId}/module-access`] });
+      queryClient.refetchQueries({ queryKey: [`/api/sites/${variables.siteId}/module-access`] });
       toast({
         title: "Access Updated",
         description: "Module access has been updated.",
@@ -192,7 +192,7 @@ export default function SiteModuleAccess() {
     },
     onSuccess: () => {
       sites.forEach(e => {
-        queryClient.invalidateQueries({ queryKey: [`/api/sites/${e.id}/module-access`] });
+        queryClient.refetchQueries({ queryKey: [`/api/sites/${e.id}/module-access`] });
       });
       setSelectedSites(new Set());
       toast({

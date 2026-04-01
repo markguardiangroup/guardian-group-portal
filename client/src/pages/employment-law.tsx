@@ -247,7 +247,7 @@ function CasesList() {
       return apiRequest("POST", `/api/cases/${caseId}/archive`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
       setCaseToArchive(null);
       toast({ title: "Case archived successfully" });
     },
@@ -262,7 +262,7 @@ function CasesList() {
       return apiRequest("POST", `/api/cases/${caseId}/unarchive`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
       toast({ title: "Case restored from archive" });
     },
     onError: () => {
@@ -308,7 +308,7 @@ function CasesList() {
       return apiRequest("POST", "/api/cases", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
       setShowCreateDialog(false);
       toast({ title: "Case created successfully" });
     },
@@ -1100,10 +1100,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("PATCH", `/api/cases/${id}`, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setShowStatusDialog(false);
       toast({ title: "Case updated successfully" });
     },
@@ -1114,10 +1114,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("POST", "/api/milestones", { ...data, caseId: id });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setShowMilestoneDialog(false);
       toast({ title: "Milestone added successfully" });
     },
@@ -1128,10 +1128,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("PATCH", `/api/milestones/${milestoneId}`, { isCompleted: true });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone completed" });
     },
   });
@@ -1141,10 +1141,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("PATCH", `/api/milestones/${milestoneId}`, { isCompleted: false });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone reopened" });
     },
   });
@@ -1154,10 +1154,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("PATCH", `/api/milestones/${milestoneId}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setEditingMilestone(null);
       toast({ title: "Milestone updated" });
     },
@@ -1168,10 +1168,10 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("DELETE", `/api/milestones/${milestoneId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases"] });
+      queryClient.refetchQueries({ queryKey: ["/api/dashboard/employment_law"] });
       toast({ title: "Milestone deleted" });
     },
   });
@@ -1181,8 +1181,8 @@ function CaseDetailView({ id }: { id: string }) {
       return apiRequest("DELETE", `/api/cases/${id}/documents/${docId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
       toast({ title: "Document deleted" });
     },
   });
@@ -1220,8 +1220,8 @@ function CaseDetailView({ id }: { id: string }) {
         mimeType: file.type,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
       toast({ title: "Document uploaded successfully" });
     } catch (error) {
       toast({ title: "Failed to upload document", variant: "destructive" });

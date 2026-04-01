@@ -736,7 +736,7 @@ function ReportIncidentDialog({
       return incident;
     },
     onSuccess: (incident: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents"] });
       toast({ title: "Incident reported", description: "The incident has been recorded successfully." });
       form.reset();
       setPhotoFiles([]);
@@ -1768,7 +1768,7 @@ function IncidentDetailView({ id }: { id: string }) {
     enabled: !!incident?.entityId,
   });
 
-  const invalidateAudit = () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "audit"] });
+  const invalidateAudit = () => queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "audit"] });
 
   const downloadIncidentDocument = async (docId: string, fileName: string) => {
     try {
@@ -1791,8 +1791,8 @@ function IncidentDetailView({ id }: { id: string }) {
   const updateMutation = useMutation({
     mutationFn: (updates: any) => apiRequest("PATCH", `/api/incidents/${id}`, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents"] });
       invalidateAudit();
       setShowStatusDialog(false);
       toast({ title: "Incident updated" });
@@ -1803,7 +1803,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const addMilestoneMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", `/api/incidents/${id}/milestones`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "milestones"] });
       invalidateAudit();
       setShowMilestoneDialog(false);
       toast({ title: "Action item added" });
@@ -1817,7 +1817,7 @@ function IncidentDetailView({ id }: { id: string }) {
       completedDate: new Date().toISOString(),
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "milestones"] });
       invalidateAudit();
     },
     onError: () => toast({ title: "Error", description: "Failed to complete action item.", variant: "destructive" }),
@@ -1828,20 +1828,20 @@ function IncidentDetailView({ id }: { id: string }) {
       isCompleted: false,
       completedDate: null,
     }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onSuccess: () => queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
     onError: () => toast({ title: "Error", description: "Failed to reopen action item.", variant: "destructive" }),
   });
 
   const deleteMilestoneMutation = useMutation({
     mutationFn: (milestoneId: string) => apiRequest("DELETE", `/api/milestones/incident/${milestoneId}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
+    onSuccess: () => queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "milestones"] }),
     onError: () => toast({ title: "Error", description: "Failed to delete action item.", variant: "destructive" }),
   });
 
   const regenerateReportMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/incidents/${id}/regenerate-report`, {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
       toast({ title: "Report regenerated", description: "The incident report document has been updated with the latest details." });
     },
@@ -1862,7 +1862,7 @@ function IncidentDetailView({ id }: { id: string }) {
         title: editTitle.trim() || editingDoc.title,
         comments: editNotes,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "documents"] });
       if (lightboxPhoto?.id === editingDoc.id) {
         setLightboxPhoto({ ...lightboxPhoto, title: editTitle.trim() || editingDoc.title, comments: editNotes });
       }
@@ -1903,7 +1903,7 @@ function IncidentDetailView({ id }: { id: string }) {
         mimeType: file.type,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
       toast({ title: "Document uploaded" });
       if (created) openEditDialog({ ...created, comments: "" });
@@ -1951,7 +1951,7 @@ function IncidentDetailView({ id }: { id: string }) {
         toast({ title: "Photo upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
       }
     }
-    queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+    queryClient.refetchQueries({ queryKey: ["/api/incidents", id, "documents"] });
     if (successCount > 0) invalidateAudit();
     if (successCount > 0) {
       toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded`, description: "You can add a title and notes by clicking the edit button." });
@@ -3361,7 +3361,7 @@ function IncidentDetailView({ id }: { id: string }) {
           open={showFollowUpDialog}
           onClose={() => setShowFollowUpDialog(false)}
           onSaved={() => {
-            queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
+            queryClient.refetchQueries({ queryKey: ["/api/incidents", id] });
             invalidateAudit();
           }}
         />

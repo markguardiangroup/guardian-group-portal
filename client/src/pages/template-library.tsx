@@ -542,7 +542,7 @@ export default function TemplateLibraryPage() {
   
   // Helper to invalidate documents hierarchy cache (depends on folder/document templates)
   const invalidateDocumentsHierarchy = () => {
-    queryClient.invalidateQueries({ 
+    queryClient.refetchQueries({ 
       predicate: (query) => {
         return query.queryKey.some(
           (key) => typeof key === 'string' && key.includes('documents-hierarchy')
@@ -557,7 +557,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", "/api/document-templates", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
       invalidateDocumentsHierarchy();
       setIsTemplateDialogOpen(false);
       setTemplateFormData(defaultTemplateFormData);
@@ -573,7 +573,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("PATCH", `/api/document-templates/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
       invalidateDocumentsHierarchy();
       setIsEditTemplateDialogOpen(false);
       setSelectedTemplate(null);
@@ -589,8 +589,8 @@ export default function TemplateLibraryPage() {
       return apiRequest("DELETE", `/api/document-templates/${id}`, { reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates-archived"] });
       invalidateDocumentsHierarchy();
       setIsDeleteDialogOpen(false);
       setTemplateToDelete(null);
@@ -607,8 +607,8 @@ export default function TemplateLibraryPage() {
       return apiRequest("DELETE", `/api/document-templates/${id}/permanent`, { reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates-archived"] });
       invalidateDocumentsHierarchy();
       setIsPermanentDeleteDialogOpen(false);
       setTemplateToPermanentlyDelete(null);
@@ -625,8 +625,8 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", `/api/document-templates/${id}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates-archived"] });
       invalidateDocumentsHierarchy();
       toast({ title: "Template restored", description: "The document template has been restored and is now active." });
     },
@@ -640,8 +640,8 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", `/api/document-templates/${templateId}/versions`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates", versionUploadTemplate?.id, "versions"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates", versionUploadTemplate?.id, "versions"] });
       setIsVersionUploadDialogOpen(false);
       setVersionUploadTemplate(null);
       setNewVersionFile(null);
@@ -659,11 +659,11 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", "/api/document-templates/reorder", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
       toast({ title: "Templates reordered", description: "Template order has been saved." });
     },
     onError: (error: Error) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
       toast({ title: "Error", description: error.message || "Failed to reorder templates", variant: "destructive" });
     },
   });
@@ -672,7 +672,7 @@ export default function TemplateLibraryPage() {
     mutationFn: async ({ templateId, folderTemplateId }: { templateId: string; folderTemplateId: string | null }) =>
       apiRequest("PATCH", `/api/document-templates/${templateId}`, { folderTemplateId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
       toast({ title: "Template moved", description: "Template folder assignment updated." });
     },
     onError: () => {
@@ -695,7 +695,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", "/api/folder-templates", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
       invalidateDocumentsHierarchy();
       setIsFolderDialogOpen(false);
       setFolderFormData(defaultFolderFormData);
@@ -711,7 +711,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("PATCH", `/api/folder-templates/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
       invalidateDocumentsHierarchy();
       setIsEditFolderDialogOpen(false);
       setSelectedFolder(null);
@@ -727,7 +727,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("DELETE", `/api/folder-templates/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
       invalidateDocumentsHierarchy();
       toast({ title: "Folder deleted", description: "The folder template has been removed." });
     },
@@ -743,7 +743,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", "/api/document-types", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-types"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -761,7 +761,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("PATCH", `/api/document-types/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-types"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -779,7 +779,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("DELETE", `/api/document-types/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-types"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -800,7 +800,7 @@ export default function TemplateLibraryPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folder-document-type-rules"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -1039,7 +1039,7 @@ export default function TemplateLibraryPage() {
         });
         const newFolder = await response.json();
         folderId = newFolder.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+        queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
       } catch (error) {
         toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
         return;
@@ -1067,8 +1067,8 @@ export default function TemplateLibraryPage() {
           });
           const newToolkitFolder = await response.json();
           toolkitFolderId = newToolkitFolder.id;
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit"] });
         } catch (error) {
           toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
           return;
@@ -1184,7 +1184,7 @@ export default function TemplateLibraryPage() {
         });
         const newFolder = await res.json();
         folderId = newFolder.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+        queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
       } catch {
         toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
         return;
@@ -1211,8 +1211,8 @@ export default function TemplateLibraryPage() {
           });
           const newTkFolder = await res.json();
           toolkitFolderId = newTkFolder.id;
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit"] });
         } catch {
           toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
           return;
@@ -1260,7 +1260,7 @@ export default function TemplateLibraryPage() {
       }
     }
 
-    queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+    queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
     invalidateDocumentsHierarchy();
     setIsBulkCreating(false);
 
@@ -1319,8 +1319,8 @@ export default function TemplateLibraryPage() {
           });
           const newToolkitFolder = await response.json();
           toolkitFolderId = newToolkitFolder.id;
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
+          queryClient.refetchQueries({ queryKey: ["/api/toolkit"] });
         } catch (error) {
           toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
           return;
@@ -1436,8 +1436,8 @@ export default function TemplateLibraryPage() {
         isRequired: docTypeFormData.isRequired,
         sortOrder: 0,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+      queryClient.refetchQueries({ queryKey: ["/api/document-types"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folder-document-type-rules"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -1544,7 +1544,7 @@ export default function TemplateLibraryPage() {
           const newFolder = await response.json();
           setCreatedFolderId(newFolder.id);
           setWizardData(prev => ({ ...prev, folderId: newFolder.id, folderName: newFolder.name }));
-          queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+          queryClient.refetchQueries({ queryKey: ["/api/folder-templates"] });
           setWizardStep("doctype");
         } catch (error) {
           toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
@@ -1583,8 +1583,8 @@ export default function TemplateLibraryPage() {
           isRequired: wizardData.isRequired,
           sortOrder: 0,
         });
-        queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/folder-document-type-rules"] });
+        queryClient.refetchQueries({ queryKey: ["/api/document-types"] });
+        queryClient.refetchQueries({ queryKey: ["/api/folder-document-type-rules"] });
         queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
         queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -1613,7 +1613,7 @@ export default function TemplateLibraryPage() {
             mimeType: "application/octet-stream",
             sortOrder: 0,
           });
-          queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+          queryClient.refetchQueries({ queryKey: ["/api/document-templates"] });
           setWizardStep("complete");
         } catch (error) {
           toast({ title: "Error", description: "Failed to create template", variant: "destructive" });

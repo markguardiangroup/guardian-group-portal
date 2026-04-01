@@ -502,7 +502,7 @@ export default function AdminPathways() {
   const createMutation = useMutation({
     mutationFn: (data: PathwayPayload) => apiRequest("POST", "/api/toolkit/pathways", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
       toast({ title: "Pathway created", description: "The guided finder pathway has been created." });
       closeForm();
     },
@@ -513,7 +513,7 @@ export default function AdminPathways() {
     mutationFn: ({ id, data }: { id: string; data: PathwayPayload }) =>
       apiRequest("PATCH", `/api/toolkit/pathways/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
       toast({ title: "Pathway updated", description: "Changes have been saved." });
       closeForm();
     },
@@ -523,7 +523,7 @@ export default function AdminPathways() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => apiRequest("DELETE", `/api/toolkit/pathways/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
       toast({ title: "Pathway deleted", description: "The pathway has been removed." });
       setDeletePathwayId(null);
     },
@@ -534,7 +534,7 @@ export default function AdminPathways() {
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/toolkit/pathways/${id}`, { isActive }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/pathways"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
     },
     onError: () => toast({ title: "Error", description: "Failed to update status.", variant: "destructive" }),
   });

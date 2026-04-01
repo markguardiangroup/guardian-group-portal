@@ -240,8 +240,8 @@ export default function TrainingCertificateUpload() {
       return documentResult;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/training-bookings"] });
       toast({
         title: "Certificate Uploaded",
         description: bookingId 

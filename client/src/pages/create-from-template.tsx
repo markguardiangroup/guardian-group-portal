@@ -324,7 +324,7 @@ export default function CreateFromTemplate() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      queryClient.refetchQueries({ queryKey: ["/api/folders", selectedSiteId] });
     },
   });
 
@@ -486,13 +486,13 @@ export default function CreateFromTemplate() {
       return apiRequest("POST", "/api/documents", formData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.refetchQueries({ queryKey: ["/api/documents/module"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.refetchQueries({ queryKey: ["/api/folders"] });
       toast({
         title: "Document Created",
         description: "Document has been created from the template and uploaded to the site.",

@@ -212,7 +212,7 @@ export default function ModuleAccessRequests() {
       return apiRequest("PATCH", `/api/module-access-requests/${id}`, { status, notes });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
+      queryClient.refetchQueries({ queryKey: ["/api/module-access-requests"] });
     },
   });
 
@@ -237,7 +237,7 @@ export default function ModuleAccessRequests() {
     }
     
     if (successCount > 0) {
-      queryClient.invalidateQueries({ queryKey: ["/api/module-access-requests"] });
+      queryClient.refetchQueries({ queryKey: ["/api/module-access-requests"] });
     }
     
     if (failCount === 0) {

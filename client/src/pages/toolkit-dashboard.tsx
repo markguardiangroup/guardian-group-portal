@@ -89,7 +89,7 @@ export default function ToolkitDashboard() {
         credentials: "include",
         body: JSON.stringify({ templateId }),
       });
-      queryClient.invalidateQueries({ queryKey: statsQueryKey });
+      queryClient.refetchQueries({ queryKey: statsQueryKey });
       const response = await fetch(fileUrl, { credentials: "include" });
       if (!response.ok) throw new Error("Download failed");
       const blob = await response.blob();
