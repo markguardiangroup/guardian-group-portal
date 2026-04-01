@@ -656,8 +656,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 </span>
               )}
               {user?.role !== "client" && (
-                <span className="truncate text-xs text-muted-foreground leading-tight" data-testid="text-user-role">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground leading-tight" data-testid="text-user-role">
                   {user ? roleLabels[user.role] : "Not logged in"}
+                  {user?.role === "consultant" && user?.consultantTier === "pro" && (
+                    <span className="inline-flex items-center rounded px-1 py-0 text-[10px] font-bold tracking-wide bg-amber-100 text-amber-700 leading-4">
+                      PRO
+                    </span>
+                  )}
                 </span>
               )}
             </div>
