@@ -170,6 +170,7 @@ export default function UserManagement() {
   const [page, setPage] = useState(1);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
     queryKey: ["/api/users", viewingUser?.id, "activity"],
     queryFn: async () => {
@@ -976,6 +977,17 @@ export default function UserManagement() {
     );
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["/api/users"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/consultants"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/sites"] }),
+      queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
+    ]);
+    setIsRefreshing(false);
+  };
+
   if (isLoadingUsers) {
     return (
       <div className="space-y-6 p-8">
@@ -1016,18 +1028,6 @@ export default function UserManagement() {
       </div>
     );
   }
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.refetchQueries({ queryKey: ["/api/users"] }),
-      queryClient.refetchQueries({ queryKey: ["/api/consultants"] }),
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] }),
-      queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
-    ]);
-    setIsRefreshing(false);
-  };
 
   return (
     <div className="flex flex-col h-full">
