@@ -1476,8 +1476,8 @@ export default function UserManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-role">Role</Label>
-                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })}>
-                        <SelectTrigger id="edit-role" data-testid="select-edit-role">
+                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id && isPro}>
+                        <SelectTrigger id="edit-role" data-testid="select-edit-role" disabled={editingUser.id === user?.id && isPro}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1490,8 +1490,8 @@ export default function UserManagement() {
                     {editFormData.role === "consultant" && (
                       <div className="grid gap-2">
                         <Label htmlFor="edit-tier">Consultant Tier</Label>
-                        <Select value={editFormData.consultantTier} onValueChange={(v) => setEditFormData({ ...editFormData, consultantTier: v })}>
-                          <SelectTrigger id="edit-tier" data-testid="select-edit-tier">
+                        <Select value={editFormData.consultantTier} onValueChange={(v) => setEditFormData({ ...editFormData, consultantTier: v })} disabled={editingUser.id === user?.id && isPro}>
+                          <SelectTrigger id="edit-tier" data-testid="select-edit-tier" disabled={editingUser.id === user?.id && isPro}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
