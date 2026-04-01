@@ -385,7 +385,7 @@ export default function UserManagement() {
       notes: u.notes || "",
       role: u.role,
       companyId: u.companyId || "",
-      consultantTier: "pro",
+      consultantTier: u.consultantTier || "standard",
       clientPermissionRole: "owner",
     });
     // Fetch site assignments for consultants and clients
