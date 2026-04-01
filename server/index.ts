@@ -97,12 +97,13 @@ app.use(
       pool: pool,
       tableName: "session", // Use 'session' table in database
       createTableIfMissing: true, // Auto-create session table if it doesn't exist
+      ttl: 8 * 60 * 60, // Prune orphaned rows after 8 hours (seconds, not ms)
     }),
     cookie: {
       secure: isProduction, // HTTPS only in production
       httpOnly: true, // Prevent XSS attacks
       sameSite: "lax", // Lax allows cookies in iframe/preview environments
-      maxAge: 24 * 60 * 60 * 1000, // 24 hour session timeout (increased from 1h)
+      // No maxAge → session cookie: browser deletes it when the tab/window closes
     },
   })
 );

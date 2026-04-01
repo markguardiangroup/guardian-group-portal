@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserRole } from "@shared/schema";
+import { useIdleTimeout } from "./use-idle-timeout";
 
 interface AuthUser {
   id: string;
@@ -114,6 +115,125 @@ function SigningOutOverlay() {
   );
 }
 
+function IdleWarningModal({
+  secondsRemaining,
+  onStay,
+  onLogout,
+}: {
+  secondsRemaining: number;
+  onStay: () => void;
+  onLogout: () => void;
+}) {
+  const mins = Math.floor(secondsRemaining / 60);
+  const secs = secondsRemaining % 60;
+  const display = mins > 0
+    ? `${mins}:${String(secs).padStart(2, "0")}`
+    : `${secs}s`;
+  const urgent = secondsRemaining <= 10;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99998,
+        background: "rgba(0,0,0,0.55)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "16px",
+        animation: "fadeInOverlay 0.18s ease-out forwards",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          borderRadius: 16,
+          padding: "32px 28px",
+          maxWidth: 400,
+          width: "100%",
+          boxShadow: "0 24px 64px rgba(0,0,0,0.3)",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 12,
+            background: urgent
+              ? "linear-gradient(135deg, #ef4444, #dc2626)"
+              : "linear-gradient(135deg, #f59e0b, #d97706)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 16px",
+            transition: "background 0.4s",
+          }}
+        >
+          <Clock style={{ width: 28, height: 28, color: "white" }} />
+        </div>
+
+        <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#111827" }}>
+          Session expiring
+        </h2>
+        <p style={{ margin: "0 0 4px", fontSize: 14, color: "#6b7280" }}>
+          You've been inactive for a while.
+        </p>
+        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#6b7280" }}>
+          You'll be logged out in{" "}
+          <span
+            style={{
+              fontWeight: 700,
+              color: urgent ? "#ef4444" : "#d97706",
+              transition: "color 0.4s",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {display}
+          </span>
+          .
+        </p>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={onLogout}
+            style={{
+              flex: 1,
+              padding: "10px 0",
+              borderRadius: 8,
+              border: "1.5px solid #e5e7eb",
+              background: "white",
+              color: "#374151",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Log out
+          </button>
+          <button
+            onClick={onStay}
+            style={{
+              flex: 2,
+              padding: "10px 0",
+              borderRadius: 8,
+              border: "none",
+              background: "linear-gradient(135deg, #1d3057, #2d4a8a)",
+              color: "white",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Stay logged in
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [devUser, setDevUser] = useState<AuthUser | null>(getDevUser);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -140,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const effectiveUser = user ?? (isError || !isLoading ? devUser : null);
+  const isAuthenticated = !!effectiveUser;
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -166,10 +287,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logoutMutation.mutate();
   };
 
+  const { showWarning, secondsRemaining, resetTimer } = useIdleTimeout({
+    enabled: isAuthenticated,
+    onTimeout: logout,
+  });
+
   const value: AuthContextType = {
     user: effectiveUser ?? null,
     isLoading: isLoading && !devUser,
-    isAuthenticated: !!effectiveUser,
+    isAuthenticated,
     logout,
     isLoggingOut: logoutMutation.isPending,
   };
@@ -177,6 +303,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {isSigningOut && <SigningOutOverlay />}
+      {showWarning && !isSigningOut && (
+        <IdleWarningModal
+          secondsRemaining={secondsRemaining}
+          onStay={resetTimer}
+          onLogout={logout}
+        />
+      )}
       {children}
     </AuthContext.Provider>
   );
