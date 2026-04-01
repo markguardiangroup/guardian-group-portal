@@ -333,7 +333,7 @@ export default function Sites() {
               onClick={() => setMyAssignedOnly(!myAssignedOnly)}
               data-testid="button-my-assigned-filter"
             >
-              <Users className="mr-2 h-4 w-4" />
+              <Users className="h-4 w-4 mr-2" />
               My Sites
             </Button>
           )}

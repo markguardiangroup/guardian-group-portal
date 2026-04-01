@@ -722,7 +722,7 @@ export default function Companies() {
               onClick={() => { setMyAssignedOnly(!myAssignedOnly); setPage(1); }}
               data-testid="button-my-assigned-companies"
             >
-              <Building2 className="mr-2 h-4 w-4" />
+              <Building2 className="h-4 w-4 mr-2" />
               My Companies
             </Button>
           )}
