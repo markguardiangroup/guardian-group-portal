@@ -54,7 +54,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
   Search,
@@ -242,8 +241,11 @@ export default function UserManagement() {
   } | null>(null);
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
   const [manageSitesUser, setManageSitesUser] = useState<UserWithAssignments | null>(null);
-  const [siteAddMode, setSiteAddMode] = useState<"individual" | "by-company">("individual");
-  const [selectedCompanyToAdd, setSelectedCompanyToAdd] = useState<string>("");
+  const [pendingAddSiteIds, setPendingAddSiteIds] = useState<string[]>([]);
+  const [pendingRemoveSiteIds, setPendingRemoveSiteIds] = useState<string[]>([]);
+  const [showManageSitesSaveConfirm, setShowManageSitesSaveConfirm] = useState(false);
+  const [showManageSitesCancelConfirm, setShowManageSitesCancelConfirm] = useState(false);
+  const [isSavingManageSites, setIsSavingManageSites] = useState(false);
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -398,49 +400,109 @@ export default function UserManagement() {
 
   const openManageSitesDialog = (u: UserWithAssignments) => {
     setManageSitesUser(u);
-    setSiteAddMode("individual");
-    setSelectedCompanyToAdd("");
-    setSelectedSiteToAdd("");
+    setPendingAddSiteIds([]);
+    setPendingRemoveSiteIds([]);
+    setShowManageSitesSaveConfirm(false);
+    setShowManageSitesCancelConfirm(false);
     fetchUserSiteAssignments(u.id);
   };
 
-  const getAvailableSitesForManageDialog = () => {
-    const assignedSiteIds = userSiteAssignments.map(a => a.siteId);
-    return sites.filter(s => !assignedSiteIds.includes(s.id));
+  const closeManageSites = () => {
+    setManageSitesUser(null);
+    setUserSiteAssignments([]);
+    setPendingAddSiteIds([]);
+    setPendingRemoveSiteIds([]);
+    setShowManageSitesSaveConfirm(false);
+    setShowManageSitesCancelConfirm(false);
   };
 
-  const getAvailableSitesByCompany = (companyId: string) => {
-    const assignedSiteIds = userSiteAssignments.map(a => a.siteId);
-    return sites.filter(s => s.companyId === companyId && !assignedSiteIds.includes(s.id));
-  };
-
-  const handleAddSiteConfirmManage = () => {
-    if (!manageSitesUser || !selectedSiteToAdd) return;
-    const site = sites.find(s => s.id === selectedSiteToAdd);
-    if (site) {
-      setSiteAssignmentConfirm({ type: "add", siteId: selectedSiteToAdd, siteName: site.name });
+  const handleManageSitesCloseRequest = () => {
+    if (pendingAddSiteIds.length > 0 || pendingRemoveSiteIds.length > 0) {
+      setShowManageSitesCancelConfirm(true);
+    } else {
+      closeManageSites();
     }
   };
 
-  const addSitesByCompany = async (companyId: string) => {
-    if (!manageSitesUser) return;
-    const sitesToAdd = getAvailableSitesByCompany(companyId);
-    if (sitesToAdd.length === 0) return;
-    try {
-      for (const site of sitesToAdd) {
-        await apiRequest("POST", `/api/users/${manageSitesUser.id}/site-assignments/${site.id}`, {});
+  // Effective assigned = (current assignments minus pending removes) plus pending adds
+  const getEffectiveAssigned = () => {
+    const fromCurrent = userSiteAssignments
+      .filter(a => !pendingRemoveSiteIds.includes(a.siteId))
+      .map(a => ({ siteId: a.siteId, siteName: a.siteName, companyName: a.companyName, companyId: a.companyId, isPrimary: a.isPrimary }));
+    const fromPending = pendingAddSiteIds.map(siteId => {
+      const site = sites.find(s => s.id === siteId);
+      const company = companies.find(c => c.id === site?.companyId);
+      return { siteId, siteName: site?.name || siteId, companyName: company?.name || "", companyId: site?.companyId || "", isPrimary: false };
+    });
+    return [...fromCurrent, ...fromPending];
+  };
+
+  // Sites not in effective assigned, grouped by company
+  const getAvailableSitesByCompanyForManage = () => {
+    const effectiveIds = getEffectiveAssigned().map(a => a.siteId);
+    const available = sites.filter(s => !effectiveIds.includes(s.id));
+    const grouped: Record<string, { company: typeof companies[0]; sites: typeof sites }> = {};
+    for (const site of available) {
+      if (!grouped[site.companyId]) {
+        const company = companies.find(c => c.id === site.companyId);
+        if (company) grouped[site.companyId] = { company, sites: [] };
       }
-      fetchUserSiteAssignments(manageSitesUser.id);
+      if (grouped[site.companyId]) grouped[site.companyId].sites.push(site);
+    }
+    return Object.values(grouped);
+  };
+
+  const manageSitesAddSite = (siteId: string) => {
+    if (pendingRemoveSiteIds.includes(siteId)) {
+      setPendingRemoveSiteIds(prev => prev.filter(id => id !== siteId));
+    } else {
+      setPendingAddSiteIds(prev => [...prev, siteId]);
+    }
+  };
+
+  const manageSitesRemoveSite = (siteId: string) => {
+    if (pendingAddSiteIds.includes(siteId)) {
+      setPendingAddSiteIds(prev => prev.filter(id => id !== siteId));
+    } else {
+      setPendingRemoveSiteIds(prev => [...prev, siteId]);
+    }
+  };
+
+  const manageSitesAddAllFromCompany = (companyId: string) => {
+    const availableGroups = getAvailableSitesByCompanyForManage();
+    const group = availableGroups.find(g => g.company.id === companyId);
+    if (!group) return;
+    const toAdd = group.sites.map(s => s.id);
+    const notAlreadyPending = toAdd.filter(id => !pendingAddSiteIds.includes(id));
+    setPendingAddSiteIds(prev => [...prev, ...notAlreadyPending]);
+    const stillRemoved = pendingRemoveSiteIds.filter(id => !toAdd.includes(id));
+    setPendingRemoveSiteIds(stillRemoved);
+  };
+
+  const saveManageSitesChanges = async () => {
+    if (!manageSitesUser) return;
+    setIsSavingManageSites(true);
+    try {
+      for (const siteId of pendingAddSiteIds) {
+        await apiRequest("POST", `/api/users/${manageSitesUser.id}/site-assignments/${siteId}`, {});
+      }
+      for (const siteId of pendingRemoveSiteIds) {
+        await apiRequest("DELETE", `/api/users/${manageSitesUser.id}/site-assignments/${siteId}`);
+      }
       queryClient.refetchQueries({ queryKey: ["/api/users"] });
       queryClient.refetchQueries({ queryKey: ["/api/consultants"] });
-      setSelectedCompanyToAdd("");
-      const companyName = companies.find(c => c.id === companyId)?.name || "company";
-      toast({
-        title: "Sites Assigned",
-        description: `${sitesToAdd.length} site${sitesToAdd.length !== 1 ? "s" : ""} from ${companyName} have been assigned.`,
-      });
+      const addCount = pendingAddSiteIds.length;
+      const removeCount = pendingRemoveSiteIds.length;
+      const parts = [];
+      if (addCount > 0) parts.push(`${addCount} site${addCount !== 1 ? "s" : ""} added`);
+      if (removeCount > 0) parts.push(`${removeCount} site${removeCount !== 1 ? "s" : ""} removed`);
+      toast({ title: "Site assignments saved", description: parts.join(", ") });
+      closeManageSites();
     } catch {
-      toast({ title: "Failed to assign sites", variant: "destructive" });
+      toast({ title: "Failed to save site assignments", variant: "destructive" });
+    } finally {
+      setIsSavingManageSites(false);
+      setShowManageSitesSaveConfirm(false);
     }
   };
 
@@ -2469,150 +2531,190 @@ export default function UserManagement() {
       </Dialog>
 
       {/* Manage Sites Dialog */}
-      <Dialog open={!!manageSitesUser} onOpenChange={(open) => {
-        if (!open) {
-          setManageSitesUser(null);
-          setUserSiteAssignments([]);
-          setSiteAddMode("individual");
-          setSelectedCompanyToAdd("");
-          setSelectedSiteToAdd("");
-        }
-      }}>
-        <DialogContent className="sm:max-w-[540px]">
+      <Dialog open={!!manageSitesUser} onOpenChange={(open) => { if (!open) handleManageSitesCloseRequest(); }}>
+        <DialogContent
+          className="sm:max-w-[560px]"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Manage Sites — {manageSitesUser?.fullName}
             </DialogTitle>
             <DialogDescription>
-              Assign or remove site access for this {manageSitesUser?.role === "consultant" ? "consultant" : "user"}.
+              Changes are staged locally. Click Save to apply them.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-1">
-            {/* Current assignments */}
+            {/* Assigned Sites */}
             <div>
-              <Label className="text-sm font-medium">Assigned Sites</Label>
-              {userSiteAssignments.length > 0 ? (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {userSiteAssignments.map((assignment) => (
-                    <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1 pr-1">
-                      <span>{assignment.siteName}</span>
-                      <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-4 w-4 ml-1 hover:bg-destructive/20"
-                        onClick={() => handleRemoveSiteClick(assignment.siteId, assignment.siteName)}
-                        data-testid={`button-manage-remove-site-${assignment.siteId}`}
+              <Label className="text-sm font-medium mb-2 block">Assigned Sites</Label>
+              {getEffectiveAssigned().length > 0 ? (
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
+                  {getEffectiveAssigned().map((a) => {
+                    const isPendingAdd = pendingAddSiteIds.includes(a.siteId);
+                    return (
+                      <Badge
+                        key={a.siteId}
+                        variant={isPendingAdd ? "default" : "secondary"}
+                        className="flex items-center gap-1 pr-1"
+                        data-testid={`badge-assigned-site-${a.siteId}`}
                       >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  ))}
+                        <span>{a.siteName}</span>
+                        <span className="text-xs opacity-70">({a.companyName})</span>
+                        {isPendingAdd && <span className="text-xs opacity-70 ml-0.5">+new</span>}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4 ml-1 hover:bg-destructive/20"
+                          onClick={() => manageSitesRemoveSite(a.siteId)}
+                          data-testid={`button-manage-remove-site-${a.siteId}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    );
+                  })}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground mt-2">No sites assigned yet.</p>
+                <p className="text-sm text-muted-foreground">No sites assigned.</p>
               )}
             </div>
 
-            {/* Add sites section */}
+            {/* Available Sites grouped by company */}
             <div className="border-t pt-4">
-              <Label className="text-sm font-medium mb-3 block">Add Sites</Label>
-              <Tabs value={siteAddMode} onValueChange={(v) => {
-                setSiteAddMode(v as "individual" | "by-company");
-                setSelectedSiteToAdd("");
-                setSelectedCompanyToAdd("");
-              }}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="individual" className="flex-1">Individual Site</TabsTrigger>
-                  <TabsTrigger value="by-company" className="flex-1">By Company</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="individual" className="mt-3">
-                  {getAvailableSitesForManageDialog().length > 0 ? (
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
-                          <SelectTrigger data-testid="select-manage-site-individual">
-                            <SelectValue placeholder="Select a site" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getAvailableSitesForManageDialog().map((site) => {
-                              const company = companies.find(c => c.id === site.companyId);
-                              return (
-                                <SelectItem key={site.id} value={site.id}>
-                                  {site.name}{company ? ` (${company.name})` : ""}
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
+              <Label className="text-sm font-medium mb-2 block">Available Sites</Label>
+              {getAvailableSitesByCompanyForManage().length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+                  {getAvailableSitesByCompanyForManage().map(({ company, sites: companySites }) => (
+                    <div key={company.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{company.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs px-2"
+                          onClick={() => manageSitesAddAllFromCompany(company.id)}
+                          data-testid={`button-manage-add-all-company-${company.id}`}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add All
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAddSiteConfirmManage}
-                        disabled={!selectedSiteToAdd}
-                        data-testid="button-manage-add-site"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Add
-                      </Button>
+                      <div className="space-y-1">
+                        {companySites.map((site) => (
+                          <div key={site.id} className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-muted/50">
+                            <span className="text-sm">{site.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs px-2"
+                              onClick={() => manageSitesAddSite(site.id)}
+                              data-testid={`button-manage-add-site-${site.id}`}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">All available sites are already assigned.</p>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="by-company" className="mt-3 space-y-3">
-                  <Select value={selectedCompanyToAdd} onValueChange={setSelectedCompanyToAdd}>
-                    <SelectTrigger data-testid="select-manage-site-company">
-                      <SelectValue placeholder="Select a company" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((company) => {
-                        const available = getAvailableSitesByCompany(company.id);
-                        return (
-                          <SelectItem key={company.id} value={company.id} disabled={available.length === 0}>
-                            {company.name}
-                            {available.length > 0
-                              ? ` — ${available.length} site${available.length !== 1 ? "s" : ""} available`
-                              : " — all sites assigned"}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  {selectedCompanyToAdd && (
-                    <Button
-                      className="w-full"
-                      onClick={() => addSitesByCompany(selectedCompanyToAdd)}
-                      disabled={getAvailableSitesByCompany(selectedCompanyToAdd).length === 0}
-                      data-testid="button-manage-add-company-sites"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add {getAvailableSitesByCompany(selectedCompanyToAdd).length} Site{getAvailableSitesByCompany(selectedCompanyToAdd).length !== 1 ? "s" : ""} from {companies.find(c => c.id === selectedCompanyToAdd)?.name}
-                    </Button>
-                  )}
-                </TabsContent>
-              </Tabs>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">All available sites have been assigned.</p>
+              )}
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setManageSitesUser(null);
-              setUserSiteAssignments([]);
-              setSiteAddMode("individual");
-              setSelectedCompanyToAdd("");
-              setSelectedSiteToAdd("");
-            }}>
-              Done
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={handleManageSitesCloseRequest}
+              data-testid="button-manage-sites-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => setShowManageSitesSaveConfirm(true)}
+              disabled={pendingAddSiteIds.length === 0 && pendingRemoveSiteIds.length === 0}
+              data-testid="button-manage-sites-save"
+            >
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Manage Sites — Save Confirmation */}
+      <AlertDialog open={showManageSitesSaveConfirm} onOpenChange={setShowManageSitesSaveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save Site Assignments</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>The following changes will be applied to <strong>{manageSitesUser?.fullName}</strong>:</p>
+                {pendingAddSiteIds.length > 0 && (
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Sites being added ({pendingAddSiteIds.length}):</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                      {pendingAddSiteIds.map(id => {
+                        const site = sites.find(s => s.id === id);
+                        const company = companies.find(c => c.id === site?.companyId);
+                        return <li key={id}>{site?.name}{company ? ` (${company.name})` : ""}</li>;
+                      })}
+                    </ul>
+                  </div>
+                )}
+                {pendingRemoveSiteIds.length > 0 && (
+                  <div>
+                    <p className="font-medium text-foreground mb-1">Sites being removed ({pendingRemoveSiteIds.length}):</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                      {pendingRemoveSiteIds.map(id => {
+                        const assignment = userSiteAssignments.find(a => a.siteId === id);
+                        return <li key={id}>{assignment?.siteName}{assignment?.companyName ? ` (${assignment.companyName})` : ""}</li>;
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSavingManageSites}>Go Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={saveManageSitesChanges}
+              disabled={isSavingManageSites}
+              data-testid="button-confirm-save-manage-sites"
+            >
+              {isSavingManageSites ? "Saving..." : "Confirm Save"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Manage Sites — Cancel Confirmation */}
+      <AlertDialog open={showManageSitesCancelConfirm} onOpenChange={setShowManageSitesCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved site changes. If you close now, your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowManageSitesCancelConfirm(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={closeManageSites}
+              data-testid="button-confirm-discard-manage-sites"
+            >
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* User Status Confirmation Dialog */}
       <AlertDialog open={!!statusConfirm} onOpenChange={(open) => !open && setStatusConfirm(null)}>
