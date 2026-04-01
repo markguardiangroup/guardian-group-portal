@@ -335,6 +335,7 @@ export default function UserManagement() {
 
   const getVisibleUsers = () => {
     if (isAdmin) return usersWithSiteInfo;
+    if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "client");
     if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
     return [];
   };
@@ -1140,7 +1141,7 @@ export default function UserManagement() {
                           <Eye className="h-4 w-4 mr-2" />
                           View Profile
                         </DropdownMenuItem>
-                        {isAdmin && (
+                        {(isAdmin || (isPro && u.role === "consultant")) && (
                           <>
                             <DropdownMenuItem onClick={() => openEditDialog(u)}>
                               <Pencil className="h-4 w-4 mr-2" />
@@ -1480,7 +1481,7 @@ export default function UserManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Administrator</SelectItem>
+                          {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
                           <SelectItem value="consultant">Consultant</SelectItem>
                           <SelectItem value="client">Client</SelectItem>
                         </SelectContent>
@@ -1522,7 +1523,7 @@ export default function UserManagement() {
               </div>
 
               {/* Site Assignments section - only for consultants and clients */}
-              {editFormData.role !== "admin" && isAdmin && (
+              {editFormData.role !== "admin" && (isAdmin || isPro) && (
                 <div className="border-b pb-4">
                   <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
