@@ -8451,9 +8451,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can add site assignments
-      if (currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      // Only admin or pro consultant can add site assignments
+      if (currentUser.role !== "admin" && !isProConsultant(currentUser)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can manage site assignments" });
       }
       
       const targetUser = await storage.getUser(req.params.userId);
@@ -8564,9 +8564,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can remove site assignments
-      if (currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      // Only admin or pro consultant can remove site assignments
+      if (currentUser.role !== "admin" && !isProConsultant(currentUser)) {
+        return res.status(403).json({ error: "Only admins and pro consultants can manage site assignments" });
       }
       
       const targetUser = await storage.getUser(req.params.userId);

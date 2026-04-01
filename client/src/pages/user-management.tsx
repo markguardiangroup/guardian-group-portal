@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
   Search,
@@ -240,6 +241,9 @@ export default function UserManagement() {
     siteName: string;
   } | null>(null);
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
+  const [manageSitesUser, setManageSitesUser] = useState<UserWithAssignments | null>(null);
+  const [siteAddMode, setSiteAddMode] = useState<"individual" | "by-company">("individual");
+  const [selectedCompanyToAdd, setSelectedCompanyToAdd] = useState<string>("");
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -388,13 +392,56 @@ export default function UserManagement() {
       consultantTier: u.consultantTier || "standard",
       clientPermissionRole: "owner",
     });
-    // Fetch site assignments for consultants and clients
-    if (u.role !== "admin" && isAdmin) {
-      fetchUserSiteAssignments(u.id);
-    } else {
-      setUserSiteAssignments([]);
-    }
+    setUserSiteAssignments([]);
     setSelectedSiteToAdd("");
+  };
+
+  const openManageSitesDialog = (u: UserWithAssignments) => {
+    setManageSitesUser(u);
+    setSiteAddMode("individual");
+    setSelectedCompanyToAdd("");
+    setSelectedSiteToAdd("");
+    fetchUserSiteAssignments(u.id);
+  };
+
+  const getAvailableSitesForManageDialog = () => {
+    const assignedSiteIds = userSiteAssignments.map(a => a.siteId);
+    return sites.filter(s => !assignedSiteIds.includes(s.id));
+  };
+
+  const getAvailableSitesByCompany = (companyId: string) => {
+    const assignedSiteIds = userSiteAssignments.map(a => a.siteId);
+    return sites.filter(s => s.companyId === companyId && !assignedSiteIds.includes(s.id));
+  };
+
+  const handleAddSiteConfirmManage = () => {
+    if (!manageSitesUser || !selectedSiteToAdd) return;
+    const site = sites.find(s => s.id === selectedSiteToAdd);
+    if (site) {
+      setSiteAssignmentConfirm({ type: "add", siteId: selectedSiteToAdd, siteName: site.name });
+    }
+  };
+
+  const addSitesByCompany = async (companyId: string) => {
+    if (!manageSitesUser) return;
+    const sitesToAdd = getAvailableSitesByCompany(companyId);
+    if (sitesToAdd.length === 0) return;
+    try {
+      for (const site of sitesToAdd) {
+        await apiRequest("POST", `/api/users/${manageSitesUser.id}/site-assignments/${site.id}`, {});
+      }
+      fetchUserSiteAssignments(manageSitesUser.id);
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/consultants"] });
+      setSelectedCompanyToAdd("");
+      const companyName = companies.find(c => c.id === companyId)?.name || "company";
+      toast({
+        title: "Sites Assigned",
+        description: `${sitesToAdd.length} site${sitesToAdd.length !== 1 ? "s" : ""} from ${companyName} have been assigned.`,
+      });
+    } catch {
+      toast({ title: "Failed to assign sites", variant: "destructive" });
+    }
   };
 
   const updateUserMutation = useMutation({
@@ -593,16 +640,17 @@ export default function UserManagement() {
   };
 
   const handleConfirmSiteAssignment = () => {
-    if (!editingUser || !siteAssignmentConfirm) return;
+    const activeUser = manageSitesUser || editingUser;
+    if (!activeUser || !siteAssignmentConfirm) return;
     
     if (siteAssignmentConfirm.type === "add") {
       addSiteAssignmentMutation.mutate({
-        userId: editingUser.id,
+        userId: activeUser.id,
         siteId: siteAssignmentConfirm.siteId,
       });
     } else {
       removeSiteAssignmentMutation.mutate({
-        userId: editingUser.id,
+        userId: activeUser.id,
         siteId: siteAssignmentConfirm.siteId,
       });
     }
@@ -1149,6 +1197,12 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                           </>
                         )}
+                        {(isAdmin || isPro) && u.role !== "admin" && (
+                          <DropdownMenuItem onClick={() => openManageSitesDialog(u)} data-testid={`button-manage-sites-${u.id}`}>
+                            <MapPin className="h-4 w-4 mr-2" />
+                            Manage Sites
+                          </DropdownMenuItem>
+                        )}
                         {(isAdmin || isConsultant) && (
                           <>
                             {u.status === "invite_required" && (
@@ -1518,93 +1572,6 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              {/* Site Assignments section - only for consultants and clients */}
-              {editFormData.role !== "admin" && (isAdmin || isPro) && (
-                <div className="border-b pb-4">
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Site Assignments
-                  </h4>
-                  
-                  {editFormData.role === "client" && !editFormData.companyId && (
-                    <p className="text-sm text-muted-foreground">
-                      Please assign a company first before adding site assignments.
-                    </p>
-                  )}
-                  
-                  {(editFormData.role === "consultant" || (editFormData.role === "client" && editFormData.companyId)) && (
-                    <div className="space-y-3">
-                      {/* Current assignments */}
-                      {userSiteAssignments.length > 0 ? (
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {userSiteAssignments.map((assignment) => (
-                              <Badge
-                                key={assignment.siteId}
-                                variant="secondary"
-                                className="flex items-center gap-1 pr-1"
-                              >
-                                <span>{assignment.siteName}</span>
-                                <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-4 w-4 ml-1 hover:bg-destructive/20"
-                                  onClick={() => handleRemoveSiteClick(assignment.siteId, assignment.siteName)}
-                                  data-testid={`button-remove-site-${assignment.siteId}`}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No sites assigned yet.</p>
-                      )}
-                      
-                      {/* Add new assignment */}
-                      {getAvailableSitesForUser().length > 0 && (
-                        <div className="flex items-end gap-2">
-                          <div className="flex-1 grid gap-2">
-                            <Label htmlFor="add-site" className="text-xs text-muted-foreground">Add site</Label>
-                            <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
-                              <SelectTrigger id="add-site" data-testid="select-add-site">
-                                <SelectValue placeholder="Select a site to add" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getAvailableSitesForUser().map((site) => {
-                                  const company = companies.find(c => c.id === site.companyId);
-                                  return (
-                                    <SelectItem key={site.id} value={site.id}>
-                                      {site.name} {company ? `(${company.name})` : ""}
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddSiteConfirm}
-                            disabled={!selectedSiteToAdd}
-                            data-testid="button-add-site"
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {getAvailableSitesForUser().length === 0 && userSiteAssignments.length > 0 && (
-                        <p className="text-xs text-muted-foreground">All available sites have been assigned.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div>
                 <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
@@ -2467,11 +2434,11 @@ export default function UserManagement() {
             <DialogDescription>
               {siteAssignmentConfirm?.type === "add" ? (
                 <>
-                  Are you sure you want to assign <strong>{editingUser?.fullName}</strong> to <strong>{siteAssignmentConfirm?.siteName}</strong>?
+                  Are you sure you want to assign <strong>{(manageSitesUser || editingUser)?.fullName}</strong> to <strong>{siteAssignmentConfirm?.siteName}</strong>?
                 </>
               ) : (
                 <>
-                  Are you sure you want to remove <strong>{editingUser?.fullName}</strong> from <strong>{siteAssignmentConfirm?.siteName}</strong>?
+                  Are you sure you want to remove <strong>{(manageSitesUser || editingUser)?.fullName}</strong> from <strong>{siteAssignmentConfirm?.siteName}</strong>?
                   <br /><br />
                   This will revoke their access to this site's documents and compliance data.
                 </>
@@ -2496,6 +2463,152 @@ export default function UserManagement() {
                 ? "Processing..." 
                 : siteAssignmentConfirm?.type === "add" ? "Yes, Assign Site" : "Yes, Remove Site"
               }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Sites Dialog */}
+      <Dialog open={!!manageSitesUser} onOpenChange={(open) => {
+        if (!open) {
+          setManageSitesUser(null);
+          setUserSiteAssignments([]);
+          setSiteAddMode("individual");
+          setSelectedCompanyToAdd("");
+          setSelectedSiteToAdd("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-[540px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Manage Sites — {manageSitesUser?.fullName}
+            </DialogTitle>
+            <DialogDescription>
+              Assign or remove site access for this {manageSitesUser?.role === "consultant" ? "consultant" : "user"}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            {/* Current assignments */}
+            <div>
+              <Label className="text-sm font-medium">Assigned Sites</Label>
+              {userSiteAssignments.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {userSiteAssignments.map((assignment) => (
+                    <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1 pr-1">
+                      <span>{assignment.siteName}</span>
+                      <span className="text-xs text-muted-foreground">({assignment.companyName})</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 hover:bg-destructive/20"
+                        onClick={() => handleRemoveSiteClick(assignment.siteId, assignment.siteName)}
+                        data-testid={`button-manage-remove-site-${assignment.siteId}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-2">No sites assigned yet.</p>
+              )}
+            </div>
+
+            {/* Add sites section */}
+            <div className="border-t pt-4">
+              <Label className="text-sm font-medium mb-3 block">Add Sites</Label>
+              <Tabs value={siteAddMode} onValueChange={(v) => {
+                setSiteAddMode(v as "individual" | "by-company");
+                setSelectedSiteToAdd("");
+                setSelectedCompanyToAdd("");
+              }}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="individual" className="flex-1">Individual Site</TabsTrigger>
+                  <TabsTrigger value="by-company" className="flex-1">By Company</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="individual" className="mt-3">
+                  {getAvailableSitesForManageDialog().length > 0 ? (
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
+                          <SelectTrigger data-testid="select-manage-site-individual">
+                            <SelectValue placeholder="Select a site" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableSitesForManageDialog().map((site) => {
+                              const company = companies.find(c => c.id === site.companyId);
+                              return (
+                                <SelectItem key={site.id} value={site.id}>
+                                  {site.name}{company ? ` (${company.name})` : ""}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddSiteConfirmManage}
+                        disabled={!selectedSiteToAdd}
+                        data-testid="button-manage-add-site"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">All available sites are already assigned.</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="by-company" className="mt-3 space-y-3">
+                  <Select value={selectedCompanyToAdd} onValueChange={setSelectedCompanyToAdd}>
+                    <SelectTrigger data-testid="select-manage-site-company">
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => {
+                        const available = getAvailableSitesByCompany(company.id);
+                        return (
+                          <SelectItem key={company.id} value={company.id} disabled={available.length === 0}>
+                            {company.name}
+                            {available.length > 0
+                              ? ` — ${available.length} site${available.length !== 1 ? "s" : ""} available`
+                              : " — all sites assigned"}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {selectedCompanyToAdd && (
+                    <Button
+                      className="w-full"
+                      onClick={() => addSitesByCompany(selectedCompanyToAdd)}
+                      disabled={getAvailableSitesByCompany(selectedCompanyToAdd).length === 0}
+                      data-testid="button-manage-add-company-sites"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add {getAvailableSitesByCompany(selectedCompanyToAdd).length} Site{getAvailableSitesByCompany(selectedCompanyToAdd).length !== 1 ? "s" : ""} from {companies.find(c => c.id === selectedCompanyToAdd)?.name}
+                    </Button>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setManageSitesUser(null);
+              setUserSiteAssignments([]);
+              setSiteAddMode("individual");
+              setSelectedCompanyToAdd("");
+              setSelectedSiteToAdd("");
+            }}>
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
