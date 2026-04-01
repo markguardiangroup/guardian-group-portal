@@ -1504,8 +1504,8 @@ export default function UserManagement() {
                     {editFormData.role === "client" && (
                       <div className="grid gap-2">
                         <Label htmlFor="edit-company">Company</Label>
-                        <Select value={editFormData.companyId} onValueChange={(v) => setEditFormData({ ...editFormData, companyId: v })}>
-                          <SelectTrigger id="edit-company" data-testid="select-edit-company">
+                        <Select value={editFormData.companyId} onValueChange={(v) => setEditFormData({ ...editFormData, companyId: v })} disabled={userSiteAssignments.length > 0}>
+                          <SelectTrigger id="edit-company" data-testid="select-edit-company" disabled={userSiteAssignments.length > 0}>
                             <SelectValue placeholder="Select company" />
                           </SelectTrigger>
                           <SelectContent>
