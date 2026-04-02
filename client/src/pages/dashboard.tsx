@@ -366,10 +366,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
   }, [incidents, siteId, selectedCompany, sites]);
 
   const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
-  const openActionsCount = filteredIncidents.filter(i =>
-    (i.status === "reported" || i.status === "under_review") &&
-    i.correctiveActions && i.correctiveActions.trim().length > 0
-  ).length;
+  const openActionsCount = activeCount;
   const riddorCount = filteredIncidents.filter(i => i.riddorReportable).length;
   const totalCount = filteredIncidents.length;
 
@@ -442,11 +439,13 @@ function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
   const overdueCount = activeCases.filter(c => {
     if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
     if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;
+    if ((c as any).overduesMilestoneDueDate) return true;
     return false;
   }).length;
   const upcomingCount = activeCases.filter(c => {
     if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 30) return true;
     if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 30) return true;
+    if ((c as any).upcomingMilestoneDueDate && isFuture(new Date((c as any).upcomingMilestoneDueDate)) && differenceInDays(new Date((c as any).upcomingMilestoneDueDate), new Date()) <= 30) return true;
     return false;
   }).length;
   const totalCount = filteredCases.length;
