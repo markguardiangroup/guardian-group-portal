@@ -366,8 +366,8 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
   }, [incidents, siteId, selectedCompany, sites]);
 
   const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
-  const openActionsCount = activeCount;
   const riddorCount = filteredIncidents.filter(i => i.riddorReportable).length;
+  const openActionsCount = activeCount - riddorCount;
   const totalCount = filteredIncidents.length;
 
   return (
