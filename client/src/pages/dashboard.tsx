@@ -1513,7 +1513,6 @@ export default function Dashboard() {
                     const docSite = sites?.find(s => s.id === doc.siteId);
                     if (docSite) {
                       setSelectedCompany(docSite.companyName || null);
-                      setSidebarOpen(false);
                     }
                   }}>
                     <div className="space-y-1">
