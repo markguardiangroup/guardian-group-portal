@@ -293,20 +293,17 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       {allHasIssues ? (
                         allMissing > 0 || allOverdue > 0 ? (
-                          <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
-                            <AlertTriangle className="h-3 w-3 sm:mr-1" />
-                            <span className="hidden sm:inline">Attention</span>
+                          <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                            <AlertTriangle className="h-3 w-3" />
                           </Badge>
                         ) : (
-                          <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs">
-                            <Clock className="h-3 w-3 sm:mr-1" />
-                            <span className="hidden sm:inline">Review</span>
+                          <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs px-1.5">
+                            <Clock className="h-3 w-3" />
                           </Badge>
                         )
                       ) : allClear ? (
-                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs">
-                          <CheckCircle className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Compliant</span>
+                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs px-1.5">
+                          <CheckCircle className="h-3 w-3" />
                         </Badge>
                       ) : null}
                     </div>
@@ -443,19 +440,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                       {missingCount > 0 || overdue > 0 ? (
-                        <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs">
-                          <AlertTriangle className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Attention</span>
+                        <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                          <AlertTriangle className="h-3 w-3" />
                         </Badge>
                       ) : reviewRequired > 0 ? (
-                        <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs">
-                          <Clock className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Review</span>
+                        <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs px-1.5">
+                          <Clock className="h-3 w-3" />
                         </Badge>
                       ) : allClear ? (
-                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs">
-                          <CheckCircle className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Compliant</span>
+                        <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs px-1.5">
+                          <CheckCircle className="h-3 w-3" />
                         </Badge>
                       ) : null}
                     </div>
