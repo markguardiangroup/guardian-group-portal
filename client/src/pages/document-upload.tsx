@@ -569,7 +569,7 @@ export default function DocumentUpload() {
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           {isAdminOrConsultant && (
             <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
-              <CardContent className="py-6 flex flex-col items-start gap-4">
+              <CardContent className="py-6 flex flex-col items-start gap-4 h-full">
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <BookOpen className="h-6 w-6 text-primary" />
                 </div>
@@ -589,7 +589,7 @@ export default function DocumentUpload() {
             </Card>
           )}
           <Card className="border-muted hover:bg-muted/30 transition-colors">
-            <CardContent className="py-6 flex flex-col items-start gap-4">
+            <CardContent className="py-6 flex flex-col items-start gap-4 h-full">
               <div className="p-3 bg-muted rounded-lg">
                 <Upload className="h-6 w-6 text-muted-foreground" />
               </div>
@@ -601,6 +601,7 @@ export default function DocumentUpload() {
               </div>
               <Button variant="outline" className="w-full" onClick={handleUploadFromScratch} data-testid="button-upload-from-scratch">
                 Upload from Scratch
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
