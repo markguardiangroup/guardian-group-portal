@@ -313,7 +313,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       ) : null}
                     </div>
 
-                    {allTotal > 0 ? (
+                    {allDenom > 0 ? (
                       <div className="mb-4 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -463,7 +463,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     </div>
 
                     {/* Compliance bar */}
-                    {total > 0 ? (
+                    {scoreDenominator > 0 ? (
                       <div className="mb-4 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
