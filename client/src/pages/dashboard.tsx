@@ -33,7 +33,7 @@ import {
   Briefcase,
   ShieldAlert,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays, isFuture, isPast } from "date-fns";
 import { Link, useLocation } from "wouter";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import { useAuth } from "@/hooks/use-auth";
@@ -297,6 +297,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
 
   const bookedCount = filteredBookings.filter(b => b.status === "booked").length;
   const completedCount = filteredBookings.filter(b => b.status === "completed").length;
+  const certificatesCount = filteredBookings.filter(b => b.certificateId != null).length;
   const totalBookings = filteredBookings.length;
 
   return (
@@ -322,14 +323,14 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
             <div className="flex items-center justify-center gap-1 text-purple-600 dark:text-purple-400">
-              <BookOpen className="h-4 w-4" />
-              <span className="text-lg font-semibold">{bookedCount}</span>
+              <Award className="h-4 w-4" />
+              <span className="text-lg font-semibold">{certificatesCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Booked</p>
+            <p className="text-xs text-muted-foreground">Certificates</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <Award className="h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               <span className="text-lg font-semibold">{completedCount}</span>
             </div>
             <p className="text-xs text-muted-foreground">Completed</p>
@@ -365,7 +366,11 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
   }, [incidents, siteId, selectedCompany, sites]);
 
   const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
-  const resolvedCount = filteredIncidents.filter(i => i.status === "resolved" || i.status === "closed").length;
+  const openActionsCount = filteredIncidents.filter(i =>
+    (i.status === "reported" || i.status === "under_review") &&
+    i.correctiveActions && i.correctiveActions.trim().length > 0
+  ).length;
+  const riddorCount = filteredIncidents.filter(i => i.riddorReportable).length;
   const totalCount = filteredIncidents.length;
 
   return (
@@ -392,16 +397,16 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
           <div>
             <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{activeCount}</span>
+              <span className="text-lg font-semibold">{openActionsCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Active</p>
+            <p className="text-xs text-muted-foreground">Open Actions</p>
           </div>
           <div>
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{resolvedCount}</span>
+            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+              <ShieldAlert className="h-4 w-4" />
+              <span className="text-lg font-semibold">{riddorCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Resolved</p>
+            <p className="text-xs text-muted-foreground">RIDDOR</p>
           </div>
         </div>
         <Button className="w-full border-emerald-500 text-emerald-600 dark:text-emerald-400" variant="outline" asChild>
@@ -433,7 +438,17 @@ function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
   }, [cases, siteId, selectedCompany, sites]);
 
   const openCount = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
-  const resolvedCount = filteredCases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const activeCases = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled");
+  const overdueCount = activeCases.filter(c => {
+    if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
+    if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;
+    return false;
+  }).length;
+  const upcomingCount = activeCases.filter(c => {
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 30) return true;
+    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 30) return true;
+    return false;
+  }).length;
   const totalCount = filteredCases.length;
 
   return (
@@ -458,18 +473,18 @@ function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
-              <Briefcase className="h-4 w-4" />
-              <span className="text-lg font-semibold">{openCount}</span>
+            <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-lg font-semibold">{overdueCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Open</p>
+            <p className="text-xs text-muted-foreground">Overdue</p>
           </div>
           <div>
-            <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{resolvedCount}</span>
+            <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
+              <Clock className="h-4 w-4" />
+              <span className="text-lg font-semibold">{upcomingCount}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Resolved</p>
+            <p className="text-xs text-muted-foreground">Upcoming</p>
           </div>
         </div>
         <Button className="w-full border-pink-500 text-pink-600 dark:text-pink-400" variant="outline" asChild>
