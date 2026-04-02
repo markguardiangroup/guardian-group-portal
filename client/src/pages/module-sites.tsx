@@ -137,10 +137,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   }, [sites, selectedCompany]);
 
   // Sort sites by compliance priority:
-  // 1. Has score + issues (lowest score first)
-  // 2. No score but attention required (missing required docs)
-  // 3. 100% compliant
-  // 4. Empty — no docs, no attention needed
+  // 1. Any issues (missing, overdue, review) — sorted by compliance % ascending (0% first)
+  // 2. 100% compliant
+  // 3. Empty — no required docs, no attention needed
   const sortedFilteredSites = useMemo(() => {
     const getSiteMetrics = (siteId: string) => {
       const siteDocs = (documents ?? []).filter(
@@ -152,26 +151,25 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const reviewRequired = siteDocs.filter((d) => d.status === "review_required").length;
       const missingCount = missingRequiredDetails.filter((m) => m.siteId === siteId).length;
       const denom = compliant + reviewRequired + overdue + missingCount;
-      // A site only "has a score" if there are actual uploaded docs — matching the UI display
-      const pct = total > 0 && denom > 0 ? Math.round((compliant / denom) * 100) : null;
+      // Use denom (not total) so sites with only missing docs get pct=0 rather than null
+      const pct = denom > 0 ? Math.round((compliant / denom) * 100) : null;
       const hasIssues = missingCount > 0 || overdue > 0 || reviewRequired > 0;
       return { pct, hasIssues, total };
     };
 
-    const getPriority = (pct: number | null, hasIssues: boolean, total: number) => {
-      if (total > 0 && hasIssues) return 0; // has docs + issues → sort by pct asc (lowest first)
-      if (hasIssues) return 1;              // no docs uploaded but attention required
-      if (pct === 100) return 2;            // fully compliant
-      return 3;                             // empty, no attention needed
+    const getPriority = (pct: number | null, hasIssues: boolean) => {
+      if (hasIssues) return 0;  // any issues (missing, overdue, review) → sort by pct asc (lowest first)
+      if (pct === 100) return 1; // fully compliant
+      return 2;                  // empty, no attention needed
     };
 
     return [...filteredSites].sort((a, b) => {
       const am = getSiteMetrics(a.id);
       const bm = getSiteMetrics(b.id);
-      const ap = getPriority(am.pct, am.hasIssues, am.total);
-      const bp = getPriority(bm.pct, bm.hasIssues, bm.total);
+      const ap = getPriority(am.pct, am.hasIssues);
+      const bp = getPriority(bm.pct, bm.hasIssues);
       if (ap !== bp) return ap - bp;
-      // Within the "has docs + issues" bucket, sort lowest score first
+      // Within the "has issues" bucket, sort lowest score first (0% missing-only sites float to top)
       if (ap === 0) return (am.pct ?? 0) - (bm.pct ?? 0);
       return 0;
     });
