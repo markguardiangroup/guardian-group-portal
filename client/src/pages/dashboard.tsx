@@ -756,7 +756,7 @@ function OverallComplianceCard({
                       <div
                         key={doc.id}
                         className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
-                        onClick={() => { setDocsDialog(null); navigate(modulePath); }}
+                        onClick={() => { setDocsDialog(null); navigate(`${modulePath}/documents/${doc.id}`); }}
                         data-testid={`row-doc-${doc.id}`}
                       >
                         <div className="min-w-0 flex-1">
@@ -772,6 +772,7 @@ function OverallComplianceCard({
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
                             {statusLabel}
                           </span>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         </div>
                       </div>
                     );
@@ -809,31 +810,39 @@ function OverallComplianceCard({
                 </TabsList>
                 {Object.entries(groupedMissing).map(([mod, items]) => (
                   <TabsContent key={mod} value={mod} className="mt-4 space-y-2">
-                    {items.map((item, idx) => (
-                      <div
-                        key={`${item.templateId}-${item.siteId}-${idx}`}
-                        className="flex items-center justify-between rounded-md border p-3"
-                        data-testid={`row-missing-${item.templateId}-${item.siteId}`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{item.templateName}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {item.siteName} — {item.companyName}
-                          </p>
+                    {items.map((item, idx) => {
+                      const modPath = modulePathMap[mod] || "/";
+                      const destPath = item.documentId
+                        ? `${modPath}/documents/${item.documentId}`
+                        : `${modPath}/documents`;
+                      return (
+                        <div
+                          key={`${item.templateId}-${item.siteId}-${idx}`}
+                          className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/40 cursor-pointer"
+                          onClick={() => { setShowMissingDialog(false); navigate(destPath); }}
+                          data-testid={`row-missing-${item.templateId}-${item.siteId}`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{item.templateName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {item.siteName} — {item.companyName}
+                            </p>
+                          </div>
+                          <div className="ml-2 shrink-0 flex items-center gap-1.5">
+                            {item.kind === "required_document" ? (
+                              <Badge variant="outline" className="text-xs text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 capitalize">
+                                {item.documentStatus?.replace("_", " ") || "Not Compliant"}
+                              </Badge>
+                            ) : item.requiresApproval ? (
+                              <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs text-muted-foreground">Not Uploaded</Badge>
+                            )}
+                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          </div>
                         </div>
-                        <div className="ml-2 shrink-0 flex items-center gap-1.5">
-                          {item.kind === "required_document" ? (
-                            <Badge variant="outline" className="text-xs text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 capitalize">
-                              {item.documentStatus?.replace("_", " ") || "Not Compliant"}
-                            </Badge>
-                          ) : item.requiresApproval ? (
-                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">Not Uploaded</Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </TabsContent>
                 ))}
               </Tabs>
