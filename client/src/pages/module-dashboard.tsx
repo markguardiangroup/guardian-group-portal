@@ -218,6 +218,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   // Fetch missing required template details for this module
   const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [renewalMetricDialog, setRenewalMetricDialog] = useState<null | "overdue" | "due30" | "due60">(null);
   const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
     queryKey: ["/api/missing-required-templates", module, siteId, companySiteIdsKey],
     placeholderData: keepPreviousData,
@@ -578,7 +579,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-3 mb-6">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <button onClick={() => setRenewalMetricDialog("overdue")} className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-overdue">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
@@ -586,8 +587,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-renewals-overdue">{renewalMetrics.overdue}</p>
                   <p className="text-sm text-muted-foreground">Overdue Renewals</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              </button>
+              <button onClick={() => setRenewalMetricDialog("due30")} className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-30days">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
                   <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
@@ -595,8 +596,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-renewals-30days">{renewalMetrics.due30Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 30 Days</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              </button>
+              <button onClick={() => setRenewalMetricDialog("due60")} className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-60days">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
                   <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
@@ -604,7 +605,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-renewals-60days">{renewalMetrics.due60Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 60 Days</p>
                 </div>
-              </div>
+              </button>
             </div>
             
             {renewalMetrics.upcomingRenewals.length > 0 && (
@@ -653,6 +654,51 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             )}
           </CardContent>
         </Card>
+
+      <Dialog open={renewalMetricDialog !== null} onOpenChange={(open) => { if (!open) setRenewalMetricDialog(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {renewalMetricDialog === "overdue" && <><AlertTriangle className="h-5 w-5 text-red-600" /> Overdue Renewals</>}
+              {renewalMetricDialog === "due30" && <><Clock className="h-5 w-5 text-amber-600" /> Due in 30 Days</>}
+              {renewalMetricDialog === "due60" && <><Calendar className="h-5 w-5 text-blue-600" /> Due in 60 Days</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {(() => {
+              const docs = renewalMetrics.upcomingRenewals.filter(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                
+                if (renewalMetricDialog === "overdue") return daysUntilRenewal !== null && daysUntilRenewal < 0;
+                if (renewalMetricDialog === "due30") return daysUntilRenewal !== null && daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+                if (renewalMetricDialog === "due60") return daysUntilRenewal !== null && daysUntilRenewal > 30 && daysUntilRenewal <= 60;
+                return false;
+              });
+
+              if (docs.length === 0) {
+                return <div className="py-8 text-center text-muted-foreground text-sm">No documents to display.</div>;
+              }
+
+              return docs.map(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+
+                return (
+                  <Link key={doc.id} href={`${basePath}/documents/${doc.id}`} className="flex items-start justify-between p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <div className="space-y-1">
+                      <p className="font-medium text-sm">{doc.name || doc.title}</p>
+                      {renewalDate && <p className="text-xs text-muted-foreground">{format(renewalDate, "MMM dd, yyyy")}</p>}
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                  </Link>
+                );
+              });
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2 border-t-4 border-t-module-accent bg-muted/40">

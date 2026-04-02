@@ -1142,6 +1142,8 @@ export default function Dashboard() {
     return { overdue, due30Days, due60Days, upcomingRenewals };
   }, [allDocuments]);
   
+  const [renewalMetricDialog, setRenewalMetricDialog] = useState<null | "overdue" | "due30" | "due60">(null);
+
   const { hasActiveAccess, isHidden } = useModuleAccess();
   
   // Build current context label
@@ -1355,7 +1357,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3 mb-6">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+            <button onClick={() => setRenewalMetricDialog("overdue")} className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-overdue">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                 <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
@@ -1363,8 +1365,8 @@ export default function Dashboard() {
                 <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-overview-renewals-overdue">{renewalMetrics.overdue}</p>
                 <p className="text-sm text-muted-foreground">Overdue Renewals</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            </button>
+            <button onClick={() => setRenewalMetricDialog("due30")} className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-30days">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
                 <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
@@ -1372,8 +1374,8 @@ export default function Dashboard() {
                 <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-overview-renewals-30days">{renewalMetrics.due30Days}</p>
                 <p className="text-sm text-muted-foreground">Due in 30 Days</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            </button>
+            <button onClick={() => setRenewalMetricDialog("due60")} className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-60days">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
                 <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
@@ -1381,7 +1383,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-overview-renewals-60days">{renewalMetrics.due60Days}</p>
                 <p className="text-sm text-muted-foreground">Due in 60 Days</p>
               </div>
-            </div>
+            </button>
           </div>
           
           {renewalMetrics.upcomingRenewals.length > 0 && (
@@ -1466,6 +1468,67 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={renewalMetricDialog !== null} onOpenChange={(open) => { if (!open) setRenewalMetricDialog(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {renewalMetricDialog === "overdue" && <><AlertTriangle className="h-5 w-5 text-red-600" /> Overdue Renewals</>}
+              {renewalMetricDialog === "due30" && <><Clock className="h-5 w-5 text-amber-600" /> Due in 30 Days</>}
+              {renewalMetricDialog === "due60" && <><Calendar className="h-5 w-5 text-blue-600" /> Due in 60 Days</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {(() => {
+              const docs = renewalMetrics.upcomingRenewals.filter(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                
+                if (renewalMetricDialog === "overdue") return daysUntilRenewal !== null && daysUntilRenewal < 0;
+                if (renewalMetricDialog === "due30") return daysUntilRenewal !== null && daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+                if (renewalMetricDialog === "due60") return daysUntilRenewal !== null && daysUntilRenewal > 30 && daysUntilRenewal <= 60;
+                return false;
+              });
+
+              if (docs.length === 0) {
+                return <div className="py-8 text-center text-muted-foreground text-sm">No documents to display.</div>;
+              }
+
+              return docs.map(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const moduleBadgeClass = doc.module === "health_safety" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                  : doc.module === "employment_law" ? "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300"
+                  : doc.module === "human_resources" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                  : "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300";
+
+                const moduleLabel = doc.module === "health_safety" ? "H&S"
+                  : doc.module === "employment_law" ? "EL"
+                  : doc.module === "human_resources" ? "HR"
+                  : "Support";
+
+                return (
+                  <div key={doc.id} className="flex items-start justify-between p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => {
+                    const docSite = sites?.find(s => s.id === doc.siteId);
+                    if (docSite) {
+                      setSelectedCompany(docSite.companyName || null);
+                      setSidebarOpen(false);
+                    }
+                  }}>
+                    <div className="space-y-1">
+                      <p className="font-medium text-sm">{doc.name}</p>
+                      <p className="text-xs text-muted-foreground">{doc.siteId && sites?.find(s => s.id === doc.siteId)?.name}</p>
+                      {renewalDate && <p className="text-xs text-muted-foreground">{format(renewalDate, "MMM dd, yyyy")}</p>}
+                    </div>
+                    <Badge variant="outline" className={moduleBadgeClass}>{moduleLabel}</Badge>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Compliance Modules</h2>
