@@ -739,9 +739,9 @@ export default function CreateFromTemplate() {
               return (
                 <Card
                   key={template.id}
-                  className={`cursor-pointer hover-elevate transition-all relative overflow-hidden flex flex-col ${
+                  className={`cursor-pointer hover-elevate transition-all flex flex-col ${
                     isSelected
-                      ? `ring-2 ${borderColor ? `ring-current ${iconColor}` : "ring-primary"}`
+                      ? `ring-2 ring-primary`
                       : ""
                   }`}
                   style={{ animation: "slideUpFade 0.28s ease both", animationDelay: `${index * 40}ms` }}
@@ -749,8 +749,7 @@ export default function CreateFromTemplate() {
                   onDoubleClick={() => { setSelectedTemplateId(template.id); goToStep("site"); }}
                   data-testid={`template-card-${template.id}`}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[template.module] || ""} pointer-events-none`} />
-                  <CardContent className="p-3 relative flex flex-col flex-1 gap-1.5">
+                  <CardContent className="p-3 flex flex-col flex-1 gap-1.5">
                     <div className="flex items-start gap-2">
                       <div className={`p-1.5 rounded-md shrink-0 ${iconBg}`}>
                         <FolderIcon className={`h-4 w-4 ${iconColor}`} />
