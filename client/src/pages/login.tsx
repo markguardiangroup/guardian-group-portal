@@ -322,17 +322,7 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel className="text-slate-700 font-medium">Password</FormLabel>
-                      <button
-                        type="button"
-                        className="text-xs text-sky-600 hover:text-sky-700 font-medium"
-                        onClick={() => setShowForgotPassword(true)}
-                        data-testid="button-forgot-password"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
+                    <FormLabel className="text-slate-700 font-medium">Password</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
@@ -377,6 +367,15 @@ export default function Login() {
                   <>Sign In <ArrowRight className="ml-2 h-4 w-4" /></>
                 )}
               </Button>
+
+              <button
+                type="button"
+                className="w-full text-xs text-sky-600 hover:text-sky-700 font-medium py-2"
+                onClick={() => setShowForgotPassword(true)}
+                data-testid="button-forgot-password"
+              >
+                Forgot password?
+              </button>
             </form>
           </Form>
         </div>
