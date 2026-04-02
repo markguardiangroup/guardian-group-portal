@@ -370,11 +370,11 @@ function CasesList() {
     return false;
   }).length;
 
-  // Upcoming: has any future deadline within 7 days from case fields OR upcoming milestones within 7 days
+  // Upcoming: has any future deadline within 30 days from case fields OR upcoming milestones within 30 days
   const upcomingCases = activeCases.filter(c => {
-    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
-    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
-    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 30) return true;
+    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 30) return true;
+    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 30) return true;
     return false;
   }).length;
 
@@ -547,7 +547,7 @@ function CasesList() {
                 {metricDialog === "cases_active" && "Cases currently open, under investigation, or with a hearing scheduled."}
                 {metricDialog === "cases_resolved" && "Cases that have been resolved or closed."}
                 {metricDialog === "overdue" && "Cases with a response deadline, hearing date, or milestone that has already passed."}
-                {metricDialog === "upcoming" && "Cases with a deadline due within the next 7 days."}
+                {metricDialog === "upcoming" && "Cases with a deadline due within the next 30 days."}
               </DialogDescription>
             </DialogHeader>
             <div className="mt-2 space-y-2 max-h-96 overflow-y-auto">
@@ -566,9 +566,9 @@ function CasesList() {
                   });
                 } else if (metricDialog === "upcoming") {
                   listCases = activeCases.filter(c => {
-                    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
-                    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
-                    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+                    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 30) return true;
+                    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 30) return true;
+                    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 30) return true;
                     return false;
                   });
                 }
@@ -2191,9 +2191,9 @@ function EmploymentLawDashboardView() {
   }).length;
 
   const upcomingCases2 = activeCases.filter(c => {
-    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 7) return true;
-    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 7) return true;
-    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 7) return true;
+    if (c.responseDeadline && isFuture(new Date(c.responseDeadline)) && differenceInDays(new Date(c.responseDeadline), new Date()) <= 30) return true;
+    if (c.hearingDate && isFuture(new Date(c.hearingDate)) && differenceInDays(new Date(c.hearingDate), new Date()) <= 30) return true;
+    if (c.upcomingMilestoneDueDate && differenceInDays(new Date(c.upcomingMilestoneDueDate), new Date()) <= 30) return true;
     return false;
   }).length;
 
