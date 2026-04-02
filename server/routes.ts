@@ -9995,10 +9995,21 @@ export async function registerRoutes(
   .td{padding:6px 8px;font-size:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 32px}
   .footer{border-top:1px solid #e5e7eb;padding:14px 32px;background:#f9fafb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
-  @media print{body{background:#fff;padding:0}.page{border:none;border-radius:0}}
+  @media print{
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff;padding:0}
+    .page{border:none;border-radius:0;max-width:100%}
+    .header{background:#1e293b !important;color:#fff !important}
+    .accent-banner{background:#16a34a !important;color:#fff !important}
+  }
 </style>
 </head>
 <body>
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+</script>
 <div class="page">
   <div class="header">
     <div>
@@ -10080,7 +10091,7 @@ export async function registerRoutes(
 </html>`;
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="Investigation_Report_${incident.incidentReference}.html"`);
+      res.setHeader("Content-Disposition", `inline; filename="Investigation_Report_${incident.incidentReference}.pdf"`);
       res.send(html);
     } catch (error) {
       console.error("Error generating investigation report:", error);
