@@ -103,6 +103,7 @@ import {
   Check,
   StickyNote,
   Maximize2,
+  ClipboardList,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -1486,8 +1487,14 @@ function CaseDetailView({ id }: { id: string }) {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader className="border-b">
-              <CardTitle className="text-lg">Case Details</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-pink-500" />
+                  Case Details
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Summary information for this case</CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid gap-4 sm:grid-cols-2">
