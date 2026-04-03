@@ -10,6 +10,7 @@ import {
   type SupportMessage, type InsertSupportMessage,
   type Case, type InsertCase,
   type CaseMilestone, type InsertCaseMilestone,
+  type CaseDocumentChecklist, type InsertCaseDocumentChecklist,
   type ComplianceSummary,
   type SiteWithDetails,
   type SiteWithCompany,
@@ -89,6 +90,7 @@ import {
   supportRequestReads as supportRequestReadsTable,
   cases as casesTable,
   caseMilestones as caseMilestonesTable,
+  caseDocumentChecklist as caseDocumentChecklistTable,
   incidents as incidentsTable,
   incidentMilestones as incidentMilestonesTable,
   consultantAssignments as consultantAssignmentsTable,
@@ -221,6 +223,13 @@ export interface IStorage {
   createCaseMilestone(milestone: InsertCaseMilestone): Promise<CaseMilestone>;
   updateCaseMilestone(id: string, updates: Partial<CaseMilestone>): Promise<CaseMilestone | undefined>;
   deleteCaseMilestone(id: string): Promise<void>;
+
+  // Case Document Checklist
+  getCaseDocumentChecklist(caseId: string): Promise<CaseDocumentChecklist[]>;
+  getCaseDocumentChecklistItem(id: string): Promise<CaseDocumentChecklist | undefined>;
+  createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist>;
+  updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined>;
+  deleteCaseDocumentChecklistItem(id: string): Promise<void>;
 
   // Incidents
   getIncidents(filters?: { siteId?: string; entityId?: string; status?: string; includeArchived?: boolean }): Promise<Incident[]>;
@@ -1480,6 +1489,39 @@ export class MemStorage implements IStorage {
 
   async deleteCaseMilestone(id: string): Promise<void> {
     await db.delete(caseMilestonesTable).where(eq(caseMilestonesTable.id, id));
+  }
+
+  // Case Document Checklist
+  async getCaseDocumentChecklist(caseId: string): Promise<CaseDocumentChecklist[]> {
+    return db.select().from(caseDocumentChecklistTable)
+      .where(eq(caseDocumentChecklistTable.caseId, caseId))
+      .orderBy(caseDocumentChecklistTable.createdAt);
+  }
+
+  async getCaseDocumentChecklistItem(id: string): Promise<CaseDocumentChecklist | undefined> {
+    const [result] = await db.select().from(caseDocumentChecklistTable)
+      .where(eq(caseDocumentChecklistTable.id, id));
+    return result;
+  }
+
+  async createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist> {
+    const now = new Date();
+    const [result] = await db.insert(caseDocumentChecklistTable)
+      .values({ ...item, createdAt: now, updatedAt: now })
+      .returning();
+    return result;
+  }
+
+  async updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined> {
+    const [result] = await db.update(caseDocumentChecklistTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(caseDocumentChecklistTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCaseDocumentChecklistItem(id: string): Promise<void> {
+    await db.delete(caseDocumentChecklistTable).where(eq(caseDocumentChecklistTable.id, id));
   }
 
   // Incidents - Database backed

@@ -97,9 +97,12 @@ import {
   ShieldCheck,
   FileQuestion,
   X,
+  ListChecks,
+  Square,
+  CheckSquare,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
+import type { Case, CaseMilestone, CaseDocumentChecklist, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -1026,6 +1029,9 @@ function CaseDetailView({ id }: { id: string }) {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  const [showChecklistDialog, setShowChecklistDialog] = useState(false);
+  const [checklistForm, setChecklistForm] = useState({ title: "", description: "" });
+  const [editingChecklistItem, setEditingChecklistItem] = useState<CaseDocumentChecklist | null>(null);
   const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1041,6 +1047,10 @@ function CaseDetailView({ id }: { id: string }) {
 
   const { data: milestones } = useQuery<CaseMilestone[]>({
     queryKey: ["/api/cases", id, "milestones"],
+  });
+
+  const { data: checklistItems } = useQuery<CaseDocumentChecklist[]>({
+    queryKey: ["/api/cases", id, "checklist"],
   });
 
   const { data: auditLogs } = useQuery<AuditLog[]>({
@@ -1176,6 +1186,41 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
+  const createChecklistItemMutation = useMutation({
+    mutationFn: async (data: { title: string; description: string }) => {
+      return apiRequest("POST", "/api/checklist", { ...data, caseId: id });
+    },
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      setShowChecklistDialog(false);
+      setChecklistForm({ title: "", description: "" });
+      toast({ title: "Checklist item added" });
+    },
+  });
+
+  const updateChecklistItemMutation = useMutation({
+    mutationFn: async ({ itemId, data }: { itemId: string; data: any }) => {
+      return apiRequest("PATCH", `/api/checklist/${itemId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      setEditingChecklistItem(null);
+    },
+  });
+
+  const deleteChecklistItemMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      return apiRequest("DELETE", `/api/checklist/${itemId}`);
+    },
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Checklist item deleted" });
+    },
+  });
+
   const deleteDocumentMutation = useMutation({
     mutationFn: async (docId: string) => {
       return apiRequest("DELETE", `/api/cases/${id}/documents/${docId}`);
@@ -1279,6 +1324,14 @@ function CaseDetailView({ id }: { id: string }) {
         return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
       case 'case_access_updated':
         return { icon: Shield, bg: 'bg-indigo-100 dark:bg-indigo-900/40', color: 'text-indigo-600 dark:text-indigo-400' };
+      case 'checklist_item_added':
+        return { icon: ListChecks, bg: 'bg-pink-100 dark:bg-pink-900/40', color: 'text-pink-600 dark:text-pink-400' };
+      case 'checklist_item_completed':
+        return { icon: CheckSquare, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
+      case 'checklist_item_reopened':
+        return { icon: RotateCcw, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400' };
+      case 'checklist_item_deleted':
+        return { icon: Trash2, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
       default:
         return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground' };
     }
@@ -1543,6 +1596,118 @@ function CaseDetailView({ id }: { id: string }) {
                       </div>
                     )}
                   </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
+          {/* ── Essential Documents Checklist ─────────────────────────────── */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-pink-600" />
+                  Essential Documents
+                </CardTitle>
+                <CardDescription>Key documents required for this case</CardDescription>
+              </div>
+              {(user?.role === "admin" || user?.role === "consultant") && (
+                <Button
+                  size="sm"
+                  onClick={() => { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); setShowChecklistDialog(true); }}
+                  className="bg-pink-600 hover:bg-pink-700"
+                  data-testid="button-add-checklist-item"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Item
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="pt-4">
+              {(() => {
+                const items = checklistItems ?? [];
+                const completedCount = items.filter(i => i.isCompleted).length;
+                const totalCount = items.length;
+                const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+                return (
+                  <>
+                    {totalCount > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">{completedCount} of {totalCount} completed</span>
+                        </div>
+                        <Progress value={progressPct} className="h-2" />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {items.length === 0 && (
+                        <p className="text-center text-muted-foreground py-4">No essential documents listed yet</p>
+                      )}
+                      {items.map(item => (
+                        <div
+                          key={item.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                            item.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card hover:bg-muted/30"
+                          }`}
+                          data-testid={`checklist-item-${item.id}`}
+                        >
+                          <button
+                            onClick={() => updateChecklistItemMutation.mutate({ itemId: item.id, data: { isCompleted: !item.isCompleted } })}
+                            className={`mt-0.5 shrink-0 transition-colors ${item.isCompleted ? "text-green-600" : "text-muted-foreground hover:text-pink-600"}`}
+                            data-testid={`button-toggle-checklist-${item.id}`}
+                            title={item.isCompleted ? "Mark incomplete" : "Mark complete"}
+                          >
+                            {item.isCompleted
+                              ? <CheckSquare className="h-5 w-5" />
+                              : <Square className="h-5 w-5" />
+                            }
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium text-sm ${item.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                              {item.title}
+                            </p>
+                            {item.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                            )}
+                            {item.isCompleted && item.completedAt && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                                Completed {format(new Date(item.completedAt), "d MMM yyyy")}
+                              </p>
+                            )}
+                          </div>
+                          {(user?.role === "admin" || user?.role === "consultant") && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" data-testid={`button-checklist-menu-${item.id}`}>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => { setEditingChecklistItem(item); setChecklistForm({ title: item.title, description: item.description ?? "" }); setShowChecklistDialog(true); }}
+                                  data-testid={`button-edit-checklist-${item.id}`}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => deleteChecklistItemMutation.mutate(item.id)}
+                                  className="text-red-600"
+                                  data-testid={`button-delete-checklist-${item.id}`}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 );
               })()}
             </CardContent>
@@ -1816,6 +1981,57 @@ function CaseDetailView({ id }: { id: string }) {
               isLoading={updateMilestoneMutation.isPending}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Checklist add/edit dialog */}
+      <Dialog open={showChecklistDialog} onOpenChange={(open) => { setShowChecklistDialog(open); if (!open) { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingChecklistItem ? "Edit Essential Document" : "Add Essential Document"}</DialogTitle>
+            <DialogDescription>
+              {editingChecklistItem ? "Update the document checklist item" : "Add a key document that must be completed for this case"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Document name <span className="text-red-500">*</span></label>
+              <Input
+                placeholder="e.g. ET1 Claim Form, Settlement Agreement…"
+                value={checklistForm.title}
+                onChange={e => setChecklistForm(f => ({ ...f, title: e.target.value }))}
+                data-testid="input-checklist-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Notes <span className="text-muted-foreground text-xs">(optional)</span></label>
+              <Textarea
+                placeholder="Any additional details about this document…"
+                value={checklistForm.description}
+                onChange={e => setChecklistForm(f => ({ ...f, description: e.target.value }))}
+                rows={3}
+                data-testid="input-checklist-description"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setShowChecklistDialog(false)} data-testid="button-checklist-cancel">Cancel</Button>
+              <Button
+                className="bg-pink-600 hover:bg-pink-700"
+                disabled={!checklistForm.title.trim() || (editingChecklistItem ? updateChecklistItemMutation.isPending : createChecklistItemMutation.isPending)}
+                onClick={() => {
+                  if (editingChecklistItem) {
+                    updateChecklistItemMutation.mutate({ itemId: editingChecklistItem.id, data: { title: checklistForm.title.trim(), description: checklistForm.description.trim() || null } });
+                    setShowChecklistDialog(false);
+                  } else {
+                    createChecklistItemMutation.mutate({ title: checklistForm.title.trim(), description: checklistForm.description.trim() });
+                  }
+                }}
+                data-testid="button-checklist-save"
+              >
+                {editingChecklistItem ? "Save Changes" : "Add to Checklist"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -87,6 +87,12 @@ const createMilestoneSchema = z.object({
   dueDate: z.string().optional(),
 });
 
+const createChecklistItemSchema = z.object({
+  caseId: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional(),
+});
+
 const createSupportRequestSchema = z.object({
   subject: z.string().min(5),
   description: z.string().min(20),
@@ -6861,6 +6867,141 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete milestone error:", error);
       res.status(500).json({ error: "Failed to delete milestone" });
+    }
+  });
+
+  // ── Case Document Checklist ────────────────────────────────────────────────
+
+  // Get checklist items for a case
+  app.get("/api/cases/:id/checklist", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+
+      if (!canAccessConfidentialCase(caseData, user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const items = await storage.getCaseDocumentChecklist(req.params.id);
+      res.json(items);
+    } catch (error) {
+      console.error("Get checklist error:", error);
+      res.status(500).json({ error: "Failed to fetch checklist" });
+    }
+  });
+
+  // Create checklist item
+  app.post("/api/checklist", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot manage the document checklist" });
+      }
+
+      const parseResult = createChecklistItemSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ error: "Invalid data", details: parseResult.error.format() });
+      }
+
+      const caseData = await storage.getCase(parseResult.data.caseId);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+
+      const item = await storage.createCaseDocumentChecklistItem({
+        ...parseResult.data,
+        createdBy: user.id,
+      });
+
+      await storage.createAuditLog({
+        action: "checklist_item_added",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: caseData.siteId,
+        caseId: caseData.id,
+        module: "employment_law",
+        details: `Document checklist item "${item.title}" added to case ${caseData.caseReference}`,
+      });
+
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Create checklist item error:", error);
+      res.status(500).json({ error: "Failed to create checklist item" });
+    }
+  });
+
+  // Update checklist item (mark complete / edit)
+  app.patch("/api/checklist/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const existing = await storage.getCaseDocumentChecklistItem(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Checklist item not found" });
+
+      const updates: any = { ...req.body };
+      if (typeof updates.isCompleted === "boolean") {
+        updates.completedAt = updates.isCompleted ? new Date() : null;
+        updates.completedBy = updates.isCompleted ? user.id : null;
+      }
+
+      const item = await storage.updateCaseDocumentChecklistItem(req.params.id, updates);
+
+      if (typeof req.body.isCompleted === "boolean") {
+        const caseData = await storage.getCase(existing.caseId);
+        await storage.createAuditLog({
+          action: req.body.isCompleted ? "checklist_item_completed" : "checklist_item_reopened",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: caseData?.siteId,
+          caseId: existing.caseId,
+          module: "employment_law",
+          details: `Document checklist item "${existing.title}" ${req.body.isCompleted ? "marked complete" : "reopened"}`,
+        });
+      }
+
+      res.json(item);
+    } catch (error) {
+      console.error("Update checklist item error:", error);
+      res.status(500).json({ error: "Failed to update checklist item" });
+    }
+  });
+
+  // Delete checklist item
+  app.delete("/api/checklist/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot delete checklist items" });
+      }
+
+      const existing = await storage.getCaseDocumentChecklistItem(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Checklist item not found" });
+
+      const caseData = await storage.getCase(existing.caseId);
+      await storage.deleteCaseDocumentChecklistItem(req.params.id);
+
+      if (caseData) {
+        await storage.createAuditLog({
+          action: "checklist_item_deleted",
+          userId: user.id,
+          userName: user.fullName,
+          entityId: caseData.siteId,
+          caseId: existing.caseId,
+          module: "employment_law",
+          details: `Document checklist item "${existing.title}" deleted from case ${caseData.caseReference}`,
+        });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete checklist item error:", error);
+      res.status(500).json({ error: "Failed to delete checklist item" });
     }
   });
 

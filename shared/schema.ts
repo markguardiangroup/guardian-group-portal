@@ -400,6 +400,30 @@ export const insertCaseMilestoneSchema = createInsertSchema(caseMilestones).omit
 export type InsertCaseMilestone = z.infer<typeof insertCaseMilestoneSchema>;
 export type CaseMilestone = typeof caseMilestones.$inferSelect;
 
+// Case Document Checklist (essential documents required for a case)
+export const caseDocumentChecklist = pgTable("case_document_checklist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  completedBy: varchar("completed_by"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCaseDocumentChecklistSchema = createInsertSchema(caseDocumentChecklist).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+  completedBy: true,
+});
+export type InsertCaseDocumentChecklist = z.infer<typeof insertCaseDocumentChecklistSchema>;
+export type CaseDocumentChecklist = typeof caseDocumentChecklist.$inferSelect;
+
 // Incident Management (Health & Safety)
 export type IncidentSeverity = "minor" | "moderate" | "major" | "critical";
 export type IncidentStatus = "reported" | "under_review" | "resolved" | "closed";
