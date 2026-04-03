@@ -1875,8 +1875,11 @@ function CaseDetailView({ id }: { id: string }) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
               <div>
-                <CardTitle className="text-lg">Case Documents</CardTitle>
-                <CardDescription>Documents linked to this case</CardDescription>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5 text-pink-500" />
+                  Case Documents
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Documents linked to this case</CardDescription>
               </div>
               {(user?.role === "admin" || user?.role === "consultant") && (
                 <>
