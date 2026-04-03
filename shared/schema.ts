@@ -425,6 +425,24 @@ export const insertCaseDocumentChecklistSchema = createInsertSchema(caseDocument
 export type InsertCaseDocumentChecklist = z.infer<typeof insertCaseDocumentChecklistSchema>;
 export type CaseDocumentChecklist = typeof caseDocumentChecklist.$inferSelect;
 
+// Case Notes
+export const caseNotes = pgTable("case_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull(),
+  content: text("content").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCaseNoteSchema = createInsertSchema(caseNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCaseNote = z.infer<typeof insertCaseNoteSchema>;
+export type CaseNote = typeof caseNotes.$inferSelect;
+
 // Incident Management (Health & Safety)
 export type IncidentSeverity = "minor" | "moderate" | "major" | "critical";
 export type IncidentStatus = "reported" | "under_review" | "resolved" | "closed";

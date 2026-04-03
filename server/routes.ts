@@ -7005,6 +7005,86 @@ export async function registerRoutes(
     }
   });
 
+  // Case Notes
+  app.get("/api/cases/:id/notes", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      const notes = await storage.getCaseNotes(req.params.id);
+      const allUsers = await storage.getAllUsers();
+      const userMap = Object.fromEntries(allUsers.map(u => [u.id, u.fullName]));
+      const enriched = notes.map(n => ({ ...n, createdByName: userMap[n.createdBy] ?? "Unknown" }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get case notes error:", error);
+      res.status(500).json({ error: "Failed to get case notes" });
+    }
+  });
+
+  app.post("/api/cases/:id/notes", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot add case notes" });
+
+      const { content } = req.body;
+      if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+
+      const note = await storage.createCaseNote({
+        caseId: req.params.id,
+        content: content.trim(),
+        createdBy: user.id,
+      });
+      res.json(note);
+    } catch (error) {
+      console.error("Create case note error:", error);
+      res.status(500).json({ error: "Failed to create case note" });
+    }
+  });
+
+  app.patch("/api/notes/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot edit case notes" });
+
+      const existing = await storage.getCaseNote(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Note not found" });
+      if (existing.createdBy !== user.id && user.role !== "admin") {
+        return res.status(403).json({ error: "You can only edit your own notes" });
+      }
+
+      const { content } = req.body;
+      if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+
+      const note = await storage.updateCaseNote(req.params.id, { content: content.trim() });
+      res.json(note);
+    } catch (error) {
+      console.error("Update case note error:", error);
+      res.status(500).json({ error: "Failed to update case note" });
+    }
+  });
+
+  app.delete("/api/notes/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot delete case notes" });
+
+      const existing = await storage.getCaseNote(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Note not found" });
+      if (existing.createdBy !== user.id && user.role !== "admin") {
+        return res.status(403).json({ error: "You can only delete your own notes" });
+      }
+
+      await storage.deleteCaseNote(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete case note error:", error);
+      res.status(500).json({ error: "Failed to delete case note" });
+    }
+  });
+
   // Get case audit logs
   app.get("/api/cases/:id/audit", requireAuth, async (req, res) => {
     try {

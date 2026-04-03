@@ -11,6 +11,7 @@ import {
   type Case, type InsertCase,
   type CaseMilestone, type InsertCaseMilestone,
   type CaseDocumentChecklist, type InsertCaseDocumentChecklist,
+  type CaseNote, type InsertCaseNote,
   type ComplianceSummary,
   type SiteWithDetails,
   type SiteWithCompany,
@@ -91,6 +92,7 @@ import {
   cases as casesTable,
   caseMilestones as caseMilestonesTable,
   caseDocumentChecklist as caseDocumentChecklistTable,
+  caseNotes as caseNotesTable,
   incidents as incidentsTable,
   incidentMilestones as incidentMilestonesTable,
   consultantAssignments as consultantAssignmentsTable,
@@ -230,6 +232,13 @@ export interface IStorage {
   createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist>;
   updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined>;
   deleteCaseDocumentChecklistItem(id: string): Promise<void>;
+
+  // Case Notes
+  getCaseNotes(caseId: string): Promise<CaseNote[]>;
+  getCaseNote(id: string): Promise<CaseNote | undefined>;
+  createCaseNote(note: InsertCaseNote): Promise<CaseNote>;
+  updateCaseNote(id: string, updates: Partial<CaseNote>): Promise<CaseNote | undefined>;
+  deleteCaseNote(id: string): Promise<void>;
 
   // Incidents
   getIncidents(filters?: { siteId?: string; entityId?: string; status?: string; includeArchived?: boolean }): Promise<Incident[]>;
@@ -1522,6 +1531,38 @@ export class MemStorage implements IStorage {
 
   async deleteCaseDocumentChecklistItem(id: string): Promise<void> {
     await db.delete(caseDocumentChecklistTable).where(eq(caseDocumentChecklistTable.id, id));
+  }
+
+  // Case Notes
+  async getCaseNotes(caseId: string): Promise<CaseNote[]> {
+    return db.select().from(caseNotesTable)
+      .where(eq(caseNotesTable.caseId, caseId))
+      .orderBy(caseNotesTable.createdAt);
+  }
+
+  async getCaseNote(id: string): Promise<CaseNote | undefined> {
+    const [result] = await db.select().from(caseNotesTable).where(eq(caseNotesTable.id, id));
+    return result;
+  }
+
+  async createCaseNote(note: InsertCaseNote): Promise<CaseNote> {
+    const now = new Date();
+    const [result] = await db.insert(caseNotesTable)
+      .values({ ...note, createdAt: now, updatedAt: now })
+      .returning();
+    return result;
+  }
+
+  async updateCaseNote(id: string, updates: Partial<CaseNote>): Promise<CaseNote | undefined> {
+    const [result] = await db.update(caseNotesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(caseNotesTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCaseNote(id: string): Promise<void> {
+    await db.delete(caseNotesTable).where(eq(caseNotesTable.id, id));
   }
 
   // Incidents - Database backed

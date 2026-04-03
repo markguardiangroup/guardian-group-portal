@@ -101,9 +101,10 @@ import {
   Square,
   CheckSquare,
   Check,
+  StickyNote,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, CaseDocumentChecklist, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
+import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -1316,6 +1317,47 @@ function CaseDetailView({ id }: { id: string }) {
 
   const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
 
+  // Case Notes
+  const { data: caseNotes = [] } = useQuery<(CaseNote & { createdByName: string })[]>({
+    queryKey: ["/api/cases", id, "notes"],
+    queryFn: () => fetch(`/api/cases/${id}/notes`).then(r => r.json()),
+    enabled: !!id,
+  });
+
+  const [newNoteText, setNewNoteText] = useState("");
+  const [editingNote, setEditingNote] = useState<CaseNote | null>(null);
+  const [editNoteText, setEditNoteText] = useState("");
+  const [noteToDelete, setNoteToDelete] = useState<CaseNote | null>(null);
+
+  const addNoteMutation = useMutation({
+    mutationFn: (content: string) => apiRequest("POST", `/api/cases/${id}/notes`, { content }),
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      setNewNoteText("");
+      toast({ title: "Note added" });
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: ({ noteId, content }: { noteId: string; content: string }) =>
+      apiRequest("PATCH", `/api/notes/${noteId}`, { content }),
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      setEditingNote(null);
+      setEditNoteText("");
+      toast({ title: "Note updated" });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: string) => apiRequest("DELETE", `/api/notes/${noteId}`),
+    onSuccess: () => {
+      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      setNoteToDelete(null);
+      toast({ title: "Note deleted" });
+    },
+  });
+
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
 
@@ -1777,6 +1819,126 @@ function CaseDetailView({ id }: { id: string }) {
             </CardContent>
           </Card>
 
+          {/* ── Case Notes ─────────────────────────────────────────────────── */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b pb-4">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <StickyNote className="h-5 w-5 text-pink-500" />
+                  Case Notes
+                </CardTitle>
+                <CardDescription>Internal notes visible to consultants and admins only</CardDescription>
+              </div>
+              <Badge variant="outline" className="shrink-0">{caseNotes.length} {caseNotes.length === 1 ? "note" : "notes"}</Badge>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              {caseNotes.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No notes yet</p>
+              )}
+              {caseNotes.map((note) => (
+                <div key={note.id} className="flex items-start gap-3 group" data-testid={`note-item-${note.id}`}>
+                  <span className="text-pink-400 font-bold text-base mt-0.5 shrink-0">•</span>
+                  <div className="flex-1 min-w-0">
+                    {editingNote?.id === note.id ? (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={editNoteText}
+                          onChange={e => setEditNoteText(e.target.value)}
+                          className="text-sm min-h-[80px] resize-none"
+                          autoFocus
+                          data-testid={`input-edit-note-${note.id}`}
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                            onClick={() => updateNoteMutation.mutate({ noteId: note.id, content: editNoteText })}
+                            disabled={!editNoteText.trim() || updateNoteMutation.isPending}
+                            data-testid={`button-save-note-${note.id}`}
+                          >
+                            {updateNoteMutation.isPending ? "Saving…" : "Save"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => { setEditingNote(null); setEditNoteText(""); }}
+                            data-testid={`button-cancel-edit-note-${note.id}`}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy 'at' HH:mm")}
+                          {note.updatedAt !== note.createdAt && " · edited"}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {(user?.role === "admin" || user?.role === "consultant") && editingNote?.id !== note.id && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
+                        data-testid={`button-edit-note-${note.id}`}
+                        title="Edit note"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        onClick={() => setNoteToDelete(note)}
+                        data-testid={`button-delete-note-${note.id}`}
+                        title="Delete note"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Add note input */}
+              {(user?.role === "admin" || user?.role === "consultant") && (
+                <div className="pt-2 border-t space-y-2">
+                  <Textarea
+                    placeholder="Add a note…"
+                    value={newNoteText}
+                    onChange={e => setNewNoteText(e.target.value)}
+                    className="text-sm min-h-[80px] resize-none"
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && newNoteText.trim()) {
+                        e.preventDefault();
+                        addNoteMutation.mutate(newNoteText.trim());
+                      }
+                    }}
+                    data-testid="input-new-note"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Cmd/Ctrl + Enter to save</span>
+                    <Button
+                      size="sm"
+                      className="bg-pink-600 hover:bg-pink-700 text-white"
+                      onClick={() => { if (newNoteText.trim()) addNoteMutation.mutate(newNoteText.trim()); }}
+                      disabled={!newNoteText.trim() || addNoteMutation.isPending}
+                      data-testid="button-add-note"
+                    >
+                      {addNoteMutation.isPending ? "Adding…" : "Add note"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
               <div>
@@ -2177,6 +2339,40 @@ function CaseDetailView({ id }: { id: string }) {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Note delete confirmation dialog */}
+      <Dialog open={!!noteToDelete} onOpenChange={(open) => { if (!open) setNoteToDelete(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete note?
+            </DialogTitle>
+            <DialogDescription className="pt-1">
+              This will permanently delete the note. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {noteToDelete && (
+            <div className="p-3 rounded-lg bg-muted border text-sm text-muted-foreground line-clamp-3">
+              {noteToDelete.content}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setNoteToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => { if (noteToDelete) deleteNoteMutation.mutate(noteToDelete.id); }}
+              disabled={deleteNoteMutation.isPending}
+              data-testid="button-confirm-delete-note"
+            >
+              {deleteNoteMutation.isPending ? "Deleting…" : "Delete note"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
