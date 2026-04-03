@@ -102,6 +102,7 @@ import {
   CheckSquare,
   Check,
   StickyNote,
+  Maximize2,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -1028,6 +1029,7 @@ function CaseDetailView({ id }: { id: string }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
@@ -2098,56 +2100,55 @@ function CaseDetailView({ id }: { id: string }) {
           )}
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <History className="h-5 w-5" />
+            <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <History className="h-4 w-4" />
                 Audit Trail
                 {auditLogs && <Badge variant="secondary" className="text-xs">{auditLogs.length}</Badge>}
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setShowAuditModal(true)}
+                data-testid="button-open-audit-modal"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                View all
+              </Button>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {displayedLogs?.map((log) => {
-                  const style = getActionStyle(log.action);
-                  const ActionIcon = style.icon;
-                  return (
-                    <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
-                        <ActionIcon className={`h-4 w-4 ${style.color}`} />
+            <CardContent className="pt-0">
+              {(!auditLogs || auditLogs.length === 0) ? (
+                <p className="text-center text-muted-foreground py-3 text-sm">No audit history yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {auditLogs.slice(0, 2).map((log) => {
+                    const style = getActionStyle(log.action);
+                    const ActionIcon = style.icon;
+                    return (
+                      <div key={log.id} className="flex items-start gap-2.5">
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
+                          <ActionIcon className={`h-3 w-3 ${style.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium leading-snug truncate">{log.details}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.userName} · {format(new Date(log.createdAt), "MMM d 'at' h:mm a")}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{log.details}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {log.userName} - {format(new Date(log.createdAt), "MMM d 'at' h:mm a")}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {(!auditLogs || auditLogs.length === 0) && (
-                  <p className="text-center text-muted-foreground py-4">No audit history yet</p>
-                )}
-              </div>
-              {hasMoreLogs && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-4 w-full"
-                  onClick={() => setShowAllAuditLogs(!showAllAuditLogs)}
-                  data-testid="button-toggle-audit-logs"
-                >
-                  {showAllAuditLogs ? (
-                    <>
-                      <ChevronUp className="mr-2 h-4 w-4" />
-                      Show Less
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="mr-2 h-4 w-4" />
-                      Show {(auditLogs?.length || 0) - INITIAL_DISPLAY_COUNT} More
-                    </>
+                    );
+                  })}
+                  {auditLogs.length > 2 && (
+                    <button
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center pt-1"
+                      onClick={() => setShowAuditModal(true)}
+                      data-testid="button-audit-show-more"
+                    >
+                      + {auditLogs.length - 2} more entries
+                    </button>
                   )}
-                </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -2581,6 +2582,45 @@ function CaseDetailView({ id }: { id: string }) {
               }
               return null;
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Audit Trail Modal */}
+      <Dialog open={showAuditModal} onOpenChange={setShowAuditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Audit Trail
+              {auditLogs && <Badge variant="secondary" className="text-xs ml-1">{auditLogs.length} entries</Badge>}
+            </DialogTitle>
+            <DialogDescription>
+              Full activity history for case {caseData?.caseReference}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto pr-1 space-y-1">
+            {(!auditLogs || auditLogs.length === 0) ? (
+              <p className="text-center text-muted-foreground py-8">No audit history yet</p>
+            ) : (
+              auditLogs.map((log) => {
+                const style = getActionStyle(log.action);
+                const ActionIcon = style.icon;
+                return (
+                  <div key={log.id} className="flex items-start gap-3 py-3 border-b last:border-0">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
+                      <ActionIcon className={`h-4 w-4 ${style.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{log.details}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {log.userName} · {format(new Date(log.createdAt), "d MMM yyyy 'at' h:mm a")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </DialogContent>
       </Dialog>
