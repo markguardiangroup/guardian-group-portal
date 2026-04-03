@@ -1528,168 +1528,123 @@ function CaseDetailView({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
-              <div>
-                <CardTitle className="text-lg">Milestones</CardTitle>
-                <CardDescription>Track key dates and tasks for this case</CardDescription>
-              </div>
-              {(user?.role === "admin" || user?.role === "consultant") && (
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowMilestoneDialog(true)}
-                  className="bg-pink-600 hover:bg-pink-700"
-                  data-testid="button-add-milestone"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Milestone
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="pt-4">
-              {totalMilestones > 0 && (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">{completedMilestones} of {totalMilestones} completed</span>
-                  </div>
-                  <Progress value={milestoneProgress} className="h-2" />
+          {/* ── Case Notes ─────────────────────────────────────────────── */}
+          {(user?.role === "admin" || user?.role === "consultant") && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b pb-4">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <StickyNote className="h-5 w-5 text-pink-500" />
+                    Case Notes
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-0.5">Internal — not visible to clients</CardDescription>
                 </div>
-              )}
-              {(() => {
-                const pending = (milestones ?? [])
-                  .filter(m => !m.isCompleted)
-                  .sort((a, b) => {
-                    if (!a.dueDate && !b.dueDate) return 0;
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-                  });
-                const completed = (milestones ?? []).filter(m => m.isCompleted);
-
-                const renderMilestone = (milestone: CaseMilestone) => (
-                  <div
-                    key={milestone.id}
-                    className={`flex items-start gap-3 p-3 rounded-lg border ${
-                      milestone.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card"
-                    }`}
-                    data-testid={`milestone-${milestone.id}`}
-                  >
-                    <div className={`mt-0.5 rounded-full p-1 ${
-                      milestone.isCompleted
-                        ? "bg-green-100 dark:bg-green-900/40 text-green-600"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
-                      {milestone.isCompleted ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : (
-                        <Clock className="h-4 w-4" />
-                      )}
-                    </div>
+                <Badge variant="outline" className="shrink-0">{caseNotes.length}</Badge>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {caseNotes.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
+                )}
+                {caseNotes.map((note) => (
+                  <div key={note.id} className="flex items-start gap-2 group" data-testid={`note-item-${note.id}`}>
+                    <span className="text-pink-400 font-bold text-sm mt-0.5 shrink-0">•</span>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
-                        {milestone.title}
-                      </p>
-                      {milestone.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
-                      )}
-                      {milestone.dueDate && (
-                        <p className={`text-xs mt-1 ${
-                          !milestone.isCompleted && isPast(new Date(milestone.dueDate))
-                            ? "text-red-600 font-medium"
-                            : "text-muted-foreground"
-                        }`}>
-                          {!milestone.isCompleted && isPast(new Date(milestone.dueDate)) ? "Overdue · " : "Due: "}
-                          {format(new Date(milestone.dueDate), "MMM d, yyyy")}
-                        </p>
+                      {editingNote?.id === note.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editNoteText}
+                            onChange={e => setEditNoteText(e.target.value)}
+                            className="text-sm min-h-[70px] resize-none"
+                            autoFocus
+                            data-testid={`input-edit-note-${note.id}`}
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                              onClick={() => updateNoteMutation.mutate({ noteId: note.id, content: editNoteText })}
+                              disabled={!editNoteText.trim() || updateNoteMutation.isPending}
+                              data-testid={`button-save-note-${note.id}`}
+                            >
+                              {updateNoteMutation.isPending ? "Saving…" : "Save"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => { setEditingNote(null); setEditNoteText(""); }}
+                              data-testid={`button-cancel-edit-note-${note.id}`}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
+                            {note.updatedAt !== note.createdAt && " · edited"}
+                          </p>
+                        </>
                       )}
                     </div>
-                    {(user?.role === "admin" || user?.role === "consultant") && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            data-testid={`button-milestone-menu-${milestone.id}`}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {!milestone.isCompleted ? (
-                            <DropdownMenuItem
-                              onClick={() => completeMilestoneMutation.mutate(milestone.id)}
-                              data-testid={`button-complete-milestone-${milestone.id}`}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                              Mark Complete
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
-                              data-testid={`button-reopen-milestone-${milestone.id}`}
-                            >
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Reopen
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => setEditingMilestone(milestone)}
-                            data-testid={`button-edit-milestone-${milestone.id}`}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
-                            className="text-red-600"
-                            data-testid={`button-delete-milestone-${milestone.id}`}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                );
-
-                return (
-                  <div className="space-y-3">
-                    {pending.length === 0 && completed.length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">No milestones yet</p>
-                    )}
-                    {pending.map(renderMilestone)}
-                    {pending.length === 0 && completed.length > 0 && (
-                      <p className="text-center text-sm text-muted-foreground py-2">All milestones completed</p>
-                    )}
-                    {completed.length > 0 && (
-                      <div>
-                        <button
-                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-1"
-                          onClick={() => setShowCompletedMilestones(v => !v)}
-                          data-testid="button-toggle-completed-milestones"
+                    {editingNote?.id !== note.id && (
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
+                          data-testid={`button-edit-note-${note.id}`}
+                          title="Edit note"
                         >
-                          {showCompletedMilestones ? (
-                            <ChevronUp className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          )}
-                          {completed.length} completed milestone{completed.length !== 1 ? "s" : ""}
-                        </button>
-                        {showCompletedMilestones && (
-                          <div className="space-y-3 mt-2">
-                            {completed.map(renderMilestone)}
-                          </div>
-                        )}
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => setNoteToDelete(note)}
+                          data-testid={`button-delete-note-${note.id}`}
+                          title="Delete note"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     )}
                   </div>
-                );
-              })()}
-            </CardContent>
-          </Card>
+                ))}
+                <div className="pt-2 border-t space-y-2">
+                  <Textarea
+                    placeholder="Add a note…"
+                    value={newNoteText}
+                    onChange={e => setNewNoteText(e.target.value)}
+                    className="text-sm min-h-[70px] resize-none"
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && newNoteText.trim()) {
+                        e.preventDefault();
+                        addNoteMutation.mutate(newNoteText.trim());
+                      }
+                    }}
+                    data-testid="input-new-note"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to save</span>
+                    <Button
+                      size="sm"
+                      className="bg-pink-600 hover:bg-pink-700 text-white"
+                      onClick={() => { if (newNoteText.trim()) addNoteMutation.mutate(newNoteText.trim()); }}
+                      disabled={!newNoteText.trim() || addNoteMutation.isPending}
+                      data-testid="button-add-note"
+                    >
+                      {addNoteMutation.isPending ? "Adding…" : "Add note"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* ── Essential Documents Checklist ─────────────────────────────── */}
           <Card>
@@ -1981,123 +1936,168 @@ function CaseDetailView({ id }: { id: string }) {
             </Card>
           )}
 
-          {/* ── Case Notes ─────────────────────────────────────────────── */}
-          {(user?.role === "admin" || user?.role === "consultant") && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b pb-4">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <StickyNote className="h-5 w-5 text-pink-500" />
-                    Case Notes
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">Internal — not visible to clients</CardDescription>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+              <div>
+                <CardTitle className="text-lg">Milestones</CardTitle>
+                <CardDescription>Track key dates and tasks for this case</CardDescription>
+              </div>
+              {(user?.role === "admin" || user?.role === "consultant") && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowMilestoneDialog(true)}
+                  className="bg-pink-600 hover:bg-pink-700"
+                  data-testid="button-add-milestone"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Milestone
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="pt-4">
+              {totalMilestones > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-medium">{completedMilestones} of {totalMilestones} completed</span>
+                  </div>
+                  <Progress value={milestoneProgress} className="h-2" />
                 </div>
-                <Badge variant="outline" className="shrink-0">{caseNotes.length}</Badge>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                {caseNotes.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
-                )}
-                {caseNotes.map((note) => (
-                  <div key={note.id} className="flex items-start gap-2 group" data-testid={`note-item-${note.id}`}>
-                    <span className="text-pink-400 font-bold text-sm mt-0.5 shrink-0">•</span>
-                    <div className="flex-1 min-w-0">
-                      {editingNote?.id === note.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editNoteText}
-                            onChange={e => setEditNoteText(e.target.value)}
-                            className="text-sm min-h-[70px] resize-none"
-                            autoFocus
-                            data-testid={`input-edit-note-${note.id}`}
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
-                              onClick={() => updateNoteMutation.mutate({ noteId: note.id, content: editNoteText })}
-                              disabled={!editNoteText.trim() || updateNoteMutation.isPending}
-                              data-testid={`button-save-note-${note.id}`}
-                            >
-                              {updateNoteMutation.isPending ? "Saving…" : "Save"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => { setEditingNote(null); setEditNoteText(""); }}
-                              data-testid={`button-cancel-edit-note-${note.id}`}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
+              )}
+              {(() => {
+                const pending = (milestones ?? [])
+                  .filter(m => !m.isCompleted)
+                  .sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                  });
+                const completed = (milestones ?? []).filter(m => m.isCompleted);
+
+                const renderMilestone = (milestone: CaseMilestone) => (
+                  <div
+                    key={milestone.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg border ${
+                      milestone.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card"
+                    }`}
+                    data-testid={`milestone-${milestone.id}`}
+                  >
+                    <div className={`mt-0.5 rounded-full p-1 ${
+                      milestone.isCompleted
+                        ? "bg-green-100 dark:bg-green-900/40 text-green-600"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {milestone.isCompleted ? (
+                        <CheckCircle className="h-4 w-4" />
                       ) : (
-                        <>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
-                            {note.updatedAt !== note.createdAt && " · edited"}
-                          </p>
-                        </>
+                        <Clock className="h-4 w-4" />
                       )}
                     </div>
-                    {editingNote?.id !== note.id && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
-                          data-testid={`button-edit-note-${note.id}`}
-                          title="Edit note"
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                        {milestone.title}
+                      </p>
+                      {milestone.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
+                      )}
+                      {milestone.dueDate && (
+                        <p className={`text-xs mt-1 ${
+                          !milestone.isCompleted && isPast(new Date(milestone.dueDate))
+                            ? "text-red-600 font-medium"
+                            : "text-muted-foreground"
+                        }`}>
+                          {!milestone.isCompleted && isPast(new Date(milestone.dueDate)) ? "Overdue · " : "Due: "}
+                          {format(new Date(milestone.dueDate), "MMM d, yyyy")}
+                        </p>
+                      )}
+                    </div>
+                    {(user?.role === "admin" || user?.role === "consultant") && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            data-testid={`button-milestone-menu-${milestone.id}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {!milestone.isCompleted ? (
+                            <DropdownMenuItem
+                              onClick={() => completeMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-complete-milestone-${milestone.id}`}
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                              Mark Complete
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-reopen-milestone-${milestone.id}`}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Reopen
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => setEditingMilestone(milestone)}
+                            data-testid={`button-edit-milestone-${milestone.id}`}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                            className="text-red-600"
+                            data-testid={`button-delete-milestone-${milestone.id}`}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div className="space-y-3">
+                    {pending.length === 0 && completed.length === 0 && (
+                      <p className="text-center text-muted-foreground py-4">No milestones yet</p>
+                    )}
+                    {pending.map(renderMilestone)}
+                    {pending.length === 0 && completed.length > 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-2">All milestones completed</p>
+                    )}
+                    {completed.length > 0 && (
+                      <div>
+                        <button
+                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-1"
+                          onClick={() => setShowCompletedMilestones(v => !v)}
+                          data-testid="button-toggle-completed-milestones"
                         >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive hover:text-destructive"
-                          onClick={() => setNoteToDelete(note)}
-                          data-testid={`button-delete-note-${note.id}`}
-                          title="Delete note"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                          {showCompletedMilestones ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )}
+                          {completed.length} completed milestone{completed.length !== 1 ? "s" : ""}
+                        </button>
+                        {showCompletedMilestones && (
+                          <div className="space-y-3 mt-2">
+                            {completed.map(renderMilestone)}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                ))}
-                <div className="pt-2 border-t space-y-2">
-                  <Textarea
-                    placeholder="Add a note…"
-                    value={newNoteText}
-                    onChange={e => setNewNoteText(e.target.value)}
-                    className="text-sm min-h-[70px] resize-none"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && newNoteText.trim()) {
-                        e.preventDefault();
-                        addNoteMutation.mutate(newNoteText.trim());
-                      }
-                    }}
-                    data-testid="input-new-note"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to save</span>
-                    <Button
-                      size="sm"
-                      className="bg-pink-600 hover:bg-pink-700 text-white"
-                      onClick={() => { if (newNoteText.trim()) addNoteMutation.mutate(newNoteText.trim()); }}
-                      disabled={!newNoteText.trim() || addNoteMutation.isPending}
-                      data-testid="button-add-note"
-                    >
-                      {addNoteMutation.isPending ? "Adding…" : "Add note"}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                );
+              })()}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
