@@ -1222,14 +1222,26 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
+  const [docToDelete, setDocToDelete] = useState<{ id: string; title: string; linkedChecklistItem?: CaseDocumentChecklist } | null>(null);
+
   const deleteDocumentMutation = useMutation({
     mutationFn: async (docId: string) => {
       return apiRequest("DELETE", `/api/cases/${id}/documents/${docId}`);
     },
-    onSuccess: () => {
+    onSuccess: async (_, docId) => {
+      // If it was fulfilling a checklist item, reopen that item
+      const linked = docToDelete?.linkedChecklistItem;
+      if (linked) {
+        await apiRequest("PATCH", `/api/checklist/${linked.id}`, {
+          isCompleted: false,
+          linkedDocumentId: null,
+        });
+        queryClient.refetchQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      }
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
-      toast({ title: "Document deleted" });
+      toast({ title: linked ? "Document deleted — essential document marked incomplete" : "Document deleted" });
+      setDocToDelete(null);
     },
   });
 
@@ -1805,7 +1817,11 @@ function CaseDetailView({ id }: { id: string }) {
                           size="icon" 
                           variant="ghost" 
                           className="text-muted-foreground hover:text-red-600"
-                          onClick={() => deleteDocumentMutation.mutate(doc.id)}
+                          onClick={() => setDocToDelete({
+                            id: doc.id,
+                            title: doc.title,
+                            linkedChecklistItem: linkedChecklistItem,
+                          })}
                           data-testid={`button-delete-doc-${doc.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -2064,6 +2080,50 @@ function CaseDetailView({ id }: { id: string }) {
                 {editingChecklistItem ? "Save Changes" : "Add to Checklist"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete document confirmation dialog */}
+      <Dialog open={!!docToDelete} onOpenChange={(open) => { if (!open) setDocToDelete(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <Trash2 className="h-5 w-5" />
+              Delete document?
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-1">
+              <span>
+                Are you sure you want to permanently delete <span className="font-medium text-foreground">"{docToDelete?.title}"</span>? This cannot be undone.
+              </span>
+              {docToDelete?.linkedChecklistItem && (
+                <span className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>
+                    This document fulfils the essential document <span className="font-semibold">"{docToDelete.linkedChecklistItem.title}"</span>. Deleting it will mark that requirement as incomplete.
+                  </span>
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDocToDelete(null)}
+              data-testid="button-cancel-delete-doc"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleteDocumentMutation.isPending}
+              onClick={() => { if (docToDelete) deleteDocumentMutation.mutate(docToDelete.id); }}
+              data-testid="button-confirm-delete-doc"
+            >
+              {deleteDocumentMutation.isPending ? "Deleting…" : "Delete document"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
