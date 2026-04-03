@@ -1428,39 +1428,57 @@ function CaseDetailView({ id }: { id: string }) {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/employment-law")} data-testid="button-back">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              {caseData.isConfidential && <Lock className="h-5 w-5 text-pink-600" />}
-              {caseData.caseReference}
-            </h1>
-            <CaseStatusBadge status={caseData.status as CaseStatus} />
-            <CaseTypeBadge type={caseData.caseType as CaseType} />
-          </div>
-          <p className="text-muted-foreground flex items-center gap-2 mt-1">
-            <User className="h-4 w-4" />
-            {caseData.employeeName}
-            {caseData.employeeId && <span className="text-sm">({caseData.employeeId})</span>}
-          </p>
-        </div>
-        {(user?.role === "admin" || user?.role === "consultant") && (
-          <Button
-            variant="outline"
-            onClick={() => {
-              setNewStatus(caseData.status as CaseStatus);
-              setShowStatusDialog(true);
-            }}
-            data-testid="button-update-status"
-          >
-            Update Status
+    <div>
+      <div className="sticky top-0 z-30 bg-background border-b px-6 py-5">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/employment-law")} data-testid="button-back">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        )}
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {caseData.isConfidential && <Lock className="h-5 w-5 text-pink-600" />}
+                {caseData.caseReference}
+              </h1>
+              <CaseStatusBadge status={caseData.status as CaseStatus} />
+              <CaseTypeBadge type={caseData.caseType as CaseType} />
+            </div>
+            <p className="text-muted-foreground flex items-center gap-2 mt-1 text-sm">
+              <User className="h-4 w-4" />
+              {caseData.employeeName}
+              {caseData.employeeId && <span>({caseData.employeeId})</span>}
+              {company?.name && (
+                <>
+                  <span className="text-muted-foreground/40">·</span>
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  <span>{company.name}</span>
+                </>
+              )}
+              {site?.name && (
+                <>
+                  <span className="text-muted-foreground/40">·</span>
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>{site.name}</span>
+                </>
+              )}
+            </p>
+          </div>
+          {(user?.role === "admin" || user?.role === "consultant") && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNewStatus(caseData.status as CaseStatus);
+                setShowStatusDialog(true);
+              }}
+              data-testid="button-update-status"
+            >
+              Update Status
+            </Button>
+          )}
+        </div>
       </div>
+
+      <div className="space-y-6 p-6">
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
@@ -2624,6 +2642,7 @@ function CaseDetailView({ id }: { id: string }) {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
