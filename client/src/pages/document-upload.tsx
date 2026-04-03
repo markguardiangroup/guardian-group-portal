@@ -1219,10 +1219,10 @@ export default function DocumentUpload() {
               There are templates available for this module that can save you time and ensure compliance standards are met. Would you like to use a template instead?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-2">
+            <AlertDialogCancel className="sm:w-auto" data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-primary hover:bg-primary/90"
+              className="sm:w-auto bg-primary hover:bg-primary/90"
               onClick={() => {
                 setShowTemplatePrompt(false);
                 navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
@@ -1233,7 +1233,7 @@ export default function DocumentUpload() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </AlertDialogAction>
             <AlertDialogAction
-              className="border border-input bg-background text-foreground hover:bg-muted shadow-none"
+              className="sm:w-auto border border-input bg-background text-foreground hover:bg-muted shadow-none"
               onClick={() => {
                 setShowTemplatePrompt(false);
                 setShowUploadForm(true);
