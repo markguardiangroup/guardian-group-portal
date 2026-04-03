@@ -1320,7 +1320,6 @@ function CaseDetailView({ id }: { id: string }) {
   // Case Notes
   const { data: caseNotes = [] } = useQuery<(CaseNote & { createdByName: string })[]>({
     queryKey: ["/api/cases", id, "notes"],
-    queryFn: () => fetch(`/api/cases/${id}/notes`).then(r => r.json()),
     enabled: !!id,
   });
 
@@ -1332,9 +1331,12 @@ function CaseDetailView({ id }: { id: string }) {
   const addNoteMutation = useMutation({
     mutationFn: (content: string) => apiRequest("POST", `/api/cases/${id}/notes`, { content }),
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "notes"] });
       setNewNoteText("");
       toast({ title: "Note added" });
+    },
+    onError: (err) => {
+      toast({ title: "Failed to add note", description: String(err), variant: "destructive" });
     },
   });
 
@@ -1342,19 +1344,25 @@ function CaseDetailView({ id }: { id: string }) {
     mutationFn: ({ noteId, content }: { noteId: string; content: string }) =>
       apiRequest("PATCH", `/api/notes/${noteId}`, { content }),
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "notes"] });
       setEditingNote(null);
       setEditNoteText("");
       toast({ title: "Note updated" });
+    },
+    onError: (err) => {
+      toast({ title: "Failed to update note", description: String(err), variant: "destructive" });
     },
   });
 
   const deleteNoteMutation = useMutation({
     mutationFn: (noteId: string) => apiRequest("DELETE", `/api/notes/${noteId}`),
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/cases", id, "notes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "notes"] });
       setNoteToDelete(null);
       toast({ title: "Note deleted" });
+    },
+    onError: (err) => {
+      toast({ title: "Failed to delete note", description: String(err), variant: "destructive" });
     },
   });
 
