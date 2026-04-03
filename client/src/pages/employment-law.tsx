@@ -100,6 +100,7 @@ import {
   ListChecks,
   Square,
   CheckSquare,
+  Check,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, CaseDocumentChecklist, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
@@ -1232,15 +1233,14 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [selectedChecklistItemId, setSelectedChecklistItemId] = useState<string | null>(null);
+  const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
 
+  const doUpload = async (file: File, checklistItemId?: string | null) => {
     setIsUploading(true);
     try {
-      // Upload file to object storage
       const buffer = await file.arrayBuffer();
-      
       const uploadRes = await fetch("/api/uploads/file", {
         method: "POST",
         headers: {
@@ -1249,16 +1249,11 @@ function CaseDetailView({ id }: { id: string }) {
         },
         body: buffer,
       });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload file");
-      }
-
+      if (!uploadRes.ok) throw new Error("Failed to upload file");
       const { objectPath } = await uploadRes.json();
 
-      // Create document record
       await apiRequest("POST", `/api/cases/${id}/documents`, {
-        title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension for title
+        title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
         fileUrl: objectPath,
         fileSize: file.size,
@@ -1268,11 +1263,15 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
 
-      // If there are incomplete checklist items, prompt user to link the upload
-      const incompleteItems = (checklistItems ?? []).filter(i => !i.isCompleted);
-      if (incompleteItems.length > 0) {
-        setPendingUploadName(file.name.replace(/\.[^/.]+$/, ""));
-        setShowEssentialDocDialog(true);
+      if (checklistItemId) {
+        updateChecklistItemMutation.mutate(
+          { itemId: checklistItemId, data: { isCompleted: true } },
+          {
+            onSuccess: () => {
+              toast({ title: "Document uploaded & essential document marked complete" });
+            },
+          }
+        );
       } else {
         toast({ title: "Document uploaded successfully" });
       }
@@ -1280,16 +1279,30 @@ function CaseDetailView({ id }: { id: string }) {
       toast({ title: "Failed to upload document", variant: "destructive" });
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      setPendingFile(null);
+      setSelectedChecklistItemId(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const incompleteItems = (checklistItems ?? []).filter(i => !i.isCompleted);
+    if (incompleteItems.length > 0) {
+      // Intercept — show dialog before uploading
+      setPendingFile(file);
+      setSelectedChecklistItemId(null);
+      setShowEssentialDocDialog(true);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      doUpload(file);
     }
   };
 
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
-  const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
-  const [pendingUploadName, setPendingUploadName] = useState("");
 
   if (isLoading) {
     return (
@@ -2045,13 +2058,14 @@ function CaseDetailView({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Post-upload essential document matching dialog */}
+      {/* Pre-upload essential document matching dialog */}
       <Dialog
         open={showEssentialDocDialog}
         onOpenChange={(open) => {
           if (!open) {
             setShowEssentialDocDialog(false);
-            toast({ title: "Document uploaded successfully" });
+            setPendingFile(null);
+            setSelectedChecklistItemId(null);
           }
         }}
       >
@@ -2059,51 +2073,68 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ListChecks className="h-5 w-5 text-pink-600" />
-              Fulfils an essential document?
+              Does this fulfil an essential document?
             </DialogTitle>
             <DialogDescription>
-              <span className="font-medium text-foreground">"{pendingUploadName}"</span> was uploaded. Does it satisfy one of the outstanding essential documents below?
+              {pendingFile && (
+                <>
+                  Uploading <span className="font-medium text-foreground">"{pendingFile.name.replace(/\.[^/.]+$/, "")}"</span>. Select which essential document this satisfies, or upload without linking.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-64 overflow-y-auto py-1">
-            {(checklistItems ?? []).filter(i => !i.isCompleted).map(item => (
-              <button
-                key={item.id}
-                className="w-full flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:border-pink-300 dark:hover:border-pink-700 transition-colors text-left group"
-                onClick={() => {
-                  updateChecklistItemMutation.mutate(
-                    { itemId: item.id, data: { isCompleted: true } },
-                    {
-                      onSuccess: () => {
-                        setShowEssentialDocDialog(false);
-                        toast({ title: "Document uploaded & essential document marked complete" });
-                      },
-                    }
-                  );
-                }}
-                data-testid={`button-link-checklist-${item.id}`}
-              >
-                <CheckSquare className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground group-hover:text-pink-600 transition-colors" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{item.title}</p>
-                  {item.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                  )}
-                </div>
-              </button>
-            ))}
+            {(checklistItems ?? []).filter(i => !i.isCompleted).map(item => {
+              const isSelected = selectedChecklistItemId === item.id;
+              return (
+                <button
+                  key={item.id}
+                  className={`w-full flex items-start gap-3 p-3 rounded-lg border transition-colors text-left ${
+                    isSelected
+                      ? "bg-pink-50 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600"
+                      : "bg-card hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:border-pink-300 dark:hover:border-pink-700"
+                  }`}
+                  onClick={() => setSelectedChecklistItemId(isSelected ? null : item.id)}
+                  data-testid={`button-link-checklist-${item.id}`}
+                >
+                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-sm border-2 flex items-center justify-center transition-colors ${
+                    isSelected ? "bg-pink-600 border-pink-600" : "border-muted-foreground"
+                  }`}>
+                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{item.title}</p>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          <div className="flex justify-end pt-2 border-t">
+          <div className="flex justify-between items-center pt-2 border-t gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => {
                 setShowEssentialDocDialog(false);
-                toast({ title: "Document uploaded successfully" });
+                if (pendingFile) doUpload(pendingFile, null);
               }}
-              data-testid="button-skip-essential-doc"
+              data-testid="button-upload-without-linking"
             >
-              Skip — not one of these
+              Upload without linking
+            </Button>
+            <Button
+              size="sm"
+              className="bg-pink-600 hover:bg-pink-700 text-white"
+              disabled={!selectedChecklistItemId || isUploading}
+              onClick={() => {
+                setShowEssentialDocDialog(false);
+                if (pendingFile) doUpload(pendingFile, selectedChecklistItemId);
+              }}
+              data-testid="button-upload-and-complete"
+            >
+              {isUploading ? "Uploading…" : selectedChecklistItemId ? "Upload & Mark Complete" : "Select one above"}
             </Button>
           </div>
         </DialogContent>
