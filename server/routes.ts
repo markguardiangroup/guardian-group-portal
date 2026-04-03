@@ -10318,14 +10318,16 @@ export async function registerRoutes(
           if (companySiteIds && (!doc.siteId || !companySiteIds.includes(doc.siteId))) continue;
           if (moduleFilter && doc.module !== moduleFilter) continue;
 
+          // training has no /training/documents/:id route, so fall back to /training
           const moduleDocUrlBase: Record<string, string> = {
             health_safety: "/health-safety/documents",
             human_resources: "/human-resources/documents",
             employment_law: "/employment-law/documents",
-            training: "/training/documents",
           };
 
-          const docUrl = `${moduleDocUrlBase[doc.module] || "/documents"}/${doc.id}`;
+          const docUrl = moduleDocUrlBase[doc.module]
+            ? `${moduleDocUrlBase[doc.module]}/${doc.id}`
+            : "/training";
 
           if (doc.reviewDate && inDateRange(new Date(doc.reviewDate))) {
             events.push({ id: `doc-review-${doc.id}`, title: `Review: ${doc.title}`, date: doc.reviewDate, type: "review_due", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.reviewDate) < now });
