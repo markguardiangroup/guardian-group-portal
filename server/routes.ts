@@ -10547,7 +10547,7 @@ export async function registerRoutes(
           };
 
           const docUrl = moduleDocUrlBase[doc.module]
-            ? `${moduleDocUrlBase[doc.module]}/${doc.id}`
+            ? `${moduleDocUrlBase[doc.module]}/${doc.id}${doc.siteId ? `?siteId=${doc.siteId}` : ""}`
             : "/training";
 
           if (doc.reviewDate && inDateRange(new Date(doc.reviewDate))) {
