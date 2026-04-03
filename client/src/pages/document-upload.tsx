@@ -1209,7 +1209,7 @@ export default function DocumentUpload() {
       </div>}
 
       <AlertDialog open={showTemplatePrompt} onOpenChange={setShowTemplatePrompt}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
@@ -1219,30 +1219,32 @@ export default function DocumentUpload() {
               There are templates available for this module that can save you time and ensure compliance standards are met. Would you like to use a template instead?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-2">
-            <AlertDialogCancel className="sm:w-auto" data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="sm:w-auto bg-primary hover:bg-primary/90"
-              onClick={() => {
-                setShowTemplatePrompt(false);
-                navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
-              }}
-              data-testid="button-prompt-switch-template"
-            >
-              Switch to Template
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </AlertDialogAction>
-            <AlertDialogAction
-              className="sm:w-auto border border-input bg-background text-foreground hover:bg-muted shadow-none"
-              onClick={() => {
-                setShowTemplatePrompt(false);
-                setShowUploadForm(true);
-              }}
-              data-testid="button-prompt-continue"
-            >
-              Continue Without Template
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <AlertDialogCancel className="h-9 px-3 text-sm" data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
+            <div className="flex items-center gap-2">
+              <AlertDialogAction
+                className="h-9 px-3 text-sm bg-primary hover:bg-primary/90"
+                onClick={() => {
+                  setShowTemplatePrompt(false);
+                  navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
+                }}
+                data-testid="button-prompt-switch-template"
+              >
+                Switch to Template
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </AlertDialogAction>
+              <AlertDialogAction
+                className="h-9 px-3 text-sm border border-input bg-background text-foreground hover:bg-muted shadow-none"
+                onClick={() => {
+                  setShowTemplatePrompt(false);
+                  setShowUploadForm(true);
+                }}
+                data-testid="button-prompt-continue"
+              >
+                Continue Without Template
+              </AlertDialogAction>
+            </div>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
