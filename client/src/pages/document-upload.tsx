@@ -47,15 +47,12 @@ import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { Site, ModuleType } from "@shared/schema";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -1208,45 +1205,51 @@ export default function DocumentUpload() {
         </div>
       </div>}
 
-      <AlertDialog open={showTemplatePrompt} onOpenChange={setShowTemplatePrompt}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
+      <Dialog open={showTemplatePrompt} onOpenChange={setShowTemplatePrompt}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
               Templates Available
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            </DialogTitle>
+            <DialogDescription>
               There are templates available for this module that can save you time and ensure compliance standards are met. Would you like to use a template instead?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex items-center justify-between gap-2 pt-2">
-            <AlertDialogCancel className="h-9 px-3 text-sm" data-testid="button-prompt-cancel">Cancel</AlertDialogCancel>
-            <div className="flex items-center gap-2">
-              <AlertDialogAction
-                className="h-9 px-3 text-sm bg-primary hover:bg-primary/90"
-                onClick={() => {
-                  setShowTemplatePrompt(false);
-                  navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
-                }}
-                data-testid="button-prompt-switch-template"
-              >
-                Switch to Template
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </AlertDialogAction>
-              <AlertDialogAction
-                className="h-9 px-3 text-sm border border-input bg-background text-foreground hover:bg-muted shadow-none"
-                onClick={() => {
-                  setShowTemplatePrompt(false);
-                  setShowUploadForm(true);
-                }}
-                data-testid="button-prompt-continue"
-              >
-                Continue Without Template
-              </AlertDialogAction>
-            </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setShowTemplatePrompt(false);
+                navigate(`/create-from-template?returnTo=${encodeURIComponent(location)}&module=${initialModule}`);
+              }}
+              data-testid="button-prompt-switch-template"
+            >
+              Switch to Template
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setShowTemplatePrompt(false);
+                setShowUploadForm(true);
+              }}
+              data-testid="button-prompt-continue"
+            >
+              Continue Without Template
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => setShowTemplatePrompt(false)}
+              data-testid="button-prompt-cancel"
+            >
+              Cancel
+            </Button>
           </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
