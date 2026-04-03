@@ -1234,6 +1234,7 @@ function CaseDetailView({ id }: { id: string }) {
   };
 
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
+  const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
 
   if (isLoading) {
     return (
@@ -1412,8 +1413,18 @@ function CaseDetailView({ id }: { id: string }) {
                   <Progress value={milestoneProgress} className="h-2" />
                 </div>
               )}
-              <div className="space-y-3">
-                {milestones?.map((milestone) => (
+              {(() => {
+                const pending = (milestones ?? [])
+                  .filter(m => !m.isCompleted)
+                  .sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                  });
+                const completed = (milestones ?? []).filter(m => m.isCompleted);
+
+                const renderMilestone = (milestone: CaseMilestone) => (
                   <div
                     key={milestone.id}
                     className={`flex items-start gap-3 p-3 rounded-lg border ${
@@ -1422,8 +1433,8 @@ function CaseDetailView({ id }: { id: string }) {
                     data-testid={`milestone-${milestone.id}`}
                   >
                     <div className={`mt-0.5 rounded-full p-1 ${
-                      milestone.isCompleted 
-                        ? "bg-green-100 dark:bg-green-900/40 text-green-600" 
+                      milestone.isCompleted
+                        ? "bg-green-100 dark:bg-green-900/40 text-green-600"
                         : "bg-muted text-muted-foreground"
                     }`}>
                       {milestone.isCompleted ? (
@@ -1432,7 +1443,7 @@ function CaseDetailView({ id }: { id: string }) {
                         <Clock className="h-4 w-4" />
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
                         {milestone.title}
                       </p>
@@ -1442,10 +1453,11 @@ function CaseDetailView({ id }: { id: string }) {
                       {milestone.dueDate && (
                         <p className={`text-xs mt-1 ${
                           !milestone.isCompleted && isPast(new Date(milestone.dueDate))
-                            ? "text-red-600"
+                            ? "text-red-600 font-medium"
                             : "text-muted-foreground"
                         }`}>
-                          Due: {format(new Date(milestone.dueDate), "MMM d, yyyy")}
+                          {!milestone.isCompleted && isPast(new Date(milestone.dueDate)) ? "Overdue · " : "Due: "}
+                          {format(new Date(milestone.dueDate), "MMM d, yyyy")}
                         </p>
                       )}
                     </div>
@@ -1498,11 +1510,41 @@ function CaseDetailView({ id }: { id: string }) {
                       </DropdownMenu>
                     )}
                   </div>
-                ))}
-                {(!milestones || milestones.length === 0) && (
-                  <p className="text-center text-muted-foreground py-4">No milestones yet</p>
-                )}
-              </div>
+                );
+
+                return (
+                  <div className="space-y-3">
+                    {pending.length === 0 && completed.length === 0 && (
+                      <p className="text-center text-muted-foreground py-4">No milestones yet</p>
+                    )}
+                    {pending.map(renderMilestone)}
+                    {pending.length === 0 && completed.length > 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-2">All milestones completed</p>
+                    )}
+                    {completed.length > 0 && (
+                      <div>
+                        <button
+                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-1"
+                          onClick={() => setShowCompletedMilestones(v => !v)}
+                          data-testid="button-toggle-completed-milestones"
+                        >
+                          {showCompletedMilestones ? (
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          )}
+                          {completed.length} completed milestone{completed.length !== 1 ? "s" : ""}
+                        </button>
+                        {showCompletedMilestones && (
+                          <div className="space-y-3 mt-2">
+                            {completed.map(renderMilestone)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
