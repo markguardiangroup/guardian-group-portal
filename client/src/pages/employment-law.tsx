@@ -1032,6 +1032,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
   const [checklistForm, setChecklistForm] = useState({ title: "", description: "" });
@@ -1490,8 +1492,60 @@ function CaseDetailView({ id }: { id: string }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">Description</p>
-                    <p className="mt-1">{caseData.description || "No description provided"}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">Description</p>
+                      {(user?.role === "admin" || user?.role === "consultant") && !editingDescription && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => { setDescriptionDraft(caseData.description ?? ""); setEditingDescription(true); }}
+                          data-testid="button-edit-description"
+                          title="Edit description"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                    {editingDescription ? (
+                      <div className="mt-1 space-y-2">
+                        <Textarea
+                          value={descriptionDraft}
+                          onChange={e => setDescriptionDraft(e.target.value)}
+                          className="text-sm min-h-[80px] resize-none"
+                          placeholder="Add a description…"
+                          autoFocus
+                          data-testid="input-description-edit"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                            onClick={() => {
+                              updateCaseMutation.mutate(
+                                { description: descriptionDraft },
+                                { onSuccess: () => setEditingDescription(false) }
+                              );
+                            }}
+                            disabled={updateCaseMutation.isPending}
+                            data-testid="button-save-description"
+                          >
+                            {updateCaseMutation.isPending ? "Saving…" : "Save"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => setEditingDescription(false)}
+                            data-testid="button-cancel-description"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm">{caseData.description || <span className="text-muted-foreground italic">No description provided</span>}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-3">
