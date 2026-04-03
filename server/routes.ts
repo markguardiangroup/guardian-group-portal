@@ -10318,21 +10318,23 @@ export async function registerRoutes(
           if (companySiteIds && (!doc.siteId || !companySiteIds.includes(doc.siteId))) continue;
           if (moduleFilter && doc.module !== moduleFilter) continue;
 
-          const moduleUrl: Record<string, string> = {
+          const moduleDocUrlBase: Record<string, string> = {
             health_safety: "/health-safety/documents",
             human_resources: "/human-resources/documents",
             employment_law: "/employment-law/documents",
-            training: "/training",
+            training: "/training/documents",
           };
 
+          const docUrl = `${moduleDocUrlBase[doc.module] || "/documents"}/${doc.id}`;
+
           if (doc.reviewDate && inDateRange(new Date(doc.reviewDate))) {
-            events.push({ id: `doc-review-${doc.id}`, title: `Review: ${doc.title}`, date: doc.reviewDate, type: "review_due", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.reviewDate) < now });
+            events.push({ id: `doc-review-${doc.id}`, title: `Review: ${doc.title}`, date: doc.reviewDate, type: "review_due", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.reviewDate) < now });
           }
           if (doc.expiryDate && inDateRange(new Date(doc.expiryDate))) {
-            events.push({ id: `doc-expiry-${doc.id}`, title: `Expiry: ${doc.title}`, date: doc.expiryDate, type: "expiry", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.expiryDate) < now });
+            events.push({ id: `doc-expiry-${doc.id}`, title: `Expiry: ${doc.title}`, date: doc.expiryDate, type: "expiry", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.expiryDate) < now });
           }
           if (doc.renewalDate && inDateRange(new Date(doc.renewalDate))) {
-            events.push({ id: `doc-renewal-${doc.id}`, title: `Renewal: ${doc.title}`, date: doc.renewalDate, type: "renewal_due", module: doc.module, siteId: doc.siteId, url: moduleUrl[doc.module] || "/documents", isOverdue: new Date(doc.renewalDate) < now });
+            events.push({ id: `doc-renewal-${doc.id}`, title: `Renewal: ${doc.title}`, date: doc.renewalDate, type: "renewal_due", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.renewalDate) < now });
           }
         }
       }
@@ -10345,6 +10347,9 @@ export async function registerRoutes(
           if (companySiteIds && (!c.siteId || !companySiteIds.includes(c.siteId))) continue;
           if (c.responseDeadline && inDateRange(new Date(c.responseDeadline))) {
             events.push({ id: `case-deadline-${c.id}`, title: `Deadline: ${c.caseReference} – ${c.employeeName}`, date: c.responseDeadline, type: "case_deadline", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(c.responseDeadline) < now });
+          }
+          if (c.hearingDate && inDateRange(new Date(c.hearingDate))) {
+            events.push({ id: `case-hearing-${c.id}`, title: `Hearing: ${c.caseReference} – ${c.employeeName}`, date: c.hearingDate, type: "case_deadline", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(c.hearingDate) < now });
           }
         }
 
@@ -10375,6 +10380,37 @@ export async function registerRoutes(
               events.push({ id: `incident-action-${m.id}`, title: `Action: ${m.title} (${inc.incidentReference})`, date: m.dueDate, type: "action_due", module: "health_safety", siteId: inc.siteId, url: `/health-safety/incidents/${inc.id}`, isOverdue: new Date(m.dueDate) < now });
             }
           }
+        }
+      }
+
+      // ── Training bookings ──────────────────────────────────────────────────
+      if (!moduleFilter || moduleFilter === "training") {
+        const allBookings = await storage.getTrainingBookings({ status: "booked" });
+        // Batch-load courses to avoid N+1
+        const courseCache: Record<string, string> = {};
+        for (const booking of allBookings) {
+          if (!canAccess(booking.siteId)) continue;
+          if (companySiteIds && !companySiteIds.includes(booking.siteId)) continue;
+          if (!booking.scheduledDate) continue;
+          if (!inDateRange(new Date(booking.scheduledDate))) continue;
+
+          let courseName = courseCache[booking.trainingCourseId];
+          if (courseName === undefined) {
+            const course = await storage.getTrainingCourse(booking.trainingCourseId);
+            courseName = course?.title ?? "Training Session";
+            courseCache[booking.trainingCourseId] = courseName;
+          }
+
+          events.push({
+            id: `training-booking-${booking.id}`,
+            title: `Training: ${courseName}`,
+            date: booking.scheduledDate,
+            type: "training_renewal",
+            module: "training",
+            siteId: booking.siteId,
+            url: `/training`,
+            isOverdue: new Date(booking.scheduledDate) < now,
+          });
         }
       }
 
