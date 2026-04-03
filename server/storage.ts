@@ -1537,7 +1537,7 @@ export class MemStorage implements IStorage {
   async getCaseNotes(caseId: string): Promise<CaseNote[]> {
     return db.select().from(caseNotesTable)
       .where(eq(caseNotesTable.caseId, caseId))
-      .orderBy(caseNotesTable.createdAt);
+      .orderBy(desc(caseNotesTable.createdAt));
   }
 
   async getCaseNote(id: string): Promise<CaseNote | undefined> {
