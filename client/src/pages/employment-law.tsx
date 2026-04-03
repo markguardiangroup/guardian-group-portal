@@ -1267,7 +1267,15 @@ function CaseDetailView({ id }: { id: string }) {
 
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
-      toast({ title: "Document uploaded successfully" });
+
+      // If there are incomplete checklist items, prompt user to link the upload
+      const incompleteItems = (checklistItems ?? []).filter(i => !i.isCompleted);
+      if (incompleteItems.length > 0) {
+        setPendingUploadName(file.name.replace(/\.[^/.]+$/, ""));
+        setShowEssentialDocDialog(true);
+      } else {
+        toast({ title: "Document uploaded successfully" });
+      }
     } catch (error) {
       toast({ title: "Failed to upload document", variant: "destructive" });
     } finally {
@@ -1280,6 +1288,8 @@ function CaseDetailView({ id }: { id: string }) {
 
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
+  const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
+  const [pendingUploadName, setPendingUploadName] = useState("");
 
   if (isLoading) {
     return (
@@ -2031,6 +2041,70 @@ function CaseDetailView({ id }: { id: string }) {
                 {editingChecklistItem ? "Save Changes" : "Add to Checklist"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Post-upload essential document matching dialog */}
+      <Dialog
+        open={showEssentialDocDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowEssentialDocDialog(false);
+            toast({ title: "Document uploaded successfully" });
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-pink-600" />
+              Fulfils an essential document?
+            </DialogTitle>
+            <DialogDescription>
+              <span className="font-medium text-foreground">"{pendingUploadName}"</span> was uploaded. Does it satisfy one of the outstanding essential documents below?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-64 overflow-y-auto py-1">
+            {(checklistItems ?? []).filter(i => !i.isCompleted).map(item => (
+              <button
+                key={item.id}
+                className="w-full flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:border-pink-300 dark:hover:border-pink-700 transition-colors text-left group"
+                onClick={() => {
+                  updateChecklistItemMutation.mutate(
+                    { itemId: item.id, data: { isCompleted: true } },
+                    {
+                      onSuccess: () => {
+                        setShowEssentialDocDialog(false);
+                        toast({ title: "Document uploaded & essential document marked complete" });
+                      },
+                    }
+                  );
+                }}
+                data-testid={`button-link-checklist-${item.id}`}
+              >
+                <CheckSquare className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground group-hover:text-pink-600 transition-colors" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{item.title}</p>
+                  {item.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowEssentialDocDialog(false);
+                toast({ title: "Document uploaded successfully" });
+              }}
+              data-testid="button-skip-essential-doc"
+            >
+              Skip — not one of these
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
