@@ -409,6 +409,7 @@ export const caseDocumentChecklist = pgTable("case_document_checklist", {
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
   completedBy: varchar("completed_by"),
+  linkedDocumentId: varchar("linked_document_id"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

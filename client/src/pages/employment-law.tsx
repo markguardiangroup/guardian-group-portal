@@ -1252,20 +1252,21 @@ function CaseDetailView({ id }: { id: string }) {
       if (!uploadRes.ok) throw new Error("Failed to upload file");
       const { objectPath } = await uploadRes.json();
 
-      await apiRequest("POST", `/api/cases/${id}/documents`, {
+      const docRecord = await apiRequest("POST", `/api/cases/${id}/documents`, {
         title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
         fileUrl: objectPath,
         fileSize: file.size,
         mimeType: file.type,
       });
+      const createdDoc = await docRecord.json().catch(() => null);
 
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "documents"] });
       queryClient.refetchQueries({ queryKey: ["/api/cases", id, "audit"] });
 
       if (checklistItemId) {
         updateChecklistItemMutation.mutate(
-          { itemId: checklistItemId, data: { isCompleted: true } },
+          { itemId: checklistItemId, data: { isCompleted: true, linkedDocumentId: createdDoc?.id ?? null } },
           {
             onSuccess: () => {
               toast({ title: "Document uploaded & essential document marked complete" });
@@ -1767,12 +1768,20 @@ function CaseDetailView({ id }: { id: string }) {
             <CardContent className="pt-4">
               {documents && documents.length > 0 ? (
                 <div className="space-y-2">
-                  {documents.map((doc) => (
+                  {documents.map((doc) => {
+                    const linkedChecklistItem = (checklistItems ?? []).find(i => i.linkedDocumentId === doc.id);
+                    return (
                     <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg border hover-elevate">
-                      <FileText className="h-5 w-5 text-pink-600" />
-                      <div className="flex-1">
+                      <FileText className="h-5 w-5 text-pink-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                        {linkedChecklistItem && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300">
+                            <CheckSquare className="h-3 w-3" />
+                            Fulfils: {linkedChecklistItem.title}
+                          </span>
+                        )}
                       </div>
                       {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/")) && (
                         <Button
@@ -1803,7 +1812,8 @@ function CaseDetailView({ id }: { id: string }) {
                         </Button>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-4">No documents uploaded yet</p>
