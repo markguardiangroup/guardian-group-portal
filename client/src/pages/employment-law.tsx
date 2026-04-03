@@ -1490,20 +1490,6 @@ function CaseDetailView({ id }: { id: string }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">Company</p>
-                    <p className="mt-1 flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      {company?.name || "Loading..."}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Site</p>
-                    <p className="mt-1 flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {site?.name || "Loading..."}
-                    </p>
-                  </div>
-                  <div>
                     <p className="text-sm text-muted-foreground">Description</p>
                     <p className="mt-1">{caseData.description || "No description provided"}</p>
                   </div>
