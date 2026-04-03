@@ -1314,6 +1314,8 @@ function CaseDetailView({ id }: { id: string }) {
     }
   };
 
+  const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
+
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
 
@@ -1690,13 +1692,39 @@ function CaseDetailView({ id }: { id: string }) {
                           data-testid={`checklist-item-${item.id}`}
                         >
                           <button
-                            onClick={() => updateChecklistItemMutation.mutate({ itemId: item.id, data: { isCompleted: !item.isCompleted } })}
-                            className={`mt-0.5 shrink-0 transition-colors ${item.isCompleted ? "text-green-600" : "text-muted-foreground hover:text-pink-600"}`}
+                            onClick={() => {
+                              if (!item.isCompleted) {
+                                // Marking complete — proceed directly
+                                updateChecklistItemMutation.mutate({ itemId: item.id, data: { isCompleted: true } });
+                              } else if (item.linkedDocumentId) {
+                                // Locked — linked to a document, cannot manually uncheck
+                                const linkedDoc = documents?.find(d => d.id === item.linkedDocumentId);
+                                setChecklistReopenDialog({ item, linkedDoc: linkedDoc ? { title: linkedDoc.title, fileName: linkedDoc.fileName } : undefined });
+                              } else {
+                                // Manual completion — ask for confirmation before reopening
+                                setChecklistReopenDialog({ item });
+                              }
+                            }}
+                            className={`mt-0.5 shrink-0 transition-colors ${
+                              item.isCompleted
+                                ? item.linkedDocumentId
+                                  ? "text-green-600 cursor-not-allowed"
+                                  : "text-green-600 hover:text-amber-500"
+                                : "text-muted-foreground hover:text-pink-600"
+                            }`}
                             data-testid={`button-toggle-checklist-${item.id}`}
-                            title={item.isCompleted ? "Mark incomplete" : "Mark complete"}
+                            title={
+                              item.isCompleted
+                                ? item.linkedDocumentId
+                                  ? "Linked to a document — delete the document to mark incomplete"
+                                  : "Click to mark incomplete"
+                                : "Mark complete"
+                            }
                           >
                             {item.isCompleted
-                              ? <CheckSquare className="h-5 w-5" />
+                              ? item.linkedDocumentId
+                                ? <Lock className="h-5 w-5 text-green-600" />
+                                : <CheckSquare className="h-5 w-5" />
                               : <Square className="h-5 w-5" />
                             }
                           </button>
@@ -2081,6 +2109,74 @@ function CaseDetailView({ id }: { id: string }) {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Checklist item reopen dialog (confirmation or blocked) */}
+      <Dialog open={!!checklistReopenDialog} onOpenChange={(open) => { if (!open) setChecklistReopenDialog(null); }}>
+        <DialogContent className="max-w-md">
+          {checklistReopenDialog?.linkedDoc ? (
+            // Blocked — has a linked document
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-green-600" />
+                  Cannot mark incomplete
+                </DialogTitle>
+                <DialogDescription className="space-y-3 pt-1">
+                  <span>
+                    <span className="font-medium text-foreground">"{checklistReopenDialog.item.title}"</span> was completed by uploading a specific document. To mark it incomplete, delete that document from Case Documents first.
+                  </span>
+                  <span className="flex items-start gap-2 p-3 rounded-lg bg-muted border text-sm">
+                    <FileText className="h-4 w-4 mt-0.5 shrink-0 text-pink-600" />
+                    <span>
+                      <span className="font-medium">{checklistReopenDialog.linkedDoc.title}</span>
+                      <span className="block text-muted-foreground text-xs mt-0.5">{checklistReopenDialog.linkedDoc.fileName}</span>
+                    </span>
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end pt-2">
+                <Button size="sm" onClick={() => setChecklistReopenDialog(null)} data-testid="button-close-blocked-reopen">
+                  Got it
+                </Button>
+              </div>
+            </>
+          ) : (
+            // Confirmation — manually completed, no linked doc
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <RotateCcw className="h-5 w-5" />
+                  Mark as incomplete?
+                </DialogTitle>
+                <DialogDescription className="pt-1">
+                  Are you sure you want to reopen <span className="font-medium text-foreground">"{checklistReopenDialog?.item.title}"</span> and mark it as not yet fulfilled?
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => setChecklistReopenDialog(null)} data-testid="button-cancel-reopen">
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                  onClick={() => {
+                    if (checklistReopenDialog) {
+                      updateChecklistItemMutation.mutate(
+                        { itemId: checklistReopenDialog.item.id, data: { isCompleted: false } },
+                        { onSuccess: () => setChecklistReopenDialog(null) }
+                      );
+                    }
+                  }}
+                  disabled={updateChecklistItemMutation.isPending}
+                  data-testid="button-confirm-reopen"
+                >
+                  {updateChecklistItemMutation.isPending ? "Saving…" : "Mark incomplete"}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
