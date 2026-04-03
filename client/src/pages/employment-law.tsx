@@ -1034,6 +1034,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
   const [checklistForm, setChecklistForm] = useState({ title: "", description: "" });
@@ -1589,118 +1590,140 @@ function CaseDetailView({ id }: { id: string }) {
           {/* ── Case Notes ─────────────────────────────────────────────── */}
           {(user?.role === "admin" || user?.role === "consultant") && (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 border-b pb-4">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <StickyNote className="h-5 w-5 text-pink-500" />
-                    Case Notes
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">Internal — not visible to clients</CardDescription>
-                </div>
-                <Badge variant="outline" className="shrink-0">{caseNotes.length}</Badge>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                {caseNotes.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
-                )}
-                {caseNotes.map((note) => (
-                  <div key={note.id} className="flex items-start gap-2 group" data-testid={`note-item-${note.id}`}>
-                    <span className="text-pink-400 font-bold text-sm mt-0.5 shrink-0">•</span>
-                    <div className="flex-1 min-w-0">
-                      {editingNote?.id === note.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editNoteText}
-                            onChange={e => setEditNoteText(e.target.value)}
-                            className="text-sm min-h-[70px] resize-none"
-                            autoFocus
-                            data-testid={`input-edit-note-${note.id}`}
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
-                              onClick={() => updateNoteMutation.mutate({ noteId: note.id, content: editNoteText })}
-                              disabled={!editNoteText.trim() || updateNoteMutation.isPending}
-                              data-testid={`button-save-note-${note.id}`}
-                            >
-                              {updateNoteMutation.isPending ? "Saving…" : "Save"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => { setEditingNote(null); setEditNoteText(""); }}
-                              data-testid={`button-cancel-edit-note-${note.id}`}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
-                            {note.updatedAt !== note.createdAt && " · edited"}
-                          </p>
-                        </>
-                      )}
+              <button
+                className="w-full text-left"
+                onClick={() => setCaseNotesExpanded(v => !v)}
+                data-testid="button-toggle-case-notes"
+              >
+                <CardHeader className={`flex flex-row items-center justify-between gap-4 ${caseNotesExpanded ? "border-b pb-4" : "pb-4"}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <StickyNote className="h-5 w-5 text-pink-500 shrink-0" />
+                    <div>
+                      <CardTitle className="text-lg">Case Notes</CardTitle>
+                      <CardDescription className="text-xs mt-0.5">Internal — not visible to clients</CardDescription>
                     </div>
-                    {editingNote?.id !== note.id && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
-                          data-testid={`button-edit-note-${note.id}`}
-                          title="Edit note"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive hover:text-destructive"
-                          onClick={() => setNoteToDelete(note)}
-                          data-testid={`button-delete-note-${note.id}`}
-                          title="Delete note"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {caseNotes.length > 0 && (
+                      <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-0 font-semibold tabular-nums">
+                        {caseNotes.length} {caseNotes.length === 1 ? "note" : "notes"}
+                      </Badge>
+                    )}
+                    {caseNotes.length === 0 && !caseNotesExpanded && (
+                      <span className="text-xs text-muted-foreground">No notes yet</span>
+                    )}
+                    {caseNotesExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                ))}
-                <div className="pt-2 border-t space-y-2">
-                  <Textarea
-                    placeholder="Add a note…"
-                    value={newNoteText}
-                    onChange={e => setNewNoteText(e.target.value)}
-                    className="text-sm min-h-[70px] resize-none"
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && newNoteText.trim()) {
-                        e.preventDefault();
-                        addNoteMutation.mutate(newNoteText.trim());
-                      }
-                    }}
-                    data-testid="input-new-note"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to save</span>
-                    <Button
-                      size="sm"
-                      className="bg-pink-600 hover:bg-pink-700 text-white"
-                      onClick={() => { if (newNoteText.trim()) addNoteMutation.mutate(newNoteText.trim()); }}
-                      disabled={!newNoteText.trim() || addNoteMutation.isPending}
-                      data-testid="button-add-note"
-                    >
-                      {addNoteMutation.isPending ? "Adding…" : "Add note"}
-                    </Button>
+                </CardHeader>
+              </button>
+              {caseNotesExpanded && (
+                <CardContent className="pt-4 space-y-3">
+                  {caseNotes.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
+                  )}
+                  {caseNotes.map((note) => (
+                    <div key={note.id} className="flex items-start gap-2 group" data-testid={`note-item-${note.id}`}>
+                      <span className="text-pink-400 font-bold text-sm mt-0.5 shrink-0">•</span>
+                      <div className="flex-1 min-w-0">
+                        {editingNote?.id === note.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editNoteText}
+                              onChange={e => setEditNoteText(e.target.value)}
+                              className="text-sm min-h-[70px] resize-none"
+                              autoFocus
+                              data-testid={`input-edit-note-${note.id}`}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                                onClick={() => updateNoteMutation.mutate({ noteId: note.id, content: editNoteText })}
+                                disabled={!editNoteText.trim() || updateNoteMutation.isPending}
+                                data-testid={`button-save-note-${note.id}`}
+                              >
+                                {updateNoteMutation.isPending ? "Saving…" : "Save"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => { setEditingNote(null); setEditNoteText(""); }}
+                                data-testid={`button-cancel-edit-note-${note.id}`}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
+                              {note.updatedAt !== note.createdAt && " · edited"}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      {editingNote?.id !== note.id && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
+                            data-testid={`button-edit-note-${note.id}`}
+                            title="Edit note"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-destructive hover:text-destructive"
+                            onClick={() => setNoteToDelete(note)}
+                            data-testid={`button-delete-note-${note.id}`}
+                            title="Delete note"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t space-y-2">
+                    <Textarea
+                      placeholder="Add a note…"
+                      value={newNoteText}
+                      onChange={e => setNewNoteText(e.target.value)}
+                      className="text-sm min-h-[70px] resize-none"
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && newNoteText.trim()) {
+                          e.preventDefault();
+                          addNoteMutation.mutate(newNoteText.trim());
+                        }
+                      }}
+                      data-testid="input-new-note"
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to save</span>
+                      <Button
+                        size="sm"
+                        className="bg-pink-600 hover:bg-pink-700 text-white"
+                        onClick={() => { if (newNoteText.trim()) addNoteMutation.mutate(newNoteText.trim()); }}
+                        disabled={!newNoteText.trim() || addNoteMutation.isPending}
+                        data-testid="button-add-note"
+                      >
+                        {addNoteMutation.isPending ? "Adding…" : "Add note"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
           )}
 
