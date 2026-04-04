@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -15,13 +14,14 @@ import {
 } from "@/components/ui/select";
 import {
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Building2,
   Calendar,
   CheckCircle,
   Clock,
   Download,
   Filter,
-  FileText,
   ShieldAlert,
   TrendingDown,
   GitPullRequest,
@@ -31,6 +31,8 @@ import {
 import type { Site, Company } from "@shared/schema";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+type ReportId = "gaps" | "expiry" | "comparison" | "pipeline" | "deadline";
 
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "Health & Safety",
@@ -84,34 +86,36 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
   );
 }
 
-// ─── Tab 1: Compliance Gaps ──────────────────────────────────────────────────
+// ─── API query builder ───────────────────────────────────────────────────────
+
+function buildUrl(path: string, companyId: string, siteId: string, extra?: Record<string, string>) {
+  const p = new URLSearchParams();
+  if (companyId !== "all") p.set("companyId", companyId);
+  if (siteId !== "all") p.set("siteId", siteId);
+  if (extra) Object.entries(extra).forEach(([k, v]) => p.set(k, v));
+  return `${path}${p.toString() ? `?${p}` : ""}`;
+}
+
+// ─── Report: Compliance Gaps ─────────────────────────────────────────────────
 
 interface GapSite {
-  siteId: string;
-  siteName: string;
-  companyId: string;
+  siteId: string; siteName: string; companyId: string;
   gaps: { module: string; missingTemplates: { templateId: string; templateName: string }[] }[];
 }
 
-function ComplianceGapsTab({ companyId, siteId }: { companyId: string; siteId: string }) {
-  const params = new URLSearchParams();
-  if (companyId !== "all") params.set("companyId", companyId);
-  if (siteId !== "all") params.set("siteId", siteId);
-  const url = `/api/reports/gaps${params.toString() ? `?${params}` : ""}`;
-
+function ComplianceGapsReport({ companyId, siteId }: { companyId: string; siteId: string }) {
   const { data, isLoading } = useQuery<GapSite[]>({
     queryKey: ["/api/reports/gaps", { companyId, siteId }],
     queryFn: async () => {
-      const r = await fetch(url, { credentials: "include" });
-      if (!r.ok) throw new Error("Failed to fetch");
+      const r = await fetch(buildUrl("/api/reports/gaps", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
       return r.json();
     },
   });
 
   if (isLoading) return <SkeletonRows />;
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0)
     return <EmptyState icon={CheckCircle} title="No compliance gaps found" description="All required documents for the selected scope are fulfilled." />;
-  }
 
   const totalMissing = data.reduce((s, site) => s + site.gaps.reduce((g, gap) => g + gap.missingTemplates.length, 0), 0);
 
@@ -127,16 +131,14 @@ function ComplianceGapsTab({ companyId, siteId }: { companyId: string; siteId: s
         const totalForSite = site.gaps.reduce((s, g) => s + g.missingTemplates.length, 0);
         return (
           <Card key={site.siteId}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between text-base">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  {site.siteName}
-                </div>
-                <Badge variant="destructive">{totalForSite} missing</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
+              <div className="flex items-center gap-2 font-medium">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                {site.siteName}
+              </div>
+              <Badge variant="destructive">{totalForSite} missing</Badge>
+            </div>
+            <CardContent className="space-y-3 pt-0">
               {site.gaps.map((gap) => (
                 <div key={gap.module} className="rounded-md border p-3">
                   <div className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium border mb-2 ${MODULE_COLORS[gap.module] || "bg-muted text-muted-foreground"}`}>
@@ -160,38 +162,24 @@ function ComplianceGapsTab({ companyId, siteId }: { companyId: string; siteId: s
   );
 }
 
-// ─── Tab 2: Expiry & Renewal Risk ───────────────────────────────────────────
+// ─── Report: Expiry Risk ─────────────────────────────────────────────────────
 
 interface ExpiryRiskItem {
-  id: string;
-  title: string;
-  module: string;
-  siteId: string;
-  siteName: string;
-  dateType: string;
-  date: string;
-  daysUntil: number;
-  urgency: string;
-  status: string;
-  approvalStatus: string;
+  id: string; title: string; module: string; siteId: string; siteName: string;
+  dateType: string; date: string; daysUntil: number; urgency: string;
 }
 
-function ExpiryRiskTab({ companyId, siteId }: { companyId: string; siteId: string }) {
+function ExpiryRiskReport({ companyId, siteId }: { companyId: string; siteId: string }) {
   const [window, setWindow] = useState("90");
   const [moduleFilter, setModuleFilter] = useState("all");
-
-  const params = new URLSearchParams();
-  if (companyId !== "all") params.set("companyId", companyId);
-  if (siteId !== "all") params.set("siteId", siteId);
-  params.set("window", window);
-  if (moduleFilter !== "all") params.set("module", moduleFilter);
-  const url = `/api/reports/expiry-risk?${params}`;
 
   const { data, isLoading } = useQuery<ExpiryRiskItem[]>({
     queryKey: ["/api/reports/expiry-risk", { companyId, siteId, window, moduleFilter }],
     queryFn: async () => {
-      const r = await fetch(url, { credentials: "include" });
-      if (!r.ok) throw new Error("Failed to fetch");
+      const extra: Record<string, string> = { window };
+      if (moduleFilter !== "all") extra.module = moduleFilter;
+      const r = await fetch(buildUrl("/api/reports/expiry-risk", companyId, siteId, extra), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
       return r.json();
     },
   });
@@ -258,8 +246,7 @@ function ExpiryRiskTab({ companyId, siteId }: { companyId: string; siteId: strin
             const dateLabel = { expiry: "Expires", renewal: "Renewal due", review: "Review due" }[item.dateType] || "Due";
             const daysLabel = item.daysUntil < 0
               ? `${Math.abs(item.daysUntil)} days overdue`
-              : item.daysUntil === 0
-              ? "Due today"
+              : item.daysUntil === 0 ? "Due today"
               : `${item.daysUntil} days remaining`;
             return (
               <div key={item.id} className={`flex items-center justify-between rounded-md border bg-card px-4 py-3 gap-3 ${styles.row}`} data-testid={`row-expiry-${item.id}`}>
@@ -274,9 +261,7 @@ function ExpiryRiskTab({ companyId, siteId }: { companyId: string; siteId: strin
                 </div>
                 <div className="text-right shrink-0">
                   <Badge className={`${styles.badge} border-0 font-medium`}>{daysLabel}</Badge>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {dateLabel}: {new Date(item.date).toLocaleDateString("en-GB")}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{dateLabel}: {new Date(item.date).toLocaleDateString("en-GB")}</p>
                 </div>
               </div>
             );
@@ -287,15 +272,12 @@ function ExpiryRiskTab({ companyId, siteId }: { companyId: string; siteId: strin
   );
 }
 
-// ─── Tab 3: Site Comparison ──────────────────────────────────────────────────
+// ─── Report: Site Comparison ─────────────────────────────────────────────────
 
 interface SiteComparisonItem {
-  siteId: string;
-  siteName: string;
-  companyId: string;
+  siteId: string; siteName: string; companyId: string;
   scores: Record<string, { score: number; total: number; compliant: number; overdue: number }>;
-  overallScore: number;
-  totalDocs: number;
+  overallScore: number; totalDocs: number;
 }
 
 function ScorePill({ score }: { score: number }) {
@@ -303,33 +285,24 @@ function ScorePill({ score }: { score: number }) {
     : score >= 70 ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
     : score > 0 ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
     : "bg-muted text-muted-foreground";
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
-      {score > 0 ? `${score}%` : "—"}
-    </span>
-  );
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>{score > 0 ? `${score}%` : "—"}</span>;
 }
 
-function SiteComparisonTab({ companyId }: { companyId: string }) {
-  const params = new URLSearchParams();
-  if (companyId !== "all") params.set("companyId", companyId);
-  const url = `/api/reports/site-comparison${params.toString() ? `?${params}` : ""}`;
-
+function SiteComparisonReport({ companyId }: { companyId: string }) {
   const { data, isLoading } = useQuery<SiteComparisonItem[]>({
     queryKey: ["/api/reports/site-comparison", { companyId }],
     queryFn: async () => {
-      const r = await fetch(url, { credentials: "include" });
-      if (!r.ok) throw new Error("Failed to fetch");
+      const r = await fetch(buildUrl("/api/reports/site-comparison", companyId, "all"), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
       return r.json();
     },
   });
 
   if (isLoading) return <SkeletonRows />;
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0)
     return <EmptyState icon={Building2} title="No sites found" description="Select a company to compare site compliance scores." />;
-  }
 
-  const complianceMods = ["health_safety", "human_resources", "employment_law"];
+  const complianceMods = ["health_safety", "human_resources", "employment_law"] as const;
   const lowestSite = [...data].sort((a, b) => a.overallScore - b.overallScore)[0];
 
   return (
@@ -348,12 +321,10 @@ function SiteComparisonTab({ companyId }: { companyId: string }) {
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">Site</th>
               {complianceMods.map((mod) => (
-                <th key={mod} className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">
-                  {MODULE_LABELS[mod]}
-                </th>
+                <th key={mod} className="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap">{MODULE_LABELS[mod]}</th>
               ))}
               <th className="px-4 py-3 text-center font-medium text-muted-foreground">Overall</th>
-              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Total Docs</th>
+              <th className="px-4 py-3 text-center font-medium text-muted-foreground">Docs</th>
             </tr>
           </thead>
           <tbody>
@@ -361,19 +332,15 @@ function SiteComparisonTab({ companyId }: { companyId: string }) {
               <tr key={site.siteId} className={`border-b last:border-0 ${idx === 0 && site.overallScore < 90 ? "bg-red-50/50 dark:bg-red-900/10" : ""}`} data-testid={`row-site-${site.siteId}`}>
                 <td className="px-4 py-3 font-medium">{site.siteName}</td>
                 {complianceMods.map((mod) => {
-                  const s = site.scores[mod] || { score: 0, total: 0 };
+                  const s = site.scores[mod] || { score: 0, total: 0, compliant: 0 };
                   return (
                     <td key={mod} className="px-4 py-3 text-center">
                       <ScorePill score={s.score} />
-                      {s.total > 0 && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{s.compliant}/{s.total}</p>
-                      )}
+                      {s.total > 0 && <p className="text-xs text-muted-foreground mt-0.5">{s.compliant}/{s.total}</p>}
                     </td>
                   );
                 })}
-                <td className="px-4 py-3 text-center">
-                  <ScorePill score={site.overallScore} />
-                </td>
+                <td className="px-4 py-3 text-center"><ScorePill score={site.overallScore} /></td>
                 <td className="px-4 py-3 text-center text-muted-foreground">{site.totalDocs}</td>
               </tr>
             ))}
@@ -390,39 +357,26 @@ function SiteComparisonTab({ companyId }: { companyId: string }) {
   );
 }
 
-// ─── Tab 4: Approval Pipeline ─────────────────────────────────────────────────
+// ─── Report: Approval Pipeline ────────────────────────────────────────────────
 
 interface ApprovalPipelineItem {
-  id: string;
-  title: string;
-  module: string;
-  approvalStatus: string;
-  siteId: string;
-  siteName: string;
-  uploaderName: string;
-  daysWaiting: number;
-  createdAt: string;
+  id: string; title: string; module: string; approvalStatus: string;
+  siteId: string; siteName: string; uploaderName: string; daysWaiting: number; createdAt: string;
 }
 
-function ApprovalPipelineTab({ companyId, siteId }: { companyId: string; siteId: string }) {
-  const params = new URLSearchParams();
-  if (companyId !== "all") params.set("companyId", companyId);
-  if (siteId !== "all") params.set("siteId", siteId);
-  const url = `/api/reports/approval-pipeline${params.toString() ? `?${params}` : ""}`;
-
+function ApprovalPipelineReport({ companyId, siteId }: { companyId: string; siteId: string }) {
   const { data, isLoading } = useQuery<ApprovalPipelineItem[]>({
     queryKey: ["/api/reports/approval-pipeline", { companyId, siteId }],
     queryFn: async () => {
-      const r = await fetch(url, { credentials: "include" });
-      if (!r.ok) throw new Error("Failed to fetch");
+      const r = await fetch(buildUrl("/api/reports/approval-pipeline", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
       return r.json();
     },
   });
 
   if (isLoading) return <SkeletonRows />;
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0)
     return <EmptyState icon={CheckCircle} title="Pipeline is clear" description="No documents are currently awaiting approval." />;
-  }
 
   const pendingCount = data.filter((d) => d.approvalStatus === "pending").length;
   const clientSignedCount = data.filter((d) => d.approvalStatus === "client_signed_off").length;
@@ -476,71 +430,40 @@ function ApprovalPipelineTab({ companyId, siteId }: { companyId: string; siteId:
   );
 }
 
-// ─── Tab 5: Deadline & Milestone Risk ────────────────────────────────────────
+// ─── Report: Deadline Risk ────────────────────────────────────────────────────
 
 interface MilestoneRisk {
-  caseId: string;
-  caseReference: string;
-  employeeName: string;
-  siteId: string;
-  siteName: string;
-  milestoneId: string;
-  milestoneTitle: string;
-  dueDate: string;
-  daysUntil: number;
-  isOverdue: boolean;
-  urgency: string;
+  caseId: string; caseReference: string; employeeName: string; siteId: string; siteName: string;
+  milestoneId: string; milestoneTitle: string; dueDate: string; daysUntil: number; isOverdue: boolean; urgency: string;
 }
-
 interface IncidentRisk {
-  id: string;
-  reference: string;
-  title: string;
-  siteId: string;
-  siteName: string;
-  severity: string;
-  status: string;
-  incidentDate: string;
-  daysSinceReported: number;
-  urgency: string;
+  id: string; reference: string; title: string; siteId: string; siteName: string;
+  severity: string; status: string; incidentDate: string; daysSinceReported: number; urgency: string;
 }
+interface DeadlineRiskData { milestoneRisks: MilestoneRisk[]; incidentRisks: IncidentRisk[]; }
 
-interface DeadlineRiskData {
-  milestoneRisks: MilestoneRisk[];
-  incidentRisks: IncidentRisk[];
-}
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  major: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  moderate: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  minor: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+};
 
-function DeadlineRiskTab({ companyId, siteId }: { companyId: string; siteId: string }) {
-  const params = new URLSearchParams();
-  if (companyId !== "all") params.set("companyId", companyId);
-  if (siteId !== "all") params.set("siteId", siteId);
-  const url = `/api/reports/deadline-risk${params.toString() ? `?${params}` : ""}`;
-
+function DeadlineRiskReport({ companyId, siteId }: { companyId: string; siteId: string }) {
   const { data, isLoading } = useQuery<DeadlineRiskData>({
     queryKey: ["/api/reports/deadline-risk", { companyId, siteId }],
     queryFn: async () => {
-      const r = await fetch(url, { credentials: "include" });
-      if (!r.ok) throw new Error("Failed to fetch");
+      const r = await fetch(buildUrl("/api/reports/deadline-risk", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
       return r.json();
     },
   });
 
   if (isLoading) return <SkeletonRows />;
-
   const milestones = data?.milestoneRisks || [];
   const incidents = data?.incidentRisks || [];
-  const hasData = milestones.length > 0 || incidents.length > 0;
-
-  if (!hasData) {
+  if (milestones.length === 0 && incidents.length === 0)
     return <EmptyState icon={Target} title="No deadline risks" description="No overdue or upcoming case milestones or unresolved incidents at risk." />;
-  }
-
-  const SEVERITY_COLORS: Record<string, string> = {
-    critical: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    major: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-    moderate: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    minor: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  };
 
   return (
     <div className="space-y-6">
@@ -553,27 +476,20 @@ function DeadlineRiskTab({ companyId, siteId }: { companyId: string; siteId: str
           <div className="space-y-2">
             {milestones.map((item) => {
               const styles = getUrgencyStyles(item.urgency);
-              const daysLabel = item.daysUntil < 0
-                ? `${Math.abs(item.daysUntil)} days overdue`
-                : item.daysUntil === 0 ? "Due today"
-                : `Due in ${item.daysUntil} days`;
+              const daysLabel = item.daysUntil < 0 ? `${Math.abs(item.daysUntil)} days overdue` : item.daysUntil === 0 ? "Due today" : `Due in ${item.daysUntil} days`;
               return (
                 <div key={item.milestoneId} className={`flex items-center justify-between gap-3 rounded-md border bg-card px-4 py-3 ${styles.row}`} data-testid={`row-milestone-${item.milestoneId}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{item.milestoneTitle}</p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
                       <span className="font-mono">{item.caseReference}</span>
-                      <span>·</span>
-                      <span>{item.employeeName}</span>
-                      <span>·</span>
-                      <span>{item.siteName}</span>
+                      <span>·</span><span>{item.employeeName}</span>
+                      <span>·</span><span>{item.siteName}</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <Badge className={`${styles.badge} border-0 font-medium`}>{daysLabel}</Badge>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Due: {new Date(item.dueDate).toLocaleDateString("en-GB")}
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Due: {new Date(item.dueDate).toLocaleDateString("en-GB")}</p>
                   </div>
                 </div>
               );
@@ -581,7 +497,6 @@ function DeadlineRiskTab({ companyId, siteId }: { companyId: string; siteId: str
           </div>
         </div>
       )}
-
       {incidents.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -597,12 +512,9 @@ function DeadlineRiskTab({ companyId, siteId }: { companyId: string; siteId: str
                     <p className="font-medium truncate">{item.title}</p>
                     <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
                       <span className="font-mono">{item.reference}</span>
+                      <span>·</span><span>{item.siteName}</span>
                       <span>·</span>
-                      <span>{item.siteName}</span>
-                      <span>·</span>
-                      <Badge className={`${SEVERITY_COLORS[item.severity] || "bg-muted text-muted-foreground"} border-0 text-xs py-0`}>
-                        {item.severity}
-                      </Badge>
+                      <Badge className={`${SEVERITY_COLORS[item.severity] || "bg-muted text-muted-foreground"} border-0 text-xs py-0`}>{item.severity}</Badge>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -621,7 +533,65 @@ function DeadlineRiskTab({ companyId, siteId }: { companyId: string; siteId: str
   );
 }
 
-// ─── Main Reports Page ───────────────────────────────────────────────────────
+// ─── Summary data hooks (for tiles) ──────────────────────────────────────────
+
+function useTileSummaries(companyId: string, siteId: string) {
+  const gaps = useQuery<GapSite[]>({
+    queryKey: ["/api/reports/gaps", { companyId, siteId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/gaps", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+  const expiry = useQuery<ExpiryRiskItem[]>({
+    queryKey: ["/api/reports/expiry-risk", { companyId, siteId, window: "90", moduleFilter: "all" }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/expiry-risk", companyId, siteId, { window: "90" }), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+  const pipeline = useQuery<ApprovalPipelineItem[]>({
+    queryKey: ["/api/reports/approval-pipeline", { companyId, siteId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/approval-pipeline", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+  const deadline = useQuery<DeadlineRiskData>({
+    queryKey: ["/api/reports/deadline-risk", { companyId, siteId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/deadline-risk", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+  const comparison = useQuery<SiteComparisonItem[]>({
+    queryKey: ["/api/reports/site-comparison", { companyId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/site-comparison", companyId, "all"), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+
+  return { gaps, expiry, pipeline, deadline, comparison };
+}
+
+// ─── Report tile config ───────────────────────────────────────────────────────
+
+function MetricNumber({ value, loading, danger }: { value: number | undefined; loading: boolean; danger?: boolean }) {
+  if (loading) return <Skeleton className="h-8 w-12 rounded" />;
+  return (
+    <span className={`text-3xl font-bold ${danger && value && value > 0 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
+      {value ?? "—"}
+    </span>
+  );
+}
+
+// ─── Main Reports Page ────────────────────────────────────────────────────────
 
 export default function Reports() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
@@ -630,25 +600,117 @@ export default function Reports() {
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
 
-  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
-    queryKey: ["/api/companies"],
-  });
+  const [activeReport, setActiveReport] = useState<ReportId | null>(null);
+
+  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies"] });
   const companies = companiesData?.companies || [];
+  const { data: allSites = [] } = useQuery<Site[]>({ queryKey: ["/api/sites"] });
+  const filteredSites = companyFilter === "all" ? allSites : allSites.filter((s) => s.companyId === companyFilter);
 
-  const { data: allSites = [] } = useQuery<Site[]>({
-    queryKey: ["/api/sites"],
-  });
+  const summaries = useTileSummaries(companyFilter, siteFilter);
 
-  const filteredSites = companyFilter === "all"
-    ? allSites
-    : allSites.filter((site) => site.companyId === companyFilter);
+  // Derived summary metrics for tiles
+  const gapCount = summaries.gaps.data?.reduce((s, site) => s + site.gaps.reduce((g, gap) => g + gap.missingTemplates.length, 0), 0) ?? 0;
+  const gapSiteCount = summaries.gaps.data?.length ?? 0;
+  const expiryCount = summaries.expiry.data?.length ?? 0;
+  const expiryOverdue = summaries.expiry.data?.filter((d) => d.urgency === "overdue").length ?? 0;
+  const pipelineCount = summaries.pipeline.data?.length ?? 0;
+  const deadlineCount = (summaries.deadline.data?.milestoneRisks.length ?? 0) + (summaries.deadline.data?.incidentRisks.length ?? 0);
+  const comparisonCount = summaries.comparison.data?.length ?? 0;
+  const lowestScore = summaries.comparison.data?.length
+    ? Math.min(...summaries.comparison.data.map((s) => s.overallScore))
+    : null;
+
+  const REPORT_TILES: {
+    id: ReportId;
+    icon: React.ElementType;
+    iconColor: string;
+    title: string;
+    description: string;
+    metric: React.ReactNode;
+    metricLabel: string;
+    accentColor: string;
+  }[] = [
+    {
+      id: "gaps",
+      icon: AlertTriangle,
+      iconColor: "text-amber-600 dark:text-amber-400",
+      title: "Compliance Gaps",
+      description: "Required documents that are missing or unfulfilled across your sites.",
+      metric: <MetricNumber value={gapCount} loading={summaries.gaps.isLoading} danger />,
+      metricLabel: `missing across ${gapSiteCount} ${gapSiteCount === 1 ? "site" : "sites"}`,
+      accentColor: "hover:border-amber-400 dark:hover:border-amber-600",
+    },
+    {
+      id: "expiry",
+      icon: Calendar,
+      iconColor: "text-blue-600 dark:text-blue-400",
+      title: "Expiry & Renewal Risk",
+      description: "Documents expiring or due for renewal within the next 90 days.",
+      metric: <MetricNumber value={expiryCount} loading={summaries.expiry.isLoading} danger={expiryOverdue > 0} />,
+      metricLabel: expiryOverdue > 0 ? `${expiryOverdue} overdue` : "at risk in 90 days",
+      accentColor: "hover:border-blue-400 dark:hover:border-blue-600",
+    },
+    {
+      id: "comparison",
+      icon: Building2,
+      iconColor: "text-primary",
+      title: "Site Comparison",
+      description: "Side-by-side compliance score comparison across all sites by module.",
+      metric: <MetricNumber value={comparisonCount} loading={summaries.comparison.isLoading} />,
+      metricLabel: lowestScore !== null ? `lowest score ${lowestScore}%` : "sites tracked",
+      accentColor: "hover:border-primary/50",
+    },
+    {
+      id: "pipeline",
+      icon: GitPullRequest,
+      iconColor: "text-purple-600 dark:text-purple-400",
+      title: "Approval Pipeline",
+      description: "Documents currently awaiting consultant or client approval, sorted by wait time.",
+      metric: <MetricNumber value={pipelineCount} loading={summaries.pipeline.isLoading} danger />,
+      metricLabel: "awaiting approval",
+      accentColor: "hover:border-purple-400 dark:hover:border-purple-600",
+    },
+    {
+      id: "deadline",
+      icon: Target,
+      iconColor: "text-red-600 dark:text-red-400",
+      title: "Deadline & Milestone Risk",
+      description: "Overdue case milestones and unresolved incidents past their resolution window.",
+      metric: <MetricNumber value={deadlineCount} loading={summaries.deadline.isLoading} danger />,
+      metricLabel: "active risks",
+      accentColor: "hover:border-red-400 dark:hover:border-red-600",
+    },
+  ];
+
+  const REPORT_COMPONENTS: Record<ReportId, React.ReactNode> = {
+    gaps: <ComplianceGapsReport companyId={companyFilter} siteId={siteFilter} />,
+    expiry: <ExpiryRiskReport companyId={companyFilter} siteId={siteFilter} />,
+    comparison: <SiteComparisonReport companyId={companyFilter} />,
+    pipeline: <ApprovalPipelineReport companyId={companyFilter} siteId={siteFilter} />,
+    deadline: <DeadlineRiskReport companyId={companyFilter} siteId={siteFilter} />,
+  };
+
+  const activeTile = REPORT_TILES.find((t) => t.id === activeReport);
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
-        <div>
-          <h1 className="text-3xl font-semibold">Reports</h1>
-          <p className="mt-1 text-muted-foreground">Compliance analytics and actionable insights</p>
+        <div className="flex items-center gap-3">
+          {activeReport && (
+            <Button variant="ghost" size="icon" onClick={() => setActiveReport(null)} className="shrink-0" data-testid="button-back">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-3xl font-semibold">
+              {activeReport ? activeTile?.title : "Reports"}
+            </h1>
+            <p className="mt-1 text-muted-foreground">
+              {activeReport ? activeTile?.description : "Compliance intelligence across your sites"}
+            </p>
+          </div>
         </div>
         <Button variant="outline" data-testid="button-export-report">
           <Download className="mr-2 h-4 w-4" />
@@ -657,6 +719,7 @@ export default function Reports() {
       </div>
 
       <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-5 dash-animate">
+        {/* Filters — always visible */}
         <div className="flex flex-wrap gap-3">
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
             <SelectTrigger className="w-48" data-testid="select-company-filter">
@@ -665,119 +728,56 @@ export default function Reports() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Companies</SelectItem>
-              {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-              ))}
+              {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={siteFilter} onValueChange={setSiteFilter}>
-            <SelectTrigger className="w-48" data-testid="select-site-filter">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="All Sites" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sites</SelectItem>
-              {filteredSites.map((site) => (
-                <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {activeReport !== "comparison" && (
+            <Select value={siteFilter} onValueChange={setSiteFilter}>
+              <SelectTrigger className="w-48" data-testid="select-site-filter">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="All Sites" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sites</SelectItem>
+                {filteredSites.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
-        <Tabs defaultValue="gaps" className="space-y-5">
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="gaps" className="gap-1.5" data-testid="tab-gaps">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Compliance Gaps
-            </TabsTrigger>
-            <TabsTrigger value="expiry" className="gap-1.5" data-testid="tab-expiry">
-              <Calendar className="h-3.5 w-3.5" />
-              Expiry Risk
-            </TabsTrigger>
-            <TabsTrigger value="comparison" className="gap-1.5" data-testid="tab-comparison">
-              <Building2 className="h-3.5 w-3.5" />
-              Site Comparison
-            </TabsTrigger>
-            <TabsTrigger value="pipeline" className="gap-1.5" data-testid="tab-pipeline">
-              <GitPullRequest className="h-3.5 w-3.5" />
-              Approval Pipeline
-            </TabsTrigger>
-            <TabsTrigger value="deadline" className="gap-1.5" data-testid="tab-deadline">
-              <Target className="h-3.5 w-3.5" />
-              Deadline Risk
-            </TabsTrigger>
-          </TabsList>
+        {/* Landing: tile grid */}
+        {!activeReport && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {REPORT_TILES.map((tile) => (
+              <button
+                key={tile.id}
+                onClick={() => setActiveReport(tile.id)}
+                data-testid={`tile-report-${tile.id}`}
+                className={`group text-left rounded-lg border bg-card p-5 transition-all duration-150 ${tile.accentColor} hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-md bg-muted ${tile.iconColor}`}>
+                    <tile.icon className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
+                </div>
+                <p className="font-semibold text-base mb-1">{tile.title}</p>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{tile.description}</p>
+                <div className="flex items-baseline gap-2">
+                  {tile.metric}
+                  <span className="text-sm text-muted-foreground">{tile.metricLabel}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
-          <TabsContent value="gaps">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  Compliance Gap Report
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ComplianceGapsTab companyId={companyFilter} siteId={siteFilter} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="expiry">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Calendar className="h-4 w-4 text-blue-500" />
-                  Expiry & Renewal Risk
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ExpiryRiskTab companyId={companyFilter} siteId={siteFilter} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="comparison">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  Site Comparison
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SiteComparisonTab companyId={companyFilter} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="pipeline">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <GitPullRequest className="h-4 w-4 text-purple-500" />
-                  Approval Pipeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ApprovalPipelineTab companyId={companyFilter} siteId={siteFilter} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="deadline">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="h-4 w-4 text-red-500" />
-                  Deadline & Milestone Risk
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DeadlineRiskTab companyId={companyFilter} siteId={siteFilter} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* Drill-down: full report */}
+        {activeReport && (
+          <div>
+            {REPORT_COMPONENTS[activeReport]}
+          </div>
+        )}
       </div>
     </div>
   );
