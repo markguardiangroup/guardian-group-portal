@@ -709,7 +709,10 @@ export default function TrainingDashboard() {
                         <TableCell>
                           {booking.certificateId ? (
                             <button
-                              onClick={() => setActiveTab("certificates")}
+                              onClick={() => {
+                                const cert = certDocuments.find(d => d.id === booking.certificateId);
+                                if (cert) setViewCertDialog(cert);
+                              }}
                               data-testid={`button-cert-badge-${booking.id}`}
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                             >
