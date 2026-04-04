@@ -599,7 +599,7 @@ export default function Training() {
           <div>
             <h1 className="text-xl font-semibold leading-tight">
               Training
-              <span className="font-normal text-muted-foreground text-base"> — Courses</span>
+              <span className="font-normal text-muted-foreground text-base"> — Browse Courses</span>
             </h1>
             <p className="text-xs text-muted-foreground">Browse and book training courses</p>
           </div>
