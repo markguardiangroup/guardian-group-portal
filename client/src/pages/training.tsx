@@ -702,26 +702,37 @@ export default function Training() {
             </Button>
           )}
 
-          {/* Training Finder — compact button, pushed to end */}
-          <div className="ml-auto shrink-0">
-            <button
-              onClick={openFinder}
-              data-testid="button-open-training-finder"
-              style={
-                activeTab === "health_safety"
-                  ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
-                  : activeTab === "human_resources"
-                  ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
-                  : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
-              }
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-            >
-              <Compass className="h-3.5 w-3.5 shrink-0" />
-              Not sure? Find a Course
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
         </div>
+      </div>
+
+      {/* Training Finder — full-width prominent strip */}
+      <div className="flex-shrink-0 border-b">
+        <button
+          onClick={openFinder}
+          data-testid="button-open-training-finder"
+          style={
+            activeTab === "health_safety"
+              ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
+              : activeTab === "human_resources"
+              ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
+              : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
+          }
+          className="w-full flex items-center justify-between gap-4 px-6 py-3 text-white hover:opacity-95 transition-opacity group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+              <Compass className="h-4 w-4 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/70 leading-none mb-0.5">Guided Training Finder</p>
+              <p className="text-sm font-semibold leading-tight">Not sure which training you need? Answer a few quick questions and we'll point you to the right course.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0 bg-white/20 group-hover:bg-white/30 transition-colors rounded-md px-3 py-1.5 text-sm font-semibold">
+            Find a Course
+            <ChevronRight className="h-4 w-4" />
+          </div>
+        </button>
       </div>
 
       <div id="page-content" className="flex-1 overflow-auto">
