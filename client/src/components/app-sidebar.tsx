@@ -130,16 +130,6 @@ const moduleNavItems: {
     ],
   },
   {
-    title: "Support",
-    icon: Headphones,
-    url: "/support",
-    themeClass: "theme-support",
-    module: "support",
-    noColor: true,
-    directLink: true,
-    subItems: [],
-  },
-  {
     title: "Reports",
     icon: BarChart3,
     url: "/reports",
@@ -378,6 +368,35 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {(moduleAccessLoading || hasActiveAccess("support")) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/support" || location.startsWith("/support/")}
+                    className={cn(
+                      "transition-colors",
+                      (location === "/support" || location.startsWith("/support/"))
+                        ? "bg-sidebar-accent font-medium"
+                        : ""
+                    )}
+                    data-testid="nav-support"
+                  >
+                    <Link href="/support">
+                      <Headphones className="h-4 w-4" />
+                      <span className="flex-1">Support</span>
+                      {openSupportCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 min-w-5 px-1.5 text-xs font-medium"
+                          data-testid="badge-support-notifications"
+                        >
+                          {openSupportCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
