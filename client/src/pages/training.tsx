@@ -176,12 +176,14 @@ function TrainingPathwayWizard({
   activeTab,
   onClose,
   onEnquire,
+  onViewDetails,
 }: {
   pathway: TrainingPathway;
   allCourses: TrainingCourse[];
   activeTab: ModuleFilter;
   onClose: () => void;
   onEnquire: (course: TrainingCourse) => void;
+  onViewDetails: (course: TrainingCourse) => void;
 }) {
   const [steps, setSteps] = useState<TrainingWizardStep[]>([{ node: pathway.tree, selectedAnswerIndex: null }]);
   const [results, setResults] = useState<string[] | null>(null);
@@ -274,35 +276,59 @@ function TrainingPathwayWizard({
                   <p className="text-xs mt-1">Try browsing courses above, or start over with different answers.</p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden divide-y">
+                <div className="space-y-3">
                   {recommendedCourses.map((course) => (
-                    <div key={course.id} className="flex items-start gap-3 p-4 hover:bg-muted/40 transition-colors">
-                      <div className={`p-2 rounded-lg ${bgColor} shrink-0`}>
-                        <GraduationCap className={`h-4 w-4 ${color}`} />
+                    <div key={course.id} className="rounded-lg border bg-card overflow-hidden">
+                      <div className="flex items-start gap-3 p-4">
+                        <div className={`p-2 rounded-lg ${bgColor} shrink-0`}>
+                          <GraduationCap className={`h-4 w-4 ${color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm leading-snug">{course.title}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                            {course.provider && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Building2 className="h-3 w-3" /> {course.provider}
+                              </p>
+                            )}
+                            {course.duration && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" /> {course.duration}
+                              </p>
+                            )}
+                            {course.trainingMethod && (
+                              <p className="text-xs text-muted-foreground capitalize">{course.trainingMethod.replace("_", " ")}</p>
+                            )}
+                          </div>
+                          {course.summary && (
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                              {course.summary}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm leading-snug">{course.title}</p>
-                        {course.provider && (
-                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <Building2 className="h-3 w-3" /> {course.provider}
-                          </p>
-                        )}
-                        {course.duration && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Clock className="h-3 w-3" /> {course.duration}
-                          </p>
-                        )}
+                      <div className="flex items-center justify-between gap-2 px-4 py-3 bg-muted/30 border-t">
+                        <p className="text-xs text-muted-foreground">View full details before you enquire</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 px-2 text-muted-foreground"
+                            onClick={() => onEnquire(course)}
+                            data-testid={`button-wizard-enquire-${course.id}`}
+                          >
+                            <Mail className="h-3 w-3 mr-1" />
+                            Enquire
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => onViewDetails(course)}
+                            data-testid={`button-wizard-view-course-${course.id}`}
+                          >
+                            View Course
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0"
-                        onClick={() => onEnquire(course)}
-                        data-testid={`button-wizard-enquire-${course.id}`}
-                      >
-                        <Mail className="h-3.5 w-3.5 mr-1.5" />
-                        Enquire
-                      </Button>
                     </div>
                   ))}
                 </div>
@@ -1113,6 +1139,11 @@ export default function Training() {
                 onEnquire={(course) => {
                   setSelectedCourse(course);
                   setShowEnquiryDialog(true);
+                }}
+                onViewDetails={(course) => {
+                  setShowFinderSheet(false);
+                  setSelectedPathway(null);
+                  setSelectedCourse(course);
                 }}
               />
             )}
