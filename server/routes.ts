@@ -6076,6 +6076,395 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Report helpers ───────────────────────────────────────────────────────
+  async function getAllowedSiteIds(user: any): Promise<Set<string>> {
+    const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
+    if (user.role === "admin" || isProConsultant) {
+      const sites = await storage.getSites();
+      return new Set(sites.map((s: any) => s.id));
+    }
+    if (user.role === "consultant") {
+      const assignments = await storage.getConsultantSites(user.id);
+      return new Set(assignments.map((a: any) => a.entityId));
+    }
+    // client
+    if (!user.companyId) return new Set();
+    const companySites = await storage.getSitesByCompanyId(user.companyId);
+    const clientAssignments = await storage.getClientSites(user.id);
+    const clientSiteIds = new Set(clientAssignments.map((a: any) => a.siteId));
+    return new Set(companySites.filter((s: any) => clientSiteIds.has(s.id)).map((s: any) => s.id));
+  }
+
+  // Report: Compliance Gap Report
+  app.get("/api/reports/gaps", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+
+      let sites = allSites.filter((s: any) => allowedSiteIds.has(s.id));
+      if (siteId) {
+        sites = sites.filter((s: any) => s.id === siteId);
+      } else if (companyId) {
+        sites = sites.filter((s: any) => s.companyId === companyId);
+      }
+
+      const allDocs = await storage.getDocuments(undefined, false);
+      const allTemplates = await storage.getDocumentTemplates();
+      const templateMap = new Map(allTemplates.map((t: any) => [t.id, t]));
+
+      const result: any[] = [];
+      const now = new Date();
+
+      for (const site of sites) {
+        if (!site.companyId) continue;
+        const companyRequired = await storage.getCompanyRequiredTemplates(site.companyId);
+        const siteOverrides = await storage.getSiteTemplateOverrides(site.id);
+        const excludedIds = new Set(siteOverrides.filter((o: any) => o.action === "exclude").map((o: any) => o.templateId));
+        const includedIds = new Set(siteOverrides.filter((o: any) => o.action === "include").map((o: any) => o.templateId));
+        const effectiveTemplateIds = [
+          ...companyRequired.map((r: any) => r.templateId).filter((id: string) => !excludedIds.has(id)),
+          ...[...includedIds].filter((id: string) => !companyRequired.some((r: any) => r.templateId === id)),
+        ];
+
+        const siteDocs = allDocs.filter((d: any) => d.siteId === site.id && !d.isArchived && !d.caseId);
+        const missingByModule: Record<string, { templateId: string; templateName: string }[]> = {};
+
+        for (const templateId of effectiveTemplateIds) {
+          const tmpl = templateMap.get(templateId);
+          if (!tmpl || tmpl.visibility !== "private" || tmpl.module === "training") continue;
+          const isFulfilled = siteDocs.some((d: any) => {
+            if (d.templateId !== templateId) return false;
+            if (d.status !== "compliant") return false;
+            if (d.expiryDate && new Date(d.expiryDate) < now) return false;
+            if (d.renewalDate && new Date(d.renewalDate) < now) return false;
+            if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+            return true;
+          });
+          if (!isFulfilled) {
+            const mod: string = tmpl.module;
+            if (!missingByModule[mod]) missingByModule[mod] = [];
+            missingByModule[mod].push({ templateId, templateName: tmpl.name });
+          }
+        }
+
+        const gaps = Object.entries(missingByModule).map(([module, templates]) => ({
+          module,
+          missingTemplates: templates,
+        }));
+
+        if (gaps.length > 0) {
+          result.push({ siteId: site.id, siteName: site.name, companyId: site.companyId, gaps });
+        }
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Reports gaps error:", error);
+      res.status(500).json({ error: "Failed to fetch compliance gaps" });
+    }
+  });
+
+  // Report: Expiry & Renewal Risk
+  app.get("/api/reports/expiry-risk", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
+
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+      const windowParam = (req.query.window as string) || "90";
+      const moduleParam = req.query.module as string | undefined;
+
+      const windowDays = windowParam === "all" ? null : parseInt(windowParam, 10);
+
+      let filteredSiteIds = [...allowedSiteIds];
+      if (siteId && allowedSiteIds.has(siteId)) {
+        filteredSiteIds = [siteId];
+      } else if (companyId) {
+        filteredSiteIds = allSites.filter((s: any) => allowedSiteIds.has(s.id) && s.companyId === companyId).map((s: any) => s.id);
+      }
+      const allowedSet = new Set(filteredSiteIds);
+
+      const allDocs = await storage.getDocuments(moduleParam as any, false);
+      const now = new Date();
+      const cutoff = windowDays ? new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000) : null;
+
+      const result: any[] = [];
+
+      for (const doc of allDocs) {
+        if (!doc.siteId || !allowedSet.has(doc.siteId)) continue;
+        if (doc.isArchived || doc.caseId) continue;
+
+        const dates: { date: Date; type: string }[] = [];
+        if (doc.expiryDate) dates.push({ date: new Date(doc.expiryDate), type: "expiry" });
+        if (doc.renewalDate) dates.push({ date: new Date(doc.renewalDate), type: "renewal" });
+        if (doc.reviewDate) dates.push({ date: new Date(doc.reviewDate), type: "review" });
+
+        if (dates.length === 0) continue;
+
+        const earliest = dates.reduce((a, b) => (a.date < b.date ? a : b));
+        const daysUntil = Math.ceil((earliest.date.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+
+        if (cutoff !== null && earliest.date > cutoff) continue;
+
+        let urgency: string;
+        if (daysUntil < 0) urgency = "overdue";
+        else if (daysUntil <= 30) urgency = "critical";
+        else if (daysUntil <= 60) urgency = "warning";
+        else urgency = "ok";
+
+        const site = siteMap.get(doc.siteId);
+        result.push({
+          id: doc.id,
+          title: doc.title,
+          module: doc.module,
+          siteId: doc.siteId,
+          siteName: site?.name || "Unknown Site",
+          dateType: earliest.type,
+          date: earliest.date.toISOString(),
+          daysUntil,
+          urgency,
+          status: doc.status,
+          approvalStatus: doc.approvalStatus,
+        });
+      }
+
+      result.sort((a, b) => a.daysUntil - b.daysUntil);
+      res.json(result);
+    } catch (error) {
+      console.error("Reports expiry-risk error:", error);
+      res.status(500).json({ error: "Failed to fetch expiry risk data" });
+    }
+  });
+
+  // Report: Site Comparison
+  app.get("/api/reports/site-comparison", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const companyId = req.query.companyId as string | undefined;
+
+      let sites = allSites.filter((s: any) => allowedSiteIds.has(s.id));
+      if (companyId) {
+        sites = sites.filter((s: any) => s.companyId === companyId);
+      }
+
+      const allDocs = await storage.getDocuments(undefined, false);
+      const complianceModules = ["health_safety", "human_resources", "employment_law"] as const;
+
+      const result = sites.map((site: any) => {
+        const siteDocs = allDocs.filter((d: any) => d.siteId === site.id && !d.isArchived && !d.caseId);
+        const scores: Record<string, { score: number; total: number; compliant: number; overdue: number }> = {};
+        let allTotal = 0;
+        let allCompliant = 0;
+
+        for (const mod of complianceModules) {
+          const modDocs = siteDocs.filter((d: any) => d.module === mod);
+          const total = modDocs.length;
+          const compliant = modDocs.filter((d: any) => d.status === "compliant").length;
+          const overdue = modDocs.filter((d: any) => d.status === "overdue").length;
+          scores[mod] = { score: total > 0 ? Math.round((compliant / total) * 100) : 0, total, compliant, overdue };
+          allTotal += total;
+          allCompliant += compliant;
+        }
+
+        return {
+          siteId: site.id,
+          siteName: site.name,
+          companyId: site.companyId,
+          scores,
+          overallScore: allTotal > 0 ? Math.round((allCompliant / allTotal) * 100) : 0,
+          totalDocs: allTotal,
+        };
+      });
+
+      result.sort((a: any, b: any) => a.overallScore - b.overallScore);
+      res.json(result);
+    } catch (error) {
+      console.error("Reports site-comparison error:", error);
+      res.status(500).json({ error: "Failed to fetch site comparison data" });
+    }
+  });
+
+  // Report: Approval Pipeline
+  app.get("/api/reports/approval-pipeline", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
+
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+
+      let filteredSiteIds = [...allowedSiteIds];
+      if (siteId && allowedSiteIds.has(siteId)) {
+        filteredSiteIds = [siteId];
+      } else if (companyId) {
+        filteredSiteIds = allSites.filter((s: any) => allowedSiteIds.has(s.id) && s.companyId === companyId).map((s: any) => s.id);
+      }
+      const allowedSet = new Set(filteredSiteIds);
+
+      const allDocs = await storage.getDocuments(undefined, false);
+      const pipelineDocs = allDocs.filter((d: any) =>
+        !d.isArchived &&
+        !d.caseId &&
+        d.siteId && allowedSet.has(d.siteId) &&
+        (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")
+      );
+
+      const userCache = new Map<string, any>();
+      const getUserName = async (userId: string): Promise<string> => {
+        if (userCache.has(userId)) return userCache.get(userId);
+        const u = await storage.getUser(userId);
+        const name = u?.fullName || "Unknown";
+        userCache.set(userId, name);
+        return name;
+      };
+
+      const now = new Date();
+      const result = await Promise.all(pipelineDocs.map(async (doc: any) => {
+        const uploaderName = doc.uploadedBy ? await getUserName(doc.uploadedBy) : "Unknown";
+        const daysWaiting = Math.floor((now.getTime() - new Date(doc.createdAt).getTime()) / (24 * 60 * 60 * 1000));
+        const site = siteMap.get(doc.siteId);
+        return {
+          id: doc.id,
+          title: doc.title,
+          module: doc.module,
+          approvalStatus: doc.approvalStatus,
+          siteId: doc.siteId,
+          siteName: site?.name || "Unknown Site",
+          uploaderName,
+          daysWaiting,
+          createdAt: doc.createdAt,
+        };
+      }));
+
+      result.sort((a, b) => b.daysWaiting - a.daysWaiting);
+      res.json(result);
+    } catch (error) {
+      console.error("Reports approval-pipeline error:", error);
+      res.status(500).json({ error: "Failed to fetch approval pipeline data" });
+    }
+  });
+
+  // Report: Deadline & Milestone Risk
+  app.get("/api/reports/deadline-risk", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
+
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+
+      let filteredSiteIds = [...allowedSiteIds];
+      if (siteId && allowedSiteIds.has(siteId)) {
+        filteredSiteIds = [siteId];
+      } else if (companyId) {
+        filteredSiteIds = allSites.filter((s: any) => allowedSiteIds.has(s.id) && s.companyId === companyId).map((s: any) => s.id);
+      }
+      const allowedSet = new Set(filteredSiteIds);
+
+      const now = new Date();
+      const soonThreshold = 14 * 24 * 60 * 60 * 1000; // 14 days
+      const incidentResolutionDays = 30;
+
+      // Cases with risky milestones
+      const openCases = await storage.getCases({ includeArchived: false });
+      const accessibleCases = openCases.filter((c: any) =>
+        !c.isArchived &&
+        c.status !== "closed" &&
+        c.status !== "resolved" &&
+        allowedSet.has(c.siteId)
+      );
+
+      const milestoneRisks: any[] = [];
+      if (accessibleCases.length > 0) {
+        const caseIds = accessibleCases.map((c: any) => c.id);
+        const allMilestones = await storage.getCaseMilestonesForCases(caseIds);
+        const caseMap = new Map(accessibleCases.map((c: any) => [c.id, c]));
+
+        for (const milestone of allMilestones) {
+          if (milestone.isCompleted || !milestone.dueDate) continue;
+          const due = new Date(milestone.dueDate);
+          const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+          const isOverdue = daysUntil < 0;
+          const isSoon = !isOverdue && due.getTime() - now.getTime() <= soonThreshold;
+          if (!isOverdue && !isSoon) continue;
+
+          const c = caseMap.get(milestone.caseId);
+          if (!c) continue;
+          const site = siteMap.get(c.siteId);
+          milestoneRisks.push({
+            caseId: c.id,
+            caseReference: c.caseReference,
+            employeeName: c.employeeName,
+            siteId: c.siteId,
+            siteName: site?.name || "Unknown Site",
+            milestoneId: milestone.id,
+            milestoneTitle: milestone.title,
+            dueDate: milestone.dueDate,
+            daysUntil,
+            isOverdue,
+            urgency: isOverdue ? "overdue" : "critical",
+          });
+        }
+        milestoneRisks.sort((a, b) => a.daysUntil - b.daysUntil);
+      }
+
+      // Open incidents past resolution window
+      const openIncidents = await storage.getIncidents({ includeArchived: false });
+      const incidentRisks = openIncidents
+        .filter((inc: any) =>
+          !inc.isArchived &&
+          inc.status !== "resolved" &&
+          inc.status !== "closed" &&
+          allowedSet.has(inc.siteId)
+        )
+        .map((inc: any) => {
+          const daysSince = Math.floor((now.getTime() - new Date(inc.incidentDate).getTime()) / (24 * 60 * 60 * 1000));
+          const site = siteMap.get(inc.siteId);
+          return {
+            id: inc.id,
+            reference: inc.incidentReference,
+            title: inc.title,
+            siteId: inc.siteId,
+            siteName: site?.name || "Unknown Site",
+            severity: inc.severity,
+            status: inc.status,
+            incidentDate: inc.incidentDate,
+            daysSinceReported: daysSince,
+            urgency: daysSince > incidentResolutionDays ? "overdue" : "warning",
+          };
+        })
+        .filter((inc: any) => inc.daysSinceReported >= 7)
+        .sort((a: any, b: any) => b.daysSinceReported - a.daysSinceReported);
+
+      res.json({ milestoneRisks, incidentRisks });
+    } catch (error) {
+      console.error("Reports deadline-risk error:", error);
+      res.status(500).json({ error: "Failed to fetch deadline risk data" });
+    }
+  });
+
   // Assessments
   app.get("/api/assessments", async (req, res) => {
     try {
