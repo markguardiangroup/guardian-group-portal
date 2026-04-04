@@ -57,7 +57,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
   const basePath = isHS ? "/health-safety" : isEL ? "/employment-law" : isSupport ? "/support" : "/human-resources";
   
   // Determine theme class based on module
-  const themeClass = isHS ? "theme-hs" : isEL ? "theme-el" : isSupport ? "theme-support" : "theme-hr";
+  const themeClass = isHS ? "theme-hs" : isEL ? "theme-el" : "theme-hr";
   
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
@@ -212,7 +212,7 @@ function SupportCard({ siteId }: { siteId?: string | null }) {
   const totalRequests = supportRequests.length;
 
   return (
-    <Card className="hover-elevate theme-support border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20" data-testid="card-module-support">
+    <Card className="hover-elevate border-t-4 border-t-slate-500 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-950/20" data-testid="card-module-support">
       <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 py-8 px-8">
         {/* Left: Icon and title */}
         <div className="flex items-center gap-5">

@@ -60,12 +60,9 @@
   --module-toolkit: 34 88% 46%;
   --module-toolkit-foreground: 34 10% 98%;
   --module-toolkit-muted: 34 70% 93%;
-  --module-support: 195 70% 38%;
-  --module-support-foreground: 195 20% 98%;
-  --module-support-muted: 195 40% 92%;
-  --module-reports: 243 65% 45%;
-  --module-reports-foreground: 243 20% 98%;
-  --module-reports-muted: 243 50% 94%;
+  --module-reports: 175 60% 33%;
+  --module-reports-foreground: 175 20% 98%;
+  --module-reports-muted: 175 50% 91%;
   --dashboard: 220 50% 23%;
   --dashboard-foreground: 220 15% 98%;
   --dashboard-muted: 220 30% 92%;
@@ -170,12 +167,9 @@
   --module-toolkit: 34 90% 62%;
   --module-toolkit-foreground: 34 10% 98%;
   --module-toolkit-muted: 34 60% 20%;
-  --module-support: 195 70% 52%;
-  --module-support-foreground: 195 20% 98%;
-  --module-support-muted: 195 40% 18%;
-  --module-reports: 243 65% 65%;
-  --module-reports-foreground: 243 20% 98%;
-  --module-reports-muted: 243 40% 18%;
+  --module-reports: 175 60% 52%;
+  --module-reports-foreground: 175 20% 98%;
+  --module-reports-muted: 175 45% 16%;
   --dashboard: 220 65% 60%;
   --dashboard-foreground: 220 15% 98%;
   --dashboard-muted: 220 35% 20%;
@@ -278,12 +272,6 @@
     --module-accent: var(--module-toolkit);
     --module-accent-foreground: var(--module-toolkit-foreground);
     --module-accent-muted: var(--module-toolkit-muted);
-  }
-
-  .theme-support {
-    --module-accent: var(--module-support);
-    --module-accent-foreground: var(--module-support-foreground);
-    --module-accent-muted: var(--module-support-muted);
   }
 
   .theme-reports {
