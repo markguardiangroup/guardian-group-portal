@@ -40,13 +40,16 @@ import {
   ExternalLink,
   Copy,
   Filter,
+  Download,
+  RefreshCw,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 
-import type { TrainingCourse, SiteWithDetails, TrainingBooking } from "@shared/schema";
+import type { TrainingCourse, SiteWithDetails, TrainingBooking, Document } from "@shared/schema";
 
 type TrainingBookingWithDetails = TrainingBooking & {
   course?: TrainingCourse;
@@ -56,8 +59,9 @@ type TrainingBookingWithDetails = TrainingBooking & {
 export default function MyTraining() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"booked" | "completed">("booked");
+  const [activeTab, setActiveTab] = useState<"booked" | "completed" | "certificates">("booked");
   const [viewDialog, setViewDialog] = useState<TrainingBookingWithDetails | null>(null);
+  const [viewCertDialog, setViewCertDialog] = useState<Document | null>(null);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -72,6 +76,10 @@ export default function MyTraining() {
 
   const { data: trainingCourses = [] } = useQuery<TrainingCourse[]>({
     queryKey: ["/api/training-courses"],
+  });
+
+  const { data: certDocuments = [] } = useQuery<Document[]>({
+    queryKey: ["/api/documents/module/training"],
   });
 
   const companies = useMemo(() => {
@@ -111,6 +119,20 @@ export default function MyTraining() {
     });
   }, [bookingsWithDetails, activeTab, selectedSiteId, selectedCompany]);
 
+  const filteredCertificates = useMemo(() => {
+    const certs = certDocuments.filter(d => d.type === "training_certificate");
+    return certs.filter(cert => {
+      if (selectedSiteId && selectedSiteId !== "all") {
+        if (cert.siteId !== selectedSiteId) return false;
+      }
+      if (selectedCompany && selectedCompany !== "all") {
+        const site = sites.find(s => s.id === cert.siteId);
+        if (site?.companyName !== selectedCompany) return false;
+      }
+      return true;
+    });
+  }, [certDocuments, selectedSiteId, selectedCompany, sites]);
+
   const metrics = useMemo(() => {
     let relevantBookings = bookingsWithDetails;
     
@@ -123,8 +145,9 @@ export default function MyTraining() {
     
     const booked = relevantBookings.filter(b => b.status === "booked").length;
     const completed = relevantBookings.filter(b => b.status === "completed").length;
-    return { booked, completed };
-  }, [bookingsWithDetails, selectedSiteId, selectedCompany]);
+    const certificates = filteredCertificates.length;
+    return { booked, completed, certificates };
+  }, [bookingsWithDetails, selectedSiteId, selectedCompany, filteredCertificates]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -213,7 +236,7 @@ export default function MyTraining() {
           )}
 
           {/* Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div 
               className={`p-4 rounded-lg border cursor-pointer transition-all ${activeTab === "booked" ? "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20" : "hover:bg-muted/50"}`}
               onClick={() => setActiveTab("booked")}
@@ -239,6 +262,19 @@ export default function MyTraining() {
               <div className="text-3xl font-bold">{metrics.completed}</div>
               <p className="text-xs text-muted-foreground mt-1">Training courses completed</p>
             </div>
+
+            <div 
+              className={`p-4 rounded-lg border cursor-pointer transition-all ${activeTab === "certificates" ? "ring-2 ring-amber-500 bg-amber-50 dark:bg-amber-900/20" : "hover:bg-muted/50"}`}
+              onClick={() => setActiveTab("certificates")}
+              data-testid="card-certificates"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Certificates</span>
+                <Award className="h-4 w-4 text-amber-600" />
+              </div>
+              <div className="text-3xl font-bold">{metrics.certificates}</div>
+              <p className="text-xs text-muted-foreground mt-1">Training certificates awarded</p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -246,7 +282,7 @@ export default function MyTraining() {
       {/* Training List */}
       <Card>
         <CardContent className="p-6">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed" | "certificates")}>
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setActiveTab("booked")}
@@ -280,6 +316,23 @@ export default function MyTraining() {
                   activeTab === "completed" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
                 }`}>
                   {metrics.completed}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab("certificates")}
+                data-testid="tab-certificates"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  activeTab === "certificates"
+                    ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <Award className="h-4 w-4" />
+                Certificates
+                <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded text-xs font-semibold ${
+                  activeTab === "certificates" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  {metrics.certificates}
                 </span>
               </button>
             </div>
@@ -464,10 +517,14 @@ export default function MyTraining() {
                         </TableCell>
                         <TableCell>
                           {booking.certificateId ? (
-                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                              <Award className="h-3 w-3 mr-1" />
-                              Available
-                            </Badge>
+                            <button
+                              onClick={() => setActiveTab("certificates")}
+                              data-testid={`button-cert-badge-${booking.id}`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                            >
+                              <Award className="h-3 w-3" />
+                              View Certificate
+                            </button>
                           ) : (
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
@@ -490,9 +547,166 @@ export default function MyTraining() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="certificates" className="mt-0">
+          {filteredCertificates.length === 0 ? (
+            <div className="py-12 text-center">
+              <Award className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No Certificates Yet</h3>
+              <p className="text-muted-foreground">
+                Certificates will appear here once your completed training has been processed.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course</TableHead>
+                    <TableHead>Certificate Date</TableHead>
+                    <TableHead>Renewal Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCertificates.map((cert) => {
+                    const renewalStatus = (() => {
+                      if (!cert.renewalDate) return null;
+                      const days = Math.ceil((new Date(cert.renewalDate).getTime() - Date.now()) / 86400000);
+                      if (days < 0) return <Badge variant="destructive">Overdue</Badge>;
+                      if (days <= 30) return <Badge className="bg-amber-500 hover:bg-amber-600">Due Soon</Badge>;
+                      return <Badge className="bg-green-600 hover:bg-green-700">Valid</Badge>;
+                    })();
+                    return (
+                      <TableRow key={cert.id} data-testid={`row-mycert-${cert.id}`}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-amber-500" />
+                            <div>
+                              <div className="font-medium">
+                                {cert.trainingCourseTitle || cert.title}
+                              </div>
+                              {cert.trainingCourseCode && (
+                                <div className="text-xs text-muted-foreground">
+                                  <code className="bg-muted px-1 py-0.5 rounded">{cert.trainingCourseCode}</code>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {cert.trainingDate ? (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                              {format(new Date(cert.trainingDate), "dd MMM yyyy")}
+                            </div>
+                          ) : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {cert.renewalDate ? (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                              {format(new Date(cert.renewalDate), "dd MMM yyyy")}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {renewalStatus ?? <Badge variant="secondary">No Renewal</Badge>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {cert.fileUrl && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                data-testid={`button-mycert-download-${cert.id}`}
+                              >
+                                <a
+                                  href={`${cert.fileUrl}?download=${encodeURIComponent(cert.fileName)}`}
+                                  download={cert.fileName}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setViewCertDialog(cert)}
+                              data-testid={`button-mycert-view-${cert.id}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Certificate View Dialog */}
+      {viewCertDialog && (
+        <Dialog open={!!viewCertDialog} onOpenChange={() => setViewCertDialog(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-amber-500" />
+                {viewCertDialog.trainingCourseTitle || viewCertDialog.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {viewCertDialog.trainingCourseCode && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-32">Course Code:</Label>
+                  <code className="bg-muted px-2 py-1 rounded">{viewCertDialog.trainingCourseCode}</code>
+                </div>
+              )}
+              {viewCertDialog.trainingDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-32">Certificate Date:</Label>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    {format(new Date(viewCertDialog.trainingDate), "dd MMMM yyyy")}
+                  </div>
+                </div>
+              )}
+              {viewCertDialog.renewalDate && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Label className="text-muted-foreground w-32">Renewal Date:</Label>
+                  <div className="flex items-center gap-1">
+                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    {format(new Date(viewCertDialog.renewalDate), "dd MMMM yyyy")}
+                  </div>
+                </div>
+              )}
+              {viewCertDialog.fileUrl && (
+                <div className="pt-2">
+                  <Button asChild className="w-full bg-amber-500 hover:bg-amber-600 text-white" data-testid="button-cert-download">
+                    <a href={`${viewCertDialog.fileUrl}?download=${encodeURIComponent(viewCertDialog.fileName)}`} download={viewCertDialog.fileName}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Certificate
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewCertDialog(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* View Dialog - Enhanced for completed training details */}
       {viewDialog && (
@@ -563,20 +777,23 @@ export default function MyTraining() {
               )}
 
               {viewDialog.certificateId && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                  <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                     <Award className="h-5 w-5" />
                     <span className="font-medium">Certificate Available</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 mb-3">
                     Your training certificate is ready for viewing and download.
                   </p>
-                  <Link href="/training/certificates">
-                    <Button size="sm" className="bg-purple-600 text-white" data-testid="button-view-certificates">
-                      <Award className="h-4 w-4 mr-2" />
-                      View Certificates
-                    </Button>
-                  </Link>
+                  <Button
+                    size="sm"
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    data-testid="button-view-certificates"
+                    onClick={() => { setViewDialog(null); setActiveTab("certificates"); }}
+                  >
+                    <Award className="h-4 w-4 mr-2" />
+                    View My Certificates
+                  </Button>
                 </div>
               )}
             </div>

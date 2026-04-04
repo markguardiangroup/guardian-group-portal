@@ -126,7 +126,7 @@ const moduleNavItems: {
       { title: "Dashboard", url: "/training/dashboard", icon: LayoutDashboard, adminOnly: true },
       { title: "Dashboard", url: "/training/my-training", icon: LayoutDashboard, clientOnly: true },
       { title: "Courses", url: "/training", icon: GraduationCap },
-      { title: "Certificates", url: "/training/certificates", icon: Award },
+      { title: "Certificates", url: "/training/certificates", icon: Award, adminOnly: true },
     ],
   },
   {
