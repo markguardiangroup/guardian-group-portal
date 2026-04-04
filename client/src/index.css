@@ -63,9 +63,9 @@
   --module-support: 195 70% 38%;
   --module-support-foreground: 195 20% 98%;
   --module-support-muted: 195 40% 92%;
-  --module-reports: 230 60% 48%;
-  --module-reports-foreground: 230 20% 98%;
-  --module-reports-muted: 230 30% 92%;
+  --module-reports: 243 65% 45%;
+  --module-reports-foreground: 243 20% 98%;
+  --module-reports-muted: 243 50% 94%;
   --dashboard: 220 50% 23%;
   --dashboard-foreground: 220 15% 98%;
   --dashboard-muted: 220 30% 92%;
@@ -173,9 +173,9 @@
   --module-support: 195 70% 52%;
   --module-support-foreground: 195 20% 98%;
   --module-support-muted: 195 40% 18%;
-  --module-reports: 230 60% 62%;
-  --module-reports-foreground: 230 20% 98%;
-  --module-reports-muted: 230 30% 18%;
+  --module-reports: 243 65% 65%;
+  --module-reports-foreground: 243 20% 98%;
+  --module-reports-muted: 243 40% 18%;
   --dashboard: 220 65% 60%;
   --dashboard-foreground: 220 15% 98%;
   --dashboard-muted: 220 35% 20%;
