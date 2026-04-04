@@ -1468,16 +1468,26 @@ function CaseDetailView({ id }: { id: string }) {
             </p>
           </div>
           {(user?.role === "admin" || user?.role === "consultant") && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                setNewStatus(caseData.status as CaseStatus);
-                setShowStatusDialog(true);
-              }}
-              data-testid="button-update-status"
-            >
-              Update Status
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowAccessDialog(true)}
+                data-testid="button-case-access"
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Case Access
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setNewStatus(caseData.status as CaseStatus);
+                  setShowStatusDialog(true);
+                }}
+                data-testid="button-update-status"
+              >
+                Update Status
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -1965,68 +1975,6 @@ function CaseDetailView({ id }: { id: string }) {
         </div>
 
         <div className="space-y-6">
-          {(user?.role === "admin" || user?.role === "consultant") && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5" />
-                  Case Access
-                </CardTitle>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setShowAccessDialog(true)}
-                  data-testid="button-manage-access"
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Add User
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {caseData?.isConfidential ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Lock className="h-4 w-4" />
-                      <span>This case is confidential</span>
-                    </div>
-                    {usersWithAccess.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Users with access:</p>
-                        {usersWithAccess.map(u => (
-                          <div key={u.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              <span className="text-sm">{u.fullName}</span>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
-                              onClick={() => {
-                                const newList = restrictedUserIds.filter(id => id !== u.id);
-                                updateCaseMutation.mutate({ restrictedToUsers: newList as any });
-                              }}
-                              data-testid={`button-remove-access-${u.id}`}
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No client users have been granted access yet.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>This case is visible to all company users</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
               <div>
@@ -2601,44 +2549,88 @@ function CaseDetailView({ id }: { id: string }) {
       </Dialog>
 
       <Dialog open={showAccessDialog} onOpenChange={setShowAccessDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Grant Case Access</DialogTitle>
-            <DialogDescription>Select a client user to grant access to this case</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-pink-600" />
+              Case Access
+            </DialogTitle>
+            <DialogDescription>
+              {caseData?.isConfidential
+                ? "This case is confidential — only users listed below can view it."
+                : "This case is visible to all company users."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {availableUsers.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {availableUsers.map(u => (
-                  <div 
-                    key={u.id} 
-                    className="flex items-center justify-between p-3 rounded-lg border hover-elevate cursor-pointer"
-                    onClick={() => {
-                      const newList = [...restrictedUserIds, u.id];
-                      updateCaseMutation.mutate({ restrictedToUsers: newList as any });
-                      setShowAccessDialog(false);
-                    }}
-                    data-testid={`button-grant-access-${u.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{u.fullName}</p>
-                        <p className="text-sm text-muted-foreground">{u.email}</p>
+            {caseData?.isConfidential ? (
+              <>
+                {usersWithAccess.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Users with access</p>
+                    {usersWithAccess.map(u => (
+                      <div key={u.id} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{u.fullName}</p>
+                            <p className="text-xs text-muted-foreground">{u.email}</p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600"
+                          onClick={() => {
+                            const newList = restrictedUserIds.filter(id => id !== u.id);
+                            updateCaseMutation.mutate({ restrictedToUsers: newList as any });
+                          }}
+                          data-testid={`button-remove-access-${u.id}`}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <UserPlus className="h-5 w-5 text-pink-600" />
+                    ))}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No client users have been granted access yet.</p>
+                )}
+                {availableUsers.length > 0 && (
+                  <div className="space-y-2 border-t pt-4">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add a user</p>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {availableUsers.map(u => (
+                        <div
+                          key={u.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg border hover-elevate cursor-pointer"
+                          onClick={() => {
+                            const newList = [...restrictedUserIds, u.id];
+                            updateCaseMutation.mutate({ restrictedToUsers: newList as any });
+                          }}
+                          data-testid={`button-grant-access-${u.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm font-medium">{u.fullName}</p>
+                              <p className="text-xs text-muted-foreground">{u.email}</p>
+                            </div>
+                          </div>
+                          <UserPlus className="h-4 w-4 text-pink-600" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              <p className="text-center text-muted-foreground py-4">
-                All client users already have access to this case.
-              </p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Users className="h-4 w-4" />
+                <span>All company users can view this case.</span>
+              </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAccessDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowAccessDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
