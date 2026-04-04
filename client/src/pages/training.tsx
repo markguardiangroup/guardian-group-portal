@@ -590,72 +590,31 @@ export default function Training() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Page header — static training purple, matches dash-header style */}
-      <div className="theme-training dash-header flex-shrink-0 bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
-              <GraduationCap className="h-7 w-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold">
-                Training
-                <span className="font-normal text-muted-foreground text-2xl"> — Courses</span>
-              </h1>
-              <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">Browse and book training courses</p>
-            </div>
+      {/* Page header */}
+      <div className="theme-training dash-header flex-shrink-0 bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-6 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-module-accent shrink-0">
+            <GraduationCap className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold leading-tight">
+              Training
+              <span className="font-normal text-muted-foreground text-base"> — Courses</span>
+            </h1>
+            <p className="text-xs text-muted-foreground">Browse and book training courses</p>
           </div>
         </div>
       </div>
 
-      {/* Guided Training Finder Banner */}
-      <div className="flex-shrink-0 px-6 pt-4">
-        <div
-          className="relative overflow-hidden rounded-xl p-5 sm:p-6 text-white shadow-md cursor-pointer group mb-0"
-          style={
-            activeTab === "health_safety"
-              ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
-              : activeTab === "human_resources"
-              ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
-              : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
-          }
-          onClick={openFinder}
-          data-testid="button-open-training-finder"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && openFinder()}
-        >
-          <Compass
-            className="absolute -right-8 -top-8 h-44 w-44 opacity-[0.07] pointer-events-none"
-            aria-hidden="true"
-          />
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-white/20 shrink-0 group-hover:bg-white/30 transition-colors">
-                <Compass className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-0.5">Guided Training Finder</p>
-                <h2 className="text-base sm:text-lg font-bold leading-snug">Not sure which training you need?</h2>
-                <p className="text-sm text-white/80 mt-0.5 leading-relaxed">Answer a few quick questions and we'll point you to the right course.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-4 py-2.5 font-semibold text-sm sm:ml-4">
-              Find a Course
-              <ChevronRight className="h-4 w-4" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Module tabs - Enhanced Prominence */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="px-6 py-3">
-          <div className="grid w-full grid-cols-3 gap-2 p-1 rounded-xl bg-muted/50 border">
+      {/* Module tabs + search toolbar */}
+      <div className="flex-shrink-0 border-b bg-background px-6 py-2.5">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Module selector pills */}
+          <div className="flex gap-1 p-0.5 rounded-lg bg-muted/60 border shrink-0">
             {([
-              { value: "health_safety", label: "Health & Safety", Icon: HardHat, color: "text-emerald-600 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
-              { value: "human_resources", label: "Human Resources", Icon: Users, color: "text-blue-600 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
-              { value: "employment_law", label: "Employment Law", Icon: Scale, color: "text-pink-600 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
+              { value: "health_safety", label: "Health & Safety", Icon: HardHat, color: "text-emerald-700 dark:text-emerald-400", activeStyle: "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700" },
+              { value: "human_resources", label: "Human Resources", Icon: Users, color: "text-blue-700 dark:text-blue-400", activeStyle: "bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700" },
+              { value: "employment_law", label: "Employment Law", Icon: Scale, color: "text-pink-700 dark:text-pink-400", activeStyle: "bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700" },
             ] as const).map(({ value, label, Icon, color, activeStyle }) => {
               const isActive = activeTab === value;
               return (
@@ -663,37 +622,34 @@ export default function Training() {
                   key={value}
                   onClick={() => setActiveTab(value as ModuleFilter)}
                   data-testid={`tab-${value.replace("_", "-")}`}
-                  className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 py-4 px-3 rounded-lg font-medium transition-all ${
-                    isActive 
-                      ? `${activeStyle} border shadow-sm ${color}` 
+                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
+                    isActive
+                      ? `${activeStyle} border shadow-sm ${color}`
                       : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
                   }`}
                 >
-                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${isActive ? "" : ""}`} />
-                  <span className="text-xs sm:text-sm">{label}</span>
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{label}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-      </div>
 
-      {/* Search and filters */}
-      <div className="flex-shrink-0 px-6 py-3 border-b bg-muted/30">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 bg-background"
+              className="pl-8 h-8 text-sm bg-background"
               data-testid="input-search-training"
             />
           </div>
-          
+
+          {/* Filters */}
           <Select value={filterRequired} onValueChange={(v) => setFilterRequired(v as typeof filterRequired)}>
-            <SelectTrigger className="w-[130px] h-9" data-testid="select-filter-required">
+            <SelectTrigger className="w-[120px] h-8 text-sm" data-testid="select-filter-required">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -702,9 +658,9 @@ export default function Training() {
               <SelectItem value="recommended">Recommended</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={filterMethod} onValueChange={(v) => setFilterMethod(v as typeof filterMethod)}>
-            <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-method">
+            <SelectTrigger className="w-[110px] h-8 text-sm" data-testid="select-filter-method">
               <SelectValue placeholder="Method" />
             </SelectTrigger>
             <SelectContent>
@@ -713,10 +669,10 @@ export default function Training() {
               <SelectItem value="in_person">In Person</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {uniqueProviders.length > 0 && (
             <Select value={filterProvider} onValueChange={setFilterProvider}>
-              <SelectTrigger className="w-[140px] h-9" data-testid="select-filter-provider">
+              <SelectTrigger className="w-[130px] h-8 text-sm" data-testid="select-filter-provider">
                 <SelectValue placeholder="Provider" />
               </SelectTrigger>
               <SelectContent>
@@ -727,12 +683,12 @@ export default function Training() {
               </SelectContent>
             </Select>
           )}
-          
+
           {(searchQuery || filterRequired !== "all" || filterMethod !== "all" || filterProvider !== "all") && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-9"
+              className="h-8 px-2"
               onClick={() => {
                 setSearchQuery("");
                 setFilterRequired("all");
@@ -741,10 +697,30 @@ export default function Training() {
               }}
               data-testid="button-clear-filters"
             >
-              <X className="h-4 w-4 mr-1" />
+              <X className="h-3.5 w-3.5 mr-1" />
               Clear
             </Button>
           )}
+
+          {/* Training Finder — compact button, pushed to end */}
+          <div className="ml-auto shrink-0">
+            <button
+              onClick={openFinder}
+              data-testid="button-open-training-finder"
+              style={
+                activeTab === "health_safety"
+                  ? { background: "linear-gradient(135deg, #059669 0%, #047857 100%)" }
+                  : activeTab === "human_resources"
+                  ? { background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }
+                  : { background: "linear-gradient(135deg, #db2777 0%, #be185d 100%)" }
+              }
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            >
+              <Compass className="h-3.5 w-3.5 shrink-0" />
+              Not sure? Find a Course
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
