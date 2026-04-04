@@ -52,8 +52,11 @@ import {
   ChevronRight,
   ArrowDown,
   Tag,
+  GraduationCap,
+  BookOpen,
 } from "lucide-react";
 
+type PathwayType = "toolkit" | "training";
 type PathwayModuleType = "health_safety" | "human_resources" | "employment_law" | "all";
 
 interface PathwayAnswer {
@@ -61,6 +64,7 @@ interface PathwayAnswer {
   description?: string;
   next?: PathwayNode;
   templateIds?: string[];
+  courseIds?: string[];
 }
 
 interface PathwayNode {
@@ -109,6 +113,14 @@ interface ToolkitDataRef {
   unassigned: ToolkitTemplateRef[];
 }
 
+interface TrainingCourseRef {
+  id: string;
+  title: string;
+  productCode: string | null;
+  module: string;
+  provider: string | null;
+}
+
 type AdminModuleConfig = { label: string; Icon: ComponentType<{ className?: string }>; color: string; bg: string };
 
 const MODULE_CONFIG: Record<string, AdminModuleConfig> = {
@@ -138,7 +150,7 @@ const MODULE_CONFIG: Record<string, AdminModuleConfig> = {
   },
 };
 
-const DEFAULT_TREE: PathwayNode = {
+const DEFAULT_TOOLKIT_TREE: PathwayNode = {
   question: "What type of document do you need?",
   answers: [
     { label: "Policy", description: "Formal written policy document", templateIds: [] },
@@ -153,6 +165,14 @@ const DEFAULT_TREE: PathwayNode = {
         ],
       },
     },
+  ],
+};
+
+const DEFAULT_TRAINING_TREE: PathwayNode = {
+  question: "Who is the training for?",
+  answers: [
+    { label: "An individual employee", description: "Front-line staff who need specific skills training", courseIds: [] },
+    { label: "A manager or supervisor", description: "Someone responsible for team health, safety, or compliance", courseIds: [] },
   ],
 };
 
@@ -267,6 +287,122 @@ function TemplatePicker({
   );
 }
 
+// ---------- CoursePicker ----------
+function CoursePicker({
+  selectedIds,
+  onChange,
+  allCourses,
+}: {
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  allCourses: TrainingCourseRef[];
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const selected = allCourses.filter((c) => selectedIds.includes(c.id));
+  const available = allCourses.filter(
+    (c) =>
+      !selectedIds.includes(c.id) &&
+      (!search ||
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.provider?.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div className="space-y-2">
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((c) => (
+            <Badge
+              key={c.id}
+              variant="secondary"
+              className="flex items-center gap-1 pl-2 pr-1 py-1 text-xs"
+              data-testid={`badge-course-${c.id}`}
+            >
+              <GraduationCap className="h-3 w-3 shrink-0" />
+              <span className="max-w-[180px] truncate">{c.title}</span>
+              <button
+                type="button"
+                onClick={() => onChange(selectedIds.filter((id) => id !== c.id))}
+                className="ml-0.5 rounded hover:bg-muted-foreground/20 p-0.5"
+                data-testid={`button-remove-course-${c.id}`}
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <div
+          className="flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors text-xs text-muted-foreground"
+          onClick={() => setOpen(!open)}
+          data-testid="button-open-course-picker"
+        >
+          <Plus className="h-3 w-3" />
+          Add course
+        </div>
+
+        {open && (
+          <div className="absolute z-50 top-full mt-1 left-0 w-80 rounded-lg border bg-popover shadow-lg">
+            <div className="p-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search courses..."
+                  className="pl-7 h-7 text-xs"
+                  data-testid="input-course-picker-search"
+                />
+              </div>
+            </div>
+            <div className="max-h-52 overflow-y-auto p-1">
+              {available.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">
+                  {search ? "No courses match your search." : "All courses already added."}
+                </p>
+              ) : (
+                available.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="w-full text-left px-2 py-1.5 rounded hover:bg-muted/60 text-xs flex items-start gap-2"
+                    onClick={() => {
+                      onChange([...selectedIds, c.id]);
+                      setSearch("");
+                      setOpen(false);
+                    }}
+                    data-testid={`option-course-${c.id}`}
+                  >
+                    <GraduationCap className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{c.title}</div>
+                      {c.provider && <div className="text-muted-foreground truncate">{c.provider}</div>}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="p-1 border-t">
+              <button
+                type="button"
+                className="w-full text-xs text-muted-foreground py-1 hover:text-foreground"
+                onClick={() => { setOpen(false); setSearch(""); }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------- AnswerEditor ----------
 function AnswerEditor({
   answer,
@@ -275,6 +411,8 @@ function AnswerEditor({
   onDelete,
   depth,
   allTemplates,
+  allCourses,
+  pathwayType,
 }: {
   answer: PathwayAnswer;
   index: number;
@@ -282,17 +420,26 @@ function AnswerEditor({
   onDelete: () => void;
   depth: number;
   allTemplates: ToolkitTemplateRef[];
+  allCourses: TrainingCourseRef[];
+  pathwayType: PathwayType;
 }) {
   const isLeaf = !answer.next;
   const [collapsed, setCollapsed] = useState(false);
 
-  const switchToLeaf = () => onChange({ label: answer.label, description: answer.description, templateIds: [] });
+  const emptyLeaf = pathwayType === "training" ? { courseIds: [] } : { templateIds: [] };
+  const emptyBranchAnswer = pathwayType === "training"
+    ? { label: "", courseIds: [] }
+    : { label: "", templateIds: [] };
+
+  const switchToLeaf = () => onChange({ label: answer.label, description: answer.description, ...emptyLeaf });
   const switchToBranch = () =>
     onChange({
       label: answer.label,
       description: answer.description,
-      next: { question: "", answers: [{ label: "", templateIds: [] }] },
+      next: { question: "", answers: [emptyBranchAnswer] },
     });
+
+  const leafLabel = pathwayType === "training" ? "Attach courses" : "Attach templates";
 
   return (
     <div
@@ -355,7 +502,7 @@ function AnswerEditor({
               data-testid={`button-leaf-${depth}-${index}`}
             >
               <Tag className="h-3 w-3" />
-              Attach templates
+              {leafLabel}
             </button>
             <button
               type="button"
@@ -372,18 +519,35 @@ function AnswerEditor({
             </button>
           </div>
 
-          {/* Leaf: template picker */}
+          {/* Leaf: template or course picker */}
           {isLeaf && (
             <div className="pl-1">
-              <TemplatePicker
-                selectedIds={answer.templateIds ?? []}
-                onChange={(ids) => onChange({ ...answer, templateIds: ids })}
-                allTemplates={allTemplates}
-              />
-              {(answer.templateIds ?? []).length === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  No templates attached yet — users will see an empty result at this endpoint.
-                </p>
+              {pathwayType === "training" ? (
+                <>
+                  <CoursePicker
+                    selectedIds={answer.courseIds ?? []}
+                    onChange={(ids) => onChange({ ...answer, courseIds: ids })}
+                    allCourses={allCourses}
+                  />
+                  {(answer.courseIds ?? []).length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      No courses attached yet — users will see an empty result at this endpoint.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <TemplatePicker
+                    selectedIds={answer.templateIds ?? []}
+                    onChange={(ids) => onChange({ ...answer, templateIds: ids })}
+                    allTemplates={allTemplates}
+                  />
+                  {(answer.templateIds ?? []).length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      No templates attached yet — users will see an empty result at this endpoint.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -400,6 +564,8 @@ function AnswerEditor({
                 onChange={(updated) => onChange({ ...answer, next: updated })}
                 depth={depth + 1}
                 allTemplates={allTemplates}
+                allCourses={allCourses}
+                pathwayType={pathwayType}
               />
             </div>
           )}
@@ -415,14 +581,22 @@ function NodeEditor({
   onChange,
   depth,
   allTemplates,
+  allCourses,
+  pathwayType,
 }: {
   node: PathwayNode;
   onChange: (updated: PathwayNode) => void;
   depth: number;
   allTemplates: ToolkitTemplateRef[];
+  allCourses: TrainingCourseRef[];
+  pathwayType: PathwayType;
 }) {
+  const emptyAnswer = pathwayType === "training"
+    ? { label: "", courseIds: [] }
+    : { label: "", templateIds: [] };
+
   const addAnswer = () =>
-    onChange({ ...node, answers: [...node.answers, { label: "", templateIds: [] }] });
+    onChange({ ...node, answers: [...node.answers, emptyAnswer] });
 
   const updateAnswer = (i: number, updated: PathwayAnswer) => {
     const answers = [...node.answers];
@@ -453,6 +627,8 @@ function NodeEditor({
             onDelete={() => deleteAnswer(i)}
             depth={depth}
             allTemplates={allTemplates}
+            allCourses={allCourses}
+            pathwayType={pathwayType}
           />
         ))}
 
@@ -475,6 +651,7 @@ export default function AdminPathways() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const [pathwayType, setPathwayType] = useState<PathwayType>("toolkit");
   const [showForm, setShowForm] = useState(false);
   const [editPathway, setEditPathway] = useState<DocumentPathway | null>(null);
   const [deletePathwayId, setDeletePathwayId] = useState<string | null>(null);
@@ -482,16 +659,24 @@ export default function AdminPathways() {
   const [formTitle, setFormTitle] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formModule, setFormModule] = useState<PathwayModuleType>("health_safety");
-  const [formTree, setFormTree] = useState<PathwayNode>(DEFAULT_TREE);
+  const [formTree, setFormTree] = useState<PathwayNode>(DEFAULT_TOOLKIT_TREE);
   const [formActive, setFormActive] = useState(true);
   const [formSortOrder, setFormSortOrder] = useState(0);
 
+  const apiBase = pathwayType === "training" ? "/api/training/pathways" : "/api/toolkit/pathways";
+
   const { data: pathways, isLoading } = useQuery<DocumentPathway[]>({
-    queryKey: ["/api/toolkit/pathways"],
+    queryKey: [apiBase],
   });
 
   const { data: toolkitData } = useQuery<ToolkitDataRef>({
     queryKey: ["/api/toolkit"],
+    enabled: pathwayType === "toolkit",
+  });
+
+  const { data: trainingCourses } = useQuery<TrainingCourseRef[]>({
+    queryKey: ["/api/training-courses"],
+    enabled: pathwayType === "training",
   });
 
   const allTemplates: ToolkitTemplateRef[] = [
@@ -499,10 +684,13 @@ export default function AdminPathways() {
     ...(toolkitData?.unassigned ?? []),
   ];
 
+  const allCourses: TrainingCourseRef[] = trainingCourses ?? [];
+
   const createMutation = useMutation({
-    mutationFn: (data: PathwayPayload) => apiRequest("POST", "/api/toolkit/pathways", data),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
+    mutationFn: ({ data, base }: { data: PathwayPayload; base: string }) =>
+      apiRequest("POST", base, data),
+    onSuccess: (_, { base }) => {
+      queryClient.refetchQueries({ queryKey: [base] });
       toast({ title: "Pathway created", description: "The guided finder pathway has been created." });
       closeForm();
     },
@@ -510,10 +698,10 @@ export default function AdminPathways() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: PathwayPayload }) =>
-      apiRequest("PATCH", `/api/toolkit/pathways/${id}`, data),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
+    mutationFn: ({ id, data, base }: { id: string; data: PathwayPayload; base: string }) =>
+      apiRequest("PATCH", `${base}/${id}`, data),
+    onSuccess: (_, { base }) => {
+      queryClient.refetchQueries({ queryKey: [base] });
       toast({ title: "Pathway updated", description: "Changes have been saved." });
       closeForm();
     },
@@ -521,9 +709,10 @@ export default function AdminPathways() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest("DELETE", `/api/toolkit/pathways/${id}`),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
+    mutationFn: async ({ id, base }: { id: string; base: string }) =>
+      apiRequest("DELETE", `${base}/${id}`),
+    onSuccess: (_, { base }) => {
+      queryClient.refetchQueries({ queryKey: [base] });
       toast({ title: "Pathway deleted", description: "The pathway has been removed." });
       setDeletePathwayId(null);
     },
@@ -531,10 +720,10 @@ export default function AdminPathways() {
   });
 
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
-      apiRequest("PATCH", `/api/toolkit/pathways/${id}`, { isActive }),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/toolkit/pathways"] });
+    mutationFn: async ({ id, isActive, base }: { id: string; isActive: boolean; base: string }) =>
+      apiRequest("PATCH", `${base}/${id}`, { isActive }),
+    onSuccess: (_, { base }) => {
+      queryClient.refetchQueries({ queryKey: [base] });
     },
     onError: () => toast({ title: "Error", description: "Failed to update status.", variant: "destructive" }),
   });
@@ -544,7 +733,7 @@ export default function AdminPathways() {
     setFormTitle("");
     setFormDesc("");
     setFormModule("health_safety");
-    setFormTree(DEFAULT_TREE);
+    setFormTree(pathwayType === "training" ? DEFAULT_TRAINING_TREE : DEFAULT_TOOLKIT_TREE);
     setFormActive(true);
     setFormSortOrder(0);
     setShowForm(true);
@@ -583,10 +772,16 @@ export default function AdminPathways() {
     };
 
     if (editPathway) {
-      updateMutation.mutate({ id: editPathway.id, data: payload });
+      updateMutation.mutate({ id: editPathway.id, data: payload, base: apiBase });
     } else {
-      createMutation.mutate(payload);
+      createMutation.mutate({ data: payload, base: apiBase });
     }
+  };
+
+  const handleSwitchType = (type: PathwayType) => {
+    setPathwayType(type);
+    setShowForm(false);
+    setEditPathway(null);
   };
 
   if (!user || user.role !== "admin") {
@@ -598,23 +793,58 @@ export default function AdminPathways() {
     );
   }
 
+  const isToolkit = pathwayType === "toolkit";
+
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 px-6 py-6 bg-background border-b flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Compass className="h-7 w-7 text-primary mt-0.5 shrink-0" />
-          <div>
-            <h1 className="text-2xl font-bold">Manage Pathways</h1>
-            <p className="text-muted-foreground text-sm">
-              Create and manage guided document finder pathways for Toolkit users.
-            </p>
+      <div className="shrink-0 px-6 py-5 bg-background border-b">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-start gap-3">
+            <Compass className="h-7 w-7 text-primary mt-0.5 shrink-0" />
+            <div>
+              <h1 className="text-2xl font-bold">Manage Pathways</h1>
+              <p className="text-muted-foreground text-sm">
+                {isToolkit
+                  ? "Create guided document finder pathways for Toolkit users."
+                  : "Create guided training finder pathways for the Browse Courses page."}
+              </p>
+            </div>
           </div>
+          <Button onClick={openCreate} data-testid="button-create-pathway">
+            <Plus className="h-4 w-4 mr-2" />
+            New Pathway
+          </Button>
         </div>
-        <Button onClick={openCreate} data-testid="button-create-pathway">
-          <Plus className="h-4 w-4 mr-2" />
-          New Pathway
-        </Button>
+
+        {/* Type toggle */}
+        <div className="flex gap-1 p-0.5 rounded-lg bg-muted/60 border w-fit">
+          <button
+            onClick={() => handleSwitchType("toolkit")}
+            data-testid="tab-toolkit-pathways"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              isToolkit
+                ? "bg-background shadow-sm text-foreground border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Toolkit
+          </button>
+          <button
+            onClick={() => handleSwitchType("training")}
+            data-testid="tab-training-pathways"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              !isToolkit
+                ? "bg-background shadow-sm text-foreground border"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <GraduationCap className="h-3.5 w-3.5" />
+            Training
+          </button>
+        </div>
       </div>
+
       <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       {isLoading ? (
@@ -622,8 +852,12 @@ export default function AdminPathways() {
       ) : !pathways || pathways.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Compass className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No pathways created yet.</p>
-          <p className="text-sm mt-1">Create a pathway to help users find the right templates.</p>
+          <p className="font-medium">No {isToolkit ? "toolkit" : "training"} pathways created yet.</p>
+          <p className="text-sm mt-1">
+            {isToolkit
+              ? "Create a pathway to help users find the right templates."
+              : "Create a pathway to help users find the right training course."}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -658,7 +892,9 @@ export default function AdminPathways() {
                 <div className="flex items-center gap-2 shrink-0">
                   <Switch
                     checked={pathway.isActive}
-                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: pathway.id, isActive: checked })}
+                    onCheckedChange={(checked) =>
+                      toggleActiveMutation.mutate({ id: pathway.id, isActive: checked, base: apiBase })
+                    }
                     data-testid={`switch-pathway-active-${pathway.id}`}
                   />
                   <Button
@@ -693,7 +929,9 @@ export default function AdminPathways() {
             <DialogDescription>
               {editPathway
                 ? "Update the guided finder pathway."
-                : "Build a decision-tree pathway to help users find the right templates."}
+                : isToolkit
+                ? "Build a decision-tree pathway to help users find the right templates."
+                : "Build a decision-tree pathway to help users find the right training course."}
             </DialogDescription>
           </DialogHeader>
 
@@ -706,7 +944,7 @@ export default function AdminPathways() {
                   id="pathway-title"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g. Find the Right HR Template"
+                  placeholder={isToolkit ? "e.g. Find the Right HR Template" : "e.g. Health & Safety Training Finder"}
                   data-testid="input-pathway-title"
                 />
               </div>
@@ -755,7 +993,9 @@ export default function AdminPathways() {
             <div className="space-y-2">
               <Label>Decision Tree</Label>
               <p className="text-xs text-muted-foreground">
-                Build the flow below. Each question has answers — an answer can either attach templates (shown to the user as results) or branch into a follow-up question.
+                {isToolkit
+                  ? "Build the flow below. Each question has answers — an answer can either attach templates (shown to the user as results) or branch into a follow-up question."
+                  : "Build the flow below. Each question has answers — an answer can either attach training courses (shown as recommendations) or branch into a follow-up question."}
               </p>
               <div className="rounded-lg border bg-muted/10 p-4">
                 <NodeEditor
@@ -763,6 +1003,8 @@ export default function AdminPathways() {
                   onChange={setFormTree}
                   depth={0}
                   allTemplates={allTemplates}
+                  allCourses={allCourses}
+                  pathwayType={pathwayType}
                 />
               </div>
             </div>
@@ -804,14 +1046,14 @@ export default function AdminPathways() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Pathway?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the guided finder pathway. Users will no longer see this pathway in the "Find a Document" flow.
+              This will permanently remove the guided finder pathway. Users will no longer see this pathway in the finder flow.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deletePathwayId && deleteMutation.mutate(deletePathwayId)}
+              onClick={() => deletePathwayId && deleteMutation.mutate({ id: deletePathwayId, base: apiBase })}
               data-testid="button-confirm-delete-pathway"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete Pathway"}
