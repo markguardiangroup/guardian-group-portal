@@ -6,6 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
+  exportComplianceGaps,
+  exportExpiryRisk,
+  exportSiteComparison,
+  exportApprovalPipeline,
+  exportDeadlineRisk,
+  exportSummary,
+} from "@/lib/export-pdf";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -601,6 +609,7 @@ export default function Reports() {
   const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
 
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies"] });
   const companies = companiesData?.companies || [];
@@ -693,6 +702,47 @@ export default function Reports() {
 
   const activeTile = REPORT_TILES.find((t) => t.id === activeReport);
 
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const fetchJson = async (path: string) => {
+        const r = await fetch(path, { credentials: "include" });
+        if (!r.ok) throw new Error("Failed to fetch " + path);
+        return r.json();
+      };
+
+      if (!activeReport) {
+        exportSummary({
+          gapCount,
+          gapSiteCount,
+          expiryCount,
+          expiryOverdue,
+          pipelineCount,
+          deadlineCount,
+          comparisonCount,
+          lowestScore,
+        });
+      } else if (activeReport === "gaps") {
+        const data = summaries.gaps.data ?? await fetchJson(buildUrl("/api/reports/gaps", companyFilter, siteFilter));
+        exportComplianceGaps(data);
+      } else if (activeReport === "expiry") {
+        const data = summaries.expiry.data ?? await fetchJson(buildUrl("/api/reports/expiry-risk", companyFilter, siteFilter, { window: "90" }));
+        exportExpiryRisk(data, "next 90 days");
+      } else if (activeReport === "comparison") {
+        const data = summaries.comparison.data ?? await fetchJson(buildUrl("/api/reports/site-comparison", companyFilter, "all"));
+        exportSiteComparison(data);
+      } else if (activeReport === "pipeline") {
+        const data = summaries.pipeline.data ?? await fetchJson(buildUrl("/api/reports/approval-pipeline", companyFilter, siteFilter));
+        exportApprovalPipeline(data);
+      } else if (activeReport === "deadline") {
+        const data = summaries.deadline.data ?? await fetchJson(buildUrl("/api/reports/deadline-risk", companyFilter, siteFilter));
+        exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? []);
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -712,9 +762,9 @@ export default function Reports() {
             </p>
           </div>
         </div>
-        <Button variant="outline" data-testid="button-export-report">
+        <Button variant="outline" onClick={handleExport} disabled={isExporting} data-testid="button-export-report">
           <Download className="mr-2 h-4 w-4" />
-          Export
+          {isExporting ? "Exporting…" : "Export PDF"}
         </Button>
       </div>
 
