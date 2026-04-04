@@ -144,7 +144,7 @@ function ComplianceGapsTab({ companyId, siteId }: { companyId: string; siteId: s
                   </div>
                   <ul className="space-y-1">
                     {gap.missingTemplates.map((tmpl) => (
-                      <li key={tmpl.templateId} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <li key={tmpl.templateId} className="flex items-start gap-2 text-sm text-foreground">
                         <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
                         {tmpl.templateName}
                       </li>
