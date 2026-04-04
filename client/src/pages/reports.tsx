@@ -618,6 +618,11 @@ export default function Reports() {
 
   const summaries = useTileSummaries(companyFilter, siteFilter);
 
+  // Selected company name for PDF export
+  const selectedCompanyName = companyFilter === "all"
+    ? undefined
+    : companies.find((c) => c.id === companyFilter)?.name;
+
   // Derived summary metrics for tiles
   const gapCount = summaries.gaps.data?.reduce((s, site) => s + site.gaps.reduce((g, gap) => g + gap.missingTemplates.length, 0), 0) ?? 0;
   const gapSiteCount = summaries.gaps.data?.length ?? 0;
@@ -712,7 +717,7 @@ export default function Reports() {
       };
 
       if (!activeReport) {
-        exportSummary({
+        await exportSummary({
           gapCount,
           gapSiteCount,
           expiryCount,
@@ -721,22 +726,23 @@ export default function Reports() {
           deadlineCount,
           comparisonCount,
           lowestScore,
+          companyName: selectedCompanyName,
         });
       } else if (activeReport === "gaps") {
         const data = summaries.gaps.data ?? await fetchJson(buildUrl("/api/reports/gaps", companyFilter, siteFilter));
-        exportComplianceGaps(data);
+        await exportComplianceGaps(data, selectedCompanyName);
       } else if (activeReport === "expiry") {
         const data = summaries.expiry.data ?? await fetchJson(buildUrl("/api/reports/expiry-risk", companyFilter, siteFilter, { window: "90" }));
-        exportExpiryRisk(data, "next 90 days");
+        await exportExpiryRisk(data, "next 90 days", selectedCompanyName);
       } else if (activeReport === "comparison") {
         const data = summaries.comparison.data ?? await fetchJson(buildUrl("/api/reports/site-comparison", companyFilter, "all"));
-        exportSiteComparison(data);
+        await exportSiteComparison(data, selectedCompanyName);
       } else if (activeReport === "pipeline") {
         const data = summaries.pipeline.data ?? await fetchJson(buildUrl("/api/reports/approval-pipeline", companyFilter, siteFilter));
-        exportApprovalPipeline(data);
+        await exportApprovalPipeline(data, selectedCompanyName);
       } else if (activeReport === "deadline") {
         const data = summaries.deadline.data ?? await fetchJson(buildUrl("/api/reports/deadline-risk", companyFilter, siteFilter));
-        exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? []);
+        await exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? [], selectedCompanyName);
       }
     } finally {
       setIsExporting(false);

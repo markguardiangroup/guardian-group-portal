@@ -1,54 +1,136 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// ─── Shared page setup ────────────────────────────────────────────────────────
+// ─── Brand constants ──────────────────────────────────────────────────────────
 
 const BRAND = {
   name: "Guardian Group",
-  primary: [30, 64, 175] as [number, number, number],   // deep blue
-  accent: [239, 246, 255] as [number, number, number],  // light blue tint
+  primary: [30, 64, 175] as [number, number, number],
+  primaryLight: [59, 92, 205] as [number, number, number],
+  accent: [239, 246, 255] as [number, number, number],
   muted: [107, 114, 128] as [number, number, number],
+  border: [219, 234, 254] as [number, number, number],
   danger: [185, 28, 28] as [number, number, number],
   warning: [180, 83, 9] as [number, number, number],
   success: [21, 128, 61] as [number, number, number],
 };
 
-function buildHeader(doc: jsPDF, title: string, subtitle?: string) {
+// ─── Logo loader ──────────────────────────────────────────────────────────────
+
+async function loadLogoDataUrl(): Promise<string | null> {
+  try {
+    const response = await fetch("/email-assets/logo.jpg");
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ─── Shared page setup ────────────────────────────────────────────────────────
+
+interface HeaderOptions {
+  title: string;
+  subtitle?: string;
+  companyName?: string;
+  logoDataUrl?: string | null;
+}
+
+function buildHeader(doc: jsPDF, opts: HeaderOptions): number {
+  const { title, subtitle, companyName, logoDataUrl } = opts;
   const pageW = doc.internal.pageSize.getWidth();
+  const headerH = 26;
 
-  // Header bar
+  // Header background
   doc.setFillColor(...BRAND.primary);
-  doc.rect(0, 0, pageW, 22, "F");
+  doc.rect(0, 0, pageW, headerH, "F");
 
-  // Brand name
+  // Right-side accent stripe
+  doc.setFillColor(...BRAND.primaryLight);
+  doc.rect(pageW - 50, 0, 50, headerH, "F");
+
+  let logoEndX = 14;
+
+  // Logo — placed left, vertically centred in header bar
+  if (logoDataUrl) {
+    const logoH = 14;
+    const logoW = 32; // approximate width keeping aspect ratio
+    const logoY = (headerH - logoH) / 2;
+    try {
+      doc.addImage(logoDataUrl, "JPEG", 10, logoY, logoW, logoH);
+      logoEndX = 10 + logoW + 5;
+    } catch {
+      logoEndX = 14;
+    }
+  }
+
+  // Brand name — right of logo
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(BRAND.name, 14, 10);
+  doc.text(BRAND.name, logoEndX, 11);
 
-  // Report title in header
-  doc.setFontSize(9);
+  // Report title below brand name
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  doc.text(title, 14, 16.5);
+  doc.setTextColor(200, 215, 255);
+  doc.text(title, logoEndX, 18);
 
-  // Date top-right
+  // Right-side text
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
   doc.text(`Generated: ${today}`, pageW - 14, 10, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(200, 215, 255);
   doc.text("Confidential", pageW - 14, 16.5, { align: "right" });
 
-  // Subtitle row below header bar
-  if (subtitle) {
+  // Sub-header bar — company name + subtitle
+  const subH = companyName || subtitle ? 13 : 0;
+  if (subH) {
     doc.setFillColor(...BRAND.accent);
-    doc.rect(0, 22, pageW, 10, "F");
+    doc.rect(0, headerH, pageW, subH, "F");
+
+    // Left border accent
+    doc.setFillColor(...BRAND.primary);
+    doc.rect(0, headerH, 3, subH, "F");
+
     doc.setTextColor(...BRAND.muted);
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "italic");
-    doc.text(subtitle, 14, 28.5);
+    doc.setFontSize(8);
+
+    let subY = headerH + 5;
+    if (companyName && subtitle) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...BRAND.primary);
+      doc.text(companyName, 8, subY);
+      const nameW = doc.getTextWidth(companyName);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...BRAND.muted);
+      doc.text(`  ·  ${subtitle}`, 8 + nameW, subY);
+      subY += 5.5;
+    } else if (companyName) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...BRAND.primary);
+      doc.text(companyName, 8, subY);
+      subY += 5.5;
+    } else if (subtitle) {
+      doc.setFont("helvetica", "italic");
+      doc.text(subtitle, 8, subY);
+      subY += 5.5;
+    }
   }
 
   doc.setTextColor(0, 0, 0);
-  return subtitle ? 36 : 28;
+  doc.setFont("helvetica", "normal");
+  return headerH + subH + 4;
 }
 
 function addPageNumbers(doc: jsPDF) {
@@ -57,28 +139,33 @@ function addPageNumbers(doc: jsPDF) {
   const pageH = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    // Footer line
+    doc.setDrawColor(...BRAND.border);
+    doc.setLineWidth(0.3);
+    doc.line(14, pageH - 12, pageW - 14, pageH - 12);
+    doc.setFontSize(7.5);
     doc.setTextColor(...BRAND.muted);
-    doc.text(`Page ${i} of ${total}`, pageW - 14, pageH - 8, { align: "right" });
-    doc.text(BRAND.name + " — Compliance Portal", 14, pageH - 8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Page ${i} of ${total}`, pageW - 14, pageH - 7, { align: "right" });
+    doc.text(`${BRAND.name} — Compliance Portal`, 14, pageH - 7);
   }
 }
 
 function sectionTitle(doc: jsPDF, text: string, y: number): number {
-  doc.setFontSize(10);
+  doc.setFillColor(...BRAND.accent);
+  doc.rect(14, y - 1, doc.internal.pageSize.getWidth() - 28, 7, "F");
+  doc.setFillColor(...BRAND.primary);
+  doc.rect(14, y - 1, 2, 7, "F");
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...BRAND.primary);
-  doc.text(text, 14, y);
+  doc.text(text, 18, y + 4);
   doc.setTextColor(0, 0, 0);
-  return y + 6;
+  doc.setFont("helvetica", "normal");
+  return y + 10;
 }
 
 // ─── Report: Compliance Gaps ──────────────────────────────────────────────────
-
-interface GapSite {
-  siteName: string;
-  gaps: { module: string; missingTemplates: { templateName: string }[] }[];
-}
 
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "Health & Safety",
@@ -88,10 +175,22 @@ const MODULE_LABELS: Record<string, string> = {
   support: "Support",
 };
 
-export function exportComplianceGaps(data: GapSite[]) {
+interface GapSite {
+  siteName: string;
+  gaps: { module: string; missingTemplates: { templateName: string }[] }[];
+}
+
+export async function exportComplianceGaps(data: GapSite[], companyName?: string) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const totalMissing = data.reduce((s, site) => s + site.gaps.reduce((g, gap) => g + gap.missingTemplates.length, 0), 0);
-  let y = buildHeader(doc, "Compliance Gap Report", `${totalMissing} missing required documents across ${data.length} sites`);
+
+  let y = buildHeader(doc, {
+    title: "Compliance Gap Report",
+    subtitle: `${totalMissing} missing required documents across ${data.length} sites`,
+    companyName,
+    logoDataUrl,
+  });
 
   const rows: (string | number)[][] = [];
   for (const site of data) {
@@ -111,7 +210,9 @@ export function exportComplianceGaps(data: GapSite[]) {
     alternateRowStyles: { fillColor: [249, 250, 251] },
     columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 45 }, 2: { cellWidth: "auto" } },
     margin: { left: 14, right: 14 },
-    didDrawPage: (data) => { if (data.pageNumber > 1) buildHeader(doc, "Compliance Gap Report"); },
+    didDrawPage: (data) => {
+      if (data.pageNumber > 1) buildHeader(doc, { title: "Compliance Gap Report", companyName, logoDataUrl });
+    },
   });
 
   addPageNumbers(doc);
@@ -125,14 +226,23 @@ interface ExpiryRiskItem {
   dateType: string; date: string; daysUntil: number; urgency: string;
 }
 
-export function exportExpiryRisk(data: ExpiryRiskItem[], windowLabel: string) {
+export async function exportExpiryRisk(data: ExpiryRiskItem[], windowLabel: string, companyName?: string) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const overdue = data.filter((d) => d.urgency === "overdue").length;
-  let y = buildHeader(doc, "Expiry & Renewal Risk Report", `${data.length} items at risk · ${overdue} overdue · Window: ${windowLabel}`);
+
+  let y = buildHeader(doc, {
+    title: "Expiry & Renewal Risk Report",
+    subtitle: `${data.length} items at risk · ${overdue} overdue · ${windowLabel}`,
+    companyName,
+    logoDataUrl,
+  });
 
   const rows = data.map((item) => {
     const dateLabel = { expiry: "Expiry", renewal: "Renewal", review: "Review" }[item.dateType] || "Due";
-    const daysLabel = item.daysUntil < 0 ? `${Math.abs(item.daysUntil)}d overdue` : item.daysUntil === 0 ? "Today" : `${item.daysUntil}d remaining`;
+    const daysLabel = item.daysUntil < 0
+      ? `${Math.abs(item.daysUntil)}d overdue`
+      : item.daysUntil === 0 ? "Today" : `${item.daysUntil}d remaining`;
     return [
       item.title,
       MODULE_LABELS[item.module] || item.module,
@@ -146,25 +256,27 @@ export function exportExpiryRisk(data: ExpiryRiskItem[], windowLabel: string) {
 
   autoTable(doc, {
     startY: y,
-    head: [["Document", "Module", "Site", "Date Type", "Date", "Remaining", "Urgency"]],
+    head: [["Document", "Module", "Site", "Type", "Date", "Remaining", "Urgency"]],
     body: rows,
     styles: { fontSize: 8, cellPadding: 2.5 },
     headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [249, 250, 251] },
     columnStyles: {
-      0: { cellWidth: 50 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 },
-      3: { cellWidth: 20 }, 4: { cellWidth: 22 }, 5: { cellWidth: 22 }, 6: { cellWidth: 20 },
+      0: { cellWidth: 50 }, 1: { cellWidth: 30 }, 2: { cellWidth: 28 },
+      3: { cellWidth: 18 }, 4: { cellWidth: 22 }, 5: { cellWidth: 22 }, 6: { cellWidth: 18 },
     },
     didParseCell: (data) => {
       if (data.column.index === 6 && data.section === "body") {
         const val = String(data.cell.raw).toLowerCase();
-        if (val === "overdue") data.cell.styles.textColor = BRAND.danger;
-        else if (val === "critical") data.cell.styles.textColor = BRAND.warning;
+        if (val === "overdue") { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
+        else if (val === "critical") { data.cell.styles.textColor = BRAND.warning; data.cell.styles.fontStyle = "bold"; }
         else if (val === "good") data.cell.styles.textColor = BRAND.success;
       }
     },
     margin: { left: 14, right: 14 },
-    didDrawPage: (data) => { if (data.pageNumber > 1) buildHeader(doc, "Expiry & Renewal Risk Report"); },
+    didDrawPage: (data) => {
+      if (data.pageNumber > 1) buildHeader(doc, { title: "Expiry & Renewal Risk Report", companyName, logoDataUrl });
+    },
   });
 
   addPageNumbers(doc);
@@ -178,9 +290,16 @@ interface SiteComparisonItem {
   scores: Record<string, { score: number; compliant: number; total: number }>;
 }
 
-export function exportSiteComparison(data: SiteComparisonItem[]) {
+export async function exportSiteComparison(data: SiteComparisonItem[], companyName?: string) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = buildHeader(doc, "Site Compliance Comparison", `${data.length} sites compared`);
+
+  let y = buildHeader(doc, {
+    title: "Site Compliance Comparison",
+    subtitle: `${data.length} sites compared`,
+    companyName,
+    logoDataUrl,
+  });
 
   const complianceMods = ["health_safety", "human_resources", "employment_law"];
 
@@ -226,10 +345,17 @@ interface ApprovalPipelineItem {
   approvalStatus: string; uploaderName: string; daysWaiting: number;
 }
 
-export function exportApprovalPipeline(data: ApprovalPipelineItem[]) {
+export async function exportApprovalPipeline(data: ApprovalPipelineItem[], companyName?: string) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const stale = data.filter((d) => d.daysWaiting >= 7).length;
-  let y = buildHeader(doc, "Approval Pipeline Report", `${data.length} documents awaiting approval · ${stale} waiting 7+ days`);
+
+  let y = buildHeader(doc, {
+    title: "Approval Pipeline Report",
+    subtitle: `${data.length} documents awaiting approval · ${stale} waiting 7+ days`,
+    companyName,
+    logoDataUrl,
+  });
 
   const rows = data.map((item) => [
     item.title,
@@ -248,7 +374,7 @@ export function exportApprovalPipeline(data: ApprovalPipelineItem[]) {
     headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [249, 250, 251] },
     columnStyles: {
-      0: { cellWidth: 55 }, 1: { cellWidth: 30 }, 2: { cellWidth: 30 },
+      0: { cellWidth: 55 }, 1: { cellWidth: 30 }, 2: { cellWidth: 28 },
       3: { cellWidth: 30 }, 4: { cellWidth: 25 }, 5: { cellWidth: 20 },
     },
     didParseCell: (data) => {
@@ -261,7 +387,9 @@ export function exportApprovalPipeline(data: ApprovalPipelineItem[]) {
       }
     },
     margin: { left: 14, right: 14 },
-    didDrawPage: (data) => { if (data.pageNumber > 1) buildHeader(doc, "Approval Pipeline Report"); },
+    didDrawPage: (data) => {
+      if (data.pageNumber > 1) buildHeader(doc, { title: "Approval Pipeline Report", companyName, logoDataUrl });
+    },
   });
 
   addPageNumbers(doc);
@@ -279,18 +407,23 @@ interface IncidentRisk {
   severity: string; status: string; daysSinceReported: number;
 }
 
-export function exportDeadlineRisk(milestones: MilestoneRisk[], incidents: IncidentRisk[]) {
+export async function exportDeadlineRisk(milestones: MilestoneRisk[], incidents: IncidentRisk[], companyName?: string) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = buildHeader(
-    doc,
-    "Deadline & Milestone Risk Report",
-    `${milestones.length} milestone risks · ${incidents.length} unresolved incidents`
-  );
+
+  let y = buildHeader(doc, {
+    title: "Deadline & Milestone Risk Report",
+    subtitle: `${milestones.length} milestone risks · ${incidents.length} unresolved incidents`,
+    companyName,
+    logoDataUrl,
+  });
 
   if (milestones.length > 0) {
-    y = sectionTitle(doc, "Case Milestones", y);
+    y = sectionTitle(doc, `Case Milestones (${milestones.length})`, y);
     const rows = milestones.map((item) => {
-      const daysLabel = item.daysUntil < 0 ? `${Math.abs(item.daysUntil)}d overdue` : item.daysUntil === 0 ? "Today" : `${item.daysUntil}d`;
+      const daysLabel = item.daysUntil < 0
+        ? `${Math.abs(item.daysUntil)}d overdue`
+        : item.daysUntil === 0 ? "Today" : `${item.daysUntil}d`;
       return [item.caseReference, item.milestoneTitle, item.employeeName, item.siteName, new Date(item.dueDate).toLocaleDateString("en-GB"), daysLabel];
     });
     autoTable(doc, {
@@ -300,13 +433,13 @@ export function exportDeadlineRisk(milestones: MilestoneRisk[], incidents: Incid
       styles: { fontSize: 8.5, cellPadding: 2.5 },
       headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [249, 250, 251] },
-      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 55 }, 2: { cellWidth: 30 }, 3: { cellWidth: 30 }, 4: { cellWidth: 22 }, 5: { cellWidth: 22 } },
+      columnStyles: { 0: { cellWidth: 22 }, 1: { cellWidth: 55 }, 2: { cellWidth: 30 }, 3: { cellWidth: 28 }, 4: { cellWidth: 22 }, 5: { cellWidth: 22 } },
       margin: { left: 14, right: 14 },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 5) {
           const v = String(data.cell.raw);
           if (v.includes("overdue")) { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
-          else if (v === "Today") { data.cell.styles.textColor = BRAND.warning; }
+          else if (v === "Today") { data.cell.styles.textColor = BRAND.warning; data.cell.styles.fontStyle = "bold"; }
         }
       },
     });
@@ -314,10 +447,12 @@ export function exportDeadlineRisk(milestones: MilestoneRisk[], incidents: Incid
   }
 
   if (incidents.length > 0) {
-    if (y > 240) { doc.addPage(); y = buildHeader(doc, "Deadline & Milestone Risk Report"); }
-    y = sectionTitle(doc, "Unresolved Incidents", y);
+    if (y > 235) { doc.addPage(); y = buildHeader(doc, { title: "Deadline & Milestone Risk Report", companyName, logoDataUrl }); }
+    y = sectionTitle(doc, `Unresolved Incidents (${incidents.length})`, y);
     const rows = incidents.map((item) => [
-      item.reference, item.title, item.siteName,
+      item.reference,
+      item.title,
+      item.siteName,
       item.severity.charAt(0).toUpperCase() + item.severity.slice(1),
       item.status.replace(/_/g, " "),
       `${item.daysSinceReported} days`,
@@ -346,11 +481,19 @@ interface SummaryPayload {
   pipelineCount: number;
   deadlineCount: number;
   comparisonCount: number; lowestScore: number | null;
+  companyName?: string;
 }
 
-export function exportSummary(payload: SummaryPayload) {
+export async function exportSummary(payload: SummaryPayload) {
+  const logoDataUrl = await loadLogoDataUrl();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  let y = buildHeader(doc, "Compliance Reports Summary", "Overview of all compliance metrics");
+
+  let y = buildHeader(doc, {
+    title: "Compliance Reports Summary",
+    subtitle: "Overview of all compliance metrics",
+    companyName: payload.companyName,
+    logoDataUrl,
+  });
 
   const rows = [
     ["Compliance Gaps", `${payload.gapCount} missing documents across ${payload.gapSiteCount} sites`, payload.gapCount > 0 ? "Action Required" : "Clear"],
@@ -367,12 +510,12 @@ export function exportSummary(payload: SummaryPayload) {
     styles: { fontSize: 9.5, cellPadding: 4 },
     headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold" },
     alternateRowStyles: { fillColor: [249, 250, 251] },
-    columnStyles: { 0: { cellWidth: 50, fontStyle: "bold" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 35, halign: "center" } },
+    columnStyles: { 0: { cellWidth: 52, fontStyle: "bold" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 35, halign: "center" } },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index === 2) {
         const v = String(data.cell.raw);
         if (v === "Action Required") { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
-        else if (v === "Review") { data.cell.styles.textColor = BRAND.warning; }
+        else if (v === "Review") { data.cell.styles.textColor = BRAND.warning; data.cell.styles.fontStyle = "bold"; }
         else { data.cell.styles.textColor = BRAND.success; }
       }
     },
