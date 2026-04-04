@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  BarChart3,
   Building2,
   Calendar,
   CheckCircle,
@@ -752,12 +753,16 @@ export default function Reports() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
+      <div className="theme-reports flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
         <div className="flex items-center gap-3">
-          {activeReport && (
+          {activeReport ? (
             <Button variant="ghost" size="icon" onClick={() => setActiveReport(null)} className="shrink-0" data-testid="button-back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
+          ) : (
+            <div className="p-2 rounded-lg bg-module-accent/10 shrink-0">
+              <BarChart3 className="h-6 w-6 text-module-accent" />
+            </div>
           )}
           <div>
             <h1 className="text-3xl font-semibold">

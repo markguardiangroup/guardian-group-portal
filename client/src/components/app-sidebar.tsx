@@ -135,7 +135,6 @@ const moduleNavItems: {
     url: "/reports",
     themeClass: "theme-reports",
     module: "reports",
-    noColor: true,
     directLink: true,
     subItems: [],
   },
@@ -524,18 +523,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 // Direct link — no collapsible sub-menu
                 if (item.directLink) {
                   return (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem key={item.title} className={item.noColor ? undefined : item.themeClass}>
                       <SidebarMenuButton
                         asChild
                         className={cn(
                           "transition-colors",
-                          isModuleActive && "bg-sidebar-accent font-medium"
+                          !item.noColor && "nav-module-btn",
+                          isModuleActive && (item.noColor ? "bg-sidebar-accent font-medium" : "nav-module-active")
                         )}
                         data-testid={testId}
                       >
                         <Link href={item.url}>
-                          <item.icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="flex-1">{item.title}</span>
+                          <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
+                          <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
                           {item.module === "support" && openSupportCount > 0 && (
                             <Badge
                               variant="destructive"
