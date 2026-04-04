@@ -64,6 +64,7 @@ const moduleNavItems: {
   themeClass: string;
   module: ModuleType;
   noColor?: boolean;
+  directLink?: boolean;
   subItems: { title: string; url: string; icon?: LucideIcon; adminOnly?: boolean; clientOnly?: boolean }[];
 }[] = [
   {
@@ -135,9 +136,8 @@ const moduleNavItems: {
     themeClass: "theme-support",
     module: "support",
     noColor: true,
-    subItems: [
-      { title: "Dashboard", url: "/support", icon: LayoutDashboard },
-    ],
+    directLink: true,
+    subItems: [],
   },
   {
     title: "Reports",
@@ -146,9 +146,8 @@ const moduleNavItems: {
     themeClass: "theme-reports",
     module: "reports",
     noColor: true,
-    subItems: [
-      { title: "Dashboard", url: "/reports", icon: LayoutDashboard },
-    ],
+    directLink: true,
+    subItems: [],
   },
 ];
 
@@ -483,13 +482,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
               {visibleModules.slice(4).map((item) => {
                 const isModuleActive = location.startsWith(item.basePath ?? item.url);
                 const hasAccess = moduleAccessLoading || hasActiveAccess(item.module);
+                const testId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
                 
                 if (!hasAccess) {
                   return (
                     <SidebarMenuItem key={item.title} className={item.noColor ? undefined : item.themeClass}>
                       <SidebarMenuButton
                         className={cn("cursor-default opacity-60", !item.noColor && "nav-module-btn")}
-                        data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                        data-testid={testId}
                       >
                         <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
                         <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
@@ -497,6 +497,36 @@ export function AppSidebar({ user }: AppSidebarProps) {
                           <Lock className="h-3 w-3 mr-1" />
                           Locked
                         </Badge>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+
+                // Direct link — no collapsible sub-menu
+                if (item.directLink) {
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        className={cn(
+                          "transition-colors",
+                          isModuleActive && "bg-sidebar-accent font-medium"
+                        )}
+                        data-testid={testId}
+                      >
+                        <Link href={item.url}>
+                          <item.icon className="h-4 w-4 text-muted-foreground" />
+                          <span className="flex-1">{item.title}</span>
+                          {item.module === "support" && openSupportCount > 0 && (
+                            <Badge
+                              variant="destructive"
+                              className="h-5 min-w-5 px-1.5 text-xs font-medium"
+                              data-testid="badge-support-notifications"
+                            >
+                              {openSupportCount}
+                            </Badge>
+                          )}
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -517,7 +547,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                             !item.noColor && "nav-module-btn",
                             isModuleActive && (item.noColor ? "bg-sidebar-accent font-medium" : "nav-module-active")
                           )}
-                          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+                          data-testid={testId}
                         >
                           <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
                           <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
@@ -537,7 +567,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         <SidebarMenuSub>
                           {item.subItems
                             .filter((subItem) => {
-                              // Filter based on role permissions
                               if (subItem.adminOnly && user?.role === "client") return false;
                               if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
                               return true;
