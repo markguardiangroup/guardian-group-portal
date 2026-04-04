@@ -212,7 +212,7 @@ function ExpiryRiskTab({ companyId, siteId }: { companyId: string; siteId: strin
             <SelectItem value="30">Next 30 days</SelectItem>
             <SelectItem value="60">Next 60 days</SelectItem>
             <SelectItem value="90">Next 90 days</SelectItem>
-            <SelectItem value="all">All overdue</SelectItem>
+            <SelectItem value="all">Overdue only</SelectItem>
           </SelectContent>
         </Select>
         <Select value={moduleFilter} onValueChange={setModuleFilter}>

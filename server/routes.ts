@@ -6181,10 +6181,15 @@ export async function registerRoutes(
 
       const companyId = req.query.companyId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
-      const windowParam = (req.query.window as string) || "90";
-      const moduleParam = req.query.module as string | undefined;
+      const VALID_WINDOWS = ["30", "60", "90", "all"];
+      const VALID_MODULES = ["health_safety", "human_resources", "employment_law", "training", "support"];
+      const windowParam = VALID_WINDOWS.includes(req.query.window as string) ? (req.query.window as string) : "90";
+      const rawModule = req.query.module as string | undefined;
+      const moduleParam = rawModule && VALID_MODULES.includes(rawModule) ? rawModule : undefined;
 
-      const windowDays = windowParam === "all" ? null : parseInt(windowParam, 10);
+      // window=all means overdue documents only; otherwise, within the specified days from now
+      const overdueOnly = windowParam === "all";
+      const windowDays = overdueOnly ? 0 : parseInt(windowParam, 10);
 
       let filteredSiteIds = [...allowedSiteIds];
       if (siteId && allowedSiteIds.has(siteId)) {
@@ -6196,7 +6201,7 @@ export async function registerRoutes(
 
       const allDocs = await storage.getDocuments(moduleParam as any, false);
       const now = new Date();
-      const cutoff = windowDays ? new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000) : null;
+      const cutoff = new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000);
 
       const result: any[] = [];
 
@@ -6214,7 +6219,9 @@ export async function registerRoutes(
         const earliest = dates.reduce((a, b) => (a.date < b.date ? a : b));
         const daysUntil = Math.ceil((earliest.date.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
-        if (cutoff !== null && earliest.date > cutoff) continue;
+        // For overdueOnly mode, only include overdue items; otherwise include up to cutoff
+        if (overdueOnly && daysUntil >= 0) continue;
+        if (!overdueOnly && earliest.date > cutoff) continue;
 
         let urgency: string;
         if (daysUntil < 0) urgency = "overdue";
