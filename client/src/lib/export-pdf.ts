@@ -43,101 +43,66 @@ interface HeaderOptions {
 }
 
 function buildHeader(doc: jsPDF, opts: HeaderOptions): number {
-  const { title, subtitle, companyName, logoDataUrl } = opts;
+  const { title, subtitle, companyName } = opts;
   const pageW = doc.internal.pageSize.getWidth();
-  const headerH = 28;
-  const logoPanelW = logoDataUrl ? 46 : 0;
+  const headerH = 22;
 
-  // ── Blue main header bar ──────────────────────────────────────────────────
+  // Solid blue bar
   doc.setFillColor(...BRAND.primary);
   doc.rect(0, 0, pageW, headerH, "F");
 
-  // ── White logo panel (left) ───────────────────────────────────────────────
-  if (logoDataUrl) {
-    // White panel
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, logoPanelW, headerH, "F");
-
-    // Thin blue right-edge separator
-    doc.setFillColor(...BRAND.primary);
-    doc.rect(logoPanelW, 0, 0.8, headerH, "F");
-
-    // Logo image, centred within the white panel
-    const logoMaxW = logoPanelW - 8;
-    const logoMaxH = headerH - 6;
-    const logoW = logoMaxW;
-    const logoH = logoMaxH;
-    const logoX = (logoPanelW - logoW) / 2;
-    const logoY = (headerH - logoH) / 2;
-    try {
-      doc.addImage(logoDataUrl, "JPEG", logoX, logoY, logoW, logoH);
-    } catch {
-      // silently skip if logo can't load
-    }
-  }
-
-  // ── Brand name + report title (right of logo panel) ───────────────────────
-  const textX = logoPanelW + 10;
-
+  // Brand name
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(BRAND.name, textX, 12);
+  doc.text(BRAND.name, 14, 10);
 
-  doc.setFontSize(8.5);
+  // Report title
+  doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(200, 215, 255);
-  doc.text(title, textX, 20);
+  doc.text(title, 14, 17);
 
-  // ── Date + Confidential (far right) ─────────────────────────────────────
+  // Date + Confidential (right)
   const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text(`Generated: ${today}`, pageW - 12, 11, { align: "right" });
+  doc.text(`Generated: ${today}`, pageW - 14, 10, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(200, 215, 255);
-  doc.text("Confidential", pageW - 12, 19, { align: "right" });
+  doc.text("Confidential", pageW - 14, 17, { align: "right" });
 
-  // ── Sub-header bar — company name · subtitle ──────────────────────────────
+  // Sub-bar — company name · subtitle
   const hasSubBar = !!(companyName || subtitle);
-  const subH = hasSubBar ? 11 : 0;
+  const subH = hasSubBar ? 10 : 0;
 
   if (hasSubBar) {
     doc.setFillColor(...BRAND.accent);
     doc.rect(0, headerH, pageW, subH, "F");
-
-    // Carry the white logo panel colour through sub-bar too
-    if (logoPanelW) {
-      doc.setFillColor(248, 250, 255);
-      doc.rect(0, headerH, logoPanelW, subH, "F");
-    }
-
-    // Blue left accent stripe (aligned to text area, not logo)
     doc.setFillColor(...BRAND.primary);
-    doc.rect(logoPanelW, headerH, 2.5, subH, "F");
+    doc.rect(0, headerH, 3, subH, "F");
 
-    const subTextX = logoPanelW + 7;
-    const subY = headerH + 7.5;
+    const subY = headerH + 7;
     doc.setFontSize(7.5);
 
     if (companyName && subtitle) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...BRAND.primary);
-      doc.text(companyName, subTextX, subY);
+      doc.text(companyName, 8, subY);
       const nameW = doc.getTextWidth(companyName);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...BRAND.muted);
-      doc.text(`  ·  ${subtitle}`, subTextX + nameW, subY);
+      doc.text(`  ·  ${subtitle}`, 8 + nameW, subY);
     } else if (companyName) {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(...BRAND.primary);
-      doc.text(companyName, subTextX, subY);
+      doc.text(companyName, 8, subY);
     } else if (subtitle) {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(...BRAND.muted);
-      doc.text(subtitle, subTextX, subY);
+      doc.text(subtitle, 8, subY);
     }
   }
 
