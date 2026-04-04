@@ -247,16 +247,42 @@ export default function MyTraining() {
       <Card>
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "booked" | "completed")}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="booked" data-testid="tab-booked">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Booked ({metrics.booked})
-              </TabsTrigger>
-              <TabsTrigger value="completed" data-testid="tab-completed">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Completed ({metrics.completed})
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setActiveTab("booked")}
+                data-testid="tab-booked"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  activeTab === "booked"
+                    ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                Booked
+                <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded text-xs font-semibold ${
+                  activeTab === "booked" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  {metrics.booked}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab("completed")}
+                data-testid="tab-completed"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  activeTab === "completed"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <CheckCircle className="h-4 w-4" />
+                Completed
+                <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded text-xs font-semibold ${
+                  activeTab === "completed" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  {metrics.completed}
+                </span>
+              </button>
+            </div>
 
             <TabsContent value="booked" className="mt-0">
               {isLoading ? (
