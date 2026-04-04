@@ -38,7 +38,6 @@ import {
   Scale,
   Search,
   BookMarked,
-  FolderPlus,
   AlertTriangle,
   Flame,
   HeartPulse,
@@ -566,10 +565,6 @@ export default function ToolkitBrowse() {
     }
   };
 
-  // Create folder dialog
-  const [showCreateFolder, setShowCreateFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-
   // PDF preview
   const [previewToolkitTemplate, setPreviewToolkitTemplate] = useState<ToolkitTemplate | null>(null);
 
@@ -589,23 +584,6 @@ export default function ToolkitBrowse() {
       return res.json();
     },
   });
-
-  const createFolderMutation = useMutation({
-    mutationFn: async ({ name, module }: { name: string; module: ModuleType }) =>
-      apiRequest("POST", "/api/toolkit/folders", { name, module }),
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/toolkit"] });
-      setShowCreateFolder(false);
-      setNewFolderName("");
-      toast({ title: "Folder created", description: "The new folder has been added to the Toolkit." });
-    },
-    onError: () => toast({ title: "Error", description: "Failed to create folder.", variant: "destructive" }),
-  });
-
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) return;
-    createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
-  };
 
   const filteredFolders = (toolkit?.folders ?? []).filter(f => f.module === selectedModule);
 
@@ -666,18 +644,6 @@ export default function ToolkitBrowse() {
                 Browse and download document templates organised by category.
               </p>
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {isAdmin && (
-              <Button
-                onClick={() => setShowCreateFolder(true)}
-                data-testid="button-create-folder"
-                className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
-              >
-                <FolderPlus className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -771,7 +737,7 @@ export default function ToolkitBrowse() {
           ) : (
             <>
               <p className="font-medium">No templates available for this module yet.</p>
-              {isAdmin && <p className="text-sm mt-1">Use "New Folder" to create folders, then add templates via the Template Library.</p>}
+              {isAdmin && <p className="text-sm mt-1">Add templates via the Template Library to get started.</p>}
             </>
           )}
         </div>
@@ -872,41 +838,6 @@ export default function ToolkitBrowse() {
               </div>
             </>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Folder Dialog */}
-      <Dialog open={showCreateFolder} onOpenChange={(o) => { if (!o) { setShowCreateFolder(false); setNewFolderName(""); } }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>New Toolkit Folder</DialogTitle>
-            <DialogDescription>
-              Create a folder for organising templates in the <strong>{MODULE_CONFIG[selectedModule].label}</strong> module.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="folder-name">Folder Name</Label>
-            <Input
-              id="folder-name"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="e.g. Risk Assessments"
-              onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
-              data-testid="input-folder-name"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowCreateFolder(false); setNewFolderName(""); }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateFolder}
-              disabled={!newFolderName.trim() || createFolderMutation.isPending}
-              data-testid="button-confirm-create-folder"
-            >
-              {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
