@@ -51,11 +51,12 @@ function buildHeader(doc: jsPDF, opts: HeaderOptions): number {
   doc.setFillColor(...BRAND.primary);
   doc.rect(0, 0, pageW, headerH, "F");
 
-  // Brand name
+  // Company name (or brand name if no company selected)
+  const headerName = companyName || BRAND.name;
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(BRAND.name, 14, 10);
+  doc.text(headerName, 14, 10);
 
   // Report title
   doc.setFontSize(8);
@@ -74,36 +75,19 @@ function buildHeader(doc: jsPDF, opts: HeaderOptions): number {
   doc.setTextColor(200, 215, 255);
   doc.text("Confidential", pageW - 14, 17, { align: "right" });
 
-  // Sub-bar — company name · subtitle
-  const hasSubBar = !!(companyName || subtitle);
-  const subH = hasSubBar ? 10 : 0;
+  // Sub-bar — subtitle only (company name already in main header)
+  const subH = subtitle ? 10 : 0;
 
-  if (hasSubBar) {
+  if (subtitle) {
     doc.setFillColor(...BRAND.accent);
     doc.rect(0, headerH, pageW, subH, "F");
     doc.setFillColor(...BRAND.primary);
     doc.rect(0, headerH, 3, subH, "F");
 
-    const subY = headerH + 7;
     doc.setFontSize(7.5);
-
-    if (companyName && subtitle) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...BRAND.primary);
-      doc.text(companyName, 8, subY);
-      const nameW = doc.getTextWidth(companyName);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...BRAND.muted);
-      doc.text(`  ·  ${subtitle}`, 8 + nameW, subY);
-    } else if (companyName) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...BRAND.primary);
-      doc.text(companyName, 8, subY);
-    } else if (subtitle) {
-      doc.setFont("helvetica", "italic");
-      doc.setTextColor(...BRAND.muted);
-      doc.text(subtitle, 8, subY);
-    }
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(...BRAND.muted);
+    doc.text(subtitle, 8, headerH + 7);
   }
 
   doc.setTextColor(0, 0, 0);
