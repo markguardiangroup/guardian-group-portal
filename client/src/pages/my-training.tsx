@@ -49,7 +49,7 @@ import { Link } from "wouter";
 import { SiteCombobox } from "@/components/site-combobox";
 import { CompanyCombobox } from "@/components/company-combobox";
 
-import type { TrainingCourse, SiteWithDetails, TrainingBooking, Document } from "@shared/schema";
+import type { TrainingCourse, SiteWithDetails, TrainingBooking, Document as TrainingDocument } from "@shared/schema";
 
 type TrainingBookingWithDetails = TrainingBooking & {
   course?: TrainingCourse;
@@ -61,7 +61,7 @@ export default function MyTraining() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"booked" | "completed" | "certificates">("booked");
   const [viewDialog, setViewDialog] = useState<TrainingBookingWithDetails | null>(null);
-  const [viewCertDialog, setViewCertDialog] = useState<Document | null>(null);
+  const [viewCertDialog, setViewCertDialog] = useState<TrainingDocument | null>(null);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -78,7 +78,7 @@ export default function MyTraining() {
     queryKey: ["/api/training-courses"],
   });
 
-  const { data: certDocuments = [] } = useQuery<Document[]>({
+  const { data: certDocuments = [] } = useQuery<TrainingDocument[]>({
     queryKey: ["/api/documents/module/training"],
   });
 
