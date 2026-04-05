@@ -300,10 +300,7 @@ export default function Login() {
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${f.bg} border border-white/10`}>
                     <f.icon className={`h-5 w-5 ${f.color}`} />
                   </div>
-                  <div>
-                    <p className={`text-sm font-semibold ${f.color}`}>{f.label}</p>
-                    <p className="text-white/45 text-xs mt-0.5 leading-snug">{f.sub}</p>
-                  </div>
+                  <p className={`text-sm font-semibold ${f.color}`}>{f.label}</p>
                 </div>
               ))}
             </div>
