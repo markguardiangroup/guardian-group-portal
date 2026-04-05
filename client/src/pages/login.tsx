@@ -69,11 +69,6 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: "8 hrs", label: "Saved per week on compliance admin" },
-  { value: "0", label: "Employment tribunal losses for clients" },
-  { value: "24 hr", label: "Expert consultant response time" },
-];
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -268,20 +263,6 @@ export default function Login() {
               Guardian Group turns HR, employment law, and health &amp; safety from a burden into a competitive advantage — all in one intelligent compliance portal.
             </p>
 
-            {/* Stats row */}
-            <div className="flex items-center gap-6 mb-10">
-              {STATS.map((stat, i) => (
-                <div key={stat.label}>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-white">{stat.value}</span>
-                  </div>
-                  <p className="text-white/45 text-xs mt-0.5">{stat.label}</p>
-                  {i < STATS.length - 1 && (
-                    <div className="absolute" />
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* ── Feature grid ── */}
