@@ -335,7 +335,7 @@ export default function Login() {
               ))}
             </div>
             <p className="text-white/40 text-xs">
-              Trusted by <span className="text-white/65 font-semibold">150+ businesses</span> across the UK &amp; Ireland
+              Trusted by <span className="text-white/65 font-semibold">10,000+ organisations</span> across the UK
             </p>
             <div className="ml-auto flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
