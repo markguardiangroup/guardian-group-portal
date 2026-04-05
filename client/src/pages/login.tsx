@@ -4,7 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle } from "lucide-react";
+import {
+  Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle,
+  Shield, Users, Scale, GraduationCap, FileCheck, BarChart3, CheckCircle2,
+} from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,25 +24,55 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const SERVICE_CARDS = [
+const FEATURES = [
   {
-    label: "Human Resources",
-    description: "Contracts, policies & support",
-    color: "bg-sky-500/20 border-sky-400/30",
-    dot: "bg-sky-400",
-  },
-  {
-    label: "Employment Law",
-    description: "Legal protection & guidance",
-    color: "bg-rose-500/20 border-rose-400/30",
-    dot: "bg-rose-400",
-  },
-  {
+    icon: Shield,
     label: "Health & Safety",
-    description: "Risk management & training",
-    color: "bg-emerald-500/20 border-emerald-400/30",
-    dot: "bg-emerald-400",
+    description: "Risk assessments, incident reporting & compliance tracking",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
   },
+  {
+    icon: Users,
+    label: "Human Resources",
+    description: "Contracts, policies, disciplinary & grievance management",
+    color: "text-sky-400",
+    bg: "bg-sky-500/10 border-sky-500/20",
+  },
+  {
+    icon: Scale,
+    label: "Employment Law",
+    description: "Legal guidance, case management & template library",
+    color: "text-rose-400",
+    bg: "bg-rose-500/10 border-rose-500/20",
+  },
+  {
+    icon: GraduationCap,
+    label: "Training",
+    description: "Course booking, certification tracking & skills matrix",
+    color: "text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
+  },
+  {
+    icon: FileCheck,
+    label: "Document Toolkit",
+    description: "Policy builder, approval workflows & version control",
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+  },
+  {
+    icon: BarChart3,
+    label: "Reports & Insights",
+    description: "Live compliance scores, gap analysis & expiry alerts",
+    color: "text-teal-400",
+    bg: "bg-teal-500/10 border-teal-500/20",
+  },
+];
+
+const STATS = [
+  { value: "150+", label: "Businesses protected" },
+  { value: "10k+", label: "Documents managed" },
+  { value: "98%", label: "Client retention" },
 ];
 
 export default function Login() {
@@ -99,8 +132,6 @@ export default function Login() {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
 
-      // Prefetch all critical dashboard data while the loading screen is visible,
-      // so the dashboard renders fully populated on first paint with no skeleton flash.
       const f = async (url: string) => {
         const res = await fetch(url, { credentials: "include" });
         if (!res.ok) throw new Error(`${res.status}`);
@@ -124,7 +155,6 @@ export default function Login() {
         p(["/api/cases"], "/api/cases"),
       ]);
 
-      // All data is now in cache — set auth state and dashboard renders immediately
       queryClient.setQueryData(["/api/auth/me"], userData);
       const currentPath = window.location.pathname;
       if (!currentPath || currentPath === "/login") {
@@ -165,65 +195,128 @@ export default function Login() {
           <div className="login-progress-bar-inner" />
         </div>
       )}
-      {/* ── Left panel – brand ── */}
+
+      {/* ── Left panel – landing hero ── */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(160deg, #1d3057 0%, #1a2a4a 50%, #172240 100%)" }}
+        style={{ background: "linear-gradient(160deg, #1a2f55 0%, #172240 55%, #111827 100%)" }}
       >
-        {/* Subtle radial glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full opacity-[0.07]"
-            style={{ background: "radial-gradient(circle, #22d3ee 0%, transparent 70%)" }} />
-          <div className="absolute bottom-[10%] right-[-5%] w-[350px] h-[350px] rounded-full opacity-[0.07]"
-            style={{ background: "radial-gradient(circle, #4ade80 0%, transparent 70%)" }} />
+        {/* Background texture — subtle dot grid */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Ambient glows */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 65%)" }} />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 65%)" }} />
+          <div className="absolute top-[40%] right-[5%] w-[300px] h-[300px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 65%)" }} />
         </div>
 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
-          {/* Logo */}
+
+          {/* ── Logo ── */}
           <div className="flex items-center gap-3">
-            <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover" />
+            <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10" />
             <div className="leading-tight">
               <span className="block text-white font-bold text-lg tracking-tight">Guardian</span>
-              <span className="block text-white/60 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
+              <span className="block text-white/50 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
             </div>
           </div>
 
-          {/* Hero text */}
-          <div className="mt-auto mb-auto pt-16">
-            {/* Accent bar + label */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-0.5 w-10 rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8, #818cf8, #e879f9, #f97316, #a3e635)" }} />
-              <span className="text-white/60 text-xs font-semibold tracking-[0.2em] uppercase">Compliance That Counts</span>
+          {/* ── Hero ── */}
+          <div className="mt-10">
+            {/* Pill badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 mb-6">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-white/70 text-xs font-semibold tracking-[0.15em] uppercase">Compliance That Counts</span>
             </div>
 
-            <h1 className="text-5xl font-bold leading-[1.1] text-white mb-2">
-              Safer people.
+            <h1 className="text-4xl xl:text-5xl font-bold leading-[1.1] text-white mb-3">
+              Your people,{" "}
+              <span
+                style={{
+                  background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #e879f9 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                protected.
+              </span>
             </h1>
-            <div className="mb-8">
-              <h1 className="text-5xl font-bold leading-[1.1]"
-                style={{ background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 22%, #e879f9 45%, #f97316 70%, #a3e635 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                Stronger futures.
-              </h1>
-              <div className="mt-2 h-[3px] w-full rounded-full" style={{ background: "linear-gradient(90deg, #38bdf8 0%, #818cf8 22%, #e879f9 45%, #f97316 70%, #a3e635 100%)" }} />
-            </div>
-            <p className="text-white/60 text-base max-w-sm leading-relaxed mb-8">
-              Your organisation deserves more than tick-box compliance. We turn HR, employment law, and health and safety into foundations for growth.
+            <h1 className="text-4xl xl:text-5xl font-bold leading-[1.1] text-white mb-5">
+              Your business,{" "}
+              <span
+                style={{
+                  background: "linear-gradient(90deg, #4ade80 0%, #38bdf8 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                compliant.
+              </span>
+            </h1>
+            <p className="text-white/55 text-sm leading-relaxed max-w-md mb-8">
+              Guardian Group turns HR, employment law, and health &amp; safety from a burden into a competitive advantage — all in one intelligent compliance portal.
             </p>
+
+            {/* Stats row */}
+            <div className="flex items-center gap-6 mb-10">
+              {STATS.map((stat, i) => (
+                <div key={stat.label}>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+                  </div>
+                  <p className="text-white/45 text-xs mt-0.5">{stat.label}</p>
+                  {i < STATS.length - 1 && (
+                    <div className="absolute" />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Service cards */}
-          <div className="mt-auto space-y-3 pb-4">
-            {SERVICE_CARDS.map(card => (
-              <div key={card.label}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 backdrop-blur-sm ${card.color}`}>
-                <div className={`h-2 w-2 rounded-full shrink-0 ${card.dot}`} />
-                <div>
-                  <p className="text-white text-sm font-semibold">{card.label}</p>
-                  <p className="text-white/50 text-xs">{card.description}</p>
+          {/* ── Feature grid ── */}
+          <div className="grid grid-cols-2 gap-3 mt-auto">
+            {FEATURES.map((f) => (
+              <div
+                key={f.label}
+                className={`flex items-start gap-3 rounded-xl border p-3.5 backdrop-blur-sm ${f.bg}`}
+              >
+                <div className={`mt-0.5 shrink-0 ${f.color}`}>
+                  <f.icon className="h-4 w-4" />
                 </div>
-                <ArrowRight className="ml-auto h-4 w-4 text-white/30" />
+                <div className="min-w-0">
+                  <p className="text-white text-xs font-semibold leading-tight">{f.label}</p>
+                  <p className="text-white/45 text-xs leading-snug mt-0.5">{f.description}</p>
+                </div>
               </div>
             ))}
+          </div>
+
+          {/* ── Trust strip ── */}
+          <div className="mt-6 pt-5 border-t border-white/8 flex items-center gap-3">
+            <div className="flex -space-x-1.5">
+              {["bg-sky-400", "bg-emerald-400", "bg-violet-400", "bg-amber-400"].map((c, i) => (
+                <div key={i} className={`h-6 w-6 rounded-full border-2 border-[#172240] ${c} opacity-80`} />
+              ))}
+            </div>
+            <p className="text-white/40 text-xs">
+              Trusted by <span className="text-white/65 font-semibold">150+ businesses</span> across the UK &amp; Ireland
+            </p>
+            <div className="ml-auto flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <CheckCircle2 key={i} className="h-3 w-3 text-emerald-400/60" />
+              ))}
+            </div>
           </div>
         </div>
       </div>
