@@ -285,18 +285,18 @@ export default function Login() {
           </div>
 
           {/* ── Feature grid ── */}
-          <div className="grid grid-cols-2 gap-3 mt-auto">
+          <div className="grid grid-cols-2 gap-3 mt-auto" style={{ gridAutoRows: "1fr" }}>
             {FEATURES.map((f) => (
               <div
                 key={f.label}
-                className={`flex items-start gap-3 rounded-xl border p-3.5 backdrop-blur-sm ${f.bg}`}
+                className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 backdrop-blur-sm ${f.bg}`}
               >
-                <div className={`mt-0.5 shrink-0 ${f.color}`}>
+                <div className={`shrink-0 ${f.color}`}>
                   <f.icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-white text-xs font-semibold leading-tight">{f.label}</p>
-                  <p className="text-white/45 text-xs leading-snug mt-0.5">{f.description}</p>
+                  <p className="text-white/45 text-xs leading-snug mt-0.5 line-clamp-1">{f.description}</p>
                 </div>
               </div>
             ))}
