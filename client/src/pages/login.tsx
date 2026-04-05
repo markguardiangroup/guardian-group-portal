@@ -70,9 +70,9 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "150+", label: "Businesses protected" },
-  { value: "10k+", label: "Documents managed" },
-  { value: "98%", label: "Client retention" },
+  { value: "8 hrs", label: "Saved per week on compliance admin" },
+  { value: "0", label: "Employment tribunal losses for clients" },
+  { value: "24 hr", label: "Expert consultant response time" },
 ];
 
 export default function Login() {
