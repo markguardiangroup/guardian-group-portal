@@ -289,13 +289,13 @@ export default function Login() {
             {FEATURES.map((f) => (
               <div
                 key={f.label}
-                className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 backdrop-blur-sm ${f.bg}`}
+                className={`flex items-center gap-3.5 rounded-xl border px-4 py-4 backdrop-blur-sm ${f.bg}`}
               >
                 <div className={`shrink-0 ${f.color}`}>
-                  <f.icon className="h-4 w-4" />
+                  <f.icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-white text-xs font-semibold leading-tight">{f.label}</p>
+                  <p className="text-white text-sm font-semibold leading-tight">{f.label}</p>
                   <p className="text-white/45 text-xs leading-snug mt-0.5 line-clamp-1">{f.description}</p>
                 </div>
               </div>
