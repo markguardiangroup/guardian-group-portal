@@ -221,12 +221,12 @@ export default function Login() {
       {/* ── Left panel – landing hero ── */}
       <div
         className="hidden lg:flex lg:w-[58%] flex-col relative overflow-hidden"
-        style={{ background: "linear-gradient(160deg, hsl(215,10%,11%) 0%, hsl(212,9%,10%) 55%, hsl(210,8%,9%) 100%)" }}
+        style={{ background: "linear-gradient(160deg, #1a2f55 0%, #172240 55%, #111827 100%)" }}
       >
         {/* Background texture — subtle dot grid */}
         <div className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
@@ -234,11 +234,11 @@ export default function Login() {
         {/* Ambient glows */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(56,189,248,0.07) 0%, transparent 65%)" }} />
+            style={{ background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 65%)" }} />
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 65%)" }} />
+            style={{ background: "radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 65%)" }} />
           <div className="absolute top-[40%] right-[5%] w-[300px] h-[300px] rounded-full"
-            style={{ background: "radial-gradient(circle, rgba(167,139,250,0.05) 0%, transparent 65%)" }} />
+            style={{ background: "radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 65%)" }} />
         </div>
 
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
@@ -346,18 +346,18 @@ export default function Login() {
       {/* ── Right panel – form ── */}
       <div
         className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden"
-        style={{ background: "hsl(210, 6%, 12%)" }}
+        style={{ background: "linear-gradient(160deg, #131f3a 0%, #0f1729 60%, #0a1020 100%)" }}
       >
         {/* Matching dot grid */}
         <div className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
         {/* Soft glow top-right */}
         <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(56,189,248,0.05) 0%, transparent 65%)" }} />
+          style={{ background: "radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 65%)" }} />
 
         {/* Mobile logo */}
         <div className="flex lg:hidden items-center gap-3 mb-8 relative z-10">
@@ -386,7 +386,7 @@ export default function Login() {
 
         <div className="relative z-10 w-full max-w-sm">
           {/* Form card */}
-          <div className="rounded-2xl p-8" style={{ background: "hsl(210, 8%, 16%)", border: "1px solid hsl(210, 8%, 21%)" }}>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-8">
             {/* Logo mark */}
             <div className="flex items-center gap-2.5 mb-7">
               <img src={logoIcon} alt="Guardian Group" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/15" />
@@ -397,7 +397,7 @@ export default function Login() {
             </div>
 
             {/* Divider */}
-            <div className="h-px mb-7" style={{ background: "hsl(210, 8%, 22%)" }} />
+            <div className="h-px bg-white/8 mb-7" />
 
             <div className="mb-6">
               <h2 className="text-xl font-bold text-white">Welcome back</h2>
@@ -450,8 +450,7 @@ export default function Login() {
                       <FormControl>
                         <Input
                           placeholder="Enter your username or email"
-                          className="h-11 text-white placeholder:text-white/25 focus:ring-1 focus:ring-sky-400/40"
-                          style={{ background: "hsl(210, 8%, 13%)", border: "1px solid hsl(210, 8%, 22%)" }}
+                          className="h-11 border-white/10 bg-white/8 text-white placeholder:text-white/25 focus:border-sky-400/50 focus:bg-white/10"
                           data-testid="input-username"
                           {...field}
                         />
@@ -471,8 +470,7 @@ export default function Login() {
                           <Input
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
-                            className="h-11 pr-10 text-white placeholder:text-white/25 focus:ring-1 focus:ring-sky-400/40"
-                            style={{ background: "hsl(210, 8%, 13%)", border: "1px solid hsl(210, 8%, 22%)" }}
+                            className="h-11 pr-10 border-white/10 bg-white/8 text-white placeholder:text-white/25 focus:border-sky-400/50 focus:bg-white/10"
                             data-testid="input-password"
                             onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                             onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
