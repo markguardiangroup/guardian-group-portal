@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle,
   Shield, Users, Scale, GraduationCap, FileCheck, BarChart3, CheckCircle2,
+  LayoutDashboard, CalendarDays, BellRing,
 } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
@@ -69,10 +70,31 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: "150+", label: "Businesses protected" },
-  { value: "10k+", label: "Documents managed" },
-  { value: "98%", label: "Client retention" },
+const KEY_FEATURES = [
+  {
+    icon: LayoutDashboard,
+    label: "Live Dashboard",
+    sub: "Real-time compliance overview",
+    glow: "rgba(56,189,248,0.15)",
+    color: "text-sky-400",
+    bg: "bg-sky-500/10",
+  },
+  {
+    icon: CalendarDays,
+    label: "Smart Calendar",
+    sub: "Renewals & deadlines tracked",
+    glow: "rgba(74,222,128,0.15)",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    icon: BellRing,
+    label: "Live Alerts",
+    sub: "Instant compliance notifications",
+    glow: "rgba(167,139,250,0.15)",
+    color: "text-violet-400",
+    bg: "bg-violet-500/10",
+  },
 ];
 
 export default function Login() {
@@ -268,17 +290,20 @@ export default function Login() {
               Guardian Group turns HR, employment law, and health &amp; safety from a burden into a competitive advantage — all in one intelligent compliance portal.
             </p>
 
-            {/* Stats row */}
-            <div className="flex items-center gap-6 mb-10">
-              {STATS.map((stat, i) => (
-                <div key={stat.label}>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+            {/* Key feature highlights */}
+            <div className="flex items-stretch gap-3 mb-10">
+              {KEY_FEATURES.map((f) => (
+                <div
+                  key={f.label}
+                  className={`flex-1 flex flex-col items-center text-center gap-2.5 rounded-2xl border border-white/8 py-4 px-3 ${f.bg}`}
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${f.bg} border border-white/10`}>
+                    <f.icon className={`h-5 w-5 ${f.color}`} />
                   </div>
-                  <p className="text-white/45 text-xs mt-0.5">{stat.label}</p>
-                  {i < STATS.length - 1 && (
-                    <div className="absolute" />
-                  )}
+                  <div>
+                    <p className={`text-sm font-semibold ${f.color}`}>{f.label}</p>
+                    <p className="text-white/45 text-xs mt-0.5 leading-snug">{f.sub}</p>
+                  </div>
                 </div>
               ))}
             </div>
