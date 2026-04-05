@@ -344,155 +344,191 @@ export default function Login() {
       </div>
 
       {/* ── Right panel – form ── */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 py-10">
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden"
+        style={{ background: "linear-gradient(160deg, #131f3a 0%, #0f1729 60%, #0a1020 100%)" }}
+      >
+        {/* Matching dot grid */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        {/* Soft glow top-right */}
+        <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 65%)" }} />
+
         {/* Mobile logo */}
-        <div className="flex lg:hidden items-center gap-3 mb-8">
-          <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover" />
+        <div className="flex lg:hidden items-center gap-3 mb-8 relative z-10">
+          <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10" />
           <div className="leading-tight">
-            <span className="block text-slate-900 font-bold text-lg tracking-tight">Guardian</span>
-            <span className="block text-slate-400 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
+            <span className="block text-white font-bold text-lg tracking-tight">Guardian</span>
+            <span className="block text-white/50 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
+          <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-5 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
               style={{ background: "linear-gradient(135deg, #0ea5e9, #818cf8)" }}>
               <Loader2 className="h-8 w-8 text-white animate-spin" />
             </div>
             <div>
-              <p className="text-lg font-semibold text-slate-800">Signing you in</p>
-              <p className="text-sm text-slate-500 mt-1">Loading your portal, please wait…</p>
+              <p className="text-lg font-semibold text-white">Signing you in</p>
+              <p className="text-sm text-white/50 mt-1">Loading your portal, please wait…</p>
             </div>
-            <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div className="h-full rounded-full login-progress-bar-inner" style={{ width: "60%" }} />
             </div>
           </div>
         ) : (
 
-        <div className="w-full max-w-sm">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Portal sign in</h2>
-            <p className="text-slate-500 text-sm mt-1">H&S and HR Compliance Portal</p>
-          </div>
+        <div className="relative z-10 w-full max-w-sm">
+          {/* Form card */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-8">
+            {/* Logo mark */}
+            <div className="flex items-center gap-2.5 mb-7">
+              <img src={logoIcon} alt="Guardian Group" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/15" />
+              <div className="leading-tight">
+                <span className="block text-white font-semibold text-sm tracking-tight">Guardian Group</span>
+                <span className="block text-white/40 text-[10px] font-medium tracking-[0.15em] uppercase">Compliance Portal</span>
+              </div>
+            </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-5">
+            {/* Divider */}
+            <div className="h-px bg-white/8 mb-7" />
 
-              {isAccountLocked && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
-                  <div className="flex items-start gap-3">
-                    <LockKeyhole className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-red-800">Account locked</p>
-                      <p className="text-sm text-red-700 mt-0.5">
-                        Your account has been locked due to too many failed login attempts.
-                      </p>
-                      <button
-                        type="button"
-                        className="mt-2 text-sm font-medium text-red-700 underline underline-offset-2 hover:text-red-900"
-                        onClick={() => { setIsAccountLocked(false); setShowForgotPassword(true); }}
-                        data-testid="button-locked-reset-password"
-                      >
-                        Reset your password to unlock your account
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-white">Welcome back</h2>
+              <p className="text-white/45 text-sm mt-1">Sign in to your compliance portal</p>
+            </div>
 
-              {attemptsRemaining !== null && attemptsRemaining > 0 && !isAccountLocked && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center gap-2.5" data-testid="alert-attempts-remaining">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-800">
-                    Incorrect password.{" "}
-                    <span className="font-semibold">
-                      {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
-                    </span>{" "}
-                    before your account is locked.
-                  </p>
-                </div>
-              )}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-4">
 
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-slate-700 font-medium">Username or Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter your username or email"
-                        className="h-11 border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400"
-                        data-testid="input-username"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-slate-700 font-medium">Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          className="h-11 pr-10 border-slate-200 bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400"
-                          data-testid="input-password"
-                          onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                          onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                          {...field}
-                        />
+                {isAccountLocked && (
+                  <div className="rounded-lg border border-red-400/20 bg-red-500/10 p-4" data-testid="alert-account-locked">
+                    <div className="flex items-start gap-3">
+                      <LockKeyhole className="h-5 w-5 text-red-400 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-red-300">Account locked</p>
+                        <p className="text-sm text-red-300/80 mt-0.5">
+                          Too many failed login attempts.
+                        </p>
                         <button
                           type="button"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                          onClick={() => setShowPassword(!showPassword)}
-                          data-testid="button-toggle-password"
+                          className="mt-2 text-sm font-medium text-red-300 underline underline-offset-2 hover:text-red-200"
+                          onClick={() => { setIsAccountLocked(false); setShowForgotPassword(true); }}
+                          data-testid="button-locked-reset-password"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          Reset your password to unlock
                         </button>
                       </div>
-                    </FormControl>
-                    {capsLockOn && !showPassword && (
-                      <div className="flex items-center gap-1.5 mt-1 text-amber-600" data-testid="alert-caps-lock">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        <span className="text-xs font-medium">Caps Lock is on</span>
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
+                    </div>
+                  </div>
                 )}
-              />
-              <Button
-                type="submit"
-                className="w-full h-11 font-semibold"
-                style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
-                disabled={loginMutation.isPending}
-                data-testid="button-login"
-              >
-                {loginMutation.isPending ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</>
-                ) : (
-                  <>Sign In <ArrowRight className="ml-2 h-4 w-4" /></>
-                )}
-              </Button>
 
-              <button
-                type="button"
-                className="w-full text-xs text-sky-600 hover:text-sky-700 font-medium py-2"
-                onClick={() => setShowForgotPassword(true)}
-                data-testid="button-forgot-password"
-              >
-                Forgot password?
-              </button>
-            </form>
-          </Form>
+                {attemptsRemaining !== null && attemptsRemaining > 0 && !isAccountLocked && (
+                  <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3 flex items-center gap-2.5" data-testid="alert-attempts-remaining">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                    <p className="text-sm text-amber-300">
+                      Incorrect password.{" "}
+                      <span className="font-semibold">
+                        {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/70 text-sm font-medium">Username or Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter your username or email"
+                          className="h-11 border-white/10 bg-white/8 text-white placeholder:text-white/25 focus:border-sky-400/50 focus:bg-white/10"
+                          data-testid="input-username"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-red-400" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/70 text-sm font-medium">Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            className="h-11 pr-10 border-white/10 bg-white/8 text-white placeholder:text-white/25 focus:border-sky-400/50 focus:bg-white/10"
+                            data-testid="input-password"
+                            onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                            onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                            onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      {capsLockOn && !showPassword && (
+                        <div className="flex items-center gap-1.5 mt-1 text-amber-400" data-testid="alert-caps-lock">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <span className="text-xs font-medium">Caps Lock is on</span>
+                        </div>
+                      )}
+                      <FormMessage className="text-red-400" />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="pt-1">
+                  <Button
+                    type="submit"
+                    className="w-full h-11 font-semibold text-white border-0"
+                    style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
+                    disabled={loginMutation.isPending}
+                    data-testid="button-login"
+                  >
+                    {loginMutation.isPending ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</>
+                    ) : (
+                      <>Sign In <ArrowRight className="ml-2 h-4 w-4" /></>
+                    )}
+                  </Button>
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full text-xs text-white/35 hover:text-white/60 font-medium py-1 transition-colors"
+                  onClick={() => setShowForgotPassword(true)}
+                  data-testid="button-forgot-password"
+                >
+                  Forgot password?
+                </button>
+              </form>
+            </Form>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-white/20 text-xs mt-6">
+            Protected by SSL encryption · GDPR compliant
+          </p>
         </div>
         )}
       </div>
