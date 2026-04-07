@@ -230,13 +230,24 @@ export default function DocumentUpload() {
       if (site) {
         if (site.companyName) setSelectedCompany(site.companyName);
         form.setValue("siteId", urlSiteId);
-        // Auto-expand the company containing the pre-selected site in the accordion picker
-        if (site.companyId) {
-          setExpandedPickerCompanies(new Set([site.companyId]));
-        }
       }
     }
   }, [urlSiteId, sites]);
+
+  // Keep the accordion expanded for whichever site is currently selected
+  useEffect(() => {
+    if (selectedSiteId && sites) {
+      const site = sites.find(s => s.id === selectedSiteId);
+      if (site?.companyId) {
+        setExpandedPickerCompanies(prev => {
+          if (prev.has(site.companyId)) return prev;
+          const next = new Set(prev);
+          next.add(site.companyId);
+          return next;
+        });
+      }
+    }
+  }, [selectedSiteId, sites]);
 
   // Group all sites by company for the accordion picker
   const siteGroups = useMemo(() => {
