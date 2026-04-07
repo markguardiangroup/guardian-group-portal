@@ -394,6 +394,17 @@ export default function Sites() {
             <SelectItem value="none">No Data</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Refresh"
+          data-testid="button-refresh-sites"
+          className="shrink-0"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        </Button>
       </div>
 
       <Card>

@@ -1074,6 +1074,17 @@ export default function UserManagement() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Refresh"
+          data-testid="button-refresh-users"
+          className="shrink-0"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+        </Button>
       </div>
 
       <Card>
