@@ -159,8 +159,9 @@ export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
   const isAdmin = user?.role === "admin";
-  const canAddUser = isAdmin || isPro;
   const isConsultant = user?.role === "consultant";
+  const isStandardConsultant = isConsultant && !isPro;
+  const canAddUser = isAdmin || isConsultant;
   const { toast } = useToast();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const companyFilter = selectedCompany || "all";
@@ -311,6 +312,14 @@ export default function UserManagement() {
   const filteredCompanies = companySearchQuery.trim() === "" 
     ? companies 
     : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
+
+  // Standard consultants can only create users for companies linked to their assigned sites
+  const consultantAccessibleCompanyIds = isStandardConsultant
+    ? new Set(sites.map(s => s.companyId))
+    : null;
+  const createFormCompanies = consultantAccessibleCompanyIds
+    ? filteredCompanies.filter(c => consultantAccessibleCompanyIds.has(c.id))
+    : filteredCompanies;
 
   // Helper to check if a user is a primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {
@@ -2255,10 +2264,10 @@ export default function UserManagement() {
                             />
                           </div>
                           <div className="max-h-48 overflow-y-auto">
-                            {filteredCompanies.length === 0 ? (
+                            {createFormCompanies.length === 0 ? (
                               <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
                             ) : (
-                              filteredCompanies.map((company) => (
+                              createFormCompanies.map((company) => (
                                 <button
                                   key={company.id}
                                   type="button"

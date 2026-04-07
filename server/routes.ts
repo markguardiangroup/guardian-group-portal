@@ -8358,8 +8358,10 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (currentUser.role !== "admin" && !isProConsultant(currentUser)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can create users" });
+      const isStandardConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
+
+      if (currentUser.role !== "admin" && !isProConsultant(currentUser) && !isStandardConsultant) {
+        return res.status(403).json({ error: "Only admins and consultants can create users" });
       }
       
       const { 
@@ -8369,9 +8371,22 @@ export async function registerRoutes(
         preferredContactMethod, notes
       } = req.body;
       
-      // Only admins can create consultant or admin accounts
-      if (isProConsultant(currentUser) && role !== "client") {
-        return res.status(403).json({ error: "Pro consultants can only create client users" });
+      // Consultants (pro and standard) can only create client users
+      if ((isProConsultant(currentUser) || isStandardConsultant) && role && role !== "client") {
+        return res.status(403).json({ error: "Consultants can only create client users" });
+      }
+
+      // Standard consultants can only create users for companies they are assigned to
+      if (isStandardConsultant && companyId) {
+        const consultantSiteAssignments = await storage.getConsultantSites(currentUser.id);
+        const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.entityId));
+        const allSites = await storage.getSites();
+        const assignedCompanyIds = new Set(
+          allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId)
+        );
+        if (!assignedCompanyIds.has(companyId)) {
+          return res.status(403).json({ error: "You can only create users for companies you are assigned to" });
+        }
       }
       
       if (!username || !email) {
