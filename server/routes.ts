@@ -656,6 +656,7 @@ export async function registerRoutes(
           fullName: user.fullName,
           resetUrl,
           expiresAt,
+          role: user.role,
         });
         emailSent = true;
       } catch (emailError) {
@@ -853,6 +854,7 @@ export async function registerRoutes(
           fullName: targetUser.fullName,
           inviteUrl,
           expiresAt,
+          role: targetUser.role,
         });
         emailSent = true;
       } catch (emailError) {
@@ -2176,6 +2178,7 @@ export async function registerRoutes(
                 uploadedBy: user.fullName,
                 portalUrl: baseUrl,
                 documentUrl,
+                role: notifyUser.role,
               });
               await storage.createAuditLog({
                 action: "email_sent",
@@ -2396,6 +2399,7 @@ export async function registerRoutes(
                     siteName: site?.name || "Unknown Site",
                     clientName: user.fullName,
                     documentUrl,
+                    role: "consultant",
                   });
                   await storage.createAuditLog({
                     action: "email_sent",
@@ -2426,6 +2430,7 @@ export async function registerRoutes(
                   clientName: user.fullName,
                   documentUrl,
                   noConsultantAssigned: true,
+                  role: "admin",
                 });
                 await storage.createAuditLog({
                   action: "email_sent",
@@ -2504,6 +2509,7 @@ export async function registerRoutes(
         uploadedBy: user.fullName,
         portalUrl: baseUrl,
         documentUrl,
+        role: targetUser.role,
       });
 
       await storage.createAuditLog({
@@ -8424,6 +8430,7 @@ export async function registerRoutes(
             fullName: newUser.fullName,
             inviteUrl,
             expiresAt,
+            role: newUser.role,
           });
           emailSent = true;
           await storage.createAuditLog({

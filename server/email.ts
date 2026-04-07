@@ -1,11 +1,28 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
-const FROM_EMAIL = "onboarding@resend.dev";
+const resend = new Resend(
+  IS_PRODUCTION ? process.env.RESEND_API_KEY_PROD : process.env.RESEND_API_KEY
+);
+
+const FROM_EMAIL = IS_PRODUCTION ? "noreply@guardiangroup.ai" : "onboarding@resend.dev";
 const FROM_NAME = "Guardian Group";
 
-const TEST_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
+const DEV_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
+const CLIENT_FORWARD_EMAIL = "mark@guardiangroup.co.uk";
+
+function resolveRecipient(to: string, role?: string): string {
+  if (!IS_PRODUCTION) {
+    console.log(`[DEV MODE] Redirecting email from ${to} to ${DEV_EMAIL_OVERRIDE}`);
+    return DEV_EMAIL_OVERRIDE;
+  }
+  if (role === "consultant" || role === "admin") {
+    return to;
+  }
+  console.log(`[PROD] Client email from ${to} forwarded to ${CLIENT_FORWARD_EMAIL}`);
+  return CLIENT_FORWARD_EMAIL;
+}
 
 // ---------------------------------------------------------------------------
 // Email logo
@@ -24,18 +41,16 @@ export async function sendInvitationEmail({
   fullName,
   inviteUrl,
   expiresAt,
+  role,
 }: {
   to: string;
   fullName: string;
   inviteUrl: string;
   expiresAt: Date;
+  role?: string;
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hours`;
-
-  const recipient = TEST_EMAIL_OVERRIDE || to;
-  if (TEST_EMAIL_OVERRIDE) {
-    console.log(`[TEST MODE] Redirecting email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
-  }
+  const recipient = resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -88,7 +103,7 @@ export async function sendInvitationEmail({
     throw new Error(`Failed to send invitation email: ${error.message}`);
   }
 
-  console.log(`Invitation email sent to ${to}, id: ${data?.id}`);
+  console.log(`Invitation email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
 
@@ -97,18 +112,16 @@ export async function sendPasswordResetEmail({
   fullName,
   resetUrl,
   expiresAt,
+  role,
 }: {
   to: string;
   fullName: string;
   resetUrl: string;
   expiresAt: Date;
+  role?: string;
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hour(s)`;
-
-  const recipient = TEST_EMAIL_OVERRIDE || to;
-  if (TEST_EMAIL_OVERRIDE) {
-    console.log(`[TEST MODE] Redirecting password reset email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
-  }
+  const recipient = resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -167,7 +180,7 @@ export async function sendPasswordResetEmail({
     throw new Error(`Failed to send password reset email: ${error.message}`);
   }
 
-  console.log(`Password reset email sent to ${to}, id: ${data?.id}`);
+  console.log(`Password reset email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
 
@@ -179,6 +192,7 @@ export async function sendDocumentApprovalEmail({
   uploadedBy,
   portalUrl,
   documentUrl,
+  role,
 }: {
   to: string;
   fullName: string;
@@ -187,11 +201,9 @@ export async function sendDocumentApprovalEmail({
   uploadedBy: string;
   portalUrl: string;
   documentUrl: string;
+  role?: string;
 }) {
-  const recipient = TEST_EMAIL_OVERRIDE || to;
-  if (TEST_EMAIL_OVERRIDE) {
-    console.log(`[TEST MODE] Redirecting approval email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
-  }
+  const recipient = resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -256,7 +268,7 @@ export async function sendDocumentApprovalEmail({
     throw new Error(`Failed to send document approval email: ${error.message}`);
   }
 
-  console.log(`Document approval email sent to ${to}, id: ${data?.id}`);
+  console.log(`Document approval email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
 
@@ -268,6 +280,7 @@ export async function sendClientSignOffEmail({
   clientName,
   documentUrl,
   noConsultantAssigned,
+  role,
 }: {
   to: string;
   fullName: string;
@@ -276,11 +289,9 @@ export async function sendClientSignOffEmail({
   clientName: string;
   documentUrl: string;
   noConsultantAssigned?: boolean;
+  role?: string;
 }) {
-  const recipient = TEST_EMAIL_OVERRIDE || to;
-  if (TEST_EMAIL_OVERRIDE) {
-    console.log(`[TEST MODE] Redirecting client sign-off email from ${to} to ${TEST_EMAIL_OVERRIDE}`);
-  }
+  const recipient = resolveRecipient(to, role);
 
   const noConsultantWarning = noConsultantAssigned ? `
           <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 20px 0;">
@@ -361,6 +372,6 @@ export async function sendClientSignOffEmail({
     throw new Error(`Failed to send client sign-off email: ${error.message}`);
   }
 
-  console.log(`Client sign-off email sent to ${to}, id: ${data?.id}`);
+  console.log(`Client sign-off email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
