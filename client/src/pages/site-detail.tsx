@@ -1008,39 +1008,46 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     setAddSelectedIds(new Set());
   };
 
+  const effectiveIds = new Set(effectiveRows.map(r => r.templateId));
+  const effectiveSourceMap = new Map(effectiveRows.map(r => [r.templateId, r.source]));
+  const allPrivateActiveForSite = allTemplates.filter(t =>
+    t.isActive && t.visibility === "private" && enabledModules.includes(t.module)
+  );
+
   const handleSaveSelected = async () => {
-    if (addSelectedIds.size === 0) return;
     setIsSavingReqs(true);
     try {
-      await Promise.all([...addSelectedIds].map(id => {
-        if (excludedIds.has(id)) {
-          return apiRequest("DELETE", `/api/sites/${siteId}/template-overrides/${id}`);
-        } else {
-          return apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId: id, action: "include" });
-        }
-      }));
+      const toAdd = allPrivateActiveForSite.filter(t => addSelectedIds.has(t.id) && !effectiveIds.has(t.id));
+      const toRemove = effectiveRows.filter(r => !addSelectedIds.has(r.templateId));
+      if (toAdd.length === 0 && toRemove.length === 0) { closeAddDialog(); return; }
+      await Promise.all([
+        ...toAdd.map(t => {
+          if (excludedIds.has(t.id)) {
+            return apiRequest("DELETE", `/api/sites/${siteId}/template-overrides/${t.id}`);
+          } else {
+            return apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId: t.id, action: "include" });
+          }
+        }),
+        ...toRemove.map(r => {
+          if (r.source === "company") {
+            return apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId: r.templateId, action: "exclude" });
+          } else {
+            return apiRequest("DELETE", `/api/sites/${siteId}/template-overrides/${r.templateId}`);
+          }
+        }),
+      ]);
       invalidateSiteData();
-      toast({ title: `${addSelectedIds.size} requirement${addSelectedIds.size !== 1 ? "s" : ""} added` });
+      const parts = [];
+      if (toAdd.length > 0) parts.push(`${toAdd.length} added`);
+      if (toRemove.length > 0) parts.push(`${toRemove.length} removed`);
+      toast({ title: `Requirements updated: ${parts.join(", ")}` });
       closeAddDialog();
     } catch {
-      toast({ title: "Failed to add requirements", variant: "destructive" });
+      toast({ title: "Failed to update requirements", variant: "destructive" });
     } finally {
       setIsSavingReqs(false);
     }
   };
-
-  const availableToAdd = allTemplates.filter(t => {
-    if (!t.isActive || t.visibility !== "private") return false;
-    if (companyRequiredIds.has(t.id) && !excludedIds.has(t.id)) return false;
-    if (includedIds.has(t.id)) return false;
-    return true;
-  });
-
-  const filteredAvailable = availableToAdd.filter(t => {
-    if (moduleFilter && t.module !== moduleFilter) return false;
-    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
 
   return (
     <div className="space-y-4">
@@ -1051,19 +1058,19 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
             This list overrides the company-level requirements for this site. Adding a document here requires it only at this site; removing a company requirement excludes it from this site's compliance score only.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else setAddOpen(true); }}>
+        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else { setAddOpen(true); setAddSelectedIds(new Set(effectiveIds)); } }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
-              Add Requirement
+              Manage Requirements
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
             <div className="px-6 pt-6 pb-4 shrink-0 border-b">
               <DialogHeader>
-                <DialogTitle>Add Required Document</DialogTitle>
+                <DialogTitle>Manage Required Documents</DialogTitle>
                 <DialogDescription>
-                  Select one or more templates to require at this site. This overrides the company-level selection and will affect this site's compliance score until uploaded.
+                  Tick to require a document at this site. Untick to remove an existing requirement. Changes apply to this site only.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -1080,7 +1087,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                     ))}
                   </TabsList>
                   {enabledModules.map(mod => {
-                    const moduleTemplates = availableToAdd.filter(t => t.module === mod);
+                    const moduleTemplates = allPrivateActiveForSite.filter(t => t.module === mod);
                     return (
                       <TabsContent key={mod} value={mod}>
                         {moduleTemplates.length === 0 ? (
@@ -1089,32 +1096,35 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                           </p>
                         ) : (
                           <div className="space-y-3">
-                            {moduleTemplates.map(t => (
-                              <div key={t.id} className="flex items-center gap-3">
-                                <Checkbox
-                                  id={`req-${t.id}`}
-                                  checked={addSelectedIds.has(t.id)}
-                                  onCheckedChange={(checked) => {
-                                    const newIds = new Set(addSelectedIds);
-                                    if (checked) newIds.add(t.id); else newIds.delete(t.id);
-                                    setAddSelectedIds(newIds);
-                                  }}
-                                  data-testid={`checkbox-req-${t.id}`}
-                                />
-                                <label
-                                  htmlFor={`req-${t.id}`}
-                                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                                >
-                                  {t.name}
-                                  {excludedIds.has(t.id) && (
-                                    <Badge variant="outline" className="text-xs">Restore</Badge>
-                                  )}
-                                  {t.requiresApproval && (
-                                    <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                                  )}
-                                </label>
-                              </div>
-                            ))}
+                            {moduleTemplates.map(t => {
+                              const source = effectiveSourceMap.get(t.id);
+                              return (
+                                <div key={t.id} className="flex items-center gap-3">
+                                  <Checkbox
+                                    id={`req-${t.id}`}
+                                    checked={addSelectedIds.has(t.id)}
+                                    onCheckedChange={(checked) => {
+                                      const newIds = new Set(addSelectedIds);
+                                      if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                      setAddSelectedIds(newIds);
+                                    }}
+                                    data-testid={`checkbox-req-${t.id}`}
+                                  />
+                                  <label
+                                    htmlFor={`req-${t.id}`}
+                                    className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                                  >
+                                    {t.name}
+                                    {source === "company" && (
+                                      <Badge variant="outline" className="text-xs">Company</Badge>
+                                    )}
+                                    {t.requiresApproval && (
+                                      <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                    )}
+                                  </label>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </TabsContent>
@@ -1130,10 +1140,10 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                 </Button>
                 <Button
                   onClick={handleSaveSelected}
-                  disabled={addSelectedIds.size === 0 || isSavingReqs}
+                  disabled={isSavingReqs}
                   data-testid="button-save-add-req"
                 >
-                  {isSavingReqs ? "Adding..." : addSelectedIds.size > 0 ? `Add (${addSelectedIds.size})` : "Add"}
+                  {isSavingReqs ? "Saving..." : "Save"}
                 </Button>
               </DialogFooter>
             </div>

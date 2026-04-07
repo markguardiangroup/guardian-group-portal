@@ -487,17 +487,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     onError: () => toast({ title: "Failed to remove requirement", variant: "destructive" }),
   });
 
-  const availableToAdd = allTemplates.filter(t => {
-    if (!t.isActive || t.visibility !== "private") return false;
-    if (requiredIds.has(t.id)) return false;
-    return true;
-  });
-
-  const filteredAvailable = availableToAdd.filter(t => {
-    if (moduleFilter && t.module !== moduleFilter) return false;
-    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const allPrivateActive = allTemplates.filter(t => t.isActive && t.visibility === "private");
 
   const isPending = addMutation.isPending || removeMutation.isPending;
 
@@ -509,17 +499,23 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   };
 
   const handleSaveSelected = async () => {
-    if (addSelectedIds.size === 0) return;
     setIsSavingReqs(true);
     try {
-      await Promise.all([...addSelectedIds].map(id =>
-        apiRequest("POST", `/api/companies/${companyId}/required-templates`, { templateId: id })
-      ));
+      const toAdd = allPrivateActive.filter(t => addSelectedIds.has(t.id) && !requiredIds.has(t.id));
+      const toRemove = allPrivateActive.filter(t => !addSelectedIds.has(t.id) && requiredIds.has(t.id));
+      if (toAdd.length === 0 && toRemove.length === 0) { closeAddDialog(); return; }
+      await Promise.all([
+        ...toAdd.map(t => apiRequest("POST", `/api/companies/${companyId}/required-templates`, { templateId: t.id })),
+        ...toRemove.map(t => apiRequest("DELETE", `/api/companies/${companyId}/required-templates/${t.id}`)),
+      ]);
       invalidate();
-      toast({ title: `${addSelectedIds.size} requirement${addSelectedIds.size !== 1 ? "s" : ""} added` });
+      const parts = [];
+      if (toAdd.length > 0) parts.push(`${toAdd.length} added`);
+      if (toRemove.length > 0) parts.push(`${toRemove.length} removed`);
+      toast({ title: `Requirements updated: ${parts.join(", ")}` });
       closeAddDialog();
     } catch {
-      toast({ title: "Failed to add requirements", variant: "destructive" });
+      toast({ title: "Failed to update requirements", variant: "destructive" });
     } finally {
       setIsSavingReqs(false);
     }
@@ -550,19 +546,19 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
             These documents will be required for compliance across every site in this company. Each document affects the compliance score for its site until it is uploaded. Individual sites can override this list to add or remove specific requirements.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else setAddOpen(true); }}>
+        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else { setAddOpen(true); setAddSelectedIds(new Set(requiredIds)); } }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
-              Add Requirement
+              Manage Requirements
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
             <div className="px-6 pt-6 pb-4 shrink-0 border-b">
               <DialogHeader>
-                <DialogTitle>Add Required Document</DialogTitle>
+                <DialogTitle>Manage Required Documents</DialogTitle>
                 <DialogDescription>
-                  Select one or more templates to require across all sites. Each will count towards each site's compliance score until uploaded.
+                  Tick to require a document across all sites. Untick to remove an existing requirement. Changes take effect when you save.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -579,7 +575,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                     ))}
                   </TabsList>
                   {enabledModules.map(mod => {
-                    const moduleTemplates = availableToAdd.filter(t => t.module === mod);
+                    const moduleTemplates = allPrivateActive.filter(t => t.module === mod);
                     return (
                       <TabsContent key={mod} value={mod}>
                         {moduleTemplates.length === 0 ? (
@@ -626,10 +622,10 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                 </Button>
                 <Button
                   onClick={handleSaveSelected}
-                  disabled={addSelectedIds.size === 0 || isSavingReqs}
+                  disabled={isSavingReqs}
                   data-testid="button-save-add-req"
                 >
-                  {isSavingReqs ? "Adding..." : addSelectedIds.size > 0 ? `Add (${addSelectedIds.size})` : "Add"}
+                  {isSavingReqs ? "Saving..." : "Save"}
                 </Button>
               </DialogFooter>
             </div>
