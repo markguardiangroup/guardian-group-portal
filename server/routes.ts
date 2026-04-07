@@ -8225,8 +8225,12 @@ export async function registerRoutes(
           };
         });
       
-      // Also include unfiled documents (documents not in any folder)
-      const unfiledDocuments = siteDocuments.filter(d => !d.folderId);
+      // Also include unfiled documents (documents not in any known site folder)
+      // This catches both documents with no folderId AND documents whose folderId
+      // points to a folder that doesn't exist in the current target sites
+      // (e.g. a document whose folder was provisioned for a different site).
+      const allKnownFolderIds = new Set(siteFolders.map(sf => sf.id));
+      const unfiledDocuments = siteDocuments.filter(d => !d.folderId || !allKnownFolderIds.has(d.folderId));
       
       res.json({
         siteId,
