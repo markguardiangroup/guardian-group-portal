@@ -46,7 +46,16 @@ import {
   HelpCircle,
   BarChart2,
   RefreshCw,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
@@ -705,9 +714,13 @@ export default function Companies() {
     setIsRefreshing(false);
   };
 
+  const formatStatusDisplay = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
+      <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
         <div>
           <h1 className="text-3xl font-semibold">Companies</h1>
           <p className="mt-1 text-muted-foreground">
@@ -737,7 +750,7 @@ export default function Companies() {
             Refresh
           </Button>
           {canCreateCompany && (
-            <Button size="sm" className="w-32" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
+            <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
               Add Company
             </Button>
@@ -745,105 +758,194 @@ export default function Companies() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search companies..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-9"
             data-testid="input-search-companies"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+          <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="on_hold">On Hold</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
-
-      {isInitialLoad ? (
-        <div className="grid gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </div>
-      ) : companies.length > 0 ? (
-        <>
-          <div className="grid gap-4">
-            {companies.map((company) => (
-              <CompanyCard 
-                key={company.id} 
-                company={company} 
-                onEdit={handleEdit}
-                onView={handleView}
-                onDelete={(c) => { setDeleteTarget(c); setDeleteConfirmText(""); }}
-                isAdmin={isAdmin}
-              />
-            ))}
-          </div>
-          
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  data-testid="button-prev-page"
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Company</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Industry</TableHead>
+              <TableHead className="w-20">Sites</TableHead>
+              <TableHead className="w-28">Status</TableHead>
+              <TableHead className="w-10"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isInitialLoad ? (
+              [1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-9 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            ) : companies.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  {debouncedSearch || statusFilter !== "all"
+                    ? "No companies match your filters."
+                    : "No companies found. Add your first company to get started."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              companies.map((company) => (
+                <TableRow
+                  key={company.id}
+                  className="cursor-pointer"
+                  onClick={() => handleView(company.id)}
+                  data-testid={`row-company-${company.id}`}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground px-2">
-                  Page {page} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  data-testid="button-next-page"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <Building2 className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <h3 className="mt-4 text-lg font-medium">No companies found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {searchQuery
-                ? "Try adjusting your search"
-                : "Add your first company to get started"}
-            </p>
-            {!searchQuery && isAdmin && (
-              <Button className="mt-4" onClick={() => setIsAddOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Company
-              </Button>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{company.name}</span>
+                          {company.referenceNumber && (
+                            <Badge variant="outline" className="font-mono text-xs" data-testid={`badge-company-ref-${company.id}`}>
+                              {company.referenceNumber}
+                            </Badge>
+                          )}
+                        </div>
+                        {company.companyNumber && (
+                          <p className="text-xs text-muted-foreground">Co. No: {company.companyNumber}</p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {(company.city || company.county) ? (
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {[company.city, company.county].filter(Boolean).join(", ")}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {(company as any).industry || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
+                      {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")}
+                      className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}
+                      data-testid={`badge-status-${company.id}`}
+                    >
+                      {formatStatusDisplay(company.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-company-menu-${company.id}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => { e.stopPropagation(); handleView(company.id); }}
+                          data-testid={`button-view-company-${company.id}`}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Sites
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => { e.stopPropagation(); handleEdit(company); }}
+                          data-testid={`button-edit-company-${company.id}`}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(company); setDeleteConfirmText(""); }}
+                            className="text-destructive"
+                            data-testid={`button-delete-company-${company.id}`}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Company
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-          </CardContent>
-        </Card>
+          </TableBody>
+        </Table>
+      </Card>
+
+      {!isInitialLoad && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              data-testid="button-prev-page"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground px-2">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              data-testid="button-next-page"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
       )}
 
       <Dialog open={isAddOpen || !!editingCompany} onOpenChange={(open) => {
