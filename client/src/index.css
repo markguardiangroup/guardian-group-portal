@@ -523,6 +523,30 @@
   100% { transform: translateX(400%); }
 }
 
+/* ── Template Library module card entrance animations ──────────────────── */
+@keyframes moduleExpandIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scaleY(0.97);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    filter: blur(0);
+  }
+}
+
+.module-card-stagger > * {
+  animation: moduleExpandIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top center;
+}
+.module-card-stagger > *:nth-child(1) { animation-delay: 40ms; }
+.module-card-stagger > *:nth-child(2) { animation-delay: 140ms; }
+.module-card-stagger > *:nth-child(3) { animation-delay: 240ms; }
+.module-card-stagger > *:nth-child(4) { animation-delay: 340ms; }
+
+/* ── Login progress bar ── */
 .login-progress-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
