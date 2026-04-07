@@ -87,6 +87,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
 
 interface DocumentTemplate {
@@ -433,6 +434,8 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string | null>(null);
+  const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set());
+  const [isSavingReqs, setIsSavingReqs] = useState(false);
 
   const { data: moduleAccess } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
@@ -498,6 +501,30 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
 
   const isPending = addMutation.isPending || removeMutation.isPending;
 
+  const closeAddDialog = () => {
+    setAddOpen(false);
+    setSearch("");
+    setModuleFilter(null);
+    setAddSelectedIds(new Set());
+  };
+
+  const handleSaveSelected = async () => {
+    if (addSelectedIds.size === 0) return;
+    setIsSavingReqs(true);
+    try {
+      await Promise.all([...addSelectedIds].map(id =>
+        apiRequest("POST", `/api/companies/${companyId}/required-templates`, { templateId: id })
+      ));
+      invalidate();
+      toast({ title: `${addSelectedIds.size} requirement${addSelectedIds.size !== 1 ? "s" : ""} added` });
+      closeAddDialog();
+    } catch {
+      toast({ title: "Failed to add requirements", variant: "destructive" });
+    } finally {
+      setIsSavingReqs(false);
+    }
+  };
+
   if (requiredLoading) {
     return (
       <div className="space-y-4">
@@ -523,77 +550,88 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
             These documents will be required for compliance across every site in this company. Each document affects the compliance score for its site until it is uploaded. Individual sites can override this list to add or remove specific requirements.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
+        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else setAddOpen(true); }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
               Add Requirement
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Add Required Document</DialogTitle>
-              <DialogDescription>
-                Choose a document template to require across all sites. This will count towards each site's compliance score until the document is uploaded. Sites can individually override this requirement.
-              </DialogDescription>
-            </DialogHeader>
-            {enabledModules.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 mb-1">
-                <button
-                  onClick={() => setModuleFilter(null)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${moduleFilter === null ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
-                  data-testid="filter-module-all"
-                >
-                  All
-                </button>
-                {enabledModules.map(mod => {
-                  const ModIcon = MODULE_ICON[mod] || FileText;
-                  const isActive = moduleFilter === mod;
-                  return (
-                    <button
-                      key={mod}
-                      onClick={() => setModuleFilter(isActive ? null : mod)}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${isActive ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
-                      data-testid={`filter-module-${mod}`}
-                    >
-                      <ModIcon className="h-3 w-3" />
-                      {MODULE_LABELS[mod] || mod}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search templates..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9"
-                data-testid="input-template-search-add"
-              />
+          <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+            <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+              <DialogHeader>
+                <DialogTitle>Add Required Document</DialogTitle>
+                <DialogDescription>
+                  Select one or more templates to require across all sites. Each will count towards each site's compliance score until uploaded.
+                </DialogDescription>
+              </DialogHeader>
             </div>
-            <div className="overflow-y-auto flex-1 space-y-1 pr-1">
-              {filteredAvailable.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">No templates available</p>
-              ) : filteredAvailable.map(t => {
-                const ModIcon = MODULE_ICON[t.module] || FileText;
-                return (
-                  <button
-                    key={t.id}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted transition-colors"
-                    onClick={() => addMutation.mutate(t.id)}
-                    disabled={isPending}
-                    data-testid={`option-template-${t.id}`}
-                  >
-                    <ModIcon className={`h-4 w-4 shrink-0 ${MODULE_COLOR[t.module] || "text-muted-foreground"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{MODULE_LABELS[t.module] || t.module}</p>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {enabledModules.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
+              ) : (
+                <Tabs defaultValue={enabledModules[0]}>
+                  <TabsList className="mb-4">
+                    {enabledModules.map(mod => (
+                      <TabsTrigger key={mod} value={mod} data-testid={`tab-req-${mod}`}>
+                        {MODULE_LABELS[mod] || mod}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {enabledModules.map(mod => {
+                    const moduleTemplates = availableToAdd.filter(t => t.module === mod);
+                    return (
+                      <TabsContent key={mod} value={mod}>
+                        {moduleTemplates.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-4">
+                            No templates available for {MODULE_LABELS[mod] || mod}.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {moduleTemplates.map(t => (
+                              <div key={t.id} className="flex items-center gap-3">
+                                <Checkbox
+                                  id={`req-${t.id}`}
+                                  checked={addSelectedIds.has(t.id)}
+                                  onCheckedChange={(checked) => {
+                                    const newIds = new Set(addSelectedIds);
+                                    if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                    setAddSelectedIds(newIds);
+                                  }}
+                                  data-testid={`checkbox-req-${t.id}`}
+                                />
+                                <label
+                                  htmlFor={`req-${t.id}`}
+                                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                                >
+                                  {t.name}
+                                  {t.requiresApproval && (
+                                    <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                  )}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </div>
+            <div className="px-6 py-4 shrink-0 border-t">
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={closeAddDialog} data-testid="button-cancel-add-req">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveSelected}
+                  disabled={addSelectedIds.size === 0 || isSavingReqs}
+                  data-testid="button-save-add-req"
+                >
+                  {isSavingReqs ? "Adding..." : addSelectedIds.size > 0 ? `Add (${addSelectedIds.size})` : "Add"}
+                </Button>
+              </DialogFooter>
             </div>
           </DialogContent>
         </Dialog>

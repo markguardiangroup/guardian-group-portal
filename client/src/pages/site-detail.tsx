@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -906,6 +907,8 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string | null>(null);
+  const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set());
+  const [isSavingReqs, setIsSavingReqs] = useState(false);
 
   const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -998,6 +1001,34 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     setModuleFilter(null);
   };
 
+  const closeAddDialog = () => {
+    setAddOpen(false);
+    setSearch("");
+    setModuleFilter(null);
+    setAddSelectedIds(new Set());
+  };
+
+  const handleSaveSelected = async () => {
+    if (addSelectedIds.size === 0) return;
+    setIsSavingReqs(true);
+    try {
+      await Promise.all([...addSelectedIds].map(id => {
+        if (excludedIds.has(id)) {
+          return apiRequest("DELETE", `/api/sites/${siteId}/template-overrides/${id}`);
+        } else {
+          return apiRequest("POST", `/api/sites/${siteId}/template-overrides`, { templateId: id, action: "include" });
+        }
+      }));
+      invalidateSiteData();
+      toast({ title: `${addSelectedIds.size} requirement${addSelectedIds.size !== 1 ? "s" : ""} added` });
+      closeAddDialog();
+    } catch {
+      toast({ title: "Failed to add requirements", variant: "destructive" });
+    } finally {
+      setIsSavingReqs(false);
+    }
+  };
+
   const availableToAdd = allTemplates.filter(t => {
     if (!t.isActive || t.visibility !== "private") return false;
     if (companyRequiredIds.has(t.id) && !excludedIds.has(t.id)) return false;
@@ -1020,80 +1051,91 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
             This list overrides the company-level requirements for this site. Adding a document here requires it only at this site; removing a company requirement excludes it from this site's compliance score only.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={v => { setAddOpen(v); if (!v) { setSearch(""); setModuleFilter(null); } }}>
+        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else setAddOpen(true); }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
               Add Requirement
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px] max-h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Add Required Document</DialogTitle>
-              <DialogDescription>
-                Choose a document template to require at this site only. This overrides the company-level selection and will affect this site's compliance score until uploaded.
-              </DialogDescription>
-            </DialogHeader>
-            {enabledModules.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 mb-1">
-                <button
-                  onClick={() => setModuleFilter(null)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${moduleFilter === null ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
-                  data-testid="filter-module-all"
-                >
-                  All
-                </button>
-                {enabledModules.map(mod => {
-                  const ModIcon = MODULE_ICON[mod] || FileText;
-                  const isActive = moduleFilter === mod;
-                  return (
-                    <button
-                      key={mod}
-                      onClick={() => setModuleFilter(isActive ? null : mod)}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors flex items-center gap-1.5 ${isActive ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"}`}
-                      data-testid={`filter-module-${mod}`}
-                    >
-                      <ModIcon className="h-3 w-3" />
-                      {MODULE_LABELS[mod] || mod}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search templates..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-9"
-                data-testid="input-template-search-add"
-              />
+          <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+            <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+              <DialogHeader>
+                <DialogTitle>Add Required Document</DialogTitle>
+                <DialogDescription>
+                  Select one or more templates to require at this site. This overrides the company-level selection and will affect this site's compliance score until uploaded.
+                </DialogDescription>
+              </DialogHeader>
             </div>
-            <div className="overflow-y-auto flex-1 space-y-1 pr-1">
-              {filteredAvailable.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">No templates available</p>
-              ) : filteredAvailable.map(t => {
-                const ModIcon = MODULE_ICON[t.module] || FileText;
-                const isRestoring = excludedIds.has(t.id);
-                return (
-                  <button
-                    key={t.id}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted transition-colors"
-                    onClick={() => handleAdd(t.id)}
-                    data-testid={`option-template-${t.id}`}
-                  >
-                    <ModIcon className={`h-4 w-4 shrink-0 ${MODULE_COLOR[t.module] || "text-muted-foreground"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{MODULE_LABELS[t.module] || t.module}</p>
-                    </div>
-                    {isRestoring && (
-                      <Badge variant="outline" className="text-xs shrink-0">Restore</Badge>
-                    )}
-                  </button>
-                );
-              })}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {enabledModules.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">No modules are enabled for this site.</p>
+              ) : (
+                <Tabs defaultValue={enabledModules[0]}>
+                  <TabsList className="mb-4">
+                    {enabledModules.map(mod => (
+                      <TabsTrigger key={mod} value={mod} data-testid={`tab-req-${mod}`}>
+                        {MODULE_LABELS[mod] || mod}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {enabledModules.map(mod => {
+                    const moduleTemplates = availableToAdd.filter(t => t.module === mod);
+                    return (
+                      <TabsContent key={mod} value={mod}>
+                        {moduleTemplates.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-4">
+                            No templates available for {MODULE_LABELS[mod] || mod}.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {moduleTemplates.map(t => (
+                              <div key={t.id} className="flex items-center gap-3">
+                                <Checkbox
+                                  id={`req-${t.id}`}
+                                  checked={addSelectedIds.has(t.id)}
+                                  onCheckedChange={(checked) => {
+                                    const newIds = new Set(addSelectedIds);
+                                    if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                    setAddSelectedIds(newIds);
+                                  }}
+                                  data-testid={`checkbox-req-${t.id}`}
+                                />
+                                <label
+                                  htmlFor={`req-${t.id}`}
+                                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                                >
+                                  {t.name}
+                                  {excludedIds.has(t.id) && (
+                                    <Badge variant="outline" className="text-xs">Restore</Badge>
+                                  )}
+                                  {t.requiresApproval && (
+                                    <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                  )}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )}
+            </div>
+            <div className="px-6 py-4 shrink-0 border-t">
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={closeAddDialog} data-testid="button-cancel-add-req">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveSelected}
+                  disabled={addSelectedIds.size === 0 || isSavingReqs}
+                  data-testid="button-save-add-req"
+                >
+                  {isSavingReqs ? "Adding..." : addSelectedIds.size > 0 ? `Add (${addSelectedIds.size})` : "Add"}
+                </Button>
+              </DialogFooter>
             </div>
           </DialogContent>
         </Dialog>
