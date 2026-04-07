@@ -1026,6 +1026,7 @@ function TaskListForm({
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskLabel, setEditingTaskLabel] = useState("");
   const [editingTaskDesc, setEditingTaskDesc] = useState("");
+  const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null);
 
   const addTask = () => {
     if (!newLabel.trim()) return;
@@ -1125,7 +1126,7 @@ function TaskListForm({
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, -1)} disabled={idx === 0} data-testid={`button-task-up-${idx}`}><ChevronRight className="h-3 w-3 -rotate-90" /></Button>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, 1)} disabled={idx === tasks.length - 1} data-testid={`button-task-down-${idx}`}><ChevronDown className="h-3 w-3" /></Button>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEditTask(task)} data-testid={`button-task-edit-${task.id}`}><Pencil className="h-3 w-3" /></Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeTask(task.id)} data-testid={`button-task-remove-${idx}`}><X className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setConfirmDeleteTaskId(task.id)} data-testid={`button-task-remove-${idx}`}><X className="h-3 w-3" /></Button>
                 </div>
               </div>
             )}
@@ -1154,6 +1155,27 @@ function TaskListForm({
           Save Task List
         </Button>
       </div>
+
+      <AlertDialog open={!!confirmDeleteTaskId} onOpenChange={(open) => !open && setConfirmDeleteTaskId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove "{tasks.find(t => t.id === confirmDeleteTaskId)?.label}"? This cannot be undone once you save the list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-confirm-task-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-task-delete-ok"
+              onClick={() => { if (confirmDeleteTaskId) { removeTask(confirmDeleteTaskId); setConfirmDeleteTaskId(null); } }}
+            >
+              Remove Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1176,6 +1198,7 @@ function TestingTab() {
   const [assigningList, setAssigningList] = useState(false);
   const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
   const [confirmRemoveAssignmentId, setConfirmRemoveAssignmentId] = useState<string | null>(null);
+  const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
 
   const { data: taskLists = [], refetch: refetchLists } = useQuery<TestingTaskList[]>({
@@ -1351,7 +1374,7 @@ function TestingTab() {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deletingListId === list.id}
-                      onClick={() => handleDeleteList(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
+                      onClick={() => setConfirmDeleteListId(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
                       {deletingListId === list.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
@@ -1577,6 +1600,28 @@ function TestingTab() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Confirm Delete Task List Dialog */}
+      <AlertDialog open={!!confirmDeleteListId} onOpenChange={(open) => !open && setConfirmDeleteListId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task List?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{taskLists.find(l => l.id === confirmDeleteListId)?.title}" and all its assignments. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-confirm-list-delete-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-list-delete-ok"
+              onClick={() => { if (confirmDeleteListId) { handleDeleteList(confirmDeleteListId); setConfirmDeleteListId(null); } }}
+            >
+              Delete Task List
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm Remove Assignment Dialog */}
       <AlertDialog open={!!confirmRemoveAssignmentId} onOpenChange={(open) => !open && setConfirmRemoveAssignmentId(null)}>
