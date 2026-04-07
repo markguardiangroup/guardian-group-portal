@@ -1452,37 +1452,34 @@ function TestingTab() {
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-testid="sheet-view-tasklist">
           {viewingList && (
             <>
-              <SheetHeader className="mb-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <SheetTitle className="text-xl">{viewingList.title}</SheetTitle>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[viewingList.module] ?? MODULE_COLORS.general}`}>
-                        {MODULE_LABELS[viewingList.module] ?? viewingList.module}
-                      </span>
-                    </div>
-                    {viewingList.description && (
-                      <SheetDescription className="text-sm mt-1">{viewingList.description}</SheetDescription>
-                    )}
-                  </div>
-                  {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0"
-                      data-testid="button-sheet-edit-tasklist"
-                      onClick={() => {
-                        const list = viewingList;
-                        setViewingList(null);
-                        setEditingList(list);
-                        setShowListForm(false);
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
-                    </Button>
-                  )}
+              <SheetHeader className="mb-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <SheetTitle className="text-xl">{viewingList.title}</SheetTitle>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[viewingList.module] ?? MODULE_COLORS.general}`}>
+                    {MODULE_LABELS[viewingList.module] ?? viewingList.module}
+                  </span>
                 </div>
+                {viewingList.description && (
+                  <SheetDescription className="text-sm mt-1">{viewingList.description}</SheetDescription>
+                )}
               </SheetHeader>
+
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mb-5"
+                  data-testid="button-sheet-edit-tasklist"
+                  onClick={() => {
+                    const list = viewingList;
+                    setViewingList(null);
+                    setEditingList(list);
+                    setShowListForm(false);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Task List
+                </Button>
+              )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
