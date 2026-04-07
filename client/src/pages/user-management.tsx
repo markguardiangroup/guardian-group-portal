@@ -417,6 +417,24 @@ export default function UserManagement() {
     setShowManageSitesCancelConfirm(false);
     setManageSiteSearch("");
     setExpandedCompanyIds(new Set());
+    // Pre-populate immediately from the already-loaded siteAssignments on the user object
+    if (u.siteAssignments && u.siteAssignments.length > 0) {
+      setUserSiteAssignments(
+        u.siteAssignments.map((a) => {
+          const site = sites.find((s) => s.id === a.siteId);
+          return {
+            siteId: a.siteId,
+            siteName: a.siteName,
+            companyId: site?.companyId || "",
+            companyName: a.companyName,
+            isPrimary: a.isPrimary,
+          };
+        })
+      );
+    } else {
+      setUserSiteAssignments([]);
+    }
+    // Also fetch fresh data from server to ensure accuracy
     fetchUserSiteAssignments(u.id);
   };
 
