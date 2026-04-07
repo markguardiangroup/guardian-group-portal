@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -108,6 +107,7 @@ export default function Sites() {
 
   const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites", { myAssigned: isProConsultant && myAssignedOnly }],
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const url = isProConsultant && myAssignedOnly ? "/api/sites?myAssigned=true" : "/api/sites";
       const response = await fetch(url, { credentials: "include" });
@@ -409,19 +409,8 @@ export default function Sites() {
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {(isLoading || isRefreshing) ? (
-              [1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-44" /></TableCell>
-                  <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : !filteredSites || filteredSites.length === 0 ? (
+          <TableBody key={isLoading ? "loading" : "loaded"} className={!isLoading && filteredSites && filteredSites.length > 0 ? "table-rows-animate" : ""}>
+            {isLoading ? null : !filteredSites || filteredSites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   {searchQuery || companyFilter !== "all" || complianceFilter !== "all"

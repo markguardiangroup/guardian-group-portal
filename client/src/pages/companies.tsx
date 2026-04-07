@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -291,6 +290,7 @@ export default function Companies() {
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
     queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly }],
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -712,7 +712,6 @@ export default function Companies() {
     setIsRefreshing(false);
   };
 
-  const isShowingSkeleton = isLoading || isRefreshing;
 
   const formatStatusDisplay = (status: string) => {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -797,19 +796,8 @@ export default function Companies() {
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {isShowingSkeleton ? (
-              [1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-9 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-36" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : companies.length === 0 ? (
+          <TableBody key={isLoading ? "loading" : "loaded"} className={!isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
+            {isLoading ? null : companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"
@@ -916,7 +904,7 @@ export default function Companies() {
         </Table>
       </Card>
 
-      {!isShowingSkeleton && totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-muted-foreground">
             Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -284,6 +283,7 @@ export default function UserManagement() {
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
     enabled: isAdmin || isConsultant,
+    staleTime: 60 * 1000,
   });
 
   const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
@@ -1091,20 +1091,8 @@ export default function UserManagement() {
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {(isLoadingUsers || isRefreshing) ? (
-              [1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-9 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            ) : paginatedUsers.length === 0 ? (
+          <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
+            {isLoadingUsers ? null : paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"
