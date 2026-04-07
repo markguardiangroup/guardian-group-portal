@@ -1970,11 +1970,17 @@ export class MemStorage implements IStorage {
   // Users by Company (get all users associated with a company)
   async getUsersBySite(siteId: string): Promise<User[]> {
     try {
-      // First get the site from database to find its company
-      const site = await this.getSite(siteId);
-      if (!site) return [];
-      // Return users that have access to this company
-      return await db.select().from(usersTable).where(eq(usersTable.companyId, site.companyId));
+      // Get client users explicitly assigned to this specific site via clientSiteAssignments
+      const assignments = await db
+        .select()
+        .from(clientSiteAssignmentsTable)
+        .where(eq(clientSiteAssignmentsTable.siteId, siteId));
+      const clientIds = assignments.map((a) => a.clientId);
+      if (clientIds.length === 0) return [];
+      return await db
+        .select()
+        .from(usersTable)
+        .where(inArray(usersTable.id, clientIds));
     } catch (error) {
       console.error("Error fetching users by site from DB:", error);
       return [];
