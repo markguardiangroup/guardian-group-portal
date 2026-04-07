@@ -437,7 +437,18 @@ export default function CreateFromTemplate() {
   const handleToggleSite = (siteId: string) => {
     setSelectedSiteIds(prev => {
       const isSelected = prev.includes(siteId);
-      const next = isSelected ? prev.filter(id => id !== siteId) : [...prev, siteId];
+      let next: string[];
+      if (isSelected) {
+        next = prev.filter(id => id !== siteId);
+      } else {
+        const site = sites.find(s => s.id === siteId);
+        const selectedCompanyId = prev.length > 0 ? sites.find(s => s.id === prev[0])?.companyId : null;
+        if (selectedCompanyId && site?.companyId !== selectedCompanyId) {
+          next = [siteId];
+        } else {
+          next = [...prev, siteId];
+        }
+      }
       setSelectedApproverId("");
       setSelectedFolderId("");
       if (next.length > 0) {
@@ -959,8 +970,11 @@ export default function CreateFromTemplate() {
           <p className="text-sm text-muted-foreground">No matching sites found.</p>
         ) : (
           <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
-            {sitesByCompany.map(({ companyId, companyName, sites: companySites }) => {
+            {(() => {
+              const selectedCompanyId = selectedSiteIds.length > 0 ? sites.find(s => s.id === selectedSiteIds[0])?.companyId : null;
+              return sitesByCompany.map(({ companyId, companyName, sites: companySites }) => {
               const isOpen = siteSearch.trim() !== "" || expandedSitePickerCompanies.has(companyId);
+              const isLockedCompany = !!selectedCompanyId && companyId !== selectedCompanyId;
               const toggleExpand = () => {
                 setExpandedSitePickerCompanies(prev => {
                   const next = new Set(prev);
@@ -971,7 +985,7 @@ export default function CreateFromTemplate() {
               };
               return (
                 <div key={companyId} className="rounded-md border">
-                  <div className="flex items-center hover:bg-muted/50 rounded-md">
+                  <div className={`flex items-center rounded-md ${isLockedCompany ? "" : "hover:bg-muted/50"}`}>
                     <button
                       type="button"
                       onClick={toggleExpand}
@@ -979,8 +993,8 @@ export default function CreateFromTemplate() {
                       data-testid={`button-picker-toggle-company-${companyId}`}
                     >
                       <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
-                      <span className="text-xs text-muted-foreground">({companySites.length})</span>
+                      <span className={`text-xs font-semibold uppercase tracking-wide ${isLockedCompany ? "text-muted-foreground/40" : "text-muted-foreground"}`}>{companyName}</span>
+                      <span className={`text-xs ${isLockedCompany ? "text-muted-foreground/40" : "text-muted-foreground"}`}>({companySites.length})</span>
                     </button>
                     {companySites.length > 1 && (() => {
                       const allSelected = companySites.every(s => selectedSiteIds.includes(s.id));
@@ -992,9 +1006,12 @@ export default function CreateFromTemplate() {
                               setSelectedSiteIds(prev => prev.filter(id => !companySites.some(s => s.id === id)));
                             } else {
                               setSelectedSiteIds(prev => {
-                                const toAdd = companySites.filter(s => !prev.includes(s.id)).map(s => s.id);
-                                return [...prev, ...toAdd];
+                                const base = isLockedCompany ? [] : prev.filter(id => !companySites.some(s => s.id === id));
+                                const toAdd = companySites.map(s => s.id);
+                                return [...base, ...toAdd];
                               });
+                              setSelectedApproverId("");
+                              setSelectedFolderId("");
                             }
                           }}
                           className="px-3 py-2 text-xs text-primary hover:text-primary/80 shrink-0"
@@ -1009,13 +1026,14 @@ export default function CreateFromTemplate() {
                     <div className="border-t">
                       {companySites.map((site) => {
                         const isSelected = selectedSiteIds.includes(site.id);
+                        const isDisabled = isLockedCompany;
                         return (
                           <button
                             key={site.id}
                             type="button"
                             onClick={() => handleToggleSite(site.id)}
                             className={`w-full flex items-center justify-between px-3 py-2 text-left last:rounded-b-md transition-colors ${
-                              isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                              isSelected ? "bg-primary/10 text-primary" : isDisabled ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/50"
                             }`}
                             data-testid={`site-card-${site.id}`}
                           >
@@ -1028,7 +1046,8 @@ export default function CreateFromTemplate() {
                   )}
                 </div>
               );
-            })}
+              });
+            })()}
           </div>
         )}
       </CardContent>

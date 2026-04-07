@@ -267,9 +267,9 @@ export default function DocumentUpload() {
 
   const handleSitePickerSelect = (site: SiteWithCompany) => {
     setSelectedSiteIds(prev => {
-      if (prev.includes(site.id)) {
-        return prev.filter(id => id !== site.id);
-      }
+      if (prev.includes(site.id)) return prev.filter(id => id !== site.id);
+      const selectedCompanyId = prev.length > 0 ? sites?.find(s => s.id === prev[0])?.companyId : null;
+      if (selectedCompanyId && site.companyId !== selectedCompanyId) return [site.id];
       return [...prev, site.id];
     });
     form.setValue("folderId", "");
@@ -698,11 +698,14 @@ export default function DocumentUpload() {
               <p className="text-sm text-muted-foreground">No matching sites found.</p>
             ) : (
               <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
-                {filteredSiteGroups.map(({ companyId, companyName, sites: groupSites }) => {
+                {(() => {
+                  const selectedCompanyId = selectedSiteIds.length > 0 ? sites?.find(s => s.id === selectedSiteIds[0])?.companyId : null;
+                  return filteredSiteGroups.map(({ companyId, companyName, sites: groupSites }) => {
                   const isOpen = sitePickerSearch.trim() !== "" || expandedPickerCompanies.has(companyId);
+                  const isLockedCompany = !!selectedCompanyId && companyId !== selectedCompanyId;
                   return (
                     <div key={companyId} className="rounded-md border">
-                      <div className="flex items-center hover:bg-muted/50 rounded-md">
+                      <div className={`flex items-center rounded-md ${isLockedCompany ? "" : "hover:bg-muted/50"}`}>
                         <button
                           type="button"
                           onClick={() => togglePickerCompany(companyId)}
@@ -710,8 +713,8 @@ export default function DocumentUpload() {
                           data-testid={`button-picker-toggle-company-${companyId}`}
                         >
                           <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
-                          <span className="text-xs text-muted-foreground">({groupSites.length})</span>
+                          <span className={`text-xs font-semibold uppercase tracking-wide ${isLockedCompany ? "text-muted-foreground/40" : "text-muted-foreground"}`}>{companyName}</span>
+                          <span className={`text-xs ${isLockedCompany ? "text-muted-foreground/40" : "text-muted-foreground"}`}>({groupSites.length})</span>
                         </button>
                         {groupSites.length > 1 && (() => {
                           const allSelected = groupSites.every(s => selectedSiteIds.includes(s.id));
@@ -723,9 +726,11 @@ export default function DocumentUpload() {
                                   setSelectedSiteIds(prev => prev.filter(id => !groupSites.some(s => s.id === id)));
                                 } else {
                                   setSelectedSiteIds(prev => {
-                                    const toAdd = groupSites.filter(s => !prev.includes(s.id)).map(s => s.id);
-                                    return [...prev, ...toAdd];
+                                    const base = isLockedCompany ? [] : prev.filter(id => !groupSites.some(s => s.id === id));
+                                    const toAdd = groupSites.map(s => s.id);
+                                    return [...base, ...toAdd];
                                   });
+                                  form.setValue("folderId", "");
                                 }
                               }}
                               className="px-3 py-2 text-xs text-primary hover:text-primary/80 shrink-0"
@@ -740,13 +745,14 @@ export default function DocumentUpload() {
                         <div className="border-t">
                           {groupSites.map((site) => {
                             const isSelected = selectedSiteIds.includes(site.id);
+                            const isDisabled = isLockedCompany;
                             return (
                               <button
                                 key={site.id}
                                 type="button"
                                 onClick={() => handleSitePickerSelect(site)}
                                 className={`w-full flex items-center justify-between px-3 py-2 text-left last:rounded-b-md transition-colors ${
-                                  isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                                  isSelected ? "bg-primary/10 text-primary" : isDisabled ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/50"
                                 }`}
                                 data-testid={`button-picker-select-site-${site.id}`}
                               >
@@ -759,8 +765,9 @@ export default function DocumentUpload() {
                       )}
                     </div>
                   );
-                })}
-              </div>
+                });
+              })()}
+            </div>
             )}
           </CardContent>
           <div className="px-6 pb-6 flex justify-end">
