@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -224,6 +225,7 @@ export default function CreateFromTemplate() {
   const [siteSearch, setSiteSearch] = useState("");
   const [expandedSitePickerCompanies, setExpandedSitePickerCompanies] = useState<Set<string>>(new Set());
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
+  const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
@@ -973,15 +975,7 @@ export default function CreateFromTemplate() {
           Back
         </Button>
         <Button
-          onClick={() => {
-            if (moduleFolders.length === 0 && selectedTemplate) {
-              provisionFoldersMutation.mutate({
-                siteId: selectedSiteId,
-                module: selectedTemplate.module,
-              });
-            }
-            goToStep("placeholders");
-          }}
+          onClick={() => setShowSiteConfirmDialog(true)}
           disabled={!selectedSiteId}
           data-testid="button-next-placeholders"
         >
@@ -1506,6 +1500,80 @@ export default function CreateFromTemplate() {
       {currentStep === "site" && renderSiteStep()}
       {currentStep === "placeholders" && renderPlaceholdersStep()}
       {currentStep === "complete" && renderCompleteStep()}
+
+      {/* Site selection confirmation dialog */}
+      <Dialog open={showSiteConfirmDialog} onOpenChange={setShowSiteConfirmDialog}>
+        <DialogContent data-testid="dialog-site-confirm">
+          <DialogHeader>
+            <DialogTitle>Confirm your selection</DialogTitle>
+            <DialogDescription>
+              Please confirm the template and site before continuing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {/* Template summary */}
+            {selectedTemplate && (
+              <div className={`flex items-center gap-3 rounded-md border p-3 ${moduleBorderColors[selectedTemplate.module] || ""}`}>
+                <div className={`p-2 rounded-md shrink-0 ${moduleBgColors[selectedTemplate.module] || "bg-muted"}`}>
+                  {(() => {
+                    const ModuleIcon = moduleIcons[selectedTemplate.module] || FileText;
+                    return <ModuleIcon className={`h-4 w-4 ${moduleColors[selectedTemplate.module] || ""}`} />;
+                  })()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{selectedTemplate.name}</p>
+                  <p className={`text-xs mt-0.5 ${moduleColors[selectedTemplate.module] || "text-muted-foreground"}`}>
+                    {moduleLabels[selectedTemplate.module]}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Site summary */}
+            {selectedSite && (
+              <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{selectedSite.name}</p>
+                  {selectedSite.companyName && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{selectedSite.companyName}</p>
+                  )}
+                  {selectedSite.address && (
+                    <p className="text-xs text-muted-foreground">{selectedSite.address}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowSiteConfirmDialog(false)}
+              data-testid="button-confirm-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSiteConfirmDialog(false);
+                if (moduleFolders.length === 0 && selectedTemplate) {
+                  provisionFoldersMutation.mutate({
+                    siteId: selectedSiteId,
+                    module: selectedTemplate.module,
+                  });
+                }
+                goToStep("placeholders");
+              }}
+              data-testid="button-confirm-continue"
+            >
+              Confirm & Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
