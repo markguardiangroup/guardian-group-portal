@@ -496,6 +496,8 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Client assigned to this site" });
     },
     onError: () => {
@@ -511,6 +513,8 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "client-assignments"] });
+      queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Client site assignment removed" });
     },
     onError: (error: Error) => {
