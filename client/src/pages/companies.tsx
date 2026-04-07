@@ -739,16 +739,6 @@ export default function Companies() {
               My Companies
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            data-testid="button-refresh-companies"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />

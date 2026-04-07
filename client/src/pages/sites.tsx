@@ -337,16 +337,6 @@ export default function Sites() {
               My Sites
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            data-testid="button-refresh-sites"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
           {canCreateSite && (
             <Button size="sm" className="w-32" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
               <Plus className="mr-2 h-4 w-4" />

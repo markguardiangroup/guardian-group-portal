@@ -998,16 +998,6 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            data-testid="button-refresh-users"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
           {canAddUser && (
             <Button size="sm" className="w-32" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
               <Plus className="h-4 w-4 mr-2" />
