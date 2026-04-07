@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -42,6 +42,10 @@ import {
   AlertTriangle,
   Users,
   ShieldCheck,
+  ChevronRight,
+  Check,
+  Search,
+  MapPin,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
@@ -135,6 +139,8 @@ export default function DocumentUpload() {
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
+  const [sitePickerSearch, setSitePickerSearch] = useState("");
+  const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
 
   // Read pre-fill params from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -224,17 +230,60 @@ export default function DocumentUpload() {
       if (site) {
         if (site.companyName) setSelectedCompany(site.companyName);
         form.setValue("siteId", urlSiteId);
+        // Auto-expand the company containing the pre-selected site in the accordion picker
+        if (site.companyId) {
+          setExpandedPickerCompanies(new Set([site.companyId]));
+        }
       }
     }
   }, [urlSiteId, sites]);
 
-  // Get unique companies from sites
-  const companies = sites 
-    ? Array.from(new Set(sites.map(s => s.companyName).filter((c): c is string => !!c)))
-    : [];
+  // Group all sites by company for the accordion picker
+  const siteGroups = useMemo(() => {
+    if (!sites) return [];
+    const grouped: Record<string, { companyId: string; companyName: string; sites: SiteWithCompany[] }> = {};
+    for (const site of sites) {
+      const key = site.companyId || "";
+      if (!grouped[key]) grouped[key] = { companyId: key, companyName: site.companyName || "", sites: [] };
+      grouped[key].sites.push(site);
+    }
+    return Object.values(grouped).sort((a, b) => a.companyName.localeCompare(b.companyName));
+  }, [sites]);
 
-  // Filter sites by selected company
-  const filteredSites = sites?.filter(site => 
+  const filteredSiteGroups = useMemo(() => {
+    const q = sitePickerSearch.trim().toLowerCase();
+    if (!q) return siteGroups;
+    return siteGroups.map(g => {
+      const companyMatches = g.companyName.toLowerCase().includes(q);
+      const matchingSites = companyMatches ? g.sites : g.sites.filter(s => s.name.toLowerCase().includes(q));
+      return { ...g, sites: matchingSites };
+    }).filter(g => g.sites.length > 0);
+  }, [siteGroups, sitePickerSearch]);
+
+  const handleSitePickerSelect = (site: SiteWithCompany) => {
+    const currentSiteId = form.getValues("siteId");
+    if (currentSiteId === site.id) {
+      form.setValue("siteId", "");
+      form.setValue("folderId", "");
+      setSelectedCompany("");
+    } else {
+      form.setValue("siteId", site.id);
+      form.setValue("folderId", "");
+      setSelectedCompany(site.companyName || "");
+    }
+  };
+
+  const togglePickerCompany = (companyId: string) => {
+    setExpandedPickerCompanies(prev => {
+      const next = new Set(prev);
+      if (next.has(companyId)) next.delete(companyId);
+      else next.add(companyId);
+      return next;
+    });
+  };
+
+  // Filter sites by selected company (still needed for company-scope uploads & warnings)
+  const filteredSites = sites?.filter(site =>
     selectedCompany && site.companyName === selectedCompany
   );
 
@@ -680,38 +729,6 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                                      </div>
-
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <FormItem>
-                      <FormLabel>Company <span className="text-destructive">*</span></FormLabel>
-                      <Select 
-                        value={selectedCompany} 
-                        onValueChange={(value) => {
-                          setSelectedCompany(value);
-                          form.setValue("siteId", "");
-                          form.setValue("folderId", "");
-                          form.setValue("uploadScope", "site");
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-company">
-                            <SelectValue placeholder="Select a company" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {companies.map((company) => (
-                            <SelectItem key={company} value={company as string}>
-                              {company}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Select the company to upload documents for
-                      </FormDescription>
-                    </FormItem>
-
                     <FormField
                       control={form.control}
                       name="uploadScope"
@@ -722,12 +739,10 @@ export default function DocumentUpload() {
                             onValueChange={(value) => {
                               field.onChange(value);
                               if (value === "company") {
-                                form.setValue("siteId", "");
                                 form.setValue("folderId", "");
                               }
                             }} 
                             value={field.value}
-                            disabled={!selectedCompany}
                           >
                             <FormControl>
                               <SelectTrigger data-testid="select-upload-scope">
@@ -737,7 +752,7 @@ export default function DocumentUpload() {
                             <SelectContent>
                               <SelectItem value="site">Single Site</SelectItem>
                               <SelectItem value="company">
-                                All Sites in Company {selectedCompany ? `(${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites)` : ""}
+                                All Sites in Company{selectedCompany ? ` (${sites?.filter(s => s.companyName === selectedCompany).length || 0} sites)` : ""}
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -751,6 +766,114 @@ export default function DocumentUpload() {
                       )}
                     />
                   </div>
+
+                  {/* Grouped site picker */}
+                  <FormField
+                    control={form.control}
+                    name="siteId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {uploadScope === "company" ? "Company" : "Site"}{" "}
+                          <span className="text-destructive">*</span>
+                        </FormLabel>
+                        {uploadScope === "company" && selectedCompany && (
+                          <FormDescription className="mb-2">
+                            Select any site from a company — all sites in that company will receive the document
+                          </FormDescription>
+                        )}
+
+                        {/* Selected site badge */}
+                        {field.value && (() => {
+                          const sel = sites?.find(s => s.id === field.value);
+                          return sel ? (
+                            <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 mb-2">
+                              <MapPin className="h-4 w-4 text-primary shrink-0" />
+                              <span className="text-sm font-medium flex-1">
+                                {sel.name}
+                                {sel.companyName && <span className="text-muted-foreground font-normal ml-1">({sel.companyName})</span>}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleSitePickerSelect(sel)}
+                                className="text-muted-foreground hover:text-foreground"
+                                data-testid="button-clear-site"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : null;
+                        })()}
+
+                        {/* Search */}
+                        <div className="relative mb-2">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            value={sitePickerSearch}
+                            onChange={(e) => setSitePickerSearch(e.target.value)}
+                            placeholder="Search companies or sites…"
+                            className="pl-8 h-8 text-sm"
+                            data-testid="input-site-picker-search"
+                          />
+                        </div>
+
+                        {/* Accordion list */}
+                        {!sites ? (
+                          <p className="text-sm text-muted-foreground">Loading sites…</p>
+                        ) : filteredSiteGroups.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No matching sites found.</p>
+                        ) : (
+                          <div className="space-y-1 max-h-56 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
+                            {filteredSiteGroups.map(({ companyId, companyName, sites: groupSites }) => {
+                              const isOpen = sitePickerSearch.trim() !== "" || expandedPickerCompanies.has(companyId);
+                              return (
+                                <div key={companyId} className="rounded-md border">
+                                  {/* Company header */}
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePickerCompany(companyId)}
+                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md text-left"
+                                    data-testid={`button-picker-toggle-company-${companyId}`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
+                                      <span className="text-xs text-muted-foreground">({groupSites.length})</span>
+                                    </div>
+                                  </button>
+                                  {/* Sites list */}
+                                  {isOpen && (
+                                    <div className="border-t">
+                                      {groupSites.map((site) => {
+                                        const isSelected = field.value === site.id;
+                                        return (
+                                          <button
+                                            key={site.id}
+                                            type="button"
+                                            onClick={() => handleSitePickerSelect(site)}
+                                            className={`w-full flex items-center justify-between px-3 py-2 text-left last:rounded-b-md transition-colors ${
+                                              isSelected
+                                                ? "bg-primary/10 text-primary"
+                                                : "hover:bg-muted/50"
+                                            }`}
+                                            data-testid={`button-picker-select-site-${site.id}`}
+                                          >
+                                            <span className="text-sm pl-5">{site.name}</span>
+                                            {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   {isAdminOrConsultant && selectedCompany && (hasNoClients || hasNoConsultants || sitesWithNoClients.length > 0 || sitesWithNoConsultants.length > 0) && (
                     <div className="space-y-2">
@@ -799,44 +922,6 @@ export default function DocumentUpload() {
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {uploadScope === "site" && (
-                    <FormField
-                      control={form.control}
-                      name="siteId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Site <span className="text-destructive">*</span></FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              form.setValue("folderId", "");
-                            }} 
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid="select-site">
-                                <SelectValue placeholder="Select site" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {filteredSites?.map((site) => (
-                                <SelectItem key={site.id} value={site.id}>
-                                  {site.name} {site.companyName ? `(${site.companyName})` : ""}
-                                </SelectItem>
-                              ))}
-                              {(!filteredSites || filteredSites.length === 0) && (
-                                <SelectItem value="no-sites" disabled>
-                                  No sites available
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   )}
 
                   {((uploadScope === "site" && selectedSiteId) || (uploadScope === "company" && selectedCompany)) && (
