@@ -1443,7 +1443,7 @@ export default function Companies() {
       <Dialog open={isRequiredDocsOpen} onOpenChange={(open) => {
         if (!open) handleSkipRequiredDocs();
       }}>
-        <DialogContent className="sm:max-w-[560px] h-[560px] flex flex-col p-0 gap-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <div className="px-6 pt-6 pb-4 shrink-0 border-b">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
