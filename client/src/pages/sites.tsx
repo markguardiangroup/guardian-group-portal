@@ -397,13 +397,34 @@ export default function Sites() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      ) : filteredSites && filteredSites.length > 0 ? (
         <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Site Name</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead className="hidden md:table-cell">Address</TableHead>
+                <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
+                <TableHead>Compliance</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-44" /></TableCell>
+                  <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : filteredSites && filteredSites.length > 0 ? (
+        <Card className="table-card-enter">
           <Table>
             <TableHeader>
               <TableRow>
