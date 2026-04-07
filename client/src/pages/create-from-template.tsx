@@ -94,7 +94,7 @@ interface DocumentFolder {
   module: string;
   parentId?: string | null;
   sortOrder?: number | null;
-  toolkitFolderId?: string | null;
+  templateId?: string | null;
 }
 
 interface SiteWithCompany extends Site {
@@ -309,10 +309,16 @@ export default function CreateFromTemplate() {
 
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
+    const validTemplateIds = new Set(folderTemplates.map(ft => ft.id));
     const forModule = siteFolders.filter(f => f.module === selectedTemplate?.module);
     // Toolkit root folders have sortOrder < 0; exclude them and all their children
     const toolkitRootIds = new Set(forModule.filter(f => (f.sortOrder ?? 0) < 0).map(f => f.id));
-    const filtered = forModule.filter(f => (f.sortOrder ?? 0) >= 0 && !toolkitRootIds.has(f.parentId ?? ""));
+    // Only show folders whose template still exists (filter out orphaned folders from deleted templates)
+    const filtered = forModule.filter(f =>
+      (f.sortOrder ?? 0) >= 0 &&
+      !toolkitRootIds.has(f.parentId ?? "") &&
+      (!f.templateId || validTemplateIds.has(f.templateId))
+    );
     const result: typeof siteFolders = [];
     const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     for (const parent of parentFolders) {

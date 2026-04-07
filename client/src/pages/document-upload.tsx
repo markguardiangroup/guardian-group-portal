@@ -170,6 +170,10 @@ export default function DocumentUpload() {
     queryKey: ["/api/sites"],
   });
 
+  const { data: folderTemplates = [] } = useQuery<{ id: string }[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+
   const { data: moduleTemplates } = useQuery<any[]>({
     queryKey: ["/api/document-templates", initialModule],
     queryFn: async () => {
@@ -405,10 +409,16 @@ export default function DocumentUpload() {
 
   // Filter and sort folders hierarchically by selected module
   const moduleFolders = (() => {
+    const validTemplateIds = new Set(folderTemplates.map(ft => ft.id));
     const forModule = siteFolders?.filter(f => f.module === selectedModule) || [];
     // Toolkit root folders have sortOrder < 0; exclude them and all their children
     const toolkitRootIds = new Set(forModule.filter(f => (f.sortOrder ?? 0) < 0).map(f => f.id));
-    const filtered = forModule.filter(f => (f.sortOrder ?? 0) >= 0 && !toolkitRootIds.has(f.parentId ?? ""));
+    // Only show folders whose template still exists (filter out orphaned folders from deleted templates)
+    const filtered = forModule.filter(f =>
+      (f.sortOrder ?? 0) >= 0 &&
+      !toolkitRootIds.has(f.parentId ?? "") &&
+      (!f.templateId || validTemplateIds.has(f.templateId))
+    );
     // Sort hierarchically: parents first, then children immediately after their parent
     const result: DocumentFolder[] = [];
     const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
