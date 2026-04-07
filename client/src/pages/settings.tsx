@@ -71,6 +71,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import {
   clientPermissionCapabilities,
@@ -1114,6 +1122,7 @@ function TestingTab() {
 
   const [showListForm, setShowListForm] = useState(false);
   const [editingList, setEditingList] = useState<TestingTaskList | null>(null);
+  const [viewingList, setViewingList] = useState<TestingTaskList | null>(null);
   const [savingList, setSavingList] = useState(false);
   const [deletingListId, setDeletingListId] = useState<string | null>(null);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -1291,6 +1300,9 @@ function TestingTab() {
                     {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
                   </div>
                   <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingList(list)} data-testid={`button-view-tasklist-${list.id}`}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingList(list); setShowListForm(false); }} data-testid={`button-edit-tasklist-${list.id}`}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -1434,6 +1446,76 @@ function TestingTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* View Task List Sheet */}
+      <Sheet open={!!viewingList} onOpenChange={(open) => !open && setViewingList(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-testid="sheet-view-tasklist">
+          {viewingList && (
+            <>
+              <SheetHeader className="mb-6">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <SheetTitle className="text-xl">{viewingList.title}</SheetTitle>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[viewingList.module] ?? MODULE_COLORS.general}`}>
+                    {MODULE_LABELS[viewingList.module] ?? viewingList.module}
+                  </span>
+                </div>
+                {viewingList.description && (
+                  <SheetDescription className="text-sm mt-1">{viewingList.description}</SheetDescription>
+                )}
+              </SheetHeader>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Tasks <span className="ml-1 text-muted-foreground font-normal">({viewingList.tasks.length})</span>
+                  </h3>
+                </div>
+
+                {viewingList.tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No tasks in this list yet.</p>
+                ) : (
+                  <ol className="space-y-2">
+                    {viewingList.tasks.map((task, idx) => (
+                      <li key={task.id} className="flex items-start gap-3 rounded-lg border p-3 bg-muted/20" data-testid={`sheet-task-item-${task.id}`}>
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-snug">{task.label}</p>
+                          {task.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                {/* Assignment progress summary — shown when there are assignments for this list */}
+                {selectedListId === viewingList.id && listAssignments.length > 0 && (
+                  <div className="pt-4 border-t space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">Consultant Progress</h3>
+                    {listAssignments.map((a: TestingAssignment) => {
+                      const total = viewingList.tasks.length;
+                      const done = (a.completedTaskIds ?? []).length;
+                      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                      return (
+                        <div key={a.id} className="space-y-1" data-testid={`sheet-assignment-progress-${a.id}`}>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">{a.assignedToUser?.fullName ?? a.assignedTo}</span>
+                            <span className="text-muted-foreground text-xs">{done} / {total}</span>
+                          </div>
+                          <Progress value={pct} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Confirm Remove Assignment Dialog */}
       <AlertDialog open={!!confirmRemoveAssignmentId} onOpenChange={(open) => !open && setConfirmRemoveAssignmentId(null)}>
