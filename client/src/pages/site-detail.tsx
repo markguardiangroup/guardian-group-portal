@@ -472,13 +472,13 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   });
 
   // Fetch all users to get company users
-  const { data: allUsersData } = useQuery<{ users: UserWithoutPassword[] }>({
+  const { data: allUsersData = [] } = useQuery<UserWithoutPassword[]>({
     queryKey: ["/api/users"],
     enabled: !!companyId,
   });
 
   // Filter to get only client users belonging to this company
-  const companyUsers = (allUsersData?.users || []).filter(
+  const companyUsers = allUsersData.filter(
     (u) => u.role === "client" && (u as any).companyId === companyId
   );
 
