@@ -677,14 +677,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                           <><XCircle className="h-3 w-3 mr-1" />{user.status}</>
                         )}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className={assignedClientIds.has(user.id)
-                          ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700"
-                          : "text-muted-foreground"}
-                      >
-                        {assignedClientIds.has(user.id) ? "Site Access" : "All Sites"}
-                      </Badge>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-user-menu-${user.id}`}>
