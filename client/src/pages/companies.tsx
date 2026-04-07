@@ -784,7 +784,7 @@ export default function Companies() {
         </Select>
       </div>
 
-      <Card key={isInitialLoad ? "skeleton" : "data"} className={!isInitialLoad ? "table-card-enter" : ""}>
+      <Card>
         <Table>
           <TableHeader>
             <TableRow>

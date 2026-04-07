@@ -1117,7 +1117,7 @@ export default function UserManagement() {
         </Select>
       </div>
 
-      <Card className="table-card-enter">
+      <Card>
         <Table>
           <TableHeader>
             <TableRow>
