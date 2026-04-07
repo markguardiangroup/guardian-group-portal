@@ -92,6 +92,9 @@ interface DocumentFolder {
   name: string;
   siteId: string;
   module: string;
+  parentId?: string | null;
+  sortOrder?: number | null;
+  toolkitFolderId?: string | null;
 }
 
 interface SiteWithCompany extends Site {
@@ -306,7 +309,8 @@ export default function CreateFromTemplate() {
 
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
-    const filtered = siteFolders.filter(f => f.module === selectedTemplate?.module);
+    // Exclude toolkit folders (linked to toolkit sections, not regular module folders)
+    const filtered = siteFolders.filter(f => f.module === selectedTemplate?.module && !f.toolkitFolderId);
     const result: typeof siteFolders = [];
     const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     for (const parent of parentFolders) {
