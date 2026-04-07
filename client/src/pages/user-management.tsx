@@ -2387,36 +2387,60 @@ export default function UserManagement() {
               Assign Sites to {userNeedingSiteAssignment?.fullName}
             </DialogTitle>
             <DialogDescription>
-              Please assign at least one site, or set this user as the primary contact for their company.
+              Please assign at least one site, or set this user as the primary contact for their company. Each company can only have one primary contact.
             </DialogDescription>
           </DialogHeader>
           {userNeedingSiteAssignment && (() => {
             const userCompany = companies.find(c => c.id === userNeedingSiteAssignment.companyId);
             const companySites = sites ? sites.filter(s => s.companyId === userNeedingSiteAssignment.companyId) : [];
             const unassignedSites = companySites.filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id));
+            const existingPrimaryContact = userCompany?.contactUserId
+              ? allUsers.find(u => u.id === userCompany.contactUserId)
+              : null;
             return (
               <div className="space-y-4">
                 {/* Primary Contact toggle */}
                 <div className={`rounded-lg border p-4 space-y-3 transition-colors ${setPrimaryContact ? "border-primary/50 bg-primary/5" : ""}`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
                       id="primary-contact-check"
                       checked={setPrimaryContact}
                       onChange={e => { setSetPrimaryContact(e.target.checked); if (e.target.checked) setSelectedSiteToAdd(""); }}
-                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                      className="h-4 w-4 mt-0.5 rounded border-input accent-primary cursor-pointer shrink-0"
                       data-testid="checkbox-primary-contact"
                     />
-                    <Label htmlFor="primary-contact-check" className="cursor-pointer font-medium">
-                      Set as primary contact
-                    </Label>
+                    <div className="space-y-0.5">
+                      <Label htmlFor="primary-contact-check" className="cursor-pointer font-medium leading-snug">
+                        Set as primary contact
+                      </Label>
+                      {existingPrimaryContact && (
+                        <p className="text-xs text-muted-foreground">
+                          Current primary contact: <strong className="text-foreground">{existingPrimaryContact.fullName}</strong>
+                        </p>
+                      )}
+                      {!existingPrimaryContact && userCompany && (
+                        <p className="text-xs text-muted-foreground">No primary contact currently set for {userCompany.name}</p>
+                      )}
+                    </div>
                   </div>
                   {setPrimaryContact && userCompany && (
-                    <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/60 rounded-md p-3">
+                    <div className="flex items-start gap-2 text-sm bg-muted/60 rounded-md p-3">
                       <Shield className="h-4 w-4 mt-0.5 text-primary shrink-0" />
-                      <span>
-                        This will make <strong>{userNeedingSiteAssignment.fullName}</strong> a primary contact for{" "}
-                        <strong>{userCompany.name}</strong> and automatically grant access to all current and future sites within this company.
+                      <span className="text-muted-foreground">
+                        {existingPrimaryContact ? (
+                          <>
+                            This will replace <strong className="text-foreground">{existingPrimaryContact.fullName}</strong> and make{" "}
+                            <strong className="text-foreground">{userNeedingSiteAssignment.fullName}</strong> the primary contact for{" "}
+                            <strong className="text-foreground">{userCompany.name}</strong>.{" "}
+                            Each company can only have one primary contact.
+                          </>
+                        ) : (
+                          <>
+                            This will make <strong className="text-foreground">{userNeedingSiteAssignment.fullName}</strong> the primary contact for{" "}
+                            <strong className="text-foreground">{userCompany.name}</strong> and automatically grant access to all current and future sites within this company.
+                          </>
+                        )}
                       </span>
                     </div>
                   )}
