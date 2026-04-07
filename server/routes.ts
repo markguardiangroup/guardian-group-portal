@@ -9195,12 +9195,12 @@ export async function registerRoutes(
     }
   });
 
-  // Remove site assignment from user (admin only)
+  // Remove site assignment from user (admin or pro consultant)
   app.delete("/api/users/:userId/site-assignments", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can manage site assignments" });
+      if (!currentUser || (currentUser.role !== "admin" && !isProConsultant(currentUser))) {
+        return res.status(403).json({ error: "Only admins and pro consultants can manage site assignments" });
       }
       const targetUser = await storage.getUser(req.params.userId);
       if (!targetUser) return res.status(404).json({ error: "User not found" });
