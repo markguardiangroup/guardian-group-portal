@@ -190,6 +190,9 @@ function CompanyCard({
   );
 }
 
+// Persists across component mounts within a session — animation plays only on first load
+let _companiesShown = false;
+
 export default function Companies() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -706,6 +709,10 @@ export default function Companies() {
   const totalPages = data?.totalPages || 1;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [alreadyShown] = useState(() => _companiesShown);
+  useEffect(() => {
+    if (!isLoading && companies.length > 0) _companiesShown = true;
+  }, [isLoading, companies.length]);
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.refetchQueries({ queryKey: ["/api/companies"] });
@@ -796,7 +803,7 @@ export default function Companies() {
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody key={isLoading ? "loading" : "loaded"} className={!isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
+          <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? null : companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">

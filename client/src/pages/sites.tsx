@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -77,6 +77,9 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
     </Badge>
   );
 }
+
+// Persists across component mounts within a session — animation plays only on first load
+let _sitesShown = false;
 
 export default function Sites() {
   const { user } = useAuth();
@@ -307,6 +310,10 @@ export default function Sites() {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [alreadyShown] = useState(() => _sitesShown);
+  useEffect(() => {
+    if (!isLoading && filteredSites && filteredSites.length > 0) _sitesShown = true;
+  }, [isLoading, filteredSites?.length]);
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await Promise.all([
@@ -409,7 +416,7 @@ export default function Sites() {
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody key={isLoading ? "loading" : "loaded"} className={!isLoading && filteredSites && filteredSites.length > 0 ? "table-rows-animate" : ""}>
+          <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && filteredSites && filteredSites.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? null : !filteredSites || filteredSites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">

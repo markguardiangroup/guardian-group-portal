@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
@@ -152,6 +152,9 @@ const toTitleCase = (str: string): string => {
     .join(" ");
 };
 
+// Persists across component mounts within a session — animation plays only on first load
+let _usersShown = false;
+
 export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
@@ -170,6 +173,7 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [alreadyShown] = useState(() => _usersShown);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
     queryKey: ["/api/users", viewingUser?.id, "activity"],
     queryFn: async () => {
@@ -285,6 +289,9 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
     staleTime: 60 * 1000,
   });
+  useEffect(() => {
+    if (!isLoadingUsers && allUsers.length > 0) _usersShown = true;
+  }, [isLoadingUsers, allUsers.length]);
 
   const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants"],
@@ -1091,7 +1098,7 @@ export default function UserManagement() {
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
+          <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!alreadyShown && !isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
             {isLoadingUsers ? null : paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
