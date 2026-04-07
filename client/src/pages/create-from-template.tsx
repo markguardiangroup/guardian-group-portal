@@ -895,145 +895,122 @@ export default function CreateFromTemplate() {
   );
 
   const renderSiteStep = () => (
-    <div className="space-y-4">
-      {selectedTemplate && (
-        <Card className={`relative overflow-hidden border ${moduleBorderColors[selectedTemplate.module] || ""}`}>
-          <div className={`absolute inset-0 bg-gradient-to-br ${moduleGradients[selectedTemplate.module] || ""} pointer-events-none`} />
-          <CardContent className="p-4 relative">
-            <div className="flex items-center gap-3">
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle>Select Site(s)</CardTitle>
+        <CardDescription>
+          {selectedTemplate ? (
+            <span className="flex items-center gap-2">
               {(() => {
                 const ModuleIcon = moduleIcons[selectedTemplate.module] || FileText;
-                return (
-                  <div className={`p-2 rounded-md ${moduleBgColors[selectedTemplate.module] || "bg-muted"}`}>
-                    <ModuleIcon className={`h-5 w-5 ${moduleColors[selectedTemplate.module] || ""}`} />
-                  </div>
-                );
+                return <ModuleIcon className={`h-3.5 w-3.5 shrink-0 ${moduleColors[selectedTemplate.module] || "text-muted-foreground"}`} />;
               })()}
-              <div>
-                <p className="font-medium">{selectedTemplate.name}</p>
-                <p className={`text-sm ${moduleColors[selectedTemplate.module] || "text-muted-foreground"}`}>
-                  {moduleLabels[selectedTemplate.module]}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              <span>{selectedTemplate.name}</span>
+              <span className="text-muted-foreground">·</span>
+              <span>{moduleLabels[selectedTemplate.module]}</span>
+            </span>
+          ) : "Choose one or more sites to create this document for"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Selected sites badges */}
+        {selectedSiteIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedSiteIds.map(siteId => {
+              const sel = sites.find(s => s.id === siteId);
+              if (!sel) return null;
+              return (
+                <div key={siteId} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm" data-testid={`badge-site-${siteId}`}>
+                  <MapPin className="h-3 w-3 text-primary shrink-0" />
+                  <span className="font-medium">{sel.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSite(siteId)}
+                    className="text-muted-foreground hover:text-foreground ml-0.5"
+                    data-testid={`button-remove-site-${siteId}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-      {/* Selected sites badges */}
-      {selectedSiteIds.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedSiteIds.map(siteId => {
-            const sel = sites.find(s => s.id === siteId);
-            if (!sel) return null;
-            return (
-              <div key={siteId} className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 pl-2.5 pr-1.5 py-1.5 text-sm">
-                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="font-medium">{sel.name}</span>
-                {sel.companyName && <span className="text-muted-foreground font-normal">({sel.companyName})</span>}
-                <button
-                  type="button"
-                  onClick={() => handleToggleSite(siteId)}
-                  className="ml-0.5 text-muted-foreground hover:text-foreground"
-                  data-testid={`button-remove-site-${siteId}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search companies or sites…"
+            value={siteSearch}
+            onChange={(e) => setSiteSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+            data-testid="input-site-search"
+          />
         </div>
-      )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search companies or sites…"
-          value={siteSearch}
-          onChange={(e) => setSiteSearch(e.target.value)}
-          className="pl-9"
-          data-testid="input-site-search"
-        />
-      </div>
-
-      {sitesLoading ? (
-        <div className="space-y-2">
-          {[1, 2].map((g) => (
-            <Skeleton key={g} className="h-10 w-full rounded-md" />
-          ))}
-        </div>
-      ) : filteredSites.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No sites found</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-1 max-h-[28rem] overflow-y-auto pr-1" data-testid="site-picker-list">
-          {sitesByCompany.map(({ companyId, companyName, sites: companySites }) => {
-            const isOpen = siteSearch.trim() !== "" || expandedSitePickerCompanies.has(companyId);
-            const toggleExpand = () => {
-              setExpandedSitePickerCompanies(prev => {
-                const next = new Set(prev);
-                if (next.has(companyId)) next.delete(companyId);
-                else next.add(companyId);
-                return next;
-              });
-            };
-            return (
-              <div key={companyId} className="rounded-md border">
-                {/* Company header */}
-                <button
-                  type="button"
-                  onClick={toggleExpand}
-                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 rounded-md text-left"
-                  data-testid={`button-picker-toggle-company-${companyId}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
-                    <span className="text-xs text-muted-foreground">({companySites.length})</span>
-                  </div>
-                </button>
-                {/* Sites list */}
-                {isOpen && (
-                  <div className="border-t">
-                    {companySites.map((site) => {
-                      const isSelected = selectedSiteIds.includes(site.id);
-                      return (
-                        <button
-                          key={site.id}
-                          type="button"
-                          onClick={() => handleToggleSite(site.id)}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 text-left last:rounded-b-md transition-colors ${
-                            isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
-                          }`}
-                          data-testid={`site-card-${site.id}`}
-                        >
-                          <div className="pl-5 min-w-0 flex-1">
-                            <span className="text-sm block">{site.name}</span>
-                            {site.address && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
-                                <MapPin className="h-2.5 w-2.5 shrink-0" />
-                                {site.address}
-                              </span>
-                            )}
-                          </div>
-                          {isSelected && <Check className="h-4 w-4 text-primary shrink-0 ml-2" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="flex justify-between pt-4">
+        {sitesLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map((g) => (
+              <Skeleton key={g} className="h-10 w-full rounded-md" />
+            ))}
+          </div>
+        ) : filteredSites.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matching sites found.</p>
+        ) : (
+          <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
+            {sitesByCompany.map(({ companyId, companyName, sites: companySites }) => {
+              const isOpen = siteSearch.trim() !== "" || expandedSitePickerCompanies.has(companyId);
+              const toggleExpand = () => {
+                setExpandedSitePickerCompanies(prev => {
+                  const next = new Set(prev);
+                  if (next.has(companyId)) next.delete(companyId);
+                  else next.add(companyId);
+                  return next;
+                });
+              };
+              return (
+                <div key={companyId} className="rounded-md border">
+                  <button
+                    type="button"
+                    onClick={toggleExpand}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md text-left"
+                    data-testid={`button-picker-toggle-company-${companyId}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
+                      <span className="text-xs text-muted-foreground">({companySites.length})</span>
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t">
+                      {companySites.map((site) => {
+                        const isSelected = selectedSiteIds.includes(site.id);
+                        return (
+                          <button
+                            key={site.id}
+                            type="button"
+                            onClick={() => handleToggleSite(site.id)}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-left last:rounded-b-md transition-colors ${
+                              isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                            }`}
+                            data-testid={`site-card-${site.id}`}
+                          >
+                            <span className="text-sm pl-5">{site.name}</span>
+                            {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+      <div className="px-6 pb-6 flex justify-between">
         <Button variant="outline" onClick={() => goToStep("template")} data-testid="button-back-template">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
@@ -1047,7 +1024,7 @@ export default function CreateFromTemplate() {
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </Card>
   );
 
   const renderPlaceholdersStep = () => (

@@ -580,25 +580,23 @@ export default function DocumentUpload() {
       </div>
 
       {(uploadStep === "site" || uploadStep === "upload") && (
-        <div className="flex items-center gap-0">
+        <div className="flex items-center gap-2">
           {steps.map((step, idx) => {
             const isActive = uploadStep === step.key;
             const isComplete = steps.findIndex(s => s.key === uploadStep) > idx;
             return (
-              <div key={step.key} className="flex items-center">
-                <div className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              <div key={step.key} className="flex items-center gap-2">
+                {idx > 0 && <div className={`h-px w-8 ${isComplete || isActive ? "bg-primary" : "bg-border"}`} />}
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : isComplete
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-muted hover-elevate cursor-pointer"
+                    : "bg-muted/50 text-muted-foreground"
                 }`}>
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
-                    isActive ? "bg-white/20" : isComplete ? "bg-primary/20" : "bg-muted-foreground/20"
-                  }`}>{idx + 1}</span>
+                  <span className="font-medium">{idx + 1}</span>
                   <span>{step.label}</span>
                 </div>
-                {idx < steps.length - 1 && <div className="h-px w-8 bg-border mx-1" />}
               </div>
             );
           })}
