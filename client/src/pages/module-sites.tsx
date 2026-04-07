@@ -284,7 +284,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-sm leading-snug" data-testid="text-site-name-all">
-                            All Sites
+                            {selectedCompany && selectedCompany !== "all" ? selectedCompany : "All Sites"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {filteredSites.length} site{filteredSites.length !== 1 ? "s" : ""}
