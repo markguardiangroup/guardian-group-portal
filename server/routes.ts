@@ -1634,7 +1634,9 @@ export async function registerRoutes(
         allDocuments.map(async (doc) => {
           
           const canAccess = await canUserAccessSite(user, doc.siteId);
-          if (!canAccess) return null;
+          // Also grant access if the current client user is the designated document approver
+          const isDesignatedApprover = user.role === "client" && doc.approverId === user.id;
+          if (!canAccess && !isDesignatedApprover) return null;
           
           // Enrich document with template properties + company required-template check
           const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
@@ -1693,7 +1695,9 @@ export async function registerRoutes(
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
           const canAccess = await canUserAccessSite(user, doc.siteId);
-          if (!canAccess) return null;
+          // Also grant access if the current client user is the designated document approver
+          const isDesignatedApprover = user.role === "client" && doc.approverId === user.id;
+          if (!canAccess && !isDesignatedApprover) return null;
           const docTemplate = doc.templateId ? docTemplateMap.get(doc.templateId) : undefined;
           const companyId = siteToCompanyDocs.get(doc.siteId);
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
@@ -2133,6 +2137,7 @@ export async function registerRoutes(
         assignedTo: null,
         isArchived: false,
         isRequired: body.isRequired || false,
+        approverId: (body.notifyUserIds && body.notifyUserIds.length > 0) ? body.notifyUserIds[0] : null,
         source: body.source || "upload",
         templateId: body.templateId || null,
         templateVersion: body.templateVersion ?? null,
@@ -2511,6 +2516,9 @@ export async function registerRoutes(
         documentUrl,
         role: targetUser.role,
       });
+
+      // Persist the new approver on the document so they can see it in their portal
+      await storage.updateDocument(documentId, { approverId: targetUser.id });
 
       await storage.createAuditLog({
         action: "email_sent",

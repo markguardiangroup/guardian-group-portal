@@ -741,6 +741,7 @@ export const documents = pgTable("documents", {
   renewalPeriodMonths: integer("renewal_period_months"), // Stored when admin manually sets renewal tracking
   uploadedBy: varchar("uploaded_by").notNull(),
   assignedTo: varchar("assigned_to"),
+  approverId: varchar("approver_id"), // Client user designated as the approver for this document
   isArchived: boolean("is_archived").notNull().default(false),
   isRequired: boolean("is_required").notNull().default(false), // Marked as required for compliance
   // Template lineage tracking
