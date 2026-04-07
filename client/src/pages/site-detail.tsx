@@ -662,9 +662,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700">
-                        {roleLabels[user.clientPermissionRole || ""] || "Viewer"}
-                      </Badge>
                       <Badge
                         variant={user.status === "active" ? "default" : "outline"}
                         className={
