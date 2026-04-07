@@ -1289,7 +1289,7 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                           </>
                         )}
-                        {(isAdmin || isPro) && u.role !== "admin" && (
+                        {(isAdmin || isPro ? u.role !== "admin" : isStandardConsultant && u.role === "client") && (
                           <DropdownMenuItem onClick={() => openManageSitesDialog(u)} data-testid={`button-manage-sites-${u.id}`}>
                             <MapPin className="h-4 w-4 mr-2" />
                             Manage Sites
