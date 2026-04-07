@@ -345,7 +345,8 @@ export default function UserManagement() {
   const getVisibleUsers = () => {
     if (isAdmin) return usersWithSiteInfo;
     if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "client");
-    if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
+    // Standard consultants: backend already filtered to site-related non-admin users
+    if (isConsultant) return usersWithSiteInfo;
     return [];
   };
 
@@ -2188,7 +2189,7 @@ export default function UserManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
-                        <SelectItem value="consultant">Consultant</SelectItem>
+                        {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
                         <SelectItem value="client">Client</SelectItem>
                       </SelectContent>
                     </Select>

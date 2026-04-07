@@ -8259,7 +8259,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin and consultant can see all users (for admin reports)
+      // Only admin and consultant can access user management
       if (user.role !== "admin" && user.role !== "consultant") {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -8267,9 +8267,30 @@ export async function registerRoutes(
       const allUsers = await storage.getAllUsers();
       const allSites = await storage.getSites();
       const allCompanies = await storage.getCompanies();
+
+      // Standard (non-pro) consultants only see users relevant to their assigned sites
+      const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
+      let allowedUserIds: Set<string> | null = null;
+      if (isStandardConsultant) {
+        const myAssignments = await storage.getConsultantSites(user.id);
+        const mySiteIds = myAssignments.map(a => a.entityId);
+        allowedUserIds = new Set<string>();
+        allowedUserIds.add(user.id); // always include self
+        for (const siteId of mySiteIds) {
+          const siteConsultants = await storage.getConsultantAssignments(siteId);
+          siteConsultants.forEach(a => allowedUserIds!.add(a.consultantId));
+          const siteClients = await storage.getClientSiteAssignments(siteId);
+          siteClients.forEach(a => allowedUserIds!.add(a.clientId));
+        }
+      }
       
+      // Apply site-scoped filter for standard consultants; exclude admins from standard consultant view
+      const visibleUsers = allowedUserIds
+        ? allUsers.filter(u => allowedUserIds!.has(u.id) && u.role !== "admin")
+        : allUsers;
+
       // Enrich users with site assignments
-      const usersWithAssignments = await Promise.all(allUsers.map(async (u) => {
+      const usersWithAssignments = await Promise.all(visibleUsers.map(async (u) => {
         const { password, ...safeUser } = u;
         
         if (u.role === "consultant") {
@@ -8342,9 +8363,9 @@ export async function registerRoutes(
         preferredContactMethod, notes
       } = req.body;
       
-      // Pro consultants can only create consultant or client users (not admin)
-      if (isProConsultant(currentUser) && role === "admin") {
-        return res.status(403).json({ error: "Pro consultants cannot create admin users" });
+      // Only admins can create consultant or admin accounts
+      if (isProConsultant(currentUser) && role !== "client") {
+        return res.status(403).json({ error: "Pro consultants can only create client users" });
       }
       
       if (!username || !email) {
