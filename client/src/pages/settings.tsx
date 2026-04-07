@@ -1023,6 +1023,9 @@ function TaskListForm({
   const [tasks, setTasks] = useState<TaskItem[]>(initial?.tasks ?? []);
   const [newLabel, setNewLabel] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskLabel, setEditingTaskLabel] = useState("");
+  const [editingTaskDesc, setEditingTaskDesc] = useState("");
 
   const addTask = () => {
     if (!newLabel.trim()) return;
@@ -1040,6 +1043,20 @@ function TaskListForm({
     [copy[idx], copy[swap]] = [copy[swap], copy[idx]];
     setTasks(copy);
   };
+
+  const startEditTask = (task: TaskItem) => {
+    setEditingTaskId(task.id);
+    setEditingTaskLabel(task.label);
+    setEditingTaskDesc(task.description ?? "");
+  };
+
+  const saveEditTask = (id: string) => {
+    if (!editingTaskLabel.trim()) return;
+    setTasks(tasks.map(t => t.id === id ? { ...t, label: editingTaskLabel.trim(), description: editingTaskDesc.trim() || undefined } : t));
+    setEditingTaskId(null);
+  };
+
+  const cancelEditTask = () => setEditingTaskId(null);
 
   return (
     <div className="space-y-4">
@@ -1074,17 +1091,44 @@ function TaskListForm({
         <Label>Task Items</Label>
         {tasks.length === 0 && <p className="text-sm text-muted-foreground">No tasks yet. Add some below.</p>}
         {tasks.map((task, idx) => (
-          <div key={task.id} className="flex items-start gap-2 rounded-md border p-2 bg-muted/30" data-testid={`task-item-${task.id}`}>
-            <GripVertical className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{task.label}</p>
-              {task.description && <p className="text-xs text-muted-foreground truncate">{task.description}</p>}
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, -1)} disabled={idx === 0} data-testid={`button-task-up-${idx}`}><ChevronRight className="h-3 w-3 -rotate-90" /></Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, 1)} disabled={idx === tasks.length - 1} data-testid={`button-task-down-${idx}`}><ChevronDown className="h-3 w-3" /></Button>
-              <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeTask(task.id)} data-testid={`button-task-remove-${idx}`}><X className="h-3 w-3" /></Button>
-            </div>
+          <div key={task.id} className="rounded-md border bg-muted/30" data-testid={`task-item-${task.id}`}>
+            {editingTaskId === task.id ? (
+              <div className="p-3 space-y-2">
+                <Input
+                  value={editingTaskLabel}
+                  onChange={e => setEditingTaskLabel(e.target.value)}
+                  placeholder="Task label *"
+                  autoFocus
+                  data-testid={`input-edit-task-label-${task.id}`}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveEditTask(task.id); } if (e.key === "Escape") cancelEditTask(); }}
+                />
+                <Input
+                  value={editingTaskDesc}
+                  onChange={e => setEditingTaskDesc(e.target.value)}
+                  placeholder="Optional description"
+                  data-testid={`input-edit-task-desc-${task.id}`}
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); saveEditTask(task.id); } if (e.key === "Escape") cancelEditTask(); }}
+                />
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="outline" onClick={cancelEditTask} data-testid={`button-task-edit-cancel-${task.id}`}>Cancel</Button>
+                  <Button size="sm" onClick={() => saveEditTask(task.id)} disabled={!editingTaskLabel.trim()} data-testid={`button-task-edit-save-${task.id}`}>Save</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2">
+                <GripVertical className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{task.label}</p>
+                  {task.description && <p className="text-xs text-muted-foreground truncate">{task.description}</p>}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, -1)} disabled={idx === 0} data-testid={`button-task-up-${idx}`}><ChevronRight className="h-3 w-3 -rotate-90" /></Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveTask(idx, 1)} disabled={idx === tasks.length - 1} data-testid={`button-task-down-${idx}`}><ChevronDown className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEditTask(task)} data-testid={`button-task-edit-${task.id}`}><Pencil className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeTask(task.id)} data-testid={`button-task-remove-${idx}`}><X className="h-3 w-3" /></Button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
 
