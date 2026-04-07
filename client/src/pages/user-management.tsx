@@ -455,7 +455,12 @@ export default function UserManagement() {
   // Sites not in effective assigned, grouped by company
   const getAvailableSitesByCompanyForManage = () => {
     const effectiveIds = getEffectiveAssigned().map(a => a.siteId);
-    const available = sites.filter(s => !effectiveIds.includes(s.id));
+    // For clients, only show sites belonging to their assigned company
+    const clientCompanyId = manageSitesUser?.role === "client" ? manageSitesUser.companyId : null;
+    const available = sites.filter(s =>
+      !effectiveIds.includes(s.id) &&
+      (!clientCompanyId || s.companyId === clientCompanyId)
+    );
     const grouped: Record<string, { company: typeof companies[0]; sites: typeof sites }> = {};
     for (const site of available) {
       if (!grouped[site.companyId]) {
