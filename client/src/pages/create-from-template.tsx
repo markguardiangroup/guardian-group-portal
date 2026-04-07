@@ -202,7 +202,7 @@ export default function CreateFromTemplate() {
   
   const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
-  const [selectedSiteId, setSelectedSiteId] = useState<string>(preselectedSiteId || "");
+  const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>(preselectedSiteId ? [preselectedSiteId] : []);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [placeholderValues, setPlaceholderValues] = useState<Record<string, string>>({});
   const [documentTitle, setDocumentTitle] = useState<string>("");
@@ -253,7 +253,9 @@ export default function CreateFromTemplate() {
   });
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
-  const selectedSite = sites.find(s => s.id === selectedSiteId);
+  const primarySiteId = selectedSiteIds[0] ?? "";
+  const selectedSite = sites.find(s => s.id === primarySiteId);
+  const selectedSiteObjects = sites.filter(s => selectedSiteIds.includes(s.id));
 
   // Sync requiresApproval from template whenever the selected template changes
   useEffect(() => {
@@ -282,30 +284,29 @@ export default function CreateFromTemplate() {
   }, [selectedTemplate]);
 
   const { data: siteFolders = [] } = useQuery<DocumentFolder[]>({
-    queryKey: ["/api/folders", selectedSiteId],
+    queryKey: ["/api/folders", primarySiteId],
     queryFn: async () => {
-      if (!selectedSiteId) return [];
-      const res = await fetch(`/api/folders?siteId=${selectedSiteId}`, {
+      if (!primarySiteId) return [];
+      const res = await fetch(`/api/folders?siteId=${primarySiteId}`, {
         credentials: "include",
       });
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!selectedSiteId,
+    enabled: !!primarySiteId,
   });
 
-  const { data: siteUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
-    queryKey: ["/api/sites", selectedSiteId, "users"],
-    queryFn: async () => {
-      if (!selectedSiteId) return [];
-      const res = await fetch(`/api/sites/${selectedSiteId}/users`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: !!selectedSiteId,
+  const { data: allUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; siteAssignments?: { siteId: string }[] }>>({
+    queryKey: ["/api/users"],
   });
 
-  const siteClientUsers = siteUsers.filter(u => u.role === "client");
+  const siteClientUsers = useMemo(() => {
+    if (selectedSiteIds.length === 0) return [];
+    return allUsers.filter(u =>
+      u.role === "client" &&
+      selectedSiteIds.every(siteId => u.siteAssignments?.some(a => a.siteId === siteId))
+    );
+  }, [allUsers, selectedSiteIds]);
 
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
@@ -341,7 +342,7 @@ export default function CreateFromTemplate() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/folders", selectedSiteId] });
+      queryClient.refetchQueries({ queryKey: ["/api/folders", primarySiteId] });
     },
   });
 
@@ -395,20 +396,22 @@ export default function CreateFromTemplate() {
     return Object.values(grouped).sort((a, b) => a.companyName.localeCompare(b.companyName));
   }, [filteredSites]);
 
-  // Auto-expand the company of whichever site is currently selected (pre-selected or user-chosen)
+  // Auto-expand the company accordion for all currently selected sites
   useEffect(() => {
-    if (selectedSiteId && sites.length > 0) {
-      const site = sites.find(s => s.id === selectedSiteId);
-      if (site?.companyId) {
-        setExpandedSitePickerCompanies(prev => {
-          if (prev.has(site.companyId)) return prev;
-          const next = new Set(prev);
-          next.add(site.companyId);
-          return next;
-        });
+    if (selectedSiteIds.length > 0 && sites.length > 0) {
+      for (const siteId of selectedSiteIds) {
+        const site = sites.find(s => s.id === siteId);
+        if (site?.companyId) {
+          setExpandedSitePickerCompanies(prev => {
+            if (prev.has(site.companyId)) return prev;
+            const next = new Set(prev);
+            next.add(site.companyId);
+            return next;
+          });
+        }
       }
     }
-  }, [selectedSiteId, sites]);
+  }, [selectedSiteIds, sites]);
 
   const populatePlaceholders = (site: SiteWithCompany) => {
     const values: Record<string, string> = {};
@@ -431,31 +434,37 @@ export default function CreateFromTemplate() {
     setPlaceholderValues(values);
   };
 
-  const handleSelectSite = (siteId: string) => {
-    setSelectedSiteId(siteId);
-    setSelectedApproverId("");
-    setSelectedFolderId(""); // reset — useEffect will auto-set once folders load
-    const site = sites.find(s => s.id === siteId);
-    if (site) {
-      populatePlaceholders(site);
-      setDocumentTitle(selectedTemplate?.name || "");
-    }
+  const handleToggleSite = (siteId: string) => {
+    setSelectedSiteIds(prev => {
+      const isSelected = prev.includes(siteId);
+      const next = isSelected ? prev.filter(id => id !== siteId) : [...prev, siteId];
+      setSelectedApproverId("");
+      setSelectedFolderId("");
+      if (next.length > 0) {
+        const site = sites.find(s => s.id === next[0]);
+        if (site) {
+          populatePlaceholders(site);
+          setDocumentTitle(selectedTemplate?.name || "");
+        }
+      }
+      return next;
+    });
   };
 
-  // Auto-set folder after the site's folders have loaded
+  // Auto-set folder after the primary site's folders have loaded
   useEffect(() => {
-    if (!selectedTemplate || !selectedSiteId || siteFolders.length === 0) return;
+    if (!selectedTemplate || !primarySiteId || siteFolders.length === 0) return;
     if (selectedTemplate.toolkitFolderId) return; // toolkit templates stay blank
     if (!selectedTemplate.folderTemplateId) return;
     const folderTemplate = folderTemplates.find(ft => ft.id === selectedTemplate.folderTemplateId);
     if (!folderTemplate) return;
     const matchingFolder = siteFolders.find(f => f.name === folderTemplate.name);
     if (matchingFolder) setSelectedFolderId(matchingFolder.id);
-  }, [siteFolders, selectedSiteId]);
+  }, [siteFolders, primarySiteId]);
 
   const createDocumentMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedTemplate || !selectedSite || !selectedFile) {
+      if (!selectedTemplate || selectedSiteIds.length === 0 || !selectedFile) {
         throw new Error("Missing required data");
       }
       if (!selectedFolderId) {
@@ -465,7 +474,7 @@ export default function CreateFromTemplate() {
         throw new Error("Please select a client approver");
       }
 
-      // Step 1: Upload the file to object storage
+      // Step 1: Upload the file once to object storage
       const uploadResponse = await fetch("/api/uploads/file", {
         method: "POST",
         headers: {
@@ -482,34 +491,71 @@ export default function CreateFromTemplate() {
       const uploadResult = await uploadResponse.json();
       const fileUrl = uploadResult.objectPath;
 
-      // Step 2: Create the document record with the file URL
+      // Step 2: Create a document record for each selected site
       const docType = documentTypes.find(dt => dt.id === selectedTemplate.documentTypeId);
+      const selectedFolder = siteFolders.find(f => f.id === selectedFolderId);
+      const selectedFolderName = selectedFolder?.name || "";
 
-      const formData = {
-        title: documentTitle || selectedTemplate.name,
-        comments: documentComments || null,
-        module: selectedTemplate.module,
-        documentTypeId: selectedTemplate.documentTypeId,
-        siteId: selectedSiteId,
-        folderId: selectedFolderId || undefined,
-        type: docType?.code || "policy",
-        fileName: selectedFile.name,
-        fileUrl: fileUrl,
-        fileSize: selectedFile.size,
-        mimeType: selectedFile.type,
-        source: "template" as const,
-        templateId: selectedTemplate.id,
-        templateVersion: selectedTemplate.version,
-        requiresApproval,
-        notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
-        reviewDate: reviewDate || undefined,
-        expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
-        renewalDate: complianceMode === "renewal" && renewalPeriodMonths
-          ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
-          : undefined,
-      };
+      const results = [];
+      for (const siteId of selectedSiteIds) {
+        // Provision folders for this site in case they don't exist yet
+        try {
+          await fetch("/api/folders/provision", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siteId, module: selectedTemplate.module }),
+            credentials: "include",
+          });
+        } catch (e) {
+          console.error(`Failed to provision folders for site ${siteId}:`, e);
+        }
 
-      return apiRequest("POST", "/api/documents", formData);
+        // Find the matching folder for this site by name
+        let siteFolderId = selectedFolderId;
+        if (selectedFolderName) {
+          try {
+            const foldersRes = await fetch(`/api/folders?siteId=${siteId}`, { credentials: "include" });
+            if (foldersRes.ok) {
+              const siteFoldersList = await foldersRes.json();
+              const matchingFolder = siteFoldersList.find((f: DocumentFolder) =>
+                f.name === selectedFolderName && f.module === selectedTemplate.module
+              );
+              if (matchingFolder) siteFolderId = matchingFolder.id;
+            }
+          } catch (e) {
+            console.error(`Failed to fetch folders for site ${siteId}:`, e);
+          }
+        }
+
+        const formData = {
+          title: documentTitle || selectedTemplate.name,
+          comments: documentComments || null,
+          module: selectedTemplate.module,
+          documentTypeId: selectedTemplate.documentTypeId,
+          siteId,
+          folderId: siteFolderId || undefined,
+          type: docType?.code || "policy",
+          fileName: selectedFile.name,
+          fileUrl,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type,
+          source: "template" as const,
+          templateId: selectedTemplate.id,
+          templateVersion: selectedTemplate.version,
+          requiresApproval,
+          notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          reviewDate: reviewDate || undefined,
+          expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
+          renewalDate: complianceMode === "renewal" && renewalPeriodMonths
+            ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
+            : undefined,
+        };
+
+        const result = await apiRequest("POST", "/api/documents", formData);
+        results.push(result);
+      }
+
+      return results;
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["/api/documents"] });
@@ -519,9 +565,12 @@ export default function CreateFromTemplate() {
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       queryClient.refetchQueries({ queryKey: ["/api/sites"] });
       queryClient.refetchQueries({ queryKey: ["/api/folders"] });
+      const count = selectedSiteIds.length;
       toast({
-        title: "Document Created",
-        description: "Document has been created from the template and uploaded to the site.",
+        title: count > 1 ? "Documents Created" : "Document Created",
+        description: count > 1
+          ? `Documents have been created from the template and uploaded to ${count} sites.`
+          : "Document has been created from the template and uploaded to the site.",
       });
       setCurrentStep("complete");
     },
@@ -649,7 +698,7 @@ export default function CreateFromTemplate() {
           const isActive = currentStep === step.key;
           const isComplete = 
             (step.key === "template" && selectedTemplateId) ||
-            (step.key === "site" && selectedSiteId);
+            (step.key === "site" && selectedSiteIds.length > 0);
           const isPast = steps.findIndex(s => s.key === currentStep) > index;
 
           return (
@@ -871,27 +920,30 @@ export default function CreateFromTemplate() {
         </Card>
       )}
 
-      {/* Selected site badge */}
-      {selectedSiteId && (() => {
-        const sel = sites.find(s => s.id === selectedSiteId);
-        return sel ? (
-          <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
-            <MapPin className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-sm font-medium flex-1">
-              {sel.name}
-              {sel.companyName && <span className="text-muted-foreground font-normal ml-1">({sel.companyName})</span>}
-            </span>
-            <button
-              type="button"
-              onClick={() => { setSelectedSiteId(""); setSelectedApproverId(""); setSelectedFolderId(""); }}
-              className="text-muted-foreground hover:text-foreground"
-              data-testid="button-clear-site"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : null;
-      })()}
+      {/* Selected sites badges */}
+      {selectedSiteIds.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedSiteIds.map(siteId => {
+            const sel = sites.find(s => s.id === siteId);
+            if (!sel) return null;
+            return (
+              <div key={siteId} className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 pl-2.5 pr-1.5 py-1.5 text-sm">
+                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="font-medium">{sel.name}</span>
+                {sel.companyName && <span className="text-muted-foreground font-normal">({sel.companyName})</span>}
+                <button
+                  type="button"
+                  onClick={() => handleToggleSite(siteId)}
+                  className="ml-0.5 text-muted-foreground hover:text-foreground"
+                  data-testid={`button-remove-site-${siteId}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -949,12 +1001,12 @@ export default function CreateFromTemplate() {
                 {isOpen && (
                   <div className="border-t">
                     {companySites.map((site) => {
-                      const isSelected = selectedSiteId === site.id;
+                      const isSelected = selectedSiteIds.includes(site.id);
                       return (
                         <button
                           key={site.id}
                           type="button"
-                          onClick={() => handleSelectSite(site.id)}
+                          onClick={() => handleToggleSite(site.id)}
                           className={`w-full flex items-center justify-between px-3 py-2.5 text-left last:rounded-b-md transition-colors ${
                             isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
                           }`}
@@ -988,10 +1040,10 @@ export default function CreateFromTemplate() {
         </Button>
         <Button
           onClick={() => setShowSiteConfirmDialog(true)}
-          disabled={!selectedSiteId}
+          disabled={selectedSiteIds.length === 0}
           data-testid="button-next-placeholders"
         >
-          Continue
+          Continue{selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -1115,7 +1167,9 @@ export default function CreateFromTemplate() {
                     <span className="text-destructive">*</span>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-                    Select the client user who will review and approve this document
+                    {selectedSiteIds.length > 1
+                      ? `Select a client user with access to all ${selectedSiteIds.length} selected sites`
+                      : "Select the client user who will review and approve this document"}
                   </p>
                   {siteClientUsers.length > 0 ? (
                     <Select
@@ -1149,7 +1203,9 @@ export default function CreateFromTemplate() {
                   ) : (
                     <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground mt-1">
                       <Users className="h-4 w-4 shrink-0" />
-                      No client users are assigned to this site. Assign users in User Management first.
+                      {selectedSiteIds.length > 1
+                        ? "No client users have access to all selected sites. Assign users in User Management first."
+                        : "No client users are assigned to this site. Assign users in User Management first."}
                     </div>
                   )}
                 </div>
@@ -1448,10 +1504,15 @@ export default function CreateFromTemplate() {
         <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
           <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
         </div>
-        <h2 className="text-2xl font-semibold mb-2">Document Created Successfully</h2>
+        <h2 className="text-2xl font-semibold mb-2">
+          {selectedSiteIds.length > 1 ? "Documents Created Successfully" : "Document Created Successfully"}
+        </h2>
         <p className="text-muted-foreground text-center mb-6 max-w-md">
-          The document has been created from the template and uploaded to{" "}
-          <span className="font-medium">{selectedSite?.name}</span>.
+          {selectedSiteIds.length > 1 ? (
+            <>The document has been created and uploaded to <span className="font-medium">{selectedSiteIds.length} sites</span>.</>
+          ) : (
+            <>The document has been created from the template and uploaded to{" "}<span className="font-medium">{selectedSite?.name}</span>.</>
+          )}
         </p>
         <div className="flex gap-4">
           <Button
@@ -1459,7 +1520,7 @@ export default function CreateFromTemplate() {
             onClick={() => {
               setCurrentStep("template");
               setSelectedTemplateId("");
-              setSelectedSiteId("");
+              setSelectedSiteIds([]);
               setSelectedFolderId("");
               setPlaceholderValues({});
               setDocumentTitle("");
@@ -1542,19 +1603,23 @@ export default function CreateFromTemplate() {
               </div>
             )}
 
-            {/* Site summary */}
-            {selectedSite && (
-              <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium leading-tight">{selectedSite.name}</p>
-                  {selectedSite.companyName && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{selectedSite.companyName}</p>
-                  )}
-                  {selectedSite.address && (
-                    <p className="text-xs text-muted-foreground">{selectedSite.address}</p>
-                  )}
-                </div>
+            {/* Site(s) summary */}
+            {selectedSiteObjects.length > 0 && (
+              <div className="space-y-1.5">
+                {selectedSiteObjects.map(site => (
+                  <div key={site.id} className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <MapPin className="h-4 w-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium leading-tight">{site.name}</p>
+                      {site.companyName && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{site.companyName}</p>
+                      )}
+                      {site.address && (
+                        <p className="text-xs text-muted-foreground">{site.address}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1570,9 +1635,9 @@ export default function CreateFromTemplate() {
             <Button
               onClick={() => {
                 setShowSiteConfirmDialog(false);
-                if (moduleFolders.length === 0 && selectedTemplate) {
+                if (moduleFolders.length === 0 && selectedTemplate && primarySiteId) {
                   provisionFoldersMutation.mutate({
-                    siteId: selectedSiteId,
+                    siteId: primarySiteId,
                     module: selectedTemplate.module,
                   });
                 }
