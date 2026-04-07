@@ -318,7 +318,7 @@ export default function Sites() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
+      <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
         <div>
           <h1 className="text-3xl font-semibold">Sites</h1>
           <p className="mt-1 text-muted-foreground">
@@ -358,14 +358,14 @@ export default function Sites() {
 
       <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 
-      <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search sites, companies, addresses..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-9"
             data-testid="input-search-sites"
           />
         </div>
