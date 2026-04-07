@@ -307,6 +307,11 @@ export default function Sites() {
     }
     
     return matchesSearch && matchesCompany && matchesCompliance;
+  })?.sort((a, b) => {
+    const companyA = (a.companyName || "").toLowerCase();
+    const companyB = (b.companyName || "").toLowerCase();
+    if (companyA !== companyB) return companyA.localeCompare(companyB);
+    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
