@@ -587,16 +587,21 @@ export default function DocumentUpload() {
             return (
               <div key={step.key} className="flex items-center gap-2">
                 {idx > 0 && <div className={`h-px w-8 ${isComplete || isActive ? "bg-primary" : "bg-border"}`} />}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : isComplete
-                    ? "bg-muted hover-elevate cursor-pointer"
-                    : "bg-muted/50 text-muted-foreground"
-                }`}>
+                <button
+                  onClick={() => { if (isComplete) setUploadStep(step.key); }}
+                  disabled={!isComplete && !isActive}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : isComplete
+                      ? "bg-muted hover-elevate cursor-pointer"
+                      : "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                  }`}
+                  data-testid={`step-${step.key}`}
+                >
                   <span className="font-medium">{idx + 1}</span>
                   <span>{step.label}</span>
-                </div>
+                </button>
               </div>
             );
           })}
