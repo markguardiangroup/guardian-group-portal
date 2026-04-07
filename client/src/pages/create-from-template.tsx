@@ -309,8 +309,10 @@ export default function CreateFromTemplate() {
 
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
-    // Exclude toolkit folders (linked to toolkit sections, not regular module folders)
-    const filtered = siteFolders.filter(f => f.module === selectedTemplate?.module && !f.toolkitFolderId);
+    const forModule = siteFolders.filter(f => f.module === selectedTemplate?.module);
+    // Toolkit root folders have sortOrder < 0; exclude them and all their children
+    const toolkitRootIds = new Set(forModule.filter(f => (f.sortOrder ?? 0) < 0).map(f => f.id));
+    const filtered = forModule.filter(f => (f.sortOrder ?? 0) >= 0 && !toolkitRootIds.has(f.parentId ?? ""));
     const result: typeof siteFolders = [];
     const parentFolders = filtered.filter(f => !f.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     for (const parent of parentFolders) {
