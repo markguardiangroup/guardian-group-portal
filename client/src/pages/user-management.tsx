@@ -988,47 +988,6 @@ export default function UserManagement() {
     setIsRefreshing(false);
   };
 
-  if (isLoadingUsers) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Skeleton className="h-9 w-48" />
-            <Skeleton className="mt-2 h-5 w-64" />
-          </div>
-        </div>
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead className="min-w-[160px]">Company</TableHead>
-                <TableHead className="w-24">Role</TableHead>
-                <TableHead>Sites Assigned</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-32">Last Login</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-10 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
@@ -1131,7 +1090,19 @@ export default function UserManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedUsers.length === 0 ? (
+            {(isLoadingUsers || isRefreshing) ? (
+              [1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-9 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            ) : paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"

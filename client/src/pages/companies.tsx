@@ -705,14 +705,14 @@ export default function Companies() {
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
 
-  const isInitialLoad = isLoading && page === 1 && !debouncedSearch && statusFilter === "all";
-
   const [isRefreshing, setIsRefreshing] = useState(false);
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.refetchQueries({ queryKey: ["/api/companies"] });
     setIsRefreshing(false);
   };
+
+  const isShowingSkeleton = isLoading || isRefreshing;
 
   const formatStatusDisplay = (status: string) => {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -797,7 +797,7 @@ export default function Companies() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isInitialLoad ? (
+            {isShowingSkeleton ? (
               [1, 2, 3, 4, 5].map((i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-9 w-48" /></TableCell>
@@ -915,7 +915,7 @@ export default function Companies() {
         </Table>
       </Card>
 
-      {!isInitialLoad && totalPages > 1 && (
+      {!isShowingSkeleton && totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-muted-foreground">
             Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}

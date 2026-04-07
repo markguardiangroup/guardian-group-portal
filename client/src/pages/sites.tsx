@@ -396,27 +396,40 @@ export default function Sites() {
         </Select>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      ) : filteredSites && filteredSites.length > 0 ? (
-        <Card>
-          <Table>
-            <TableHeader>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Site Name</TableHead>
+              <TableHead>Company</TableHead>
+              <TableHead className="hidden md:table-cell">Address</TableHead>
+              <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
+              <TableHead>Compliance</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(isLoading || isRefreshing) ? (
+              [1, 2, 3, 4, 5].map((i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-44" /></TableCell>
+                  <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-28" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            ) : !filteredSites || filteredSites.length === 0 ? (
               <TableRow>
-                <TableHead>Site Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead className="hidden md:table-cell">Address</TableHead>
-                <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
-                <TableHead>Compliance</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  {searchQuery || companyFilter !== "all" || complianceFilter !== "all"
+                    ? "No sites match your filters."
+                    : "No sites found. Add your first site to get started."}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSites.map((site) => (
+            ) : (
+              filteredSites.map((site) => (
                 <TableRow 
                   key={site.id} 
                   className="cursor-pointer hover-elevate"
@@ -467,31 +480,11 @@ export default function Sites() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
-              <MapPin className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <h3 className="mt-4 text-lg font-medium">No sites found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {searchQuery
-                ? "Try adjusting your search"
-                : "Add your first site to get started"}
-            </p>
-            {!searchQuery && (
-              <Button className="mt-4" onClick={() => setIsAddSiteOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Site
-              </Button>
+              ))
             )}
-          </CardContent>
-        </Card>
-      )}
+          </TableBody>
+        </Table>
+      </Card>
 
       <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
