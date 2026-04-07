@@ -381,15 +381,20 @@ export default function CreateFromTemplate() {
     return Object.values(grouped).sort((a, b) => a.companyName.localeCompare(b.companyName));
   }, [filteredSites]);
 
-  // Auto-expand the company of the pre-selected site in the accordion
+  // Auto-expand the company of whichever site is currently selected (pre-selected or user-chosen)
   useEffect(() => {
-    if (preselectedSiteId && sites.length > 0) {
-      const site = sites.find(s => s.id === preselectedSiteId);
+    if (selectedSiteId && sites.length > 0) {
+      const site = sites.find(s => s.id === selectedSiteId);
       if (site?.companyId) {
-        setExpandedSitePickerCompanies(new Set([site.companyId]));
+        setExpandedSitePickerCompanies(prev => {
+          if (prev.has(site.companyId)) return prev;
+          const next = new Set(prev);
+          next.add(site.companyId);
+          return next;
+        });
       }
     }
-  }, [preselectedSiteId, sites]);
+  }, [selectedSiteId, sites]);
 
   const populatePlaceholders = (site: SiteWithCompany) => {
     const values: Record<string, string> = {};
