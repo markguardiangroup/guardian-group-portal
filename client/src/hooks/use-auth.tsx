@@ -258,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const effectiveUser = user ?? (isError || !isLoading ? devUser : null);
