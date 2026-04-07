@@ -8034,11 +8034,16 @@ export async function registerRoutes(
             ? siteDocuments.filter(d => matchingFolderIds.includes(d.folderId))
             : [];
           
-          // Calculate compliance stats
-          const compliantCount = folderDocuments.filter(d => d.status === "compliant").length;
-          const reviewRequiredCount = folderDocuments.filter(d => d.status === "review_required").length;
-          const overdueCount = folderDocuments.filter(d => d.status === "overdue").length;
-          const pendingApprovalCount = folderDocuments.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+          // Calculate compliance stats — only required documents count toward compliance
+          const requiredFolderDocuments = folderDocuments.filter(d => {
+            const docTmpl = moduleDocTemplates.find(dt => dt.id === d.templateId);
+            return getEffectiveIsRequired(d, docTmpl);
+          });
+          const nonArchivedRequired = requiredFolderDocuments.filter(d => !d.isArchived);
+          const compliantCount = nonArchivedRequired.filter(d => d.status === "compliant").length;
+          const reviewRequiredCount = nonArchivedRequired.filter(d => d.status === "review_required").length;
+          const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
+          const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
           
           // Check if required templates have been fulfilled
           const fulfilledRequiredCount = requiredTemplates.filter(rt => 
@@ -8101,9 +8106,9 @@ export async function registerRoutes(
               }),
               stats: {
                 totalDocuments: childFolderDocs.length,
-                compliant: childFolderDocs.filter(d => d.status === "compliant").length,
-                reviewRequired: childFolderDocs.filter(d => d.status === "review_required").length,
-                overdue: childFolderDocs.filter(d => d.status === "overdue").length,
+                compliant: childFolderDocs.filter(d => !d.isArchived && d.status === "compliant" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                reviewRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "review_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                overdue: childFolderDocs.filter(d => !d.isArchived && d.status === "overdue" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
               },
@@ -8231,6 +8236,13 @@ export async function registerRoutes(
       // (e.g. a document whose folder was provisioned for a different site).
       const allKnownFolderIds = new Set(siteFolders.map(sf => sf.id));
       const unfiledDocuments = siteDocuments.filter(d => !d.folderId || !allKnownFolderIds.has(d.folderId));
+
+      // Summary stats: only count required, non-archived documents (consistent with dashboard compliance)
+      const requiredNonArchivedDocs = siteDocuments.filter(d => {
+        if (d.isArchived) return false;
+        const docTmpl = moduleDocTemplates.find(dt => dt.id === d.templateId);
+        return getEffectiveIsRequired(d, docTmpl);
+      });
       
       res.json({
         siteId,
@@ -8251,16 +8263,16 @@ export async function registerRoutes(
             templateId: d.templateId,
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
-            isRequired: docTemplate?.isRequired || false,
+            isRequired: docTemplate ? getEffectiveIsRequired(d, docTemplate) : false,
             renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
           };
         }),
         summary: {
           totalFolders: hierarchy.length,
-          totalDocuments: siteDocuments.length,
-          compliant: siteDocuments.filter(d => d.status === "compliant").length,
-          reviewRequired: siteDocuments.filter(d => d.status === "review_required").length,
-          overdue: siteDocuments.filter(d => d.status === "overdue").length,
+          totalDocuments: siteDocuments.filter(d => !d.isArchived).length,
+          compliant: requiredNonArchivedDocs.filter(d => d.status === "compliant").length,
+          reviewRequired: requiredNonArchivedDocs.filter(d => d.status === "review_required").length,
+          overdue: requiredNonArchivedDocs.filter(d => d.status === "overdue").length,
         },
       });
     } catch (error) {
