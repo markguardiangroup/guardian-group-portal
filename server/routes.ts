@@ -8268,26 +8268,32 @@ export async function registerRoutes(
       const allSites = await storage.getSites();
       const allCompanies = await storage.getCompanies();
 
-      // Standard (non-pro) consultants only see users relevant to their assigned sites
+      // Standard (non-pro) consultants: only see the specific clients at their assigned sites
+      // They must never see any other consultant or any admin
       const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
-      let allowedUserIds: Set<string> | null = null;
+      let allowedClientIds: Set<string> | null = null;
       if (isStandardConsultant) {
         const myAssignments = await storage.getConsultantSites(user.id);
         const mySiteIds = myAssignments.map(a => a.entityId);
-        allowedUserIds = new Set<string>();
-        allowedUserIds.add(user.id); // always include self
+        allowedClientIds = new Set<string>();
         for (const siteId of mySiteIds) {
-          const siteConsultants = await storage.getConsultantAssignments(siteId);
-          siteConsultants.forEach(a => allowedUserIds!.add(a.consultantId));
           const siteClients = await storage.getClientSiteAssignments(siteId);
-          siteClients.forEach(a => allowedUserIds!.add(a.clientId));
+          siteClients.forEach(a => allowedClientIds!.add(a.clientId));
         }
       }
-      
-      // Apply site-scoped filter for standard consultants; exclude admins from standard consultant view
-      const visibleUsers = allowedUserIds
-        ? allUsers.filter(u => allowedUserIds!.has(u.id) && u.role !== "admin")
-        : allUsers;
+
+      // Apply filters:
+      // - Standard consultant: only their assigned clients (no admins, no other consultants)
+      // - Pro consultant:     all consultants + all clients (no admins)
+      // - Admin:              everyone
+      let visibleUsers: typeof allUsers;
+      if (isStandardConsultant) {
+        visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
+      } else if (isProConsultant(user)) {
+        visibleUsers = allUsers.filter(u => u.role !== "admin");
+      } else {
+        visibleUsers = allUsers;
+      }
 
       // Enrich users with site assignments
       const usersWithAssignments = await Promise.all(visibleUsers.map(async (u) => {

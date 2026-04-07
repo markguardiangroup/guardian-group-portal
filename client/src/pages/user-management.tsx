@@ -345,8 +345,8 @@ export default function UserManagement() {
   const getVisibleUsers = () => {
     if (isAdmin) return usersWithSiteInfo;
     if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "client");
-    // Standard consultants: backend already filtered to site-related non-admin users
-    if (isConsultant) return usersWithSiteInfo;
+    // Standard consultants: backend already filtered — safety net to ensure no consultants/admins slip through
+    if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
     return [];
   };
 
