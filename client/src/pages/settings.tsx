@@ -990,9 +990,19 @@ type TestingAssignment = {
   assignedToUser?: { id: string; fullName: string; email: string };
 };
 
+const MODULE_ORDER = ["health_safety", "human_resources", "employment_law", "training", "general"] as const;
+
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "H&S",
   human_resources: "HR",
+  employment_law: "Employment Law",
+  training: "Training",
+  general: "General",
+};
+
+const MODULE_FULL_LABELS: Record<string, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
   employment_law: "Employment Law",
   training: "Training",
   general: "General",
@@ -1347,40 +1357,54 @@ function TestingTab() {
             {taskLists.length === 0 && !showListForm && (
               <p className="text-sm text-muted-foreground py-4 text-center">No task lists yet. Create one above.</p>
             )}
-            {taskLists.map(list => (
-              <div
-                key={list.id}
-                className={`rounded-lg border p-4 cursor-pointer transition-colors ${selectedListId === list.id ? "border-primary bg-primary/5" : "hover:bg-muted/30"}`}
-                onClick={() => setSelectedListId(selectedListId === list.id ? null : list.id)}
-                data-testid={`tasklist-card-${list.id}`}
-              >
-                <div className="flex items-start gap-3">
-                  <ClipboardList className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium">{list.title}</span>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[list.module] ?? MODULE_COLORS.general}`}>
-                        {MODULE_LABELS[list.module] ?? list.module}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{list.tasks.length} task{list.tasks.length !== 1 ? "s" : ""}</span>
+            {(() => {
+              const grouped = MODULE_ORDER.reduce<Record<string, TestingTaskList[]>>((acc, mod) => {
+                acc[mod] = taskLists.filter(l => l.module === mod);
+                return acc;
+              }, {} as Record<string, TestingTaskList[]>);
+              return MODULE_ORDER.filter(mod => grouped[mod].length > 0).map(mod => (
+                <div key={mod} className="space-y-2">
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${MODULE_COLORS[mod] ?? MODULE_COLORS.general}`}>
+                      {MODULE_LABELS[mod]}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground">{MODULE_FULL_LABELS[mod] ?? mod}</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  {grouped[mod].map(list => (
+                    <div
+                      key={list.id}
+                      className={`rounded-lg border p-4 cursor-pointer transition-colors ${selectedListId === list.id ? "border-primary bg-primary/5" : "hover:bg-muted/30"}`}
+                      onClick={() => setSelectedListId(selectedListId === list.id ? null : list.id)}
+                      data-testid={`tasklist-card-${list.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <ClipboardList className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">{list.title}</span>
+                            <span className="text-xs text-muted-foreground">{list.tasks.length} task{list.tasks.length !== 1 ? "s" : ""}</span>
+                          </div>
+                          {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
+                        </div>
+                        <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingList(list)} data-testid={`button-view-tasklist-${list.id}`}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingList(list); setShowListForm(false); }} data-testid={`button-edit-tasklist-${list.id}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deletingListId === list.id}
+                            onClick={() => setConfirmDeleteListId(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
+                            {deletingListId === list.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
-                  </div>
-                  <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingList(list)} data-testid={`button-view-tasklist-${list.id}`}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingList(list); setShowListForm(false); }} data-testid={`button-edit-tasklist-${list.id}`}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deletingListId === list.id}
-                      onClick={() => setConfirmDeleteListId(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
-                      {deletingListId === list.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </CardContent>
         </Card>
       )}
@@ -1440,76 +1464,89 @@ function TestingTab() {
             <CardTitle>{isAdmin ? "My Testing Assignments (as Consultant)" : "My Testing Tasks"}</CardTitle>
             <CardDescription>Task lists assigned to you — tick off tasks as you complete them</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {myAssignments.length === 0 && (
               <p className="text-sm text-muted-foreground py-2">No task lists assigned to you yet.</p>
             )}
-            {myAssignments.map((a: TestingAssignment) => {
-              const list = a.taskList;
-              if (!list) return null;
-              const total = list.tasks.length;
-              const done = (a.completedTaskIds ?? []).length;
-              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-              const isComplete = total > 0 && done === total;
-              const isExpanded = expandedAssignmentId === a.id;
-
-              return (
-                <div key={a.id} className="rounded-lg border" data-testid={`my-assignment-${a.id}`}>
-                  <div
-                    className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                    onClick={() => setExpandedAssignmentId(isExpanded ? null : a.id)}
-                  >
-                    <ClipboardList className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{list.title}</span>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[list.module] ?? MODULE_COLORS.general}`}>
-                          {MODULE_LABELS[list.module] ?? list.module}
-                        </span>
-                        {isComplete && (
-                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" data-testid={`badge-complete-${a.id}`}>
-                            <CheckCircle2 className="h-3 w-3" /> Complete
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex-1 max-w-[200px] h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="text-xs text-muted-foreground">{done} / {total} tasks</span>
-                      </div>
-                    </div>
-                    {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+            {(() => {
+              const validAssignments = myAssignments.filter((a: TestingAssignment) => !!a.taskList);
+              const grouped = MODULE_ORDER.reduce<Record<string, TestingAssignment[]>>((acc, mod) => {
+                acc[mod] = validAssignments.filter((a: TestingAssignment) => a.taskList?.module === mod);
+                return acc;
+              }, {} as Record<string, TestingAssignment[]>);
+              return MODULE_ORDER.filter(mod => grouped[mod].length > 0).map(mod => (
+                <div key={mod} className="space-y-2">
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${MODULE_COLORS[mod] ?? MODULE_COLORS.general}`}>
+                      {MODULE_LABELS[mod]}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground">{MODULE_FULL_LABELS[mod] ?? mod}</span>
+                    <div className="flex-1 h-px bg-border" />
                   </div>
-
-                  {isExpanded && (
-                    <div className="border-t px-4 pb-4 pt-3 space-y-2">
-                      {list.description && <p className="text-sm text-muted-foreground mb-3">{list.description}</p>}
-                      {list.tasks.map((task: TaskItem) => {
-                        const checked = (a.completedTaskIds ?? []).includes(task.id);
-                        return (
-                          <div key={task.id} className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${checked ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30" : ""}`}
-                            data-testid={`task-checkbox-${task.id}`}>
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={togglingTaskId === task.id}
-                              onChange={() => handleToggleTask(a, task.id)}
-                              className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-emerald-600 cursor-pointer"
-                              data-testid={`checkbox-task-${task.id}`}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium ${checked ? "line-through text-muted-foreground" : ""}`}>{task.label}</p>
-                              {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                  {grouped[mod].map((a: TestingAssignment) => {
+                    const list = a.taskList!;
+                    const total = list.tasks.length;
+                    const done = (a.completedTaskIds ?? []).length;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    const isComplete = total > 0 && done === total;
+                    const isExpanded = expandedAssignmentId === a.id;
+                    return (
+                      <div key={a.id} className="rounded-lg border" data-testid={`my-assignment-${a.id}`}>
+                        <div
+                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                          onClick={() => setExpandedAssignmentId(isExpanded ? null : a.id)}
+                        >
+                          <ClipboardList className="h-5 w-5 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium">{list.title}</span>
+                              {isComplete && (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" data-testid={`badge-complete-${a.id}`}>
+                                  <CheckCircle2 className="h-3 w-3" /> Complete
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <div className="flex-1 max-w-[200px] h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-xs text-muted-foreground">{done} / {total} tasks</span>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        </div>
+
+                        {isExpanded && (
+                          <div className="border-t px-4 pb-4 pt-3 space-y-2">
+                            {list.description && <p className="text-sm text-muted-foreground mb-3">{list.description}</p>}
+                            {list.tasks.map((task: TaskItem) => {
+                              const checked = (a.completedTaskIds ?? []).includes(task.id);
+                              return (
+                                <div key={task.id} className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${checked ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30" : ""}`}
+                                  data-testid={`task-checkbox-${task.id}`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={togglingTaskId === task.id}
+                                    onChange={() => handleToggleTask(a, task.id)}
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-emerald-600 cursor-pointer"
+                                    data-testid={`checkbox-task-${task.id}`}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-medium ${checked ? "line-through text-muted-foreground" : ""}`}>{task.label}</p>
+                                    {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ));
+            })()}
           </CardContent>
         </Card>
       )}
