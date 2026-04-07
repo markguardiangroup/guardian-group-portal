@@ -67,6 +67,8 @@ import {
   ClipboardList,
   Stethoscope,
   X,
+  ChevronRight,
+  Check,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
@@ -220,6 +222,7 @@ export default function CreateFromTemplate() {
   const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
+  const [expandedSitePickerCompanies, setExpandedSitePickerCompanies] = useState<Set<string>>(new Set());
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
 
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
@@ -358,31 +361,35 @@ export default function CreateFromTemplate() {
 
   const filteredSites = useMemo(() => {
     return sites.filter(s => {
-      if (selectedCompany !== "all" && s.companyName !== selectedCompany) return false;
       if (siteSearch) {
         const search = siteSearch.toLowerCase();
         return s.name.toLowerCase().includes(search) ||
-               s.address?.toLowerCase().includes(search);
+               s.address?.toLowerCase().includes(search) ||
+               (s.companyName && s.companyName.toLowerCase().includes(search));
       }
       return true;
     });
-  }, [sites, selectedCompany, siteSearch]);
+  }, [sites, siteSearch]);
 
   const sitesByCompany = useMemo(() => {
-    const grouped: Record<string, typeof filteredSites> = {};
+    const grouped: Record<string, { companyId: string; companyName: string; sites: typeof filteredSites }> = {};
     for (const site of filteredSites) {
-      const company = site.companyName || "Other";
-      if (!grouped[company]) grouped[company] = [];
-      grouped[company].push(site);
+      const key = site.companyId || "other";
+      if (!grouped[key]) grouped[key] = { companyId: key, companyName: site.companyName || "Other", sites: [] };
+      grouped[key].sites.push(site);
     }
-    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    return Object.values(grouped).sort((a, b) => a.companyName.localeCompare(b.companyName));
   }, [filteredSites]);
 
-  const siteIndexMap = useMemo(() => {
-    const map = new Map<number, number>();
-    filteredSites.forEach((site, i) => map.set(site.id, i));
-    return map;
-  }, [filteredSites]);
+  // Auto-expand the company of the pre-selected site in the accordion
+  useEffect(() => {
+    if (preselectedSiteId && sites.length > 0) {
+      const site = sites.find(s => s.id === preselectedSiteId);
+      if (site?.companyId) {
+        setExpandedSitePickerCompanies(new Set([site.companyId]));
+      }
+    }
+  }, [preselectedSiteId, sites]);
 
   const populatePlaceholders = (site: SiteWithCompany) => {
     const values: Record<string, string> = {};
@@ -845,41 +852,44 @@ export default function CreateFromTemplate() {
         </Card>
       )}
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search sites..."
-            value={siteSearch}
-            onChange={(e) => setSiteSearch(e.target.value)}
-            className="pl-9"
-            data-testid="input-site-search"
-          />
-        </div>
-        <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-          <SelectTrigger className="w-48" data-testid="select-company-filter">
-            <SelectValue placeholder="All Companies" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Companies</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company} value={company}>
-                {company}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Selected site badge */}
+      {selectedSiteId && (() => {
+        const sel = sites.find(s => s.id === selectedSiteId);
+        return sel ? (
+          <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-medium flex-1">
+              {sel.name}
+              {sel.companyName && <span className="text-muted-foreground font-normal ml-1">({sel.companyName})</span>}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSelectedSiteId(""); setSelectedApproverId(""); setSelectedFolderId(""); }}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-clear-site"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null;
+      })()}
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search companies or sites…"
+          value={siteSearch}
+          onChange={(e) => setSiteSearch(e.target.value)}
+          className="pl-9"
+          data-testid="input-site-search"
+        />
       </div>
 
       {sitesLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {[1, 2].map((g) => (
-            <div key={g} className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16" />)}
-              </div>
-            </div>
+            <Skeleton key={g} className="h-10 w-full rounded-md" />
           ))}
         </div>
       ) : filteredSites.length === 0 ? (
@@ -890,60 +900,65 @@ export default function CreateFromTemplate() {
           </CardContent>
         </Card>
       ) : (
-        <div
-          key={`${siteSearch}-${selectedCompany}`}
-          className="space-y-5 max-h-[30rem] overflow-y-auto p-1 -m-1"
-        >
-          {sitesByCompany.map(([company, companySites]) => (
-            <div key={company}>
-              <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap">
-                  {company}
-                </span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                {companySites.map((site) => {
-                  const isSelected = selectedSiteId === site.id;
-                  const delay = (siteIndexMap.get(site.id) ?? 0) * 40;
-                  return (
-                    <Card
-                      key={site.id}
-                      className={`cursor-pointer hover-elevate transition-all ${
-                        isSelected ? "ring-2 ring-primary" : ""
-                      }`}
-                      style={{ animation: "slideUpFade 0.28s ease both", animationDelay: `${delay}ms` }}
-                      onClick={() => handleSelectSite(site.id)}
-                      onDoubleClick={() => {
-                        handleSelectSite(site.id);
-                        if (moduleFolders.length === 0 && selectedTemplate) {
-                          provisionFoldersMutation.mutate({ siteId: site.id, module: selectedTemplate.module });
-                        }
-                        goToStep("placeholders");
-                      }}
-                      data-testid={`site-card-${site.id}`}
-                    >
-                      <CardContent className="p-2.5">
-                        <div className="flex items-start justify-between gap-1">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-xs leading-snug line-clamp-2">{site.name}</p>
+        <div className="space-y-1 max-h-[28rem] overflow-y-auto pr-1" data-testid="site-picker-list">
+          {sitesByCompany.map(({ companyId, companyName, sites: companySites }) => {
+            const isOpen = siteSearch.trim() !== "" || expandedSitePickerCompanies.has(companyId);
+            const toggleExpand = () => {
+              setExpandedSitePickerCompanies(prev => {
+                const next = new Set(prev);
+                if (next.has(companyId)) next.delete(companyId);
+                else next.add(companyId);
+                return next;
+              });
+            };
+            return (
+              <div key={companyId} className="rounded-md border">
+                {/* Company header */}
+                <button
+                  type="button"
+                  onClick={toggleExpand}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/50 rounded-md text-left"
+                  data-testid={`button-picker-toggle-company-${companyId}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
+                    <span className="text-xs text-muted-foreground">({companySites.length})</span>
+                  </div>
+                </button>
+                {/* Sites list */}
+                {isOpen && (
+                  <div className="border-t">
+                    {companySites.map((site) => {
+                      const isSelected = selectedSiteId === site.id;
+                      return (
+                        <button
+                          key={site.id}
+                          type="button"
+                          onClick={() => handleSelectSite(site.id)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-left last:rounded-b-md transition-colors ${
+                            isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                          }`}
+                          data-testid={`site-card-${site.id}`}
+                        >
+                          <div className="pl-5 min-w-0 flex-1">
+                            <span className="text-sm block">{site.name}</span>
                             {site.address && (
-                              <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-0.5">
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
                                 <MapPin className="h-2.5 w-2.5 shrink-0" />
                                 {site.address}
-                              </p>
+                              </span>
                             )}
                           </div>
-                          {isSelected && <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                          {isSelected && <Check className="h-4 w-4 text-primary shrink-0 ml-2" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
