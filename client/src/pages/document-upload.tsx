@@ -307,11 +307,11 @@ export default function DocumentUpload() {
   }, [allUsers, selectedSiteIds, selectedSiteObjects]);
 
   const selectedSitesWithNoConsultants = useMemo(() => {
-    if (!allUsers || selectedSiteIds.length === 0 || !sites) return [];
+    if (selectedSiteIds.length === 0 || !sites) return [];
     return selectedSiteObjects.filter(site =>
-      !allUsers.some(u => u.role === "consultant" && u.siteAssignments?.some(a => a.siteId === site.id))
+      !site.assignedConsultants || site.assignedConsultants.length === 0
     );
-  }, [allUsers, selectedSiteIds, selectedSiteObjects]);
+  }, [selectedSiteIds, selectedSiteObjects, sites]);
 
   // Client approver options — only users with access to ALL selected sites
   const siteClientUsers = useMemo(() => {
@@ -798,37 +798,30 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="module"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Module <span className="text-destructive">*</span></FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={isModulePreselected}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid="select-module">
-                                <SelectValue placeholder="Select module" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.entries(moduleLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {isModulePreselected && (
-                            <FormDescription>
-                              Module is set based on where you navigated from
-                            </FormDescription>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {!isModulePreselected && (
+                      <FormField
+                        control={form.control}
+                        name="module"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Module <span className="text-destructive">*</span></FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-module">
+                                  <SelectValue placeholder="Select module" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Object.entries(moduleLabels).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     {isAdminOrConsultant && (selectedSitesWithNoClients.length > 0 || selectedSitesWithNoConsultants.length > 0) && (
                       <div className="space-y-2">
