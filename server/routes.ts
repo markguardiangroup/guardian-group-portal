@@ -8284,18 +8284,24 @@ export async function registerRoutes(
       const allSites = await storage.getSites();
       const allCompanies = await storage.getCompanies();
 
-      // Standard (non-pro) consultants: only see the specific clients at their assigned sites
+      // Standard (non-pro) consultants: only see clients for companies they are assigned to
       // They must never see any other consultant or any admin
       const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
       let allowedClientIds: Set<string> | null = null;
       if (isStandardConsultant) {
         const myAssignments = await storage.getConsultantSites(user.id);
-        const mySiteIds = myAssignments.map(a => a.entityId);
+        const mySiteIds = new Set(myAssignments.map(a => a.entityId));
+        const myCompanyIds = new Set(allSites.filter(s => mySiteIds.has(s.id)).map(s => s.companyId));
         allowedClientIds = new Set<string>();
+        // Include clients explicitly assigned to one of the consultant's sites
         for (const siteId of mySiteIds) {
           const siteClients = await storage.getClientSiteAssignments(siteId);
           siteClients.forEach(a => allowedClientIds!.add(a.clientId));
         }
+        // Also include clients who belong to an assigned company but have no site yet
+        allUsers
+          .filter(u => u.role === "client" && u.companyId && myCompanyIds.has(u.companyId))
+          .forEach(u => allowedClientIds!.add(u.id));
       }
 
       // Apply filters:
