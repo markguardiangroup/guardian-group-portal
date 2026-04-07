@@ -1443,94 +1443,100 @@ export default function Companies() {
       <Dialog open={isRequiredDocsOpen} onOpenChange={(open) => {
         if (!open) handleSkipRequiredDocs();
       }}>
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Set Required Documents
-            </DialogTitle>
-            <DialogDescription>
-              Select which documents are required for compliance at this company's sites.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-md border bg-muted/50 p-3 flex gap-2">
-            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground">
-              Any templates ticked here will affect the company's compliance score. You can change these at any time from the company details page.
-            </p>
+        <DialogContent className="sm:max-w-[560px] h-[560px] flex flex-col p-0 gap-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Set Required Documents
+              </DialogTitle>
+              <DialogDescription>
+                Select which documents are required for compliance at this company's sites.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border bg-muted/50 p-3 flex gap-2 mt-4">
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                Any templates ticked here will affect the company's compliance score. You can change these at any time from the company details page.
+              </p>
+            </div>
           </div>
-          {(() => {
-            const privateTemplates = allTemplates.filter(t => t.visibility === "private" && t.isActive);
-            const allModulesDisabled = newCompanyModuleAccess && !newCompanyModuleAccess.healthSafety && !newCompanyModuleAccess.humanResources && !newCompanyModuleAccess.employmentLaw;
-            const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => 
-              !newCompanyModuleAccess || allModulesDisabled || newCompanyModuleAccess[key]
-            );
-            if (enabledModules.length === 0) {
-              return (
-                <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {(() => {
+              const privateTemplates = allTemplates.filter(t => t.visibility === "private" && t.isActive);
+              const allModulesDisabled = newCompanyModuleAccess && !newCompanyModuleAccess.healthSafety && !newCompanyModuleAccess.humanResources && !newCompanyModuleAccess.employmentLaw;
+              const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => 
+                !newCompanyModuleAccess || allModulesDisabled || newCompanyModuleAccess[key]
               );
-            }
-            const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
-            return (
-              <Tabs defaultValue={defaultTab}>
-                <TabsList className="mb-4">
-                  {enabledModules.map(([mod, { label }]) => (
-                    <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-required-${mod}`}>{label}</TabsTrigger>
-                  ))}
-                </TabsList>
-                {enabledModules.map(([mod, { label }]) => {
-                  const moduleTemplates = privateTemplates.filter(t => t.module === mod);
-                  return (
-                    <TabsContent key={mod} value={mod}>
-                      {moduleTemplates.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4">
-                          No private templates available for {label}.
-                        </p>
-                      ) : (
-                        <div className="space-y-3">
-                          {moduleTemplates.map(template => (
-                            <div key={template.id} className="flex items-center gap-3">
-                              <Checkbox
-                                id={`wizard-req-${template.id}`}
-                                checked={selectedRequiredIds.has(template.id)}
-                                onCheckedChange={(checked) => {
-                                  const newIds = new Set(selectedRequiredIds);
-                                  if (checked) { newIds.add(template.id); } else { newIds.delete(template.id); }
-                                  setSelectedRequiredIds(newIds);
-                                }}
-                                data-testid={`checkbox-wizard-required-${template.id}`}
-                              />
-                              <label
-                                htmlFor={`wizard-req-${template.id}`}
-                                className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                              >
-                                {template.name}
-                                {template.requiresApproval && (
-                                  <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                                )}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </TabsContent>
-                  );
-                })}
-              </Tabs>
-            );
-          })()}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleSkipRequiredDocs} data-testid="button-skip-required-docs">
-              Skip
-            </Button>
-            <Button
-              onClick={handleSaveRequiredDocs}
-              disabled={saveRequiredDocsMutation.isPending}
-              data-testid="button-save-required-docs"
-            >
-              {saveRequiredDocsMutation.isPending ? "Saving..." : "Save & Finish"}
-            </Button>
-          </DialogFooter>
+              if (enabledModules.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
+                );
+              }
+              const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
+              return (
+                <Tabs defaultValue={defaultTab}>
+                  <TabsList className="mb-4">
+                    {enabledModules.map(([mod, { label }]) => (
+                      <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-required-${mod}`}>{label}</TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {enabledModules.map(([mod, { label }]) => {
+                    const moduleTemplates = privateTemplates.filter(t => t.module === mod);
+                    return (
+                      <TabsContent key={mod} value={mod}>
+                        {moduleTemplates.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-4">
+                            No private templates available for {label}.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {moduleTemplates.map(template => (
+                              <div key={template.id} className="flex items-center gap-3">
+                                <Checkbox
+                                  id={`wizard-req-${template.id}`}
+                                  checked={selectedRequiredIds.has(template.id)}
+                                  onCheckedChange={(checked) => {
+                                    const newIds = new Set(selectedRequiredIds);
+                                    if (checked) { newIds.add(template.id); } else { newIds.delete(template.id); }
+                                    setSelectedRequiredIds(newIds);
+                                  }}
+                                  data-testid={`checkbox-wizard-required-${template.id}`}
+                                />
+                                <label
+                                  htmlFor={`wizard-req-${template.id}`}
+                                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                                >
+                                  {template.name}
+                                  {template.requiresApproval && (
+                                    <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                  )}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              );
+            })()}
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={handleSkipRequiredDocs} data-testid="button-skip-required-docs">
+                Skip
+              </Button>
+              <Button
+                onClick={handleSaveRequiredDocs}
+                disabled={saveRequiredDocsMutation.isPending}
+                data-testid="button-save-required-docs"
+              >
+                {saveRequiredDocsMutation.isPending ? "Saving..." : "Save & Finish"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
