@@ -971,18 +971,40 @@ export default function CreateFromTemplate() {
               };
               return (
                 <div key={companyId} className="rounded-md border">
-                  <button
-                    type="button"
-                    onClick={toggleExpand}
-                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 rounded-md text-left"
-                    data-testid={`button-picker-toggle-company-${companyId}`}
-                  >
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center hover:bg-muted/50 rounded-md">
+                    <button
+                      type="button"
+                      onClick={toggleExpand}
+                      className="flex-1 flex items-center gap-2 px-3 py-2 text-left"
+                      data-testid={`button-picker-toggle-company-${companyId}`}
+                    >
                       <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`} />
                       <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{companyName}</span>
                       <span className="text-xs text-muted-foreground">({companySites.length})</span>
-                    </div>
-                  </button>
+                    </button>
+                    {companySites.length > 1 && (() => {
+                      const allSelected = companySites.every(s => selectedSiteIds.includes(s.id));
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (allSelected) {
+                              setSelectedSiteIds(prev => prev.filter(id => !companySites.some(s => s.id === id)));
+                            } else {
+                              setSelectedSiteIds(prev => {
+                                const toAdd = companySites.filter(s => !prev.includes(s.id)).map(s => s.id);
+                                return [...prev, ...toAdd];
+                              });
+                            }
+                          }}
+                          className="px-3 py-2 text-xs text-primary hover:text-primary/80 shrink-0"
+                          data-testid={`button-select-all-company-${companyId}`}
+                        >
+                          {allSelected ? "Deselect all" : "Select all"}
+                        </button>
+                      );
+                    })()}
+                  </div>
                   {isOpen && (
                     <div className="border-t">
                       {companySites.map((site) => {
