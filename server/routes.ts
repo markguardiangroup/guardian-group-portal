@@ -5097,8 +5097,24 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can update companies" });
+      const isStandardConsultantUser = user.role === "consultant" && !isProConsultant(user);
+      if (user.role !== "admin" && !isProConsultant(user) && !isStandardConsultantUser) {
+        return res.status(403).json({ error: "Only admins and consultants can update companies" });
+      }
+
+      // Standard consultants may only set the primary contact (contactUserId) for companies they are assigned to
+      if (isStandardConsultantUser) {
+        const requestedKeys = Object.keys(req.body).filter(k => k !== "contactUserId");
+        if (requestedKeys.length > 0) {
+          return res.status(403).json({ error: "Standard consultants can only update the primary contact for a company" });
+        }
+        const consultantSiteAssignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.entityId));
+        const allSites = await storage.getSites();
+        const assignedCompanyIds = new Set(allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId));
+        if (!assignedCompanyIds.has(req.params.id)) {
+          return res.status(403).json({ error: "You can only manage companies you are assigned to" });
+        }
       }
       
       const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry } = req.body;
@@ -9195,14 +9211,26 @@ export async function registerRoutes(
     }
   });
 
-  // Remove site assignment from user (admin or pro consultant)
+  // Remove site assignment from user (admin, pro consultant, or standard consultant for their assigned companies)
   app.delete("/api/users/:userId/site-assignments", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || (currentUser.role !== "admin" && !isProConsultant(currentUser))) {
-        return res.status(403).json({ error: "Only admins and pro consultants can manage site assignments" });
+      if (!currentUser) return res.status(401).json({ error: "Unauthorized" });
+      const isStdConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
+      if (currentUser.role !== "admin" && !isProConsultant(currentUser) && !isStdConsultant) {
+        return res.status(403).json({ error: "Only admins and consultants can manage site assignments" });
       }
       const targetUser = await storage.getUser(req.params.userId);
+      // Standard consultants may only clear assignments for users in companies they are assigned to
+      if (isStdConsultant && targetUser?.companyId) {
+        const consultantSiteAssignments = await storage.getConsultantSites(currentUser.id);
+        const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.entityId));
+        const allSites = await storage.getSites();
+        const assignedCompanyIds = new Set(allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId));
+        if (!assignedCompanyIds.has(targetUser.companyId)) {
+          return res.status(403).json({ error: "You can only manage users in companies you are assigned to" });
+        }
+      }
       if (!targetUser) return res.status(404).json({ error: "User not found" });
       if (targetUser.role === "client") {
         await storage.clearClientSiteAssignments(targetUser.id);
