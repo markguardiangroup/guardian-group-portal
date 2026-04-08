@@ -47,6 +47,7 @@ import {
   Search,
   MapPin,
   Info,
+  Building2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
@@ -663,6 +664,12 @@ export default function DocumentUpload() {
                   return (
                     <div key={siteId} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm" data-testid={`badge-site-${siteId}`}>
                       <MapPin className="h-3 w-3 text-primary shrink-0" />
+                      {site.companyName && (
+                        <>
+                          <span className="text-xs text-muted-foreground">{site.companyName}</span>
+                          <span className="text-xs text-muted-foreground">·</span>
+                        </>
+                      )}
                       <span className="font-medium">{site.name}</span>
                       <button
                         type="button"

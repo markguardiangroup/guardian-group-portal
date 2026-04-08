@@ -956,6 +956,12 @@ export default function CreateFromTemplate() {
               return (
                 <div key={siteId} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm" data-testid={`badge-site-${siteId}`}>
                   <MapPin className="h-3 w-3 text-primary shrink-0" />
+                  {sel.companyName && (
+                    <>
+                      <span className="text-xs text-muted-foreground">{sel.companyName}</span>
+                      <span className="text-xs text-muted-foreground">·</span>
+                    </>
+                  )}
                   <span className="font-medium">{sel.name}</span>
                   <button
                     type="button"
