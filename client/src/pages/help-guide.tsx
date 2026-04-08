@@ -367,6 +367,110 @@ const guideSections: GuideSection[] = [
     ),
   },
   {
+    id: "incidents",
+    title: "Reporting Incidents",
+    icon: <AlertTriangle className="h-5 w-5" />,
+    description: "How to report, investigate, and close H&S incidents",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          The Incidents section sits within Health &amp; Safety and provides a structured way to
+          report workplace accidents, near misses, and dangerous occurrences — from initial report
+          through investigation and closure.
+        </p>
+
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="client-report">
+            <AccordionTrigger>Clients: reporting an incident</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <StepList
+                  steps={[
+                    "Open the Health & Safety module and click 'Incidents' in the navigation",
+                    "Click 'Report Incident'",
+                    "Select the site and incident type (e.g. Slip/Trip/Fall, Near Miss, Dangerous Occurrence)",
+                    "Set the severity level and the date and time it occurred",
+                    "Enter details of the person affected — name, job title, and whether they are a member of the public",
+                    "Select what caused the incident and the resulting effects from the option lists",
+                    "Use the body diagram to mark the area(s) of injury if applicable",
+                    "Add witness details if relevant",
+                    "Tick 'RIDDOR Reportable' if the incident meets the legal reporting threshold (your consultant can advise)",
+                    "Submit — an incident report document is generated automatically and your consultant is notified",
+                  ]}
+                />
+                <TipBox type="warning">
+                  If you are unsure whether an incident is RIDDOR reportable, tick the flag and
+                  your consultant will confirm. It is better to flag it and check than to miss a
+                  legal reporting obligation.
+                </TipBox>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="client-track">
+            <AccordionTrigger>Clients: tracking an incident after reporting</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Once submitted, you can follow the progress of an incident from the Incidents list.
+                </p>
+                <div className="grid gap-2">
+                  {[
+                    ["bg-amber-500", "Reported", "Submitted — awaiting consultant review"],
+                    ["bg-blue-500", "Under Review", "Your consultant is investigating"],
+                    ["bg-purple-500", "Action Required", "Corrective actions are in progress"],
+                    ["bg-green-500", "Resolved", "Investigation complete, actions done"],
+                    ["secondary", "Closed", "Formally closed and archived"],
+                  ].map(([colour, label, desc]) => (
+                    <div key={label} className="flex items-center gap-3 p-2 rounded border">
+                      <Badge
+                        variant={colour.startsWith("bg-") ? "default" : (colour as any)}
+                        className={colour.startsWith("bg-") ? colour : ""}
+                      >
+                        {label}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  You can also upload supporting documents (photos, witness statements) to any
+                  incident by opening it and using the Documents tab.
+                </p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="consultant-investigate">
+            <AccordionTrigger>Consultants: investigating and closing an incident</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <StepList
+                  steps={[
+                    "Open the incident from the Incidents list",
+                    "Update the status to 'Under Review' to signal investigation has begun",
+                    "Complete the Investigation section — first aid given, hospital visit, time off work, root cause analysis, and contributing factors",
+                    "Add Milestones (corrective actions) with due dates to track what needs to be done",
+                    "Mark each milestone complete as actions are carried out",
+                    "Upload any supporting documents (photos, external reports) in the Documents tab",
+                    "If the investigation changes the original details, use 'Regenerate Report' to refresh the auto-generated PDF",
+                    "Once all actions are complete, update the status to 'Resolved', then 'Closed'",
+                  ]}
+                />
+                <TipBox type="info">
+                  The automatically generated incident report can be shared with the client or
+                  retained for audit purposes. It updates each time you regenerate it.
+                </TipBox>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+    ),
+  },
+  {
     id: "employment-law",
     title: "Employment Law Cases",
     icon: <Briefcase className="h-5 w-5" />,
