@@ -325,21 +325,19 @@ const guideSections: GuideSection[] = [
           </AccordionItem>
 
           <AccordionItem value="client-upload">
-            <AccordionTrigger>Clients: uploading your own documents</AccordionTrigger>
+            <AccordionTrigger>Clients: providing documents to your consultant</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <p className="text-sm text-muted-foreground">
-                  Some document slots allow clients to upload directly — for example, providing a
-                  copy of an existing policy.
+                  If your consultant needs a document from you — for example, a copy of an existing
+                  policy or record — please share it via your usual cloud sharing method (e.g.
+                  OneDrive, Google Drive, or email) and let your consultant know through the Support
+                  section. Your consultant will then upload and manage the document on your behalf.
                 </p>
-                <StepList
-                  steps={[
-                    "Navigate to the document slot in the relevant module",
-                    "Click 'Upload' and select your file",
-                    "Add any notes for your consultant, then click 'Upload'",
-                    "Your document is sent to your consultant for approval",
-                  ]}
-                />
+                <TipBox type="info">
+                  Not sure how to share a file? Raise a Support request and your consultant will
+                  advise on the best way to get it to them.
+                </TipBox>
               </div>
             </AccordionContent>
           </AccordionItem>
