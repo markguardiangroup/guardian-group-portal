@@ -9019,6 +9019,13 @@ export async function registerRoutes(
       
       const clientUser = await storage.getUser(req.params.clientId);
       if (clientUser && clientUser.role === "client") {
+        // Block removal if this user is the primary contact — they must always have full site access
+        if (clientUser.companyId) {
+          const company = await storage.getCompany(clientUser.companyId);
+          if (company && company.contactUserId === clientUser.id) {
+            return res.status(400).json({ error: "Cannot remove a primary contact from site access. Change the primary contact first." });
+          }
+        }
         const allAssignments = await storage.getClientSites(req.params.clientId);
         if (allAssignments.length <= 1) {
           return res.status(400).json({ error: "Cannot remove the last site assignment from a client user. Assign another site first." });
@@ -9340,6 +9347,13 @@ export async function registerRoutes(
           });
         }
       } else if (targetUser.role === "client") {
+        // Block removal if this user is the primary contact — they must always have full site access
+        if (targetUser.companyId) {
+          const company = await storage.getCompany(targetUser.companyId);
+          if (company && company.contactUserId === targetUser.id) {
+            return res.status(400).json({ error: "Cannot remove a primary contact from site access. Change the primary contact first." });
+          }
+        }
         const allAssignments = await storage.getClientSites(targetUser.id);
         if (allAssignments.length <= 1) {
           return res.status(400).json({ error: "Cannot remove the last site assignment from a client user. Assign another site first." });

@@ -477,6 +477,12 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     enabled: !!companyId,
   });
 
+  // Fetch company to know who the primary contact is
+  const { data: company } = useQuery<{ id: string; contactUserId?: string | null }>({
+    queryKey: ["/api/companies", companyId],
+    enabled: !!companyId,
+  });
+
   // Filter to get only client users belonging to this company
   const companyUsers = allUsersData.filter(
     (u) => u.role === "client" && (u as any).companyId === companyId
@@ -528,6 +534,10 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   // Helper to check if user has any site assignments
   const toggleClientSiteAccess = (userId: string) => {
     if (assignedClientIds.has(userId)) {
+      if (company?.contactUserId && company.contactUserId === userId) {
+        toast({ title: "Cannot remove primary contact", description: "Change the primary contact first before removing site access.", variant: "destructive" });
+        return;
+      }
       removeClientAssignmentMutation.mutate(userId);
     } else {
       assignClientMutation.mutate(userId);
@@ -652,13 +662,22 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                 </p>
               </div>
               <div className="divide-y">
-                {users.map((user) => (
+                {users.map((user) => {
+                  const isPrimaryContact = company?.contactUserId === user.id;
+                  return (
                   <div key={user.id} className="flex items-center gap-4 px-4 py-3" data-testid={`user-${user.id}`}>
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
                       {user.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium truncate block">{user.fullName}</span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-medium truncate">{user.fullName}</span>
+                        {isPrimaryContact && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
+                            Primary Contact
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -684,15 +703,20 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => toggleClientSiteAccess(user.id)} data-testid={`toggle-site-access-${user.id}`}>
+                          <DropdownMenuItem
+                            onClick={() => toggleClientSiteAccess(user.id)}
+                            disabled={isPrimaryContact && assignedClientIds.has(user.id)}
+                            data-testid={`toggle-site-access-${user.id}`}
+                          >
                             <Shield className="mr-2 h-4 w-4" />
-                            {assignedClientIds.has(user.id) ? "Remove Site Access" : "Grant Site Access"}
+                            {assignedClientIds.has(user.id) ? (isPrimaryContact ? "Primary contact — cannot remove" : "Remove Site Access") : "Grant Site Access"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

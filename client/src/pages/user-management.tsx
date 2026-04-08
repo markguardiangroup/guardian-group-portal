@@ -511,6 +511,11 @@ export default function UserManagement() {
     if (pendingAddSiteIds.includes(siteId)) {
       setPendingAddSiteIds(prev => prev.filter(id => id !== siteId));
     } else {
+      const activeUser = manageSitesUser || editingUser;
+      if (activeUser && isPrimaryContact(activeUser as any)) {
+        toast({ title: "Cannot remove primary contact", description: "Change the primary contact first before removing site access.", variant: "destructive" });
+        return;
+      }
       setPendingRemoveSiteIds(prev => [...prev, siteId]);
     }
   };
@@ -2609,6 +2614,8 @@ export default function UserManagement() {
                 <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1">
                   {getEffectiveAssigned().map((a) => {
                     const isPendingAdd = pendingAddSiteIds.includes(a.siteId);
+                    const activeUser = manageSitesUser || editingUser;
+                    const isUserPrimary = activeUser ? isPrimaryContact(activeUser as any) : false;
                     return (
                       <Badge
                         key={a.siteId}
@@ -2624,6 +2631,8 @@ export default function UserManagement() {
                           size="icon"
                           className="h-4 w-4 ml-1 hover:bg-destructive/20"
                           onClick={() => manageSitesRemoveSite(a.siteId)}
+                          disabled={isUserPrimary}
+                          title={isUserPrimary ? "Primary contacts cannot have sites removed" : undefined}
                           data-testid={`button-manage-remove-site-${a.siteId}`}
                         >
                           <X className="h-3 w-3" />
