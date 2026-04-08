@@ -259,9 +259,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   filteredSites.some((s) => s.id === d.siteId)
               );
               const allTotal = allDocs.length;
-              const allCompliant = allDocs.filter((d) => d.status === "compliant").length;
-              const allOverdue = allDocs.filter((d) => d.status === "overdue").length;
-              const allReview = allDocs.filter((d) => d.status === "review_required").length;
+              const allRequiredDocs = allDocs.filter((d) => d.isRequired);
+              const allCompliant = allRequiredDocs.filter((d) => d.status === "compliant").length;
+              const allOverdue = allRequiredDocs.filter((d) => d.status === "overdue").length;
+              const allReview = allRequiredDocs.filter((d) => d.status === "review_required").length;
               const allPending = allDocs.filter((d) => d.approvalStatus === "pending").length;
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
@@ -389,9 +390,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   d.source !== "external"
               );
               const total = siteDocs.length;
-              const compliant = siteDocs.filter((d) => d.status === "compliant").length;
-              const overdue = siteDocs.filter((d) => d.status === "overdue").length;
-              const reviewRequired = siteDocs.filter((d) => d.status === "review_required").length;
+              const requiredSiteDocs = siteDocs.filter((d) => d.isRequired);
+              const compliant = requiredSiteDocs.filter((d) => d.status === "compliant").length;
+              const overdue = requiredSiteDocs.filter((d) => d.status === "overdue").length;
+              const reviewRequired = requiredSiteDocs.filter((d) => d.status === "review_required").length;
               const pending = siteDocs.filter((d) => d.approvalStatus === "pending").length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
