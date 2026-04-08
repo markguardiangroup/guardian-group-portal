@@ -1582,6 +1582,12 @@ export default function CompanyDetail() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Users ({companyTabUsers.length})</h2>
+                {(isAdmin || isProConsultant) && (
+                  <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-users">
+                    <Users className="mr-2 h-4 w-4" />
+                    Assign Consultant
+                  </Button>
+                )}
               </div>
               {companyTabUsers.length > 0 ? (
                 <Card>
@@ -1617,6 +1623,17 @@ export default function CompanyDetail() {
                                   <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
                                     {u.consultantTier ? (u.consultantTier.charAt(0).toUpperCase() + u.consultantTier.slice(1)) : "Standard"}
                                   </Badge>
+                                  {(isAdmin || isProConsultant) && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                      onClick={() => { handleConsultantSelect(u.id); setAssignConsultantOpen(true); }}
+                                      data-testid={`button-edit-sites-${u.id}`}
+                                    >
+                                      Edit sites
+                                    </Button>
+                                  )}
                                   {relevantAssignments.length > 0 ? (
                                     <button
                                       onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
