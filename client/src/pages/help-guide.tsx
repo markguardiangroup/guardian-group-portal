@@ -118,6 +118,7 @@ const guideSections: GuideSection[] = [
               ["Training", "Booked courses, certificates, and the training library"],
               ["Toolkit", "Browse and download reference resources"],
               ["Support", "Submit questions and track responses from your consultant"],
+              ["Reports", "View compliance and activity reports across your sites"],
             ].map(([title, desc]) => (
               <li key={title} className="flex items-start gap-2">
                 <ChevronRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
