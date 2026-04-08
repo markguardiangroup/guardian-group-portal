@@ -309,6 +309,20 @@ export default function CreateFromTemplate() {
     );
   }, [allUsers, selectedSiteIds]);
 
+  const selectedSitesWithNoClients = useMemo(() => {
+    if (!allUsers || selectedSiteIds.length === 0 || !sites) return [];
+    return selectedSiteObjects.filter(site =>
+      !allUsers.some(u => u.role === "client" && u.siteAssignments?.some(a => a.siteId === site.id))
+    );
+  }, [allUsers, selectedSiteIds, selectedSiteObjects, sites]);
+
+  const selectedSitesWithNoConsultants = useMemo(() => {
+    if (selectedSiteIds.length === 0 || !sites) return [];
+    return selectedSiteObjects.filter(site =>
+      !site.assignedConsultants || site.assignedConsultants.length === 0
+    );
+  }, [selectedSiteIds, selectedSiteObjects, sites]);
+
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
     const validTemplateIds = new Set(folderTemplates.map(ft => ft.id));
@@ -1160,6 +1174,33 @@ export default function CreateFromTemplate() {
                 data-testid="textarea-comments"
               />
             </div>
+
+            {(selectedSitesWithNoClients.length > 0 || selectedSitesWithNoConsultants.length > 0) && (
+              <div className="space-y-2">
+                {selectedSitesWithNoClients.length > 0 && (
+                  <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-sites-no-clients">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Sites with no client users assigned</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSitesWithNoClients.map(s => s.name).join(", ")} — documents uploaded to these sites will not be visible to any client users.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {selectedSitesWithNoConsultants.length > 0 && (
+                  <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-sites-no-consultants">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Sites with no consultant assigned</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedSitesWithNoConsultants.map(s => s.name).join(", ")} — approvals and reviews won't be possible for these sites.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="pt-2">
               <Label className="text-sm font-medium">Approval Process</Label>
