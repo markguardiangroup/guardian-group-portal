@@ -594,6 +594,28 @@ const guideSections: GuideSection[] = [
           />
         </div>
 
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <HelpCircle className="h-4 w-4" />
+            Not sure what you need? Use the Guided Template Finder
+          </h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            The Guided Template Finder is a step-by-step wizard that asks a short series of
+            questions and points you to the right templates for your situation.
+          </p>
+          <StepList
+            steps={[
+              "Open the Toolkit and click 'Guided Template Finder'",
+              "Answer the questions about your situation — each answer narrows down the recommendations",
+              "At the end, the wizard shows the templates most relevant to you",
+              "Click any result to view and download the template",
+              "Use 'Back' to change an answer or 'Start Again' to restart from scratch",
+            ]}
+          />
+        </div>
+
         <TipBox type="info">
           Toolkit resources are provided for reference and guidance. For documents that need to
           be formally approved as part of your site's compliance, upload them through the
