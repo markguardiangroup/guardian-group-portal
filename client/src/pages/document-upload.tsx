@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -335,12 +335,12 @@ export default function DocumentUpload() {
       if (!res.ok) throw new Error("Failed to provision folders");
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/folders", primarySiteId] });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", variables.siteId] });
     },
   });
 
-  // Fetch folders for the primary selected site
+  // Fetch folders for the primary selected site (plain fetch — no provision inside)
   const { data: siteFolders } = useQuery<DocumentFolder[]>({
     queryKey: ["/api/folders", primarySiteId],
     queryFn: async () => {
@@ -349,23 +349,18 @@ export default function DocumentUpload() {
         credentials: "include",
       });
       if (!res.ok) return [];
-      const folders = await res.json();
-
-      // Always call provision to sync any missing template folders
-      try {
-        await provisionFoldersMutation.mutateAsync({ siteId: primarySiteId, module: selectedModule });
-        const newRes = await fetch(`/api/folders?siteId=${primarySiteId}`, {
-          credentials: "include",
-        });
-        if (newRes.ok) return newRes.json();
-      } catch (e) {
-        console.error("Failed to provision folders:", e);
-      }
-
-      return folders;
+      return res.json();
     },
     enabled: !!primarySiteId,
   });
+
+  // Provision folders once per site (outside queryFn to avoid an invalidation loop)
+  const provisionedSites = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!primarySiteId || provisionedSites.current.has(primarySiteId)) return;
+    provisionedSites.current.add(primarySiteId);
+    provisionFoldersMutation.mutate({ siteId: primarySiteId, module: selectedModule });
+  }, [primarySiteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter and sort folders hierarchically by selected module
   const moduleFolders = (() => {

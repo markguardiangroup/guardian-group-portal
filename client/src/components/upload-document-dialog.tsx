@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -165,26 +165,32 @@ export function UploadDocumentDialog({
       if (!res.ok) throw new Error("Failed to provision folders");
       return res.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", siteId, module] });
+    },
   });
 
+  // Fetch folders — plain fetch only, no provision inside to avoid invalidation loops
   const { data: siteFolders } = useQuery<DocumentFolder[]>({
     queryKey: ["/api/folders", siteId, module],
     queryFn: async () => {
       if (!siteId) return [];
       const res = await fetch(`/api/folders?siteId=${siteId}`, { credentials: "include" });
       if (!res.ok) return [];
-      const folders = await res.json();
-      try {
-        await provisionFoldersMutation.mutateAsync();
-        const newRes = await fetch(`/api/folders?siteId=${siteId}`, { credentials: "include" });
-        if (newRes.ok) return newRes.json();
-      } catch (e) {
-        console.error("Failed to provision folders:", e);
-      }
-      return folders;
+      return res.json();
     },
     enabled: open && !!siteId,
   });
+
+  // Provision folders once when the dialog opens for this site (outside queryFn)
+  const provisionedKeys = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!open || !siteId) return;
+    const key = `${siteId}:${module}`;
+    if (provisionedKeys.current.has(key)) return;
+    provisionedKeys.current.add(key);
+    provisionFoldersMutation.mutate();
+  }, [open, siteId, module]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const moduleFolders = (() => {
     const filtered = siteFolders?.filter(f => f.module === module) || [];
