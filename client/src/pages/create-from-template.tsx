@@ -907,7 +907,8 @@ export default function CreateFromTemplate() {
   );
 
   const renderSiteStep = () => (
-    <Card className="max-w-2xl">
+    <div className="flex gap-6 items-start">
+    <Card className="flex-1 max-w-2xl">
       <CardHeader>
         <CardTitle>Select Site(s)</CardTitle>
         <CardDescription>
@@ -925,18 +926,6 @@ export default function CreateFromTemplate() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Guidance callout */}
-        <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
-          <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
-          <div className="space-y-1 text-blue-800 dark:text-blue-300">
-            <p className="font-medium">How to select sites</p>
-            <ul className="space-y-0.5 text-blue-700 dark:text-blue-400 list-disc list-inside">
-              <li>Click a company name to expand and see its sites</li>
-              <li>Select individual sites, or use <strong>Select all</strong> to pick every site under a company at once</li>
-              <li>Multi-site creation is limited to one company at a time — selecting a site from a different company will clear your current selection</li>
-            </ul>
-          </div>
-        </div>
         {/* Selected sites badges */}
         {selectedSiteIds.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -1079,6 +1068,31 @@ export default function CreateFromTemplate() {
         </Button>
       </div>
     </Card>
+
+    {/* Guidance panel — right column */}
+    <div className="w-72 shrink-0 hidden lg:block sticky top-6">
+      <div className="rounded-lg border bg-muted/40 p-4 space-y-3 text-sm">
+        <div className="flex items-center gap-2 font-semibold">
+          <Info className="h-4 w-4 text-blue-500 shrink-0" />
+          How to select sites
+        </div>
+        <ul className="space-y-2 text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+            Click a company name to expand and see its sites
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+            Select individual sites, or use <strong className="text-foreground font-medium">&nbsp;Select all&nbsp;</strong> to pick every site under a company at once
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+            Multi-site creation is limited to one company at a time — selecting a site from a different company will clear your current selection
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
   );
 
   const renderPlaceholdersStep = () => (
