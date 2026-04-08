@@ -692,6 +692,11 @@ export default function CompanyDetail() {
   const [editFormOriginal, setEditFormOriginal] = useState<Record<string, string> | null>(null);
   const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
+  const [assignConsultantOpen, setAssignConsultantOpen] = useState(false);
+  const [assignConsultantId, setAssignConsultantId] = useState("");
+  const [consultantSiteSelections, setConsultantSiteSelections] = useState<Record<string, boolean>>({});
+  const [originalConsultantSites, setOriginalConsultantSites] = useState<Set<string>>(new Set());
+  const [savingConsultantAssignments, setSavingConsultantAssignments] = useState(false);
   const [changePrimaryContactOpen, setChangePrimaryContactOpen] = useState(false);
   const [selectedNewContactId, setSelectedNewContactId] = useState("");
   const [primaryContactConflict, setPrimaryContactConflict] = useState<{
@@ -1004,6 +1009,50 @@ export default function CompanyDetail() {
       return;
     }
     createSiteMutation.mutate(newSiteForm);
+  };
+
+  const allConsultants = allUsers.filter(u => u.role === "consultant");
+
+  const handleConsultantSelect = (consultantId: string) => {
+    setAssignConsultantId(consultantId);
+    const consultant = allConsultants.find(c => c.id === consultantId);
+    if (!consultant) return;
+    const assignedSiteIds = new Set(
+      (consultant.siteAssignments || [])
+        .filter((a: SiteAssignment) => companySiteIds.has(a.siteId))
+        .map((a: SiteAssignment) => a.siteId)
+    );
+    const selections: Record<string, boolean> = {};
+    (company?.sites || []).forEach((s: SiteWithDetails) => {
+      selections[s.id] = assignedSiteIds.has(s.id);
+    });
+    setConsultantSiteSelections(selections);
+    setOriginalConsultantSites(assignedSiteIds);
+  };
+
+  const handleSaveConsultantAssignments = async () => {
+    if (!assignConsultantId) return;
+    setSavingConsultantAssignments(true);
+    try {
+      const currentSites = company?.sites || [];
+      const toAdd = currentSites.filter((s: SiteWithDetails) => consultantSiteSelections[s.id] && !originalConsultantSites.has(s.id));
+      const toRemove = currentSites.filter((s: SiteWithDetails) => !consultantSiteSelections[s.id] && originalConsultantSites.has(s.id));
+      await Promise.all([
+        ...toAdd.map((s: SiteWithDetails) => apiRequest("POST", `/api/sites/${s.id}/consultants`, { consultantId: assignConsultantId })),
+        ...toRemove.map((s: SiteWithDetails) => apiRequest("DELETE", `/api/sites/${s.id}/consultants/${assignConsultantId}`)),
+      ]);
+      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      toast({ title: "Consultant site access updated successfully" });
+      setAssignConsultantOpen(false);
+      setAssignConsultantId("");
+      setConsultantSiteSelections({});
+      setOriginalConsultantSites(new Set());
+    } catch {
+      toast({ title: "Failed to update consultant access", variant: "destructive" });
+    } finally {
+      setSavingConsultantAssignments(false);
+    }
   };
 
   const formatStatusDisplay = (status: string) => {
@@ -1487,10 +1536,16 @@ export default function CompanyDetail() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
               {(isAdmin || isProConsultant) && (
-                <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Site
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-sites">
+                    <Users className="mr-2 h-4 w-4" />
+                    Assign Consultant
+                  </Button>
+                  <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Site
+                  </Button>
+                </div>
               )}
             </div>
             {sites.length > 0 ? (
@@ -2238,6 +2293,95 @@ export default function CompanyDetail() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Consultant to Sites dialog */}
+      <Dialog open={assignConsultantOpen} onOpenChange={(v) => {
+        setAssignConsultantOpen(v);
+        if (!v) {
+          setAssignConsultantId("");
+          setConsultantSiteSelections({});
+          setOriginalConsultantSites(new Set());
+        }
+      }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Assign Consultant to Sites</DialogTitle>
+            <DialogDescription>
+              Select a consultant, then choose which sites they should have access to. Ticked sites are already assigned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Consultant</Label>
+              <Select value={assignConsultantId} onValueChange={handleConsultantSelect}>
+                <SelectTrigger data-testid="select-assign-consultant">
+                  <SelectValue placeholder="Select a consultant…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allConsultants.map((c) => (
+                    <SelectItem key={c.id} value={c.id} data-testid={`option-consultant-${c.id}`}>
+                      <span>{c.fullName}</span>
+                      {c.consultantTier && (
+                        <span className="ml-2 text-xs text-muted-foreground capitalize">({c.consultantTier})</span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {assignConsultantId && (
+              <div className="space-y-1.5">
+                <Label>Sites</Label>
+                {(company?.sites || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">This company has no sites yet.</p>
+                ) : (
+                  <div className="rounded-md border divide-y max-h-64 overflow-y-auto">
+                    {(company?.sites || []).map((site: SiteWithDetails) => {
+                      const checked = !!consultantSiteSelections[site.id];
+                      return (
+                        <label
+                          key={site.id}
+                          htmlFor={`site-check-${site.id}`}
+                          className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                          data-testid={`label-site-assignment-${site.id}`}
+                        >
+                          <input
+                            id={`site-check-${site.id}`}
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) =>
+                              setConsultantSiteSelections((prev) => ({ ...prev, [site.id]: e.target.checked }))
+                            }
+                            className="h-4 w-4 rounded border-border accent-primary"
+                            data-testid={`checkbox-site-${site.id}`}
+                          />
+                          <span className="flex-1 text-sm font-medium">{site.name}</span>
+                          {checked && originalConsultantSites.has(site.id) && (
+                            <span className="text-xs text-muted-foreground">Already assigned</span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignConsultantOpen(false)} data-testid="button-cancel-assign-consultant">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveConsultantAssignments}
+              disabled={!assignConsultantId || savingConsultantAssignments}
+              data-testid="button-save-consultant-assignments"
+            >
+              {savingConsultantAssignments ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
