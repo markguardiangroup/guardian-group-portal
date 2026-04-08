@@ -469,22 +469,40 @@ const guideSections: GuideSection[] = [
         </p>
 
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="clients">
-            <AccordionTrigger>Clients: viewing your training</AccordionTrigger>
+          <AccordionItem value="clients-browse">
+            <AccordionTrigger>Clients: browsing courses and making an enquiry</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  The Training Library lets you explore available courses and submit an enquiry
+                  directly to your consultant.
+                </p>
+                <StepList
+                  steps={[
+                    "Click 'Training' in the sidebar to open the Training Library",
+                    "Browse by module (H&S, HR, Employment Law) or use the Training Finder to get personalised recommendations",
+                    "Click 'Enquire' on a course you're interested in",
+                    "Select the site, number of attendees, preferred timeframe, and add any notes",
+                    "Submit — your consultant will receive the enquiry and follow up to confirm the booking",
+                  ]}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="clients-mytraining">
+            <AccordionTrigger>Clients: viewing your booked training and certificates</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
                 <StepList
                   steps={[
-                    "Go to Training → Dashboard in the sidebar",
-                    "See all booked courses, their dates, and current status",
-                    "For online courses, click to reveal the login credentials provided by your consultant",
-                    "Go to Training → Certificates to view and download completed certificates",
+                    "Click 'My Training' in the sidebar",
+                    "The Booked tab shows all upcoming courses with their scheduled dates",
+                    "For online courses, click to view the login URL and credentials provided by your consultant",
+                    "The Completed tab shows your training history",
+                    "The Certificates tab lets you view and download all your earned certificates",
                   ]}
                 />
-                <TipBox type="info">
-                  If you need to book a course or have a question about upcoming training, raise a
-                  Support request and your consultant will arrange it for you.
-                </TipBox>
               </div>
             </AccordionContent>
           </AccordionItem>
@@ -495,11 +513,12 @@ const guideSections: GuideSection[] = [
               <div className="space-y-4 pt-2">
                 <StepList
                   steps={[
-                    "Go to Training Library in the sidebar",
-                    "Browse available courses and click one to open the details",
-                    "Click 'Make an Enquiry' to submit a booking request for a specific site",
-                    "Fill in the site, preferred date, and any notes, then submit",
-                    "Once confirmed, the course appears on the client's Training Dashboard",
+                    "Go to Training → Training Dashboard in the sidebar",
+                    "Click 'Book Training'",
+                    "Select the site, course, and scheduled date",
+                    "For online courses, add the login URL and access credentials so the client can see them",
+                    "Confirm the booking — it appears immediately on the client's My Training page",
+                    "When training is complete, click 'Mark as Complete' on the booking",
                   ]}
                 />
               </div>
@@ -512,11 +531,11 @@ const guideSections: GuideSection[] = [
               <div className="space-y-4 pt-2">
                 <StepList
                   steps={[
-                    "Go to Training → Certificates",
+                    "Go to Training → Certificates in the sidebar",
                     "Click 'Upload Certificate'",
-                    "Select the booking this certificate relates to",
-                    "Upload the file and enter the completion date",
-                    "Click 'Upload' — the certificate is immediately visible to the client",
+                    "Select the completed booking this certificate relates to",
+                    "Upload the certificate file and enter the completion date",
+                    "Click 'Upload' — the certificate is immediately visible to the client in their My Training page",
                   ]}
                 />
               </div>
