@@ -1080,6 +1080,8 @@ export default function CreateFromTemplate() {
             <li>Select individual sites, or use <strong>Select all</strong> to pick every site under a company at once</li>
             <li>Multi-site creation is limited to one company at a time — selecting a site from a different company will clear your current selection</li>
           </ul>
+          <p className="font-semibold text-blue-800 dark:text-blue-300 pt-1">The same document will be created for each selected site.</p>
+          <p className="font-semibold text-blue-800 dark:text-blue-300">If approval is required, the approving client user must have access to every selected site.</p>
         </div>
       </div>
     </div>
