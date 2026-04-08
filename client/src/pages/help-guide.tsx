@@ -136,12 +136,23 @@ const guideSections: GuideSection[] = [
           <h4 className="font-semibold mb-3">User roles at a glance</h4>
           <div className="grid gap-3">
             <div className="p-3 rounded-lg border bg-card">
-              <Badge variant="secondary" className="mb-1">
-                Consultant
-              </Badge>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="secondary">Consultant</Badge>
+                <Badge variant="outline" className="text-xs">Pro</Badge>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Manages documents, training, and cases for assigned client sites. Can upload
-                documents, approve client sign-offs, and respond to support requests.
+                Has access to all client sites and all other consultants in the portal. Can manage
+                documents, training, and cases across every company, and oversee consultant activity.
+              </p>
+            </div>
+            <div className="p-3 rounded-lg border bg-card">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="secondary">Consultant</Badge>
+                <Badge variant="outline" className="text-xs">Standard</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Manages documents, training, and cases for their assigned client sites only. Can
+                upload documents, approve client sign-offs, and respond to support requests.
               </p>
             </div>
             <div className="p-3 rounded-lg border bg-card">
