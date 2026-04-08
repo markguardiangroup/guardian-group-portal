@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Gd6-e_j82NPYA1yRNlo0g"
+uri = "file://client/public/favicon.png"
+type = "image"
+title = "Guardian Group Favicon"
