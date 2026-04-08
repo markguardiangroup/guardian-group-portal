@@ -686,7 +686,8 @@ export default function CompanyDetail() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  
+  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
+
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormOriginal, setEditFormOriginal] = useState<Record<string, string> | null>(null);
   const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
@@ -1485,7 +1486,7 @@ export default function CompanyDetail() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
-              {isAdmin && (
+              {(isAdmin || isProConsultant) && (
                 <Button size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-site">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Site
@@ -1508,7 +1509,7 @@ export default function CompanyDetail() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     This company doesn't have any sites yet
                   </p>
-                  {isAdmin && (
+                  {(isAdmin || isProConsultant) && (
                     <Button className="mt-4" size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-first-site">
                       <Plus className="mr-2 h-4 w-4" />
                       Add First Site
