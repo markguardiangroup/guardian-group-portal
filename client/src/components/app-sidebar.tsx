@@ -175,6 +175,11 @@ const adminNavItems = [
     icon: GraduationCap,
   },
   {
+    title: "Manage Pathways",
+    url: "/admin/pathways",
+    icon: Compass,
+  },
+  {
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
@@ -194,11 +199,6 @@ const adminNavItems = [
     url: "/roadmap",
     icon: Lightbulb,
     devOnly: true,
-  },
-  {
-    title: "Manage Pathways",
-    url: "/admin/pathways",
-    icon: Compass,
   },
 ];
 
