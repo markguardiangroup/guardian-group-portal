@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const IDLE_TIMEOUT_MS = import.meta.env.DEV ? 30 * 60 * 1000 : 5 * 60 * 1000;
 const WARNING_LEAD_MS = 60 * 1000;
 
 interface UseIdleTimeoutOptions {
