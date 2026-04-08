@@ -938,14 +938,14 @@ export default function Training() {
         setShowEnquiryDialog(open);
         if (!open) setSelectedCourse(null);
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Booking Enquiry</DialogTitle>
             <DialogDescription>
               Submit an enquiry for "{selectedCourse?.title}"
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-1">
             {/* Auto-populated Course Details */}
             <div className="rounded-lg bg-muted/50 p-3 space-y-2">
               <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Course Details</h4>
