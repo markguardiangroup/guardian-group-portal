@@ -256,6 +256,9 @@ export default function UserManagement() {
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [pendingEmailUser, setPendingEmailUser] = useState<(typeof newUser & { fullName: string; sendEmailNow?: boolean }) | null>(null);
+  const [showBulkSendDialog, setShowBulkSendDialog] = useState(false);
+  const [isBulkSending, setIsBulkSending] = useState(false);
   const [primaryContactConflictInUM, setPrimaryContactConflictInUM] = useState<{
     oldUserId: string;
     oldUserName: string;
@@ -771,7 +774,7 @@ export default function UserManagement() {
   };
 
   const createUserMutation = useMutation({
-    mutationFn: async (data: typeof newUser) => {
+    mutationFn: async (data: typeof newUser & { fullName?: string; sendEmailNow?: boolean }) => {
       const payload = {
         ...data,
         consultantTier: data.consultantTier || null,
@@ -840,7 +843,32 @@ export default function UserManagement() {
     const fullName = newUser.fullName.trim() || 
       `${newUser.firstName} ${newUser.lastName}`.trim() || 
       newUser.username;
+    // For consultant/admin — ask whether to send the welcome email now
+    if (newUser.role === "consultant" || newUser.role === "admin") {
+      setPendingEmailUser({ ...newUser, fullName });
+      setIsAddUserOpen(false);
+      return;
+    }
     createUserMutation.mutate({ ...newUser, fullName });
+  };
+
+  const handleBulkSendInvites = async () => {
+    const pending = allUsers.filter(
+      u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
+    );
+    setIsBulkSending(true);
+    for (const u of pending) {
+      await new Promise<void>((resolve) => {
+        resendInviteMutation.mutate(u.id, { onSuccess: () => resolve(), onError: () => resolve() });
+      });
+    }
+    setIsBulkSending(false);
+    setShowBulkSendDialog(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    toast({
+      title: "Bulk Send Complete",
+      description: `Welcome emails sent to ${pending.length} user${pending.length === 1 ? "" : "s"}.`,
+    });
   };
 
   const resendInviteMutation = useMutation({
@@ -1043,6 +1071,25 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (() => {
+            const pendingCount = allUsers.filter(
+              u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
+            ).length;
+            return pendingCount > 0 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkSendDialog(true)}
+                data-testid="button-bulk-send-invites"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Welcome Emails
+                <span className="ml-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {pendingCount}
+                </span>
+              </Button>
+            ) : null;
+          })()}
           {canAddUser && (
             <Button size="sm" className="w-32" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
               <Plus className="h-4 w-4 mr-2" />
@@ -2936,6 +2983,112 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Welcome Email Choice Dialog — shown after creating a consultant/admin */}
+      <Dialog open={!!pendingEmailUser} onOpenChange={(open) => { if (!open) setPendingEmailUser(null); }}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Send Welcome Email?
+            </DialogTitle>
+            <DialogDescription>
+              {pendingEmailUser && (
+                <>
+                  <strong>{pendingEmailUser.fullName}</strong> has been created. Do you want to send their welcome
+                  email now so they can set up their account and log in?
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <div className="rounded-lg bg-muted/60 p-3 text-sm space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium">{pendingEmailUser?.fullName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Email</span>
+                <span className="font-medium">{pendingEmailUser?.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Role</span>
+                <span className="font-medium capitalize">{pendingEmailUser?.role}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (pendingEmailUser) createUserMutation.mutate({ ...pendingEmailUser, sendEmailNow: false });
+                setPendingEmailUser(null);
+              }}
+              disabled={createUserMutation.isPending}
+              data-testid="button-send-email-later"
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Send Later
+            </Button>
+            <Button
+              onClick={() => {
+                if (pendingEmailUser) createUserMutation.mutate({ ...pendingEmailUser, sendEmailNow: true });
+                setPendingEmailUser(null);
+              }}
+              disabled={createUserMutation.isPending}
+              data-testid="button-send-email-now"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Send Welcome Emails Dialog */}
+      <Dialog open={showBulkSendDialog} onOpenChange={(open) => { if (!open && !isBulkSending) setShowBulkSendDialog(false); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Send Welcome Emails
+            </DialogTitle>
+            <DialogDescription>
+              The following consultants have not yet received their welcome email. Sending now will deliver their login
+              invitation to each address below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 max-h-60 overflow-y-auto space-y-1">
+            {allUsers
+              .filter(u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required")
+              .map(u => (
+                <div key={u.id} className="flex items-center justify-between rounded-md px-3 py-2 bg-muted/50 text-sm">
+                  <span className="font-medium">{u.fullName}</span>
+                  <span className="text-muted-foreground">{u.email}</span>
+                </div>
+              ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkSendDialog(false)} disabled={isBulkSending} data-testid="button-cancel-bulk-send">
+              Cancel
+            </Button>
+            <Button onClick={handleBulkSendInvites} disabled={isBulkSending} data-testid="button-confirm-bulk-send">
+              {isBulkSending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send All
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   );
