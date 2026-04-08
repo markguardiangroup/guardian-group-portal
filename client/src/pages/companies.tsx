@@ -329,7 +329,7 @@ export default function Companies() {
         }
       }
       queryClient.refetchQueries({ queryKey: ["/api/companies"] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
@@ -378,7 +378,7 @@ export default function Companies() {
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["/api/companies"] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({ title: "Company and all associated data deleted successfully" });
       setDeleteTarget(null);

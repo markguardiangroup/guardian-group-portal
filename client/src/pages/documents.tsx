@@ -1216,7 +1216,7 @@ function DocumentDetailView({ id }: { id: string }) {
     queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
     queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;

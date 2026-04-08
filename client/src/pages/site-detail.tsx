@@ -955,7 +955,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   ];
 
   const invalidateSiteData = () => {
-    queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
     queryClient.refetchQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
     queryClient.refetchQueries({ queryKey: ["/api/dashboard"] });
     queryClient.refetchQueries({ queryKey: ["/api/missing-required-templates"] });
@@ -1288,7 +1288,7 @@ export default function SiteDetail() {
     },
     onSuccess: () => {
       queryClient.refetchQueries({ queryKey: ["/api/sites", siteId] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Site updated successfully" });
       setIsEditSiteOpen(false);
     },

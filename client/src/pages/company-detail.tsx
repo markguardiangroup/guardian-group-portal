@@ -936,9 +936,9 @@ export default function CompanyDetail() {
       return site;
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
-      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setAddSiteDialogOpen(false);
       setNewSiteForm({
         name: "",

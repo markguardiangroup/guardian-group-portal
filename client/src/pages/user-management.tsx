@@ -1022,7 +1022,7 @@ export default function UserManagement() {
     await Promise.all([
       queryClient.refetchQueries({ queryKey: ["/api/users"] }),
       queryClient.refetchQueries({ queryKey: ["/api/consultants"] }),
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
       queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
     ]);
     setIsRefreshing(false);

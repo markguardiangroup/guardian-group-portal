@@ -575,7 +575,7 @@ export default function CreateFromTemplate() {
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       queryClient.refetchQueries({ queryKey: ["/api/folders"] });
       const count = selectedSiteIds.length;
       toast({

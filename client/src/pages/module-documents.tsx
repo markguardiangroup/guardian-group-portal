@@ -1835,7 +1835,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
     queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
@@ -1941,7 +1941,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.refetchQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.refetchQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.refetchQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({
@@ -2031,7 +2031,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       queryClient.refetchQueries({ queryKey: ["/api/documents/module", module, "archived"] });
       queryClient.refetchQueries({ queryKey: ["/api/dashboard", module] });
       queryClient.refetchQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.refetchQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       queryClient.refetchQueries({ 
         predicate: (query) => query.queryKey.some(
           (key) => typeof key === 'string' && key.includes('documents-hierarchy')
