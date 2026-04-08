@@ -247,15 +247,25 @@ export default function DocumentUpload() {
     }
   }, [selectedSiteIds, sites]);
 
-  // Scroll the pre-selected site into view inside the picker list
+  // Scroll the pre-selected site into view inside the picker list.
+  // Must depend on expandedPickerCompanies too: the accordion expand effect
+  // runs at the same time as the selection, so the button doesn't exist in
+  // the DOM yet on the first fire. After the accordion state update triggers
+  // a re-render the effect re-runs, this time finding the button.
   const sitePickerListRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!sitePickerListRef.current || selectedSiteIds.length === 0) return;
-    const btn = sitePickerListRef.current.querySelector(
-      `[data-testid="button-picker-select-site-${selectedSiteIds[0]}"]`
-    );
-    if (btn) btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [selectedSiteIds[0]]);
+    if (selectedSiteIds.length === 0) return;
+    const target = selectedSiteIds[0];
+    // Defer one frame so the accordion has finished rendering its children
+    const id = requestAnimationFrame(() => {
+      if (!sitePickerListRef.current) return;
+      const btn = sitePickerListRef.current.querySelector(
+        `[data-testid="button-picker-select-site-${target}"]`
+      );
+      if (btn) (btn as HTMLElement).scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [selectedSiteIds[0], expandedPickerCompanies]);
 
   // Group all sites by company for the accordion picker
   const siteGroups = useMemo(() => {
@@ -718,7 +728,7 @@ export default function DocumentUpload() {
             ) : filteredSiteGroups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matching sites found.</p>
             ) : (
-              <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
+              <div ref={sitePickerListRef} className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="site-picker-list">
                 {(() => {
                   const selectedCompanyId = selectedSiteIds.length > 0 ? sites?.find(s => s.id === selectedSiteIds[0])?.companyId : null;
                   return filteredSiteGroups.map(({ companyId, companyName, sites: groupSites }) => {
