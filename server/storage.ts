@@ -785,7 +785,8 @@ export class MemStorage implements IStorage {
       .where(and(
         eq(documentsTable.siteId, siteId), 
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId)
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId)
       ));
     const docs = allDocs;
 
