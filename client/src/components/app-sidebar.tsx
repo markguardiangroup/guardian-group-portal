@@ -193,6 +193,7 @@ const adminNavItems = [
     title: "Roadmap",
     url: "/roadmap",
     icon: Lightbulb,
+    devOnly: true,
   },
   {
     title: "Manage Pathways",
@@ -630,7 +631,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {(user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro).map((item) => {
+                {(user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro)
+                  .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
+                  .map((item) => {
                   const isActive = location === item.url || 
                     (item.url !== "/" && location.startsWith(item.url));
                   return (
