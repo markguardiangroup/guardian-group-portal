@@ -1322,6 +1322,7 @@ function CaseDetailView({ id }: { id: string }) {
   };
 
   const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
+  const [checklistItemToDelete, setChecklistItemToDelete] = useState<CaseDocumentChecklist | null>(null);
 
   // Case Notes
   const { data: caseNotes = [] } = useQuery<(CaseNote & { createdByName: string })[]>({
@@ -1863,7 +1864,13 @@ function CaseDetailView({ id }: { id: string }) {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => deleteChecklistItemMutation.mutate(item.id)}
+                                  onClick={() => {
+                                    if (item.linkedDocumentId) {
+                                      setChecklistItemToDelete(item);
+                                    } else {
+                                      deleteChecklistItemMutation.mutate(item.id);
+                                    }
+                                  }}
                                   className="text-red-600"
                                   data-testid={`button-delete-checklist-${item.id}`}
                                 >
@@ -2233,6 +2240,39 @@ function CaseDetailView({ id }: { id: string }) {
               data-testid="button-confirm-status"
             >
               {updateCaseMutation.isPending ? "Updating..." : "Confirm Status Change"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Essential document delete — linked document warning */}
+      <AlertDialog open={!!checklistItemToDelete} onOpenChange={(open) => !open && setChecklistItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Essential Document?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                <span className="font-semibold">"{checklistItemToDelete?.title}"</span> is currently linked to an uploaded document that has not been deleted.
+              </p>
+              <p>
+                Deleting this essential document will remove the checklist entry but the uploaded document will remain in the case. Are you sure you want to continue?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-checklist">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (checklistItemToDelete) {
+                  deleteChecklistItemMutation.mutate(checklistItemToDelete.id);
+                  setChecklistItemToDelete(null);
+                }
+              }}
+              disabled={deleteChecklistItemMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-delete-checklist"
+            >
+              {deleteChecklistItemMutation.isPending ? "Deleting..." : "Delete Essential Document"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
