@@ -1601,7 +1601,13 @@ export default function CreateFromTemplate() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(returnTo)}
+          onClick={() => {
+            const siteId = selectedSiteIds[0];
+            const finalUrl = siteId && !returnTo.includes("siteId")
+              ? `${returnTo}${returnTo.includes("?") ? "&" : "?"}siteId=${siteId}`
+              : returnTo;
+            navigate(finalUrl);
+          }}
           data-testid="button-back-library"
         >
           <ArrowLeft className="h-5 w-5" />
