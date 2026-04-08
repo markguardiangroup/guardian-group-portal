@@ -744,6 +744,13 @@ export default function CreateFromTemplate() {
 
   const renderTemplateStep = () => (
     <div className="space-y-4">
+      <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
+        <div className="space-y-0.5 text-blue-800 dark:text-blue-300">
+          <p>Please select the appropriate template to upload.</p>
+          <p className="font-semibold">If a template is marked as required, uploading a document against it will contribute to the compliance score for the company.</p>
+        </div>
+      </div>
       <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
