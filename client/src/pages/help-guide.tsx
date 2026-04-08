@@ -729,6 +729,78 @@ const guideSections: GuideSection[] = [
     ),
   },
   {
+    id: "reports",
+    title: "Reports",
+    icon: <BarChart2 className="h-5 w-5" />,
+    description: "Understanding the available compliance and activity reports",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          The Reports section gives you a live view of compliance health and outstanding actions
+          across your sites. Each report can be filtered by company and site.
+        </p>
+
+        <div className="grid gap-3">
+          <div className="p-4 rounded-lg border bg-card">
+            <h5 className="font-medium mb-1">Compliance Gaps</h5>
+            <p className="text-sm text-muted-foreground">
+              Shows every required document slot that is missing or not yet approved. Use this to
+              identify exactly what needs to be done to improve a site's compliance score.
+            </p>
+          </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <h5 className="font-medium mb-1">Expiry &amp; Renewal Risk</h5>
+            <p className="text-sm text-muted-foreground">
+              Lists documents that are overdue or approaching their renewal date. Filter by time
+              window to prioritise what needs attention soonest.
+            </p>
+          </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <h5 className="font-medium mb-1">Site Comparison</h5>
+            <p className="text-sm text-muted-foreground">
+              Displays the compliance score for every site within a company side-by-side, making
+              it easy to spot which sites are lagging behind.
+            </p>
+          </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <h5 className="font-medium mb-1">Approval Pipeline</h5>
+            <p className="text-sm text-muted-foreground">
+              Shows all documents currently waiting for sign-off or approval, grouped by their
+              current stage in the workflow. Useful for clearing a backlog.
+            </p>
+          </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <h5 className="font-medium mb-1">Deadline &amp; Milestone Risk</h5>
+            <p className="text-sm text-muted-foreground">
+              Highlights overdue incident investigation milestones and unresolved incidents that
+              have been open for a significant length of time.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-3">Using a report</h4>
+          <StepList
+            steps={[
+              "Click 'Reports' in the sidebar",
+              "Select the report you want from the tiles on the overview page",
+              "Use the Company and Site filters at the top to narrow the scope",
+              "Review the results — each row links to the relevant document, site, or case",
+              "Use the back arrow to return to the reports overview and choose a different report",
+            ]}
+          />
+        </div>
+
+        <TipBox type="info">
+          Reports are live — they always reflect the current state of the portal. There is no need
+          to refresh or re-run them.
+        </TipBox>
+      </div>
+    ),
+  },
+  {
     id: "support",
     title: "Support",
     icon: <MessageSquare className="h-5 w-5" />,
