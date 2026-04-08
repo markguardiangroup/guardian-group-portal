@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <mask id="donut-mask">
+      <circle cx="50" cy="50" r="48" fill="white"/>
+      <circle cx="50" cy="50" r="24" fill="black"/>
+    </mask>
+    <clipPath id="tl"><rect x="0" y="0" width="50" height="50"/></clipPath>
+    <clipPath id="tr"><rect x="50" y="0" width="50" height="50"/></clipPath>
+    <clipPath id="bl"><rect x="0" y="50" width="50" height="50"/></clipPath>
+    <clipPath id="br"><rect x="50" y="50" width="50" height="50"/></clipPath>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="#F5A623" clip-path="url(#tl)" mask="url(#donut-mask)"/>
+  <circle cx="50" cy="50" r="48" fill="#8DC63F" clip-path="url(#tr)" mask="url(#donut-mask)"/>
+  <circle cx="50" cy="50" r="48" fill="#E8418A" clip-path="url(#bl)" mask="url(#donut-mask)"/>
+  <circle cx="50" cy="50" r="48" fill="#5BB8F5" clip-path="url(#br)" mask="url(#donut-mask)"/>
+</svg>
