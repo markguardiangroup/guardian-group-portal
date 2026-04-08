@@ -9577,7 +9577,8 @@ export async function registerRoutes(
       
       const updated = await storage.updateUser(req.params.id, {
         ...(status !== undefined && { status }),
-        ...(clientPermissionRole !== undefined && { clientPermissionRole }),
+        // Normalize any incoming clientPermissionRole to "full" (only valid value now)
+        ...(clientPermissionRole !== undefined && { clientPermissionRole: "full" as const }),
         ...(email !== undefined && { email }),
         ...(fullName !== undefined && { fullName }),
         ...(title !== undefined && { title }),
