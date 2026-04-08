@@ -56,6 +56,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -131,6 +132,7 @@ export default function DocumentUpload() {
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
   const [uploadStep, setUploadStep] = useState<"choice" | "site" | "upload" | "complete">("choice");
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
+  const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
 
@@ -781,7 +783,7 @@ export default function DocumentUpload() {
           </CardContent>
           <div className="px-6 pb-6 flex justify-end">
             <Button
-              onClick={() => setUploadStep("upload")}
+              onClick={() => setShowSiteConfirmDialog(true)}
               disabled={selectedSiteIds.length === 0}
               data-testid="button-continue-to-upload"
             >
@@ -1315,6 +1317,55 @@ export default function DocumentUpload() {
           </CardContent>
         </Card>
       )}
+
+      {/* Site selection confirmation dialog */}
+      <Dialog open={showSiteConfirmDialog} onOpenChange={setShowSiteConfirmDialog}>
+        <DialogContent data-testid="dialog-site-confirm">
+          <DialogHeader>
+            <DialogTitle>Confirm your selection</DialogTitle>
+            <DialogDescription>
+              Please confirm the site(s) before continuing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-1.5 py-2">
+            {selectedSiteObjects.map(site => (
+              <div key={site.id} className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{site.name}</p>
+                  {site.companyName && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{site.companyName}</p>
+                  )}
+                  {site.address && (
+                    <p className="text-xs text-muted-foreground">{site.address}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowSiteConfirmDialog(false)}
+              data-testid="button-confirm-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSiteConfirmDialog(false);
+                setUploadStep("upload");
+              }}
+              data-testid="button-confirm-continue"
+            >
+              Confirm & Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showTemplatePrompt} onOpenChange={setShowTemplatePrompt}>
         <DialogContent className="max-w-sm">
