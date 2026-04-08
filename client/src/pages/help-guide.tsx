@@ -1,34 +1,29 @@
 import { useState } from "react";
-import { 
-  Book, 
-  Building2, 
-  Users, 
-  Key, 
-  FileText, 
-  GraduationCap, 
+import {
+  Book,
+  Building2,
+  FileText,
+  GraduationCap,
   HelpCircle,
   ChevronRight,
   CheckCircle2,
   Info,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
   MapPin,
-  UserPlus,
-  RefreshCw,
-  Mail,
   Shield,
-  ClipboardList,
   MessageSquare,
-  Link2,
   Briefcase,
   Lock,
   Eye,
-  EyeOff
+  BarChart2,
+  Wrench,
+  Key,
+  RefreshCw,
+  Upload,
+  UserPlus,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -63,11 +58,21 @@ function StepList({ steps, testId }: { steps: string[]; testId?: string }) {
   );
 }
 
-function TipBox({ children, type = "info", testId }: { children: React.ReactNode; type?: "info" | "warning" | "success"; testId?: string }) {
+function TipBox({
+  children,
+  type = "info",
+  testId,
+}: {
+  children: React.ReactNode;
+  type?: "info" | "warning" | "success";
+  testId?: string;
+}) {
   const styles = {
     info: "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200",
-    warning: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200",
-    success: "bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200",
+    warning:
+      "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200",
+    success:
+      "bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-200",
   };
   const icons = {
     info: <Info className="h-4 w-4" />,
@@ -76,7 +81,10 @@ function TipBox({ children, type = "info", testId }: { children: React.ReactNode
   };
 
   return (
-    <div className={`flex items-start gap-3 p-4 rounded-lg border ${styles[type]}`} data-testid={testId || `tip-${type}`}>
+    <div
+      className={`flex items-start gap-3 p-4 rounded-lg border ${styles[type]}`}
+      data-testid={testId || `tip-${type}`}
+    >
       <span className="flex-shrink-0 mt-0.5">{icons[type]}</span>
       <div className="text-sm">{children}</div>
     </div>
@@ -88,436 +96,292 @@ const guideSections: GuideSection[] = [
     id: "getting-started",
     title: "Getting Started",
     icon: <Book className="h-5 w-5" />,
-    description: "An overview of the Guardian Group portal and how to navigate it",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
+    description: "Overview of the portal and how to find your way around",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Welcome to the Guardian Group Health & Safety and HR Compliance Portal. This guide will help you understand 
-          how to use the system effectively.
+          Welcome to the Guardian Group Compliance Portal. The portal brings together Health &amp;
+          Safety, HR, Employment Law, Training, and Support in one place — organised around the
+          companies and sites you work with.
         </p>
-        
+
         <div>
-          <h4 className="font-semibold mb-3">Portal Overview</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            The portal is organised into several key areas accessible from the sidebar:
-          </p>
+          <h4 className="font-semibold mb-3">What's in the sidebar</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Dashboard</strong> - Your central hub showing key metrics and recent activity</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Health & Safety</strong> - Manage H&S compliance documents and assessments</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Human Resources</strong> - Manage HR policies and employment documents</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Employment Law</strong> - Access employment law resources and case management</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Training</strong> - View and manage training courses and certificates</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ChevronRight className="h-4 w-4 mt-0.5 text-primary" />
-              <span><strong>Support</strong> - Submit and track support requests</span>
-            </li>
+            {[
+              ["Dashboard", "Your compliance overview — scores, recent activity, and quick links"],
+              ["Health & Safety", "H&S compliance documents for your sites"],
+              ["Human Resources", "HR policies, contracts, and employment documents"],
+              ["Employment Law", "Case management and confidential legal correspondence"],
+              ["Training", "Booked courses, certificates, and the training library"],
+              ["Toolkit", "Browse and download reference resources"],
+              ["Support", "Submit questions and track responses from your consultant"],
+            ].map(([title, desc]) => (
+              <li key={title} className="flex items-start gap-2">
+                <ChevronRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+                <span>
+                  <strong>{title}</strong> — {desc}
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
 
+        <Separator />
+
         <div>
-          <h4 className="font-semibold mb-3">Understanding User Roles</h4>
+          <h4 className="font-semibold mb-3">User roles at a glance</h4>
           <div className="grid gap-3">
             <div className="p-3 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="default">Admin</Badge>
-              </div>
+              <Badge variant="secondary" className="mb-1">
+                Consultant
+              </Badge>
               <p className="text-sm text-muted-foreground">
-                Full access to all companies, sites, and users. Can manage the entire system including user invitations, 
-                company setup, and system settings.
+                Manages documents, training, and cases for assigned client sites. Can upload
+                documents, approve client sign-offs, and respond to support requests.
               </p>
             </div>
             <div className="p-3 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="secondary">Consultant</Badge>
-              </div>
+              <Badge variant="outline" className="mb-1">
+                Client
+              </Badge>
               <p className="text-sm text-muted-foreground">
-                Access to assigned sites only. Can manage documents, training, and support for their assigned clients.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline">Client</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Access to their company's sites. Can view and sign off on documents, access training, and submit support requests.
+                Views compliance documents for their sites, signs off documents sent by their
+                consultant, accesses training records, and raises support requests.
               </p>
             </div>
           </div>
         </div>
 
         <TipBox type="info">
-          Each entity in the system has a unique reference number (e.g., CMP-00001 for companies, STE-00001 for sites) 
-          that makes it easy to identify and reference items.
+          You only see the sites and companies you've been assigned to. If you're missing access to
+          a site, contact your consultant or administrator.
         </TipBox>
       </div>
     ),
   },
   {
-    id: "company-setup",
-    title: "Setting Up Companies & Sites",
-    icon: <Building2 className="h-5 w-5" />,
-    description: "How to create and configure companies and their sites",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin"],
+    id: "dashboard",
+    title: "Your Dashboard",
+    icon: <BarChart2 className="h-5 w-5" />,
+    description: "Understanding your compliance score and site overview",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          The portal uses a hierarchical structure: Companies contain Sites, and Sites have Users assigned to them. 
-          This guide explains how to set up this structure.
+          The Dashboard is your starting point. It gives an at-a-glance view of compliance health
+          across your sites.
         </p>
 
         <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Creating a New Company
-          </h4>
-          <StepList steps={[
-            "Navigate to 'Companies' in the sidebar",
-            "Click the 'Add Company' button in the top right",
-            "Fill in the company details: name and address",
-            "Click 'Create' to save the new company",
-            "The system will automatically generate a reference number (CMP-XXXXX)",
-            "After creating users for this company, you can edit the company to assign a primary contact"
-          ]} />
+          <h4 className="font-semibold mb-3">Compliance Score</h4>
+          <p className="text-sm text-muted-foreground mb-3">
+            Each site has a compliance score expressed as a percentage. The score is calculated
+            from the required document slots for that site — the more required documents that are
+            approved and up to date, the higher the score.
+          </p>
+          <div className="grid gap-2">
+            {[
+              ["bg-green-500", "80 – 100%", "Good standing — most required documents are in place"],
+              ["bg-amber-500", "50 – 79%", "Needs attention — some required documents are missing or pending"],
+              ["bg-red-500", "0 – 49%", "Critical — significant gaps in required compliance documents"],
+            ].map(([colour, range, label]) => (
+              <div key={range} className="flex items-center gap-3 p-2 rounded border">
+                <span className={`w-3 h-3 rounded-full flex-shrink-0 ${colour}`} />
+                <span className="font-medium text-sm w-20 flex-shrink-0">{range}</span>
+                <span className="text-sm text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <TipBox type="info">
-          Company and site contacts must be registered users from that company. When you first create a company, no users exist yet - create users in the Users section first, then edit the company to assign a primary contact. Contact details are automatically populated from the selected user's profile.
+          The score only counts documents in active required slots. Incident reports and
+          Employment Law case documents are tracked separately and don't affect the score.
         </TipBox>
 
         <Separator />
 
         <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Adding Sites to a Company
-          </h4>
-          <StepList steps={[
-            "Open the company by clicking on it in the Companies list",
-            "In the company detail view, find the 'Sites' section",
-            "Click 'Add Site' to create a new site",
-            "Enter the site name and address details",
-            "Optionally select a registered user as the primary site contact (their details are auto-populated)",
-            "Click 'Add Site' to save",
-            "The system will generate a site reference number (STE-XXXXX)"
-          ]} />
+          <h4 className="font-semibold mb-3">Navigating to a site</h4>
+          <StepList
+            steps={[
+              "Click a site card on the Dashboard to open that site's detail view",
+              "Use the module tabs (H&S, HR, Employment Law) to switch between compliance areas",
+              "Click any document row to view its full details, status, and history",
+            ]}
+          />
         </div>
+      </div>
+    ),
+  },
+  {
+    id: "documents",
+    title: "Documents & Compliance",
+    icon: <FileText className="h-5 w-5" />,
+    description: "Uploading, reviewing, signing off, and approving documents",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          Documents sit at the heart of compliance. The portal tracks required documents for each
+          site and manages an approval workflow so nothing gets missed.
+        </p>
+
+        <div>
+          <h4 className="font-semibold mb-3">Document statuses</h4>
+          <div className="grid gap-2">
+            {[
+              ["outline", "Pending", "Uploaded but awaiting sign-off or approval"],
+              ["bg-blue-500", "Client Signed Off", "Client has reviewed and signed — consultant to approve"],
+              ["bg-green-500", "Approved", "Fully approved and counted towards the compliance score"],
+              ["bg-red-500", "Rejected", "Returned for changes — a note will explain why"],
+              ["secondary", "Archived", "Superseded by a newer version; kept for audit purposes"],
+            ].map(([variant, label, desc]) => (
+              <div key={label} className="flex items-center gap-3 p-2 rounded border">
+                <Badge
+                  variant={variant.startsWith("bg-") ? "default" : (variant as any)}
+                  className={variant.startsWith("bg-") ? variant : ""}
+                >
+                  {label}
+                </Badge>
+                <span className="text-sm text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="consultant-upload">
+            <AccordionTrigger>Consultants: uploading a document</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <StepList
+                  steps={[
+                    "Open the site, then select the module (H&S or HR)",
+                    "Find the document slot you want to fill and click 'Upload'",
+                    "Choose or drag in your file (PDF, Word, Excel accepted)",
+                    "Add any notes for the client, then click 'Upload'",
+                    "The document status becomes Pending — the client will be prompted to review it",
+                    "Once the client signs off, you'll see a notification to give final approval",
+                  ]}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="client-signoff">
+            <AccordionTrigger>Clients: reviewing and signing off a document</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  When your consultant uploads a document that needs your sign-off, you'll see it
+                  listed under the relevant module with a <strong>Pending</strong> badge.
+                </p>
+                <StepList
+                  steps={[
+                    "Open the document to read or download it",
+                    "Click 'Sign Off' once you're happy with the content",
+                    "Add an optional note if needed, then confirm",
+                    "The document moves to 'Client Signed Off' and your consultant is notified to approve it",
+                  ]}
+                />
+                <TipBox type="info">
+                  If something doesn't look right, use the Support section to raise a query with
+                  your consultant before signing off.
+                </TipBox>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="client-upload">
+            <AccordionTrigger>Clients: uploading your own documents</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Some document slots allow clients to upload directly — for example, providing a
+                  copy of an existing policy.
+                </p>
+                <StepList
+                  steps={[
+                    "Navigate to the document slot in the relevant module",
+                    "Click 'Upload' and select your file",
+                    "Add any notes for your consultant, then click 'Upload'",
+                    "Your document is sent to your consultant for approval",
+                  ]}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="consultant-approve">
+            <AccordionTrigger>Consultants: approving a document</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <StepList
+                  steps={[
+                    "Open the document — it will show 'Client Signed Off' or 'Pending' (for client-uploaded docs)",
+                    "Review the file and any notes",
+                    "Click 'Approve' to mark it as compliant — it now counts towards the site score",
+                    "Or click 'Reject' and add a note explaining what needs to change",
+                  ]}
+                />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <TipBox type="success">
-          After creating a site, you can assign consultants to manage it and invite client users who work at that location. Module access (H&S, HR, Employment Law) is configured at the company level and applies to all sites.
+          Every upload is versioned. When a new document replaces an old one, the previous version
+          is archived automatically — nothing is ever deleted.
         </TipBox>
-
-        <div>
-          <h4 className="font-semibold mb-3">Module Access</h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            Each company can have access to different compliance modules based on their subscription. Module access is configured on the company page and applies to all sites within that company:
-          </p>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500" />
-              <span><strong>Health & Safety</strong> - Risk assessments, safety policies, COSHH assessments</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500" />
-              <span><strong>Human Resources</strong> - Employment contracts, HR policies, staff handbooks</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500" />
-              <span><strong>Employment Law</strong> - Legal advice, case management, tribunal support</span>
-            </li>
-          </ul>
-        </div>
       </div>
     ),
   },
   {
-    id: "user-invitations",
-    title: "Inviting Users",
-    icon: <UserPlus className="h-5 w-5" />,
-    description: "How to invite new users and manage their access",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin"],
-    content: (
-      <div className="space-y-6">
-        <p className="text-muted-foreground">
-          The portal uses a secure invitation system. When you create a user, they receive an invitation link 
-          to set up their own password. Admins never see or set user passwords.
-        </p>
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Creating and Inviting a New User
-          </h4>
-          <StepList steps={[
-            "Click 'Users' in the sidebar (under the Admin section)",
-            "Click the 'Add User' button",
-            "Fill in the user's details: first name, last name, email, and username",
-            "Select their role: Admin, Consultant, or Client",
-            "For Client users, select which company they belong to",
-            "Click 'Create' - the system will generate an invitation",
-            "Copy the invitation link from the dialog that appears",
-            "Send the invitation link to the user via email or other secure means"
-          ]} />
-        </div>
-
-        <TipBox type="info">
-          Invitation links are valid for 48 hours. If the link expires, you can resend a new invitation from the user management page.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Resending an Invitation
-          </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            If a user's invitation has expired or they didn't receive it:
-          </p>
-          <StepList steps={[
-            "Go to User Management",
-            "Find the user with 'Invited' status (shown with an amber badge)",
-            "Click on the user row to open the actions menu",
-            "Select 'Resend Invitation'",
-            "A new invitation link will be generated (the old one becomes invalid)",
-            "Copy and share the new link with the user"
-          ]} />
-        </div>
-
-        <div>
-          <h4 className="font-semibold mb-3">Understanding User Status</h4>
-          <div className="grid gap-2">
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge className="bg-amber-500">Invited</Badge>
-              <span className="text-sm text-muted-foreground">User has been invited but hasn't set their password yet</span>
-            </div>
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge className="bg-green-500">Active</Badge>
-              <span className="text-sm text-muted-foreground">User has set their password and can log in</span>
-            </div>
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge variant="secondary">Inactive</Badge>
-              <span className="text-sm text-muted-foreground">User account has been deactivated</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "password-management",
-    title: "Password Creation & Resets",
-    icon: <Key className="h-5 w-5" />,
-    description: "How users set their passwords and reset forgotten passwords",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
-    content: (
-      <div className="space-y-6">
-        <p className="text-muted-foreground">
-          This guide covers how users set their initial password when invited and how to reset a forgotten password.
-        </p>
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Setting Your Password (New Users)
-          </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            When you receive an invitation link:
-          </p>
-          <StepList steps={[
-            "Click the invitation link you received",
-            "You'll be taken to the 'Set Password' page",
-            "Enter a password that meets the requirements (minimum 8 characters)",
-            "Confirm your password by entering it again",
-            "Click 'Set Password'",
-            "You'll be redirected to the login page",
-            "Log in with your username and new password"
-          ]} />
-        </div>
-
-        <TipBox type="warning">
-          Invitation links expire after 48 hours. If your link has expired, contact your administrator to request a new invitation.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Resetting a Forgotten Password
-          </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            If you've forgotten your password:
-          </p>
-          <StepList steps={[
-            "Go to the login page",
-            "Click 'Forgot your password?' below the login button",
-            "Enter the email address associated with your account",
-            "Click 'Send Reset Link'",
-            "Check your email for the password reset link",
-            "Click the link and enter your new password",
-            "Log in with your new password"
-          ]} />
-        </div>
-
-        <TipBox type="info">
-          Password reset links are valid for 1 hour and can only be used once. If your link expires, 
-          you can request a new one from the login page.
-        </TipBox>
-
-        <div>
-          <h4 className="font-semibold mb-3">Password Requirements</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Minimum 8 characters long</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>We recommend using a mix of letters, numbers, and symbols</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Avoid using easily guessable information</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "user-site-assignments",
-    title: "User Site Assignments",
-    icon: <Link2 className="h-5 w-5" />,
-    description: "How to assign users to companies and sites for access control",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant"],
-    content: (
-      <div className="space-y-6">
-        <p className="text-muted-foreground">
-          Users must be assigned to sites to access the portal. Site assignments are managed directly from User Management.
-        </p>
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Managing Site Assignments
-          </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            You can view and manage site assignments for any user directly from the Users page:
-          </p>
-          <StepList steps={[
-            "Navigate to Users from the sidebar",
-            "View assigned sites as badges in the 'Sites' column",
-            "Click the Actions menu (three dots) for any user",
-            "Select 'Add Site' to assign a new site",
-            "Select 'Remove Site' to remove an existing assignment",
-            "Confirm the change when prompted"
-          ]} />
-        </div>
-
-        <TipBox type="info">
-          Clients can only be assigned to sites within their company. Consultants can be assigned to any site across all companies.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            View Profile
-          </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            To see all details about a user including their full list of site assignments:
-          </p>
-          <StepList steps={[
-            "Click the Actions menu for the user",
-            "Select 'View Profile'",
-            "Review the user's details and all assigned sites"
-          ]} />
-        </div>
-
-        <TipBox type="warning">
-          Consultants cannot see any sites until they are explicitly assigned. Make sure to assign sites when creating a new consultant account.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3">Permission Levels for Clients</h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            When assigning sites to client users, you can also set their permission level:
-          </p>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-medium text-foreground">Viewer:</span> Can view documents and reports but cannot make changes
-              </div>
-            </li>
-            <li className="flex items-start gap-2">
-              <FileText className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-medium text-foreground">Contributor:</span> Can upload documents and submit for approval
-              </div>
-            </li>
-            <li className="flex items-start gap-2">
-              <Shield className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-medium text-foreground">Manager:</span> Full access including approving documents on behalf of the client
-              </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "employment-law-cases",
-    title: "Employment Law Case Access",
+    id: "employment-law",
+    title: "Employment Law Cases",
     icon: <Briefcase className="h-5 w-5" />,
-    description: "How case access works and adding users to Employment Law cases",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
+    description: "How to access and work with Employment Law cases",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Employment Law cases contain sensitive information and have restricted access by default. This guide explains how case access works.
+          Employment Law cases contain sensitive and confidential information. Access is restricted
+          by default — users must be explicitly added to each case.
         </p>
 
         <TipBox type="warning">
-          <strong>Important:</strong> By default, no users have access to Employment Law cases. Users must be explicitly added to each case to view or work with it.
+          Even if you have full site access, you will not see any Employment Law cases unless your
+          consultant or administrator has added you to them.
         </TipBox>
 
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <Lock className="h-4 w-4" />
-            Why Cases Have Restricted Access
+            How case access works
           </h4>
-          <p className="text-sm text-muted-foreground">
-            Employment Law cases often contain confidential employee information, disciplinary records, and legal correspondence. 
-            To protect this sensitive data, access is controlled on a case-by-case basis. Even if a user has access to a site, 
-            they won't see any EL cases unless they're specifically granted access to each case.
-          </p>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <ChevronRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+              <span>The consultant who creates a case has access automatically</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <ChevronRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+              <span>Other users (including clients) must be added individually</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <ChevronRight className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
+              <span>Users without access cannot see that a case exists at all</span>
+            </li>
+          </ul>
         </div>
 
         <Separator />
@@ -525,290 +389,303 @@ const guideSections: GuideSection[] = [
         <div>
           <h4 className="font-semibold mb-3 flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
-            Adding Users to a Case (Admin/Consultant)
+            Adding users to a case (consultants)
           </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            To grant a user access to an Employment Law case:
-          </p>
-          <StepList steps={[
-            "Navigate to Employment Law from the sidebar",
-            "Find and open the case you want to manage",
-            "Look for the 'Case Access' or 'Manage Access' section",
-            "Click 'Add User' to grant access",
-            "Select the user(s) who should have access to this case",
-            "Choose their access level (View only, or Full access)",
-            "Save changes"
-          ]} />
+          <StepList
+            steps={[
+              "Open the case in Employment Law",
+              "Scroll to the 'Case Access' panel",
+              "Click 'Add User' and select the person",
+              "Choose their access level: View only, or Full access",
+              "Save — the user can now see and work with the case",
+            ]}
+          />
         </div>
 
-        <Separator />
-
         <div>
-          <h4 className="font-semibold mb-3 flex items-center gap-2">
-            <EyeOff className="h-4 w-4" />
-            What Users Without Access See
-          </h4>
-          <p className="text-sm text-muted-foreground">
-            If a user doesn't have access to any Employment Law cases, they will see an empty case list when they visit the 
-            Employment Law section. They will not be able to see that cases exist - ensuring complete confidentiality.
-          </p>
-        </div>
-
-        <TipBox type="info">
-          When you create a new Employment Law case, remember to add the relevant client users who need to be involved. 
-          The case creator (admin or consultant) automatically has access.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3">Access Levels for Cases</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
+          <h4 className="font-semibold mb-3">Access levels</h4>
+          <div className="grid gap-2">
+            <div className="flex items-start gap-3 p-3 rounded border">
               <Eye className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
               <div>
-                <span className="font-medium text-foreground">View Access:</span> Can view case details and documents but cannot make changes
+                <p className="text-sm font-medium">View only</p>
+                <p className="text-sm text-muted-foreground">
+                  Can read case details and download documents
+                </p>
               </div>
-            </li>
-            <li className="flex items-start gap-2">
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded border">
               <FileText className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
               <div>
-                <span className="font-medium text-foreground">Full Access:</span> Can view, add documents, update milestones, and manage case progress
+                <p className="text-sm font-medium">Full access</p>
+                <p className="text-sm text-muted-foreground">
+                  Can add documents, update milestones, and manage case progress
+                </p>
               </div>
-            </li>
-          </ul>
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: "document-management",
-    title: "Managing Documents",
-    icon: <FileText className="h-5 w-5" />,
-    description: "How to upload, review, and approve compliance documents",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
-    content: (
-      <div className="space-y-6">
-        <p className="text-muted-foreground">
-          Documents are the core of your compliance management. This guide explains the document workflow.
-        </p>
-
-        <div>
-          <h4 className="font-semibold mb-3">Template Approval Settings</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Each document template can be configured to require client approval or not. This setting determines 
-            how documents created from that template are handled:
-          </p>
-          
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg border bg-card">
-              <h5 className="font-medium mb-2 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                Requires Client Approval (Default)
-              </h5>
-              <p className="text-sm text-muted-foreground">
-                Documents start with "Review Required" status and must go through the approval workflow 
-                before being marked as compliant. This is the standard setting for most compliance documents.
-              </p>
-            </div>
-            
-            <div className="p-4 rounded-lg border bg-card">
-              <h5 className="font-medium mb-2 flex items-center gap-2">
-                <ChevronRight className="h-4 w-4 text-blue-500" />
-                No Approval Required
-              </h5>
-              <p className="text-sm text-muted-foreground">
-                Documents are automatically marked as "Compliant" when uploaded, bypassing the approval workflow. 
-                Useful for informational documents that don't need client sign-off.
-              </p>
             </div>
           </div>
         </div>
 
         <TipBox type="info">
-          Admins can configure the approval setting for each template in the Template Library. 
-          Look for the "Requires Client Approval" toggle in the template settings.
-        </TipBox>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3">Document Workflow Overview</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            For templates that require approval, documents go through an approval process depending on who uploads them:
-          </p>
-          
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg border bg-card">
-              <h5 className="font-medium mb-2">Consultant-Uploaded Documents</h5>
-              <div className="flex items-center gap-2 text-sm flex-wrap">
-                <Badge variant="outline">Pending</Badge>
-                <ChevronRight className="h-4 w-4" />
-                <Badge className="bg-blue-500">Client Signed Off</Badge>
-                <ChevronRight className="h-4 w-4" />
-                <Badge className="bg-green-500">Approved</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Client reviews and signs off, then consultant gives final approval
-              </p>
-            </div>
-            
-            <div className="p-4 rounded-lg border bg-card">
-              <h5 className="font-medium mb-2">Client-Uploaded Documents</h5>
-              <div className="flex items-center gap-2 text-sm flex-wrap">
-                <Badge variant="outline">Pending</Badge>
-                <ChevronRight className="h-4 w-4" />
-                <Badge className="bg-green-500">Approved</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Consultant or admin reviews and approves directly
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3">Uploading a Document</h4>
-          <StepList steps={[
-            "Navigate to the appropriate module (H&S, HR, or Employment Law)",
-            "Click 'Documents' in the module menu",
-            "Click 'Upload Document'",
-            "Select the document template/type",
-            "Choose the site this document is for",
-            "Upload your file (PDF, Word, etc.)",
-            "Add any notes or comments",
-            "Click 'Upload' to submit"
-          ]} />
-        </div>
-
-        <TipBox type="success">
-          Documents are automatically tracked with version history. When you upload a new version, 
-          the previous versions are kept for audit purposes.
+          If you believe you should have access to a case but cannot see it, contact your
+          consultant and ask them to add you.
         </TipBox>
       </div>
     ),
   },
   {
     id: "training",
-    title: "Training & Courses",
+    title: "Training",
     icon: <GraduationCap className="h-5 w-5" />,
-    description: "How to book training and manage training records",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
+    description: "Viewing booked courses, certificates, and making enquiries",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          The training module helps you manage staff training requirements and maintain training records.
+          The Training section keeps all booked courses and completed certificates in one place.
         </p>
 
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="consultants">
-            <AccordionTrigger>For Consultants: Booking Training</AccordionTrigger>
+          <AccordionItem value="clients">
+            <AccordionTrigger>Clients: viewing your training</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
-                <StepList steps={[
-                  "Go to 'Training Library' in the sidebar (under Admin section)",
-                  "Browse available courses by module (H&S, HR)",
-                  "Click on a course to view details",
-                  "Click 'Book for Site' to create a booking",
-                  "Select the site and enter booking details",
-                  "For online courses, add access credentials if needed",
-                  "Click 'Create Booking' to confirm"
-                ]} />
+                <StepList
+                  steps={[
+                    "Go to Training → Dashboard in the sidebar",
+                    "See all booked courses, their dates, and current status",
+                    "For online courses, click to reveal the login credentials provided by your consultant",
+                    "Go to Training → Certificates to view and download completed certificates",
+                  ]}
+                />
                 <TipBox type="info">
-                  When training is completed, you can upload the certificate from the Training Certificates section.
+                  If you need to book a course or have a question about upcoming training, raise a
+                  Support request and your consultant will arrange it for you.
                 </TipBox>
               </div>
             </AccordionContent>
           </AccordionItem>
-          
-          <AccordionItem value="clients">
-            <AccordionTrigger>For Clients: Viewing Your Training</AccordionTrigger>
+
+          <AccordionItem value="consultants-book">
+            <AccordionTrigger>Consultants: booking training for a site</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
-                <StepList steps={[
-                  "Go to Training → Dashboard",
-                  "View your booked courses and their status",
-                  "For online courses, click to view access credentials",
-                  "Once completed, view and download your certificates"
-                ]} />
+                <StepList
+                  steps={[
+                    "Go to Training Library in the sidebar",
+                    "Browse available courses and click one to open the details",
+                    "Click 'Make an Enquiry' to submit a booking request for a specific site",
+                    "Fill in the site, preferred date, and any notes, then submit",
+                    "Once confirmed, the course appears on the client's Training Dashboard",
+                  ]}
+                />
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="certificates">
-            <AccordionTrigger>Uploading Training Certificates</AccordionTrigger>
+            <AccordionTrigger>Consultants: uploading a certificate</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
-                <p className="text-sm text-muted-foreground">
-                  Certificates can only be uploaded for completed training bookings:
-                </p>
-                <StepList steps={[
-                  "Go to Training → Certificates",
-                  "Click 'Upload Certificate'",
-                  "Select the training booking this certificate is for",
-                  "Upload the certificate file",
-                  "Add completion date and any notes",
-                  "Click 'Upload' to save"
-                ]} />
+                <StepList
+                  steps={[
+                    "Go to Training → Certificates",
+                    "Click 'Upload Certificate'",
+                    "Select the booking this certificate relates to",
+                    "Upload the file and enter the completion date",
+                    "Click 'Upload' — the certificate is immediately visible to the client",
+                  ]}
+                />
               </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
+
+        <div>
+          <h4 className="font-semibold mb-3">Booking statuses</h4>
+          <div className="grid gap-2">
+            {[
+              ["outline", "Enquiry Sent", "Booking request submitted, awaiting confirmation"],
+              ["bg-blue-500", "Confirmed", "Date and details confirmed"],
+              ["bg-amber-500", "Scheduled", "Upcoming — added to the calendar"],
+              ["bg-green-500", "Completed", "Training done; certificate can be uploaded"],
+              ["secondary", "Cancelled", "Booking cancelled"],
+            ].map(([variant, label, desc]) => (
+              <div key={label} className="flex items-center gap-3 p-2 rounded border">
+                <Badge
+                  variant={variant.startsWith("bg-") ? "default" : (variant as any)}
+                  className={variant.startsWith("bg-") ? variant : ""}
+                >
+                  {label}
+                </Badge>
+                <span className="text-sm text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "toolkit",
+    title: "Toolkit",
+    icon: <Wrench className="h-5 w-5" />,
+    description: "Browsing and downloading reference resources",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          The Toolkit is a library of templates, guidance notes, checklists, and other reference
+          materials. Resources can be browsed and downloaded at any time.
+        </p>
+
+        <div>
+          <h4 className="font-semibold mb-3">Browsing the Toolkit</h4>
+          <StepList
+            steps={[
+              "Click 'Toolkit' in the sidebar",
+              "Use the category filters to narrow down by topic (H&S, HR, General, etc.)",
+              "Click any resource card to open its details",
+              "Click 'Download' to save a copy to your device",
+            ]}
+          />
+        </div>
+
+        <TipBox type="info">
+          Toolkit resources are provided for reference and guidance. For documents that need to
+          be formally approved as part of your site's compliance, upload them through the
+          relevant module (H&S or HR) rather than just downloading from the Toolkit.
+        </TipBox>
       </div>
     ),
   },
   {
     id: "support",
-    title: "Support Requests",
+    title: "Support",
     icon: <MessageSquare className="h-5 w-5" />,
-    description: "How to submit and track support requests",
-    lastUpdated: "January 2026",
-    forRoles: ["Admin", "Consultant", "Client"],
+    description: "Raising a support request and tracking responses",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Need help with a compliance question? The support system lets you submit requests and track their progress.
+          Use the Support section to ask questions, flag concerns, or request help from your
+          consultant. Every request is tracked so nothing gets lost.
         </p>
 
         <div>
-          <h4 className="font-semibold mb-3">Submitting a Support Request</h4>
-          <StepList steps={[
-            "Navigate to 'Support' in the sidebar",
-            "Click 'New Request'",
-            "Select the category (H&S, HR, Employment Law, or General)",
-            "Choose the priority level",
-            "Enter a clear subject line",
-            "Describe your question or issue in detail",
-            "Attach any relevant files if needed",
-            "Click 'Submit'"
-          ]} />
+          <h4 className="font-semibold mb-3">Raising a request</h4>
+          <StepList
+            steps={[
+              "Click 'Support' in the sidebar",
+              "Click 'New Request'",
+              "Choose a category: Health & Safety, HR, Employment Law, or General",
+              "Set a priority level",
+              "Write a clear subject and description — the more detail, the faster we can help",
+              "Attach any relevant files if needed",
+              "Click 'Submit'",
+            ]}
+          />
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-3">Request statuses</h4>
+          <div className="grid gap-2">
+            {[
+              ["outline", "Open", "Submitted and waiting for a response"],
+              ["bg-blue-500", "In Progress", "Your consultant is working on it"],
+              ["bg-green-500", "Resolved", "Response provided and request closed"],
+            ].map(([variant, label, desc]) => (
+              <div key={label} className="flex items-center gap-3 p-2 rounded border">
+                <Badge
+                  variant={variant.startsWith("bg-") ? "default" : (variant as any)}
+                  className={variant.startsWith("bg-") ? variant : ""}
+                >
+                  {label}
+                </Badge>
+                <span className="text-sm text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <TipBox type="success">
-          You'll receive notifications when your consultant responds. You can view all your requests 
-          and their status from the Support page.
+          You can add follow-up messages to any open request directly from the Support page — no
+          need to raise a new request for the same issue.
         </TipBox>
+      </div>
+    ),
+  },
+  {
+    id: "account",
+    title: "Your Account & Password",
+    icon: <Key className="h-5 w-5" />,
+    description: "Setting your password and what to do if you get locked out",
+    lastUpdated: "April 2026",
+    forRoles: ["Consultant", "Client"],
+    content: (
+      <div className="space-y-6">
+        <p className="text-muted-foreground">
+          Your account is created by an administrator. You set your own password using the invitation
+          link sent to your email.
+        </p>
 
         <div>
-          <h4 className="font-semibold mb-3">Request Status</h4>
-          <div className="grid gap-2">
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge variant="outline">Open</Badge>
-              <span className="text-sm text-muted-foreground">Request submitted and awaiting response</span>
-            </div>
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge className="bg-blue-500">In Progress</Badge>
-              <span className="text-sm text-muted-foreground">Consultant is working on your request</span>
-            </div>
-            <div className="flex items-center gap-3 p-2 rounded border">
-              <Badge className="bg-green-500">Resolved</Badge>
-              <span className="text-sm text-muted-foreground">Request has been addressed and closed</span>
-            </div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Setting your password for the first time
+          </h4>
+          <StepList
+            steps={[
+              "Open the invitation email from Guardian Group",
+              "Click the 'Set up your account' link",
+              "Enter a password of at least 8 characters and confirm it",
+              "Click 'Set Password'",
+              "You'll be redirected to the login page — log in with your email/username and new password",
+            ]}
+          />
+          <div className="mt-4">
+            <TipBox type="warning">
+              Invitation links expire after 48 hours. If your link has expired, ask your
+              administrator to resend it from User Management.
+            </TipBox>
           </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3 flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Resetting a forgotten password
+          </h4>
+          <StepList
+            steps={[
+              "Go to the login page",
+              "Click 'Forgot your password?' below the login button",
+              "Enter the email address on your account",
+              "Click 'Send Reset Link' and check your inbox",
+              "Follow the link in the email to choose a new password",
+            ]}
+          />
+          <div className="mt-4">
+            <TipBox type="info">
+              Reset links are valid for 1 hour. If it expires, you can request another from the
+              login page.
+            </TipBox>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-semibold mb-3">Updating your profile</h4>
+          <p className="text-sm text-muted-foreground">
+            To update your name, contact details, or change your password after logging in, click
+            your name or avatar in the top-right corner and select <strong>Settings</strong>.
+          </p>
         </div>
       </div>
     ),
@@ -817,8 +694,9 @@ const guideSections: GuideSection[] = [
 
 export default function HelpGuide() {
   const [selectedSection, setSelectedSection] = useState<string>("getting-started");
-  
-  const currentSection = guideSections.find(s => s.id === selectedSection) || guideSections[0];
+
+  const currentSection =
+    guideSections.find((s) => s.id === selectedSection) || guideSections[0];
 
   return (
     <div className="flex h-full">
@@ -826,11 +704,9 @@ export default function HelpGuide() {
         <div className="p-4 border-b">
           <h2 className="font-semibold flex items-center gap-2">
             <Book className="h-5 w-5" />
-            Help & Training Guide
+            Help &amp; Training Guide
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Learn how to use the portal
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Learn how to use the portal</p>
         </div>
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="p-2">
@@ -846,14 +722,24 @@ export default function HelpGuide() {
                 data-testid={`nav-${section.id}`}
               >
                 <div className="flex items-start gap-3">
-                  <span className={`flex-shrink-0 mt-0.5 ${selectedSection === section.id ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                  <span
+                    className={`flex-shrink-0 mt-0.5 ${
+                      selectedSection === section.id
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
                     {section.icon}
                   </span>
                   <div className="flex-1">
                     <div className="font-medium text-sm">{section.title}</div>
-                    <div className={`text-xs ${
-                      selectedSection === section.id ? "text-primary-foreground/80" : "text-muted-foreground"
-                    }`}>
+                    <div
+                      className={`text-xs ${
+                        selectedSection === section.id
+                          ? "text-primary-foreground/80"
+                          : "text-muted-foreground"
+                      }`}
+                    >
                       {section.description}
                     </div>
                   </div>
@@ -874,7 +760,8 @@ export default function HelpGuide() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>Last updated: {currentSection.lastUpdated}</span>
               <span className="flex items-center gap-1">
-                For: {currentSection.forRoles.map((role, i) => (
+                For:{" "}
+                {currentSection.forRoles.map((role) => (
                   <Badge key={role} variant="outline" className="text-xs">
                     {role}
                   </Badge>
@@ -884,19 +771,16 @@ export default function HelpGuide() {
           </div>
 
           <Card>
-            <CardContent className="pt-6">
-              {currentSection.content}
-            </CardContent>
+            <CardContent className="pt-6">{currentSection.content}</CardContent>
           </Card>
 
           <div className="mt-8 p-4 rounded-lg border bg-muted/30">
             <div className="flex items-center gap-2 mb-2">
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Need more help?</span>
+              <span className="font-medium text-sm">Can't find what you need?</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              If you can't find the answer you're looking for, please submit a support request 
-              and our team will be happy to assist you.
+              Raise a Support request and your consultant will get back to you.
             </p>
           </div>
         </div>
