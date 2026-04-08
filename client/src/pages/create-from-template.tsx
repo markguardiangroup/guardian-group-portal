@@ -949,31 +949,36 @@ export default function CreateFromTemplate() {
       <CardContent className="space-y-4">
         {/* Selected sites badges */}
         {selectedSiteIds.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {selectedSiteIds.map(siteId => {
-              const sel = sites.find(s => s.id === siteId);
-              if (!sel) return null;
-              return (
-                <div key={siteId} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm" data-testid={`badge-site-${siteId}`}>
-                  <MapPin className="h-3 w-3 text-primary shrink-0" />
-                  {sel.companyName && (
-                    <>
-                      <span className="text-xs text-muted-foreground">{sel.companyName}</span>
-                      <span className="text-xs text-muted-foreground">·</span>
-                    </>
-                  )}
-                  <span className="font-medium">{sel.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleSite(siteId)}
-                    className="text-muted-foreground hover:text-foreground ml-0.5"
-                    data-testid={`button-remove-site-${siteId}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+          <div className="space-y-1.5">
+            {(() => {
+              const companyName = sites.find(s => s.id === selectedSiteIds[0])?.companyName;
+              return companyName ? (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="text-selected-company">
+                  <Building2 className="h-3 w-3 shrink-0" />
+                  <span>{companyName}</span>
                 </div>
-              );
-            })}
+              ) : null;
+            })()}
+            <div className="flex flex-wrap gap-2">
+              {selectedSiteIds.map(siteId => {
+                const sel = sites.find(s => s.id === siteId);
+                if (!sel) return null;
+                return (
+                  <div key={siteId} className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm" data-testid={`badge-site-${siteId}`}>
+                    <MapPin className="h-3 w-3 text-primary shrink-0" />
+                    <span className="font-medium">{sel.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSite(siteId)}
+                      className="text-muted-foreground hover:text-foreground ml-0.5"
+                      data-testid={`button-remove-site-${siteId}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
