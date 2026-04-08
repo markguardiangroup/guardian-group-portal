@@ -690,7 +690,7 @@ export default function AdminPathways() {
     mutationFn: ({ data, base }: { data: PathwayPayload; base: string }) =>
       apiRequest("POST", base, data),
     onSuccess: (_, { base }) => {
-      queryClient.refetchQueries({ queryKey: [base] });
+      queryClient.invalidateQueries({ queryKey: [base] });
       toast({ title: "Pathway created", description: "The guided finder pathway has been created." });
       closeForm();
     },
@@ -701,7 +701,7 @@ export default function AdminPathways() {
     mutationFn: ({ id, data, base }: { id: string; data: PathwayPayload; base: string }) =>
       apiRequest("PATCH", `${base}/${id}`, data),
     onSuccess: (_, { base }) => {
-      queryClient.refetchQueries({ queryKey: [base] });
+      queryClient.invalidateQueries({ queryKey: [base] });
       toast({ title: "Pathway updated", description: "Changes have been saved." });
       closeForm();
     },
@@ -712,7 +712,7 @@ export default function AdminPathways() {
     mutationFn: async ({ id, base }: { id: string; base: string }) =>
       apiRequest("DELETE", `${base}/${id}`),
     onSuccess: (_, { base }) => {
-      queryClient.refetchQueries({ queryKey: [base] });
+      queryClient.invalidateQueries({ queryKey: [base] });
       toast({ title: "Pathway deleted", description: "The pathway has been removed." });
       setDeletePathwayId(null);
     },
@@ -723,7 +723,7 @@ export default function AdminPathways() {
     mutationFn: async ({ id, isActive, base }: { id: string; isActive: boolean; base: string }) =>
       apiRequest("PATCH", `${base}/${id}`, { isActive }),
     onSuccess: (_, { base }) => {
-      queryClient.refetchQueries({ queryKey: [base] });
+      queryClient.invalidateQueries({ queryKey: [base] });
     },
     onError: () => toast({ title: "Error", description: "Failed to update status.", variant: "destructive" }),
   });

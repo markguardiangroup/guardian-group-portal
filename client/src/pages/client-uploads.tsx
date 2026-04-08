@@ -367,7 +367,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
       toast({ title: "Folder deleted successfully" });
       setDeleteFolder(null);
     },
@@ -382,8 +382,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", selectedFolder?.id, "files"] });
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", selectedFolder?.id, "files"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
       toast({ title: "File deleted" });
       setDeleteFile(null);
     },
@@ -398,8 +398,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "access"] });
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "grantable-users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "grantable-users"] });
       toast({ title: "Access granted" });
       setGrantUserId("");
       setGrantingAccess(false);
@@ -416,8 +416,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "access"] });
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "grantable-users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", accessFolder?.id, "grantable-users"] });
       toast({ title: "Access revoked" });
     },
     onError: (err: Error) => {
@@ -516,7 +516,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         }
       }
 
-      queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
       toast({ title: "Upload folder created successfully" });
       resetCreateDialog();
     } catch (err: any) {
@@ -563,8 +563,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         );
       }
     }
-    queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders", selectedFolder.id, "files"] });
-    queryClient.refetchQueries({ queryKey: ["/api/client-upload-folders"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", selectedFolder.id, "files"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
     toast({ title: "Files uploaded successfully" });
     setUploadMoreOpen(false);
     setMoreFiles([]);

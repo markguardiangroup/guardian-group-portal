@@ -152,7 +152,7 @@ export default function Sites() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.refetchQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({ title: "Site created successfully" });
       setIsAddSiteOpen(false);
       setNewSite({
@@ -323,7 +323,7 @@ export default function Sites() {
     setIsRefreshing(true);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
-      queryClient.refetchQueries({ queryKey: ["/api/companies"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] }),
     ]);
     setIsRefreshing(false);
   };

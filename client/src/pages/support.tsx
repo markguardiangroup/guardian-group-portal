@@ -128,8 +128,8 @@ function CreateSupportRequestDialog({ sites, onSuccess }: { sites: SiteWithDetai
       return apiRequest("POST", "/api/support-requests", data);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests"] });
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests/counts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
       setOpen(false);
       form.reset();
       toast({
@@ -305,8 +305,8 @@ function InlineStatusSelect({ request }: { request: SupportRequest }) {
       });
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests"] });
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests/counts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
       toast({
         title: "Status Updated",
         description: "The ticket status has been changed.",
@@ -427,8 +427,8 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
     onSuccess: () => {
       setNewMessage("");
       refetch();
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests"] });
-      queryClient.refetchQueries({ queryKey: ["/api/support-requests/counts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
     },
     onError: () => {
       toast({

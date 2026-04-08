@@ -120,7 +120,7 @@ export default function DevelopmentRoadmap() {
       return apiRequest("POST", "/api/roadmap", data);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/roadmap"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       setIsAddDialogOpen(false);
       toast({ title: "Item added", description: "Roadmap item has been created." });
     },
@@ -134,7 +134,7 @@ export default function DevelopmentRoadmap() {
       return apiRequest("PATCH", `/api/roadmap/${id}`, data);
     },
     onSuccess: async (response) => {
-      queryClient.refetchQueries({ queryKey: ["/api/roadmap"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       setEditingItem(null);
       try {
         const updated = await response.json();
@@ -158,7 +158,7 @@ export default function DevelopmentRoadmap() {
       return apiRequest("DELETE", `/api/roadmap/${id}`);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/roadmap"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       setViewingItem(null);
       toast({ title: "Item deleted", description: "Roadmap item has been removed." });
     },

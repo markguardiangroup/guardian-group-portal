@@ -336,7 +336,7 @@ export default function DocumentUpload() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/folders", primarySiteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", primarySiteId] });
     },
   });
 
@@ -477,7 +477,7 @@ export default function DocumentUpload() {
       return results;
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });

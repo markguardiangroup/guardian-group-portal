@@ -222,7 +222,7 @@ export default function TrainingDashboard() {
       return apiRequest("POST", "/api/training-bookings", data);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/training-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
       toast({
         title: "Training Booked",
         description: "The training has been booked successfully.",
@@ -254,7 +254,7 @@ export default function TrainingDashboard() {
       return apiRequest("PATCH", `/api/training-bookings/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/training-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
       toast({
         title: "Booking Updated",
         description: "The training booking has been updated.",
@@ -275,7 +275,7 @@ export default function TrainingDashboard() {
       return apiRequest("DELETE", `/api/training-bookings/${id}`);
     },
     onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ["/api/training-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
       toast({
         title: "Booking Deleted",
         description: "The training booking has been deleted.",
