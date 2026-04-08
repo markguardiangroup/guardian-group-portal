@@ -247,6 +247,16 @@ export default function DocumentUpload() {
     }
   }, [selectedSiteIds, sites]);
 
+  // Scroll the pre-selected site into view inside the picker list
+  const sitePickerListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!sitePickerListRef.current || selectedSiteIds.length === 0) return;
+    const btn = sitePickerListRef.current.querySelector(
+      `[data-testid="button-picker-select-site-${selectedSiteIds[0]}"]`
+    );
+    if (btn) btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedSiteIds[0]]);
+
   // Group all sites by company for the accordion picker
   const siteGroups = useMemo(() => {
     if (!sites) return [];

@@ -1105,7 +1105,8 @@ export const clientPermissionCapabilities: Record<ClientPermissionRole, ClientCa
 // Consultant tier capabilities
 export interface ConsultantCapabilities {
   canAccessAllClients: boolean;
-  canCreateUsers: boolean;
+  canApproveDocuments: boolean;
+  canCreateClientUsers: boolean;
   canCreateCompanies: boolean;
   canCreateSites: boolean;
   canAssignConsultants: boolean;
@@ -1119,7 +1120,8 @@ export interface ConsultantCapabilities {
 export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabilities> = {
   pro: {
     canAccessAllClients: true,
-    canCreateUsers: true,
+    canApproveDocuments: true,
+    canCreateClientUsers: true,
     canCreateCompanies: true,
     canCreateSites: true,
     canAssignConsultants: true,
@@ -1131,7 +1133,8 @@ export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabi
   },
   standard: {
     canAccessAllClients: false,
-    canCreateUsers: false,
+    canApproveDocuments: true,
+    canCreateClientUsers: true,
     canCreateCompanies: false,
     canCreateSites: false,
     canAssignConsultants: false,

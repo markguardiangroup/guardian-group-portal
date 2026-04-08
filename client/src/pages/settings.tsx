@@ -846,37 +846,47 @@ export default function Settings() {
               <CardContent className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium mb-4">Client Permission Roles</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Each client user is assigned one of these roles, which controls what they can do within their organisation's account.
+                  </p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
-                          <th className="text-center py-3 px-2 font-medium">
-                            <div className="flex flex-col items-center gap-1">
-                              <span className="capitalize">Client</span>
-                              <Badge variant="default" className="text-xs">Active</Badge>
-                            </div>
-                          </th>
+                          {([
+                            { role: "owner" as ClientPermissionRole, label: "Owner" },
+                            { role: "manager" as ClientPermissionRole, label: "Manager" },
+                            { role: "approver" as ClientPermissionRole, label: "Approver" },
+                            { role: "contributor" as ClientPermissionRole, label: "Contributor" },
+                            { role: "viewer" as ClientPermissionRole, label: "Viewer" },
+                          ]).map(({ role, label }) => (
+                            <th key={role} className="text-center py-3 px-2 font-medium">
+                              <span className="capitalize">{label}</span>
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {[
-                          { key: "canApproveDocuments", label: "Approve Documents" },
+                          { key: "canView", label: "View Documents" },
+                          { key: "canApproveDocuments", label: "Sign Off Documents" },
                           { key: "canSubmitDocuments", label: "Submit Documents" },
                           { key: "canComment", label: "Add Comments" },
-                          { key: "canView", label: "View Documents" },
                           { key: "canRequestSupport", label: "Request Support" },
                           { key: "canManageTeam", label: "Manage Team Members" },
                         ].map(({ key, label }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">{label}</td>
-                            <td className="text-center py-3 px-2">
-                              {clientPermissionCapabilities["owner"][key as keyof ClientCapabilities] ? (
-                                <Check className="h-4 w-4 text-emerald-600 mx-auto" />
-                              ) : (
-                                <X className="h-4 w-4 text-muted-foreground mx-auto" />
-                              )}
-                            </td>
+                            {(["owner", "manager", "approver", "contributor", "viewer"] as ClientPermissionRole[]).map(role => (
+                              <td key={role} className="text-center py-3 px-2">
+                                {clientPermissionCapabilities[role][key as keyof ClientCapabilities] ? (
+                                  <Check className="h-4 w-4 text-emerald-600 mx-auto" />
+                                ) : (
+                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                                )}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
@@ -904,15 +914,16 @@ export default function Settings() {
                       <tbody>
                         {[
                           { key: "canAccessAllClients", label: "See All Clients & Sites" },
-                          { key: "canCreateUsers", label: "Create Users" },
+                          { key: "canViewDocuments", label: "View Documents" },
+                          { key: "canEditDocuments", label: "Upload & Edit Documents" },
+                          { key: "canApproveDocuments", label: "Approve Documents" },
+                          { key: "canCreateClientUsers", label: "Create Client Users" },
                           { key: "canCreateCompanies", label: "Create Companies" },
                           { key: "canCreateSites", label: "Create Sites" },
                           { key: "canAssignConsultants", label: "Assign Consultants to Sites" },
-                          { key: "canDeleteCompanies", label: "Delete Companies" },
-                          { key: "canDeleteUsers", label: "Delete Users (non-admin)" },
                           { key: "canDeleteDocuments", label: "Delete Documents" },
-                          { key: "canEditDocuments", label: "Edit & Upload Documents" },
-                          { key: "canViewDocuments", label: "View Documents" },
+                          { key: "canDeleteCompanies", label: "Delete Companies" },
+                          { key: "canDeleteUsers", label: "Delete Users" },
                         ].map(({ key, label }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">{label}</td>
