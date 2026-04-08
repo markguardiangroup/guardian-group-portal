@@ -10,7 +10,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -2450,6 +2450,51 @@ export async function registerRoutes(
           }
         } catch (err) {
           console.error("Failed to send client sign-off notifications:", err);
+        }
+      }
+
+      // Send approval confirmation email to all clients assigned to the site
+      if (isFinalApproval && document.siteId) {
+        try {
+          const site = await storage.getSite(document.siteId);
+          const siteUsers = await storage.getUsersBySite(document.siteId);
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+          const modulePath = existingDoc.module === "health_safety" ? "health-safety"
+            : existingDoc.module === "human_resources" ? "human-resources"
+            : existingDoc.module === "employment_law" ? "employment-law"
+            : "documents";
+          const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+          const clientUsers = siteUsers.filter(u => u.role === "client" && u.email && u.status === "active");
+
+          for (const client of clientUsers) {
+            try {
+              await sendDocumentApprovedEmail({
+                to: client.email!,
+                fullName: client.fullName,
+                documentTitle: existingDoc.title,
+                siteName: site?.name || "Unknown Site",
+                isRequired: !!existingDoc.isRequired,
+                documentUrl,
+                approvedBy: user.fullName,
+                role: "client",
+              });
+              await storage.createAuditLog({
+                action: "email_sent",
+                userId: user.id,
+                userName: user.fullName,
+                entityId: document.siteId,
+                documentId: document.id,
+                supportRequestId: null,
+                module: existingDoc.module,
+                details: `Document approved notification email sent to client ${client.fullName} (${client.email})`,
+                metadata: JSON.stringify({ targetUserId: client.id, emailType: "document_approved_notification" }),
+              });
+            } catch (emailError) {
+              console.error(`Failed to send approval notification to client ${client.id}:`, emailError);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to send document approved notifications:", err);
         }
       }
 

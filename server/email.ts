@@ -272,6 +272,116 @@ export async function sendDocumentApprovalEmail({
   return data;
 }
 
+export async function sendDocumentApprovedEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  isRequired,
+  documentUrl,
+  approvedBy,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  isRequired: boolean;
+  documentUrl: string;
+  approvedBy: string;
+  role?: string;
+}) {
+  const recipient = resolveRecipient(to, role);
+
+  const subject = isRequired
+    ? `Document Now Compliant — ${documentTitle}`
+    : `Document Approved — ${documentTitle}`;
+
+  const headingText = isRequired
+    ? "Your Document is Now Compliant"
+    : "Your Document Has Been Approved";
+
+  const bodyText = isRequired
+    ? `Great news! <strong>${documentTitle}</strong> has been approved and your compliance requirement for this document has been fulfilled. Your site is one step closer to full compliance.`
+    : `Great news! <strong>${documentTitle}</strong> has been reviewed and approved by your consultant. No further action is needed for this document at this time.`;
+
+  const statusLabel = isRequired ? "Compliant" : "Approved";
+  const statusColour = "#16a34a";
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; width: 56px; height: 56px; line-height: 56px; font-size: 28px; text-align: center;">✓</div>
+          </div>
+
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">${headingText}</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName},
+          </p>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            ${bodyText}
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Approved by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${approvedBy}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
+                <td style="padding: 6px 0; color: ${statusColour}; font-size: 14px; font-weight: 600;">${statusLabel}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${documentUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              View Document
+            </a>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send document approved email:", error);
+    throw new Error(`Failed to send document approved email: ${error.message}`);
+  }
+
+  console.log(`Document approved email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
+  return data;
+}
+
 export async function sendClientSignOffEmail({
   to,
   fullName,
