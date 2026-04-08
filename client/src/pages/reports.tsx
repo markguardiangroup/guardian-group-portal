@@ -604,8 +604,10 @@ function MetricNumber({ value, loading, danger }: { value: number | undefined; l
 
 export default function Reports() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  // companyFilter holds the company NAME (same convention as all other pages)
   const companyFilter = selectedCompany || "all";
   const siteFilter = selectedSiteId || "all";
+  // Store company name in global state (not UUID) so other pages stay in sync
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
 
@@ -615,14 +617,20 @@ export default function Reports() {
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies"] });
   const companies = companiesData?.companies || [];
   const { data: allSites = [] } = useQuery<Site[]>({ queryKey: ["/api/sites"] });
-  const filteredSites = companyFilter === "all" ? allSites : allSites.filter((s) => s.companyId === companyFilter);
 
-  const summaries = useTileSummaries(companyFilter, siteFilter);
+  // Derive company ID from the company name for API calls
+  const companyId = companyFilter === "all"
+    ? "all"
+    : (companies.find((c) => c.name === companyFilter)?.id ?? "all");
 
-  // Selected company name for PDF export
-  const selectedCompanyName = companyFilter === "all"
-    ? undefined
-    : companies.find((c) => c.id === companyFilter)?.name;
+  const filteredSites = companyFilter === "all"
+    ? allSites
+    : allSites.filter((s) => s.companyId === companyId);
+
+  const summaries = useTileSummaries(companyId, siteFilter);
+
+  // Selected company name for PDF export — companyFilter IS the name already
+  const selectedCompanyName = companyFilter === "all" ? undefined : companyFilter;
 
   // Derived summary metrics for tiles
   const gapCount = summaries.gaps.data?.reduce((s, site) => s + site.gaps.reduce((g, gap) => g + gap.missingTemplates.length, 0), 0) ?? 0;
@@ -699,11 +707,11 @@ export default function Reports() {
   ];
 
   const REPORT_COMPONENTS: Record<ReportId, React.ReactNode> = {
-    gaps: <ComplianceGapsReport companyId={companyFilter} siteId={siteFilter} />,
-    expiry: <ExpiryRiskReport companyId={companyFilter} siteId={siteFilter} />,
-    comparison: <SiteComparisonReport companyId={companyFilter} />,
-    pipeline: <ApprovalPipelineReport companyId={companyFilter} siteId={siteFilter} />,
-    deadline: <DeadlineRiskReport companyId={companyFilter} siteId={siteFilter} />,
+    gaps: <ComplianceGapsReport companyId={companyId} siteId={siteFilter} />,
+    expiry: <ExpiryRiskReport companyId={companyId} siteId={siteFilter} />,
+    comparison: <SiteComparisonReport companyId={companyId} />,
+    pipeline: <ApprovalPipelineReport companyId={companyId} siteId={siteFilter} />,
+    deadline: <DeadlineRiskReport companyId={companyId} siteId={siteFilter} />,
   };
 
   const activeTile = REPORT_TILES.find((t) => t.id === activeReport);
@@ -730,19 +738,19 @@ export default function Reports() {
           companyName: selectedCompanyName,
         });
       } else if (activeReport === "gaps") {
-        const data = summaries.gaps.data ?? await fetchJson(buildUrl("/api/reports/gaps", companyFilter, siteFilter));
+        const data = summaries.gaps.data ?? await fetchJson(buildUrl("/api/reports/gaps", companyId, siteFilter));
         await exportComplianceGaps(data, selectedCompanyName);
       } else if (activeReport === "expiry") {
-        const data = summaries.expiry.data ?? await fetchJson(buildUrl("/api/reports/expiry-risk", companyFilter, siteFilter, { window: "90" }));
+        const data = summaries.expiry.data ?? await fetchJson(buildUrl("/api/reports/expiry-risk", companyId, siteFilter, { window: "90" }));
         await exportExpiryRisk(data, "next 90 days", selectedCompanyName);
       } else if (activeReport === "comparison") {
-        const data = summaries.comparison.data ?? await fetchJson(buildUrl("/api/reports/site-comparison", companyFilter, "all"));
+        const data = summaries.comparison.data ?? await fetchJson(buildUrl("/api/reports/site-comparison", companyId, "all"));
         await exportSiteComparison(data, selectedCompanyName);
       } else if (activeReport === "pipeline") {
-        const data = summaries.pipeline.data ?? await fetchJson(buildUrl("/api/reports/approval-pipeline", companyFilter, siteFilter));
+        const data = summaries.pipeline.data ?? await fetchJson(buildUrl("/api/reports/approval-pipeline", companyId, siteFilter));
         await exportApprovalPipeline(data, selectedCompanyName);
       } else if (activeReport === "deadline") {
-        const data = summaries.deadline.data ?? await fetchJson(buildUrl("/api/reports/deadline-risk", companyFilter, siteFilter));
+        const data = summaries.deadline.data ?? await fetchJson(buildUrl("/api/reports/deadline-risk", companyId, siteFilter));
         await exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? [], selectedCompanyName);
       }
     } finally {
@@ -789,7 +797,7 @@ export default function Reports() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Companies</SelectItem>
-              {companies.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {companies.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           {activeReport !== "comparison" && (
