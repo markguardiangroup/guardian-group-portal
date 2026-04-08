@@ -273,17 +273,42 @@ const guideSections: GuideSection[] = [
           <AccordionItem value="consultant-upload">
             <AccordionTrigger>Consultants: uploading a document</AccordionTrigger>
             <AccordionContent>
-              <div className="space-y-4 pt-2">
-                <StepList
-                  steps={[
-                    "Open the site, then select the module (H&S or HR)",
-                    "Find the document slot you want to fill and click 'Upload'",
-                    "Choose or drag in your file (PDF, Word, Excel accepted)",
-                    "Add any notes for the client, then click 'Upload'",
-                    "The document status becomes Pending — the client will be prompted to review it",
-                    "Once the client signs off, you'll see a notification to give final approval",
-                  ]}
-                />
+              <div className="space-y-5 pt-2">
+                <div>
+                  <p className="text-sm font-medium mb-2">Filling an existing document slot</p>
+                  <StepList
+                    steps={[
+                      "Open the site, then select the module (H&S or HR)",
+                      "Find the document slot you want to fill and click 'Upload'",
+                      "Choose or drag in your file (PDF, Word, Excel accepted)",
+                      "Add any notes for the client, then click 'Upload'",
+                      "The document status becomes Pending — the client will be prompted to review it",
+                      "Once the client signs off, you'll see a notification to give final approval",
+                    ]}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Adding a document from a template</p>
+                  <StepList
+                    steps={[
+                      "Open the site and module, then click 'Add Document'",
+                      "Select 'From Template' and choose the appropriate template from the list",
+                      "The document slot and title are pre-filled from the template",
+                      "Upload your file, add any notes, and click 'Upload'",
+                    ]}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Adding a document from scratch</p>
+                  <StepList
+                    steps={[
+                      "Open the site and module, then click 'Add Document'",
+                      "Select 'From Scratch' and enter a document title",
+                      "Choose whether the document requires client sign-off",
+                      "Upload your file, add any notes, and click 'Upload'",
+                    ]}
+                  />
+                </div>
               </div>
             </AccordionContent>
           </AccordionItem>
