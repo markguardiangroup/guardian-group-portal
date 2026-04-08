@@ -571,16 +571,12 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   const nonProConsultants = consultantAssignments.filter(a => a.consultantTier !== "pro");
 
   const roleLabels: Record<string, string> = {
-    owner: "Owner",
-    approver: "Approver",
-    editor: "Editor",
-    viewer: "Viewer",
-    manager: "Manager",
+    full: "Full",
   };
 
   const handleEditUser = (user: UserWithoutPassword) => {
     setEditingUser(user);
-    setEditRole(user.clientPermissionRole || "viewer");
+    setEditRole(user.clientPermissionRole || "full");
     setEditStatus(user.status || "active");
   };
 
@@ -749,20 +745,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Permission Role</label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger data-testid="select-user-role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">Owner</SelectItem>
-                  <SelectItem value="approver">Approver</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={editStatus} onValueChange={setEditStatus}>
                 <SelectTrigger data-testid="select-user-status">
@@ -843,7 +825,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                           <p className="font-medium">{selected.fullName}</p>
                           <p className="text-sm text-muted-foreground">{selected.email}</p>
                           <Badge variant="outline" className="text-xs">
-                            {roleLabels[selected.clientPermissionRole || "viewer"] || "Viewer"}
+                            {roleLabels[selected.clientPermissionRole || "full"] || "Full"}
                           </Badge>
                         </div>
                       ) : null;

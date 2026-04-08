@@ -225,7 +225,7 @@ export default function UserManagement() {
     role: "client" as "admin" | "consultant" | "client",
     companyId: "",
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
-    clientPermissionRole: "owner" as "viewer" | "contributor" | "manager" | "owner",
+    clientPermissionRole: "full" as "full",
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -415,7 +415,7 @@ export default function UserManagement() {
       role: u.role,
       companyId: u.companyId || "",
       consultantTier: u.consultantTier || "standard",
-      clientPermissionRole: "owner",
+      clientPermissionRole: "full",
     });
     setUserSiteAssignments([]);
     setSelectedSiteToAdd("");
@@ -806,7 +806,7 @@ export default function UserManagement() {
         role: "client",
         companyId: "",
         consultantTier: "pro",
-        clientPermissionRole: "owner",
+        clientPermissionRole: "full",
       });
       if (data.requiresSiteAssignment) {
         setUserNeedingSiteAssignment(data);

@@ -854,17 +854,7 @@ export default function Settings() {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left py-3 px-2 font-medium">Capability</th>
-                          {([
-                            { role: "owner" as ClientPermissionRole, label: "Owner" },
-                            { role: "manager" as ClientPermissionRole, label: "Manager" },
-                            { role: "approver" as ClientPermissionRole, label: "Approver" },
-                            { role: "contributor" as ClientPermissionRole, label: "Contributor" },
-                            { role: "viewer" as ClientPermissionRole, label: "Viewer" },
-                          ]).map(({ role, label }) => (
-                            <th key={role} className="text-center py-3 px-2 font-medium">
-                              <span className="capitalize">{label}</span>
-                            </th>
-                          ))}
+                          <th className="text-center py-3 px-2 font-medium">Client</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -878,15 +868,13 @@ export default function Settings() {
                         ].map(({ key, label }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">{label}</td>
-                            {(["owner", "manager", "approver", "contributor", "viewer"] as ClientPermissionRole[]).map(role => (
-                              <td key={role} className="text-center py-3 px-2">
-                                {clientPermissionCapabilities[role][key as keyof ClientCapabilities] ? (
-                                  <Check className="h-4 w-4 text-emerald-600 mx-auto" />
-                                ) : (
-                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
-                                )}
-                              </td>
-                            ))}
+                            <td className="text-center py-3 px-2">
+                              {clientPermissionCapabilities.full[key as keyof ClientCapabilities] ? (
+                                <Check className="h-4 w-4 text-emerald-600 mx-auto" />
+                              ) : (
+                                <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

@@ -13,7 +13,7 @@ export type UserRole = "admin" | "consultant" | "client";
 export type ConsultantTier = "pro" | "standard";
 
 // Client permission roles (for client users within their entity)
-export type ClientPermissionRole = "owner" | "manager" | "approver" | "contributor" | "viewer";
+export type ClientPermissionRole = "full";
 
 // Site request status
 export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
@@ -1060,45 +1060,13 @@ export interface ClientCapabilities {
 }
 
 export const clientPermissionCapabilities: Record<ClientPermissionRole, ClientCapabilities> = {
-  owner: {
+  full: {
     canApproveDocuments: true,
     canSubmitDocuments: true,
     canComment: true,
     canView: true,
     canRequestSupport: true,
     canManageTeam: true,
-  },
-  manager: {
-    canApproveDocuments: true,
-    canSubmitDocuments: true,
-    canComment: true,
-    canView: true,
-    canRequestSupport: true,
-    canManageTeam: true,
-  },
-  approver: {
-    canApproveDocuments: true,
-    canSubmitDocuments: true,
-    canComment: true,
-    canView: true,
-    canRequestSupport: true,
-    canManageTeam: false,
-  },
-  contributor: {
-    canApproveDocuments: false,
-    canSubmitDocuments: true,
-    canComment: true,
-    canView: true,
-    canRequestSupport: true,
-    canManageTeam: false,
-  },
-  viewer: {
-    canApproveDocuments: false,
-    canSubmitDocuments: false,
-    canComment: false,
-    canView: true,
-    canRequestSupport: true,
-    canManageTeam: false,
   },
 };
 
@@ -1148,10 +1116,7 @@ export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabi
 
 // Helper to get capabilities
 export function getClientCapabilities(role: ClientPermissionRole | null | undefined): ClientCapabilities {
-  if (!role) {
-    return clientPermissionCapabilities.viewer;
-  }
-  return clientPermissionCapabilities[role];
+  return clientPermissionCapabilities.full;
 }
 
 export function getConsultantCapabilities(tier: ConsultantTier | null | undefined): ConsultantCapabilities {
