@@ -601,7 +601,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
         <h2 className="text-lg font-semibold">Users ({nonProConsultants.length + users.length})</h2>
         <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
           <Plus className="mr-2 h-4 w-4" />
-          Add Client User
+          Assign Client User
         </Button>
       </div>
       {hasAnyUsers ? (
@@ -709,7 +709,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
             </p>
             <Button className="mt-4" size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-first-user">
               <Plus className="mr-2 h-4 w-4" />
-              Add Client User
+              Assign Client User
             </Button>
           </CardContent>
         </Card>
@@ -771,9 +771,9 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Add User to Site</DialogTitle>
+            <DialogTitle>Assign Client User</DialogTitle>
             <DialogDescription>
-              Select an existing company user to grant access to this site.
+              Select an existing company user to grant them access to this site.
             </DialogDescription>
           </DialogHeader>
           
