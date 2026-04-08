@@ -275,19 +275,6 @@ const guideSections: GuideSection[] = [
             <AccordionContent>
               <div className="space-y-5 pt-2">
                 <div>
-                  <p className="text-sm font-medium mb-2">Filling an existing document slot</p>
-                  <StepList
-                    steps={[
-                      "Open the site, then select the module (H&S or HR)",
-                      "Find the document slot you want to fill and click 'Upload'",
-                      "Choose or drag in your file (PDF, Word, Excel accepted)",
-                      "Add any notes for the client, then click 'Upload'",
-                      "The document status becomes Pending — the client will be prompted to review it",
-                      "Once the client signs off, you'll see a notification to give final approval",
-                    ]}
-                  />
-                </div>
-                <div>
                   <p className="text-sm font-medium mb-2">Adding a document from a template</p>
                   <StepList
                     steps={[
