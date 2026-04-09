@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
@@ -262,6 +263,7 @@ export default function UserManagement() {
   const [pendingEmailUser, setPendingEmailUser] = useState<(typeof newUser & { fullName: string; sendEmailNow?: boolean }) | null>(null);
   const [showBulkSendDialog, setShowBulkSendDialog] = useState(false);
   const [isBulkSending, setIsBulkSending] = useState(false);
+  const [selectedBulkUserIds, setSelectedBulkUserIds] = useState<Set<string>>(new Set());
   const [primaryContactConflictInUM, setPrimaryContactConflictInUM] = useState<{
     oldUserId: string;
     oldUserName: string;
@@ -878,12 +880,40 @@ export default function UserManagement() {
     createUserMutation.mutate({ ...newUser, fullName });
   };
 
+  const pendingBulkUsers = useMemo(
+    () => allUsers.filter(u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"),
+    [allUsers]
+  );
+
+  useEffect(() => {
+    if (showBulkSendDialog) {
+      setSelectedBulkUserIds(new Set(pendingBulkUsers.map(u => u.id)));
+    }
+  }, [showBulkSendDialog]);
+
+  const allBulkSelected = pendingBulkUsers.length > 0 && pendingBulkUsers.every(u => selectedBulkUserIds.has(u.id));
+
+  const toggleBulkUser = (id: string) => {
+    setSelectedBulkUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllBulkUsers = () => {
+    if (allBulkSelected) {
+      setSelectedBulkUserIds(new Set());
+    } else {
+      setSelectedBulkUserIds(new Set(pendingBulkUsers.map(u => u.id)));
+    }
+  };
+
   const handleBulkSendInvites = async () => {
-    const pending = allUsers.filter(
-      u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
-    );
+    const toSend = pendingBulkUsers.filter(u => selectedBulkUserIds.has(u.id));
+    if (toSend.length === 0) return;
     setIsBulkSending(true);
-    for (const u of pending) {
+    for (const u of toSend) {
       await new Promise<void>((resolve) => {
         resendInviteMutation.mutate(u.id, { onSuccess: () => resolve(), onError: () => resolve() });
       });
@@ -893,7 +923,7 @@ export default function UserManagement() {
     queryClient.invalidateQueries({ queryKey: ["/api/users"] });
     toast({
       title: "Bulk Send Complete",
-      description: `Welcome emails sent to ${pending.length} user${pending.length === 1 ? "" : "s"}.`,
+      description: `Welcome emails sent to ${toSend.length} user${toSend.length === 1 ? "" : "s"}.`,
     });
   };
 
@@ -3196,32 +3226,63 @@ export default function UserManagement() {
 
       {/* Bulk Send Welcome Emails Dialog */}
       <Dialog open={showBulkSendDialog} onOpenChange={(open) => { if (!open && !isBulkSending) setShowBulkSendDialog(false); }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
               Send Welcome Emails
             </DialogTitle>
             <DialogDescription>
-              The following consultants have not yet received their welcome email. Sending now will deliver their login
-              invitation to each address below.
+              Tick the users you want to send a welcome email to. All users are selected by default.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2 max-h-60 overflow-y-auto space-y-1">
-            {allUsers
-              .filter(u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required")
-              .map(u => (
-                <div key={u.id} className="flex items-center justify-between rounded-md px-3 py-2 bg-muted/50 text-sm">
-                  <span className="font-medium">{u.fullName}</span>
-                  <span className="text-muted-foreground">{u.email}</span>
+          <div className="py-2">
+            <div className="flex items-center gap-2 px-3 py-2 mb-1 border-b">
+              <Checkbox
+                id="bulk-select-all"
+                checked={allBulkSelected}
+                onCheckedChange={toggleAllBulkUsers}
+                disabled={isBulkSending}
+                data-testid="checkbox-bulk-select-all"
+              />
+              <label htmlFor="bulk-select-all" className="text-sm font-medium cursor-pointer select-none">
+                Select all ({pendingBulkUsers.length})
+              </label>
+              {selectedBulkUserIds.size > 0 && !allBulkSelected && (
+                <span className="ml-auto text-xs text-muted-foreground">{selectedBulkUserIds.size} selected</span>
+              )}
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-1 mt-1">
+              {pendingBulkUsers.map(u => (
+                <div
+                  key={u.id}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted/50 cursor-pointer"
+                  onClick={() => !isBulkSending && toggleBulkUser(u.id)}
+                  data-testid={`row-bulk-user-${u.id}`}
+                >
+                  <Checkbox
+                    id={`bulk-user-${u.id}`}
+                    checked={selectedBulkUserIds.has(u.id)}
+                    onCheckedChange={() => toggleBulkUser(u.id)}
+                    disabled={isBulkSending}
+                    data-testid={`checkbox-bulk-user-${u.id}`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{u.fullName}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground truncate">{u.email}</span>
                 </div>
               ))}
+              {pendingBulkUsers.length === 0 && (
+                <p className="text-sm text-muted-foreground px-3 py-4 text-center">No users pending a welcome email.</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBulkSendDialog(false)} disabled={isBulkSending} data-testid="button-cancel-bulk-send">
               Cancel
             </Button>
-            <Button onClick={handleBulkSendInvites} disabled={isBulkSending} data-testid="button-confirm-bulk-send">
+            <Button onClick={handleBulkSendInvites} disabled={isBulkSending || selectedBulkUserIds.size === 0} data-testid="button-confirm-bulk-send">
               {isBulkSending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -3230,7 +3291,7 @@ export default function UserManagement() {
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Send All
+                  Send ({selectedBulkUserIds.size})
                 </>
               )}
             </Button>
