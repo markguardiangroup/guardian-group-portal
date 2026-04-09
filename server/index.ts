@@ -57,10 +57,11 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const username = req.body?.username ?? req.ip ?? "unknown";
+    const username = req.body?.username ?? "anonymous";
     return String(username).toLowerCase();
   },
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
+  validate: { keyGeneratorIpFallback: false },
 });
 
 // Apply rate limiting
