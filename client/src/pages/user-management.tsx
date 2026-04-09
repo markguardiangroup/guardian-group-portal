@@ -779,7 +779,7 @@ export default function UserManagement() {
   };
 
   const handleConfirmSiteAssignment = () => {
-    const activeUser = manageSitesUser || editingUser;
+    const activeUser = manageSitesUser || editingUser || userNeedingSiteAssignment;
     if (!activeUser || !siteAssignmentConfirm) return;
     
     if (siteAssignmentConfirm.type === "add") {
