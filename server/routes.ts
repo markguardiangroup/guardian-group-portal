@@ -12046,7 +12046,9 @@ export async function registerRoutes(
 
   app.get("/api/sources", requireAuth, async (req, res) => {
     try {
-      const sources = await storage.getSources();
+      const user = await storage.getUser((req.session as any).userId);
+      const includeInactive = req.query.includeInactive === "true" && user?.role === "admin";
+      const sources = await storage.getSources(!includeInactive);
       res.json(sources);
     } catch (error) {
       console.error("Error fetching sources:", error);

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Tag } from "lucide-react";
+import { Plus, Tag, ShieldAlert } from "lucide-react";
 
 type Source = {
   id: string;
@@ -21,11 +22,26 @@ type Source = {
 
 export default function AdminSources() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [newCode, setNewCode] = useState("");
   const [newLabel, setNewLabel] = useState("");
 
+  if (user?.role !== "admin") {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
+        <ShieldAlert className="h-10 w-10 text-muted-foreground" />
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
+
   const { data: sources = [], isLoading } = useQuery<Source[]>({
-    queryKey: ["/api/sources"],
+    queryKey: ["/api/sources", "includeInactive"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources?includeInactive=true", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch sources");
+      return res.json();
+    },
   });
 
   const createMutation = useMutation({

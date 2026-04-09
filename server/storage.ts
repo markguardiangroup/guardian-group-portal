@@ -468,7 +468,7 @@ export interface IStorage {
   deleteTestingTaskAssignment(id: string): Promise<boolean>;
 
   // Sources
-  getSources(): Promise<Source[]>;
+  getSources(activeOnly?: boolean): Promise<Source[]>;
   getSource(id: string): Promise<Source | undefined>;
   createSource(source: InsertSource): Promise<Source>;
   updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
@@ -4146,7 +4146,12 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async getSources(): Promise<Source[]> {
+  async getSources(activeOnly = false): Promise<Source[]> {
+    if (activeOnly) {
+      return db.select().from(sourcesTable)
+        .where(eq(sourcesTable.isActive, true))
+        .orderBy(asc(sourcesTable.code));
+    }
     return db.select().from(sourcesTable).orderBy(asc(sourcesTable.code));
   }
 
