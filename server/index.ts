@@ -157,10 +157,12 @@ process.on("uncaughtException", (err) => {
 (async () => {
   // Seed locked root Toolkit folder templates for all modules (idempotent).
   // Awaited before route registration so templates exist before any request is served.
+  // If seeding fails the process exits to prevent serving requests in an invalid state.
   try {
     await storage.seedToolkitRootFolders();
   } catch (err) {
-    console.error("Startup toolkit root folder seed error:", err);
+    console.error("Fatal: startup toolkit root folder seed failed:", err);
+    process.exit(1);
   }
 
   // Run expired folder cleanup on startup and then daily

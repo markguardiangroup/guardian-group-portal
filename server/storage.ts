@@ -2410,6 +2410,7 @@ export class MemStorage implements IStorage {
         console.log(`[seed] Created locked root Toolkit folder for module: ${module}`);
       }
     }
+    console.log("[seed] Toolkit root folder templates verified for all modules (health_safety, human_resources, employment_law)");
   }
 
   private async generateNextFolderCode(): Promise<string> {
