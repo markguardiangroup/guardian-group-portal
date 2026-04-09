@@ -491,6 +491,10 @@ export class MemStorage implements IStorage {
     this.seedExamplePathways().catch(err => {
       console.error("Failed to seed example pathways:", err);
     });
+    // Seed training pathways if none exist
+    this.seedTrainingPathways().catch(err => {
+      console.error("Failed to seed training pathways:", err);
+    });
     // Seed brand sources if none exist
     this.seedSources().catch(err => {
       console.error("Failed to seed sources:", err);
@@ -4127,6 +4131,110 @@ export class MemStorage implements IStorage {
   }
 
   // ==================== SOURCES ====================
+  private async seedTrainingPathways(): Promise<void> {
+    try {
+      const existing = await db.select().from(trainingPathwaysTable).limit(1);
+      if (existing.length > 0) return;
+
+      const pathways = [
+        {
+          title: "Health & Safety Training Finder",
+          description: "Answer a few quick questions and we'll recommend the right H&S training course for your situation.",
+          module: "health_safety" as const,
+          isActive: true,
+          sortOrder: 0,
+          createdBy: "user-admin",
+          tree: {
+            question: "Who is the training for?",
+            answers: [
+              {
+                label: "An individual employee",
+                description: "Front-line staff or operatives who need specific skills training",
+                next: {
+                  question: "What type of work or activity do they carry out?",
+                  answers: [
+                    { label: "Working at height — ladders, scaffolding, roofing", description: "Any work where a person could fall from one level to another", courseIds: [] },
+                    { label: "Fire safety or warden duties", description: "Fire marshal, warden, or emergency evacuation responsibilities", courseIds: [] },
+                    { label: "General workplace health & safety awareness", description: "Foundational understanding of H&S rules and best practice", courseIds: [] },
+                  ],
+                },
+              },
+              {
+                label: "A manager or supervisor",
+                description: "Someone who oversees teams or is responsible for H&S compliance",
+                next: {
+                  question: "What do they primarily need to manage?",
+                  answers: [
+                    { label: "Overall H&S responsibilities and risk management", description: "Legal duties, risk assessments, incident management", courseIds: [] },
+                    { label: "Teams working at height", description: "Supervising workers who operate at height", courseIds: [] },
+                    { label: "Fire safety and emergency procedures", description: "Coordinating fire safety, drills, and evacuation across the site", courseIds: [] },
+                  ],
+                },
+              },
+              {
+                label: "The whole team or organisation",
+                description: "A business-wide training initiative covering all staff",
+                courseIds: [],
+              },
+            ],
+          },
+        },
+        {
+          title: "Employment Law Training Finder",
+          description: "Find training courses that cover your employment law needs.",
+          module: "employment_law" as const,
+          isActive: true,
+          sortOrder: 0,
+          createdBy: "user-admin",
+          tree: {
+            question: "What employment law topic do you need training on?",
+            answers: [
+              { label: "Disciplinary, grievance and dismissal", description: "Legal framework for handling employee disputes, misconduct, and fair dismissal", courseIds: [] },
+              { label: "Equality, diversity and discrimination", description: "Protected characteristics, the Equality Act, and preventing discrimination", courseIds: [] },
+              { label: "Employment contracts and terms", description: "Legal requirements around written statements, contracts, and working conditions", courseIds: [] },
+              { label: "Redundancy and restructuring", description: "Legal procedures for ending employment fairly and managing organisational change", courseIds: [] },
+              { label: "TUPE — business transfers", description: "Transfer of Undertakings and how they affect employees and employers", courseIds: [] },
+            ],
+          },
+        },
+        {
+          title: "HR Training Finder",
+          description: "Find the right HR training course for your team or situation.",
+          module: "human_resources" as const,
+          isActive: true,
+          sortOrder: 0,
+          createdBy: "user-admin",
+          tree: {
+            question: "What HR area does the training need to cover?",
+            answers: [
+              {
+                label: "Disciplinary and grievance procedures",
+                description: "How to handle misconduct, formal complaints, and employee disputes",
+                next: {
+                  question: "Who needs the training?",
+                  answers: [
+                    { label: "Managers and HR professionals conducting cases", description: "People who run investigations, hearings, and appeals", courseIds: [] },
+                    { label: "Employees who want to understand the process", description: "Staff who need to know their rights and what to expect", courseIds: [] },
+                  ],
+                },
+              },
+              { label: "Employment rights and legislation", description: "Understanding legal requirements and obligations around employment", courseIds: [] },
+              { label: "People management and leadership", description: "Skills for managing and developing your team effectively", courseIds: [] },
+              { label: "Workplace wellbeing and absence management", description: "Supporting employee health, sickness, and return-to-work processes", courseIds: [] },
+            ],
+          },
+        },
+      ];
+
+      for (const p of pathways) {
+        await db.insert(trainingPathwaysTable).values(p as any);
+      }
+      console.log("Seeded 3 training pathways");
+    } catch (err) {
+      console.error("Error seeding training pathways:", err);
+    }
+  }
+
   private async seedSources(): Promise<void> {
     try {
       const existing = await db.select().from(sourcesTable).limit(1);
