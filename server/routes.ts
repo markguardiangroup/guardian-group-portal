@@ -8562,9 +8562,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Company is required for client users" });
       }
 
-      // Consultants and admins must have at least one source
+      // Guard: only admins may assign sources for consultant/admin users.
+      // Pro consultants cannot set sources even if they somehow submit a sources payload.
       const userRoleForValidation = role || "client";
-      if ((userRoleForValidation === "consultant" || userRoleForValidation === "admin") && (!Array.isArray(sources) || sources.length === 0)) {
+      const sourcesForCreate: string[] | null | undefined =
+        (currentUser.role !== "admin" && (userRoleForValidation === "consultant" || userRoleForValidation === "admin"))
+          ? undefined  // strip — admin must assign sources separately
+          : sources;
+
+      // Consultants and admins must have at least one source (admin-created only)
+      if (currentUser.role === "admin" && (userRoleForValidation === "consultant" || userRoleForValidation === "admin") && (!Array.isArray(sourcesForCreate) || sourcesForCreate.length === 0)) {
         return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
       }
       
@@ -8607,7 +8614,7 @@ export async function registerRoutes(
         mobile: mobile || null,
         preferredContactMethod: preferredContactMethod || "email",
         notes: notes || null,
-        sources: Array.isArray(sources) ? sources : null,
+        sources: Array.isArray(sourcesForCreate) ? sourcesForCreate : null,
       });
       
       const { password: _, ...safeUser } = newUser;
@@ -9665,22 +9672,20 @@ export async function registerRoutes(
       } = req.body;
 
       // Guard: only admins may assign/edit sources for consultant and admin users.
-      // Pro consultants may edit other fields but cannot change the sources field on
-      // consultant or admin target users — existing sources are preserved as-is.
-      const targetIsConsultantOrAdmin = targetUser.role === "consultant" || targetUser.role === "admin";
+      // Use the effective target role (post-update) so that a role change from client
+      // to consultant/admin is also covered.
+      const effectiveTargetRole = (role ?? targetUser.role) as string;
+      const targetIsConsultantOrAdmin = effectiveTargetRole === "consultant" || effectiveTargetRole === "admin";
       const sourcesPayload: string[] | undefined =
         (currentUser.role !== "admin" && targetIsConsultantOrAdmin)
           ? undefined  // strip sources from update; preserve existing value
           : sources;
       
       // Validate sources for consultant/admin roles
-      {
-        const effectiveRole = role ?? targetUser?.role;
-        if (effectiveRole === "consultant" || effectiveRole === "admin") {
-          const effectiveSources = sourcesPayload !== undefined ? sourcesPayload : (targetUser?.sources ?? []);
-          if (!Array.isArray(effectiveSources) || effectiveSources.length === 0) {
-            return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
-          }
+      if (targetIsConsultantOrAdmin) {
+        const effectiveSources = sourcesPayload !== undefined ? sourcesPayload : (targetUser?.sources ?? []);
+        if (!Array.isArray(effectiveSources) || effectiveSources.length === 0) {
+          return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
         }
       }
 

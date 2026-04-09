@@ -860,8 +860,8 @@ export default function UserManagement() {
       toast({ title: "Company is required for client users", variant: "destructive" });
       return;
     }
-    // Consultants and admins must have at least one source
-    if ((newUser.role === "consultant" || newUser.role === "admin") && newUser.sources.length === 0) {
+    // Consultants and admins must have at least one source (admin-created only)
+    if (isAdmin && (newUser.role === "consultant" || newUser.role === "admin") && newUser.sources.length === 0) {
       toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
@@ -2463,7 +2463,7 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {(newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
+            {isAdmin && (newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
