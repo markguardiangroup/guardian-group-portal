@@ -5087,6 +5087,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "At least one site with a name is required when creating a company" });
       }
 
+      if (!Array.isArray(sources) || sources.length === 0) {
+        return res.status(400).json({ error: "At least one source is required for a company" });
+      }
+
       const existingCompanies = await storage.getCompanies();
       const duplicate = existingCompanies.find(
         (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase()
@@ -5185,7 +5189,12 @@ export async function registerRoutes(
       if (searchTag !== undefined) updates.searchTag = searchTag || null;
       if (employeeRange !== undefined) updates.employeeRange = employeeRange || null;
       if (industry !== undefined) updates.industry = industry || null;
-      if (sources !== undefined) updates.sources = Array.isArray(sources) ? sources : null;
+      if (sources !== undefined) {
+        if (!Array.isArray(sources) || sources.length === 0) {
+          return res.status(400).json({ error: "At least one source is required for a company" });
+        }
+        updates.sources = sources;
+      }
 
       // If a contactUserId is being set, auto-populate contact fields from the user's profile
       // (only if those fields weren't explicitly provided in the request)
@@ -8482,6 +8491,12 @@ export async function registerRoutes(
       if ((role === "client" || !role) && !companyId) {
         return res.status(400).json({ error: "Company is required for client users" });
       }
+
+      // Consultants and admins must have at least one source
+      const userRoleForValidation = role || "client";
+      if ((userRoleForValidation === "consultant" || userRoleForValidation === "admin") && (!Array.isArray(sources) || sources.length === 0)) {
+        return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+      }
       
       // Check if username or email already exists
       const existingUserByUsername = await storage.getUserByUsername(username);
@@ -9579,6 +9594,15 @@ export async function registerRoutes(
         sources
       } = req.body;
       
+      // Validate sources for consultant/admin roles
+      if (sources !== undefined) {
+        const targetUser = await storage.getUser(req.params.id);
+        const effectiveRole = role ?? targetUser?.role;
+        if ((effectiveRole === "consultant" || effectiveRole === "admin") && (!Array.isArray(sources) || sources.length === 0)) {
+          return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+        }
+      }
+
       const updated = await storage.updateUser(req.params.id, {
         ...(status !== undefined && { status }),
         // Normalize any incoming clientPermissionRole to "full" (only valid value now)

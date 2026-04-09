@@ -1223,6 +1223,10 @@ export default function CompanyDetail() {
       toast({ title: "Industry is required", variant: "destructive" });
       return;
     }
+    if (!editForm.sources || editForm.sources.length === 0) {
+      toast({ title: "At least one source is required", variant: "destructive" });
+      return;
+    }
     updateCompanyMutation.mutate(editForm);
   };
 
@@ -2007,10 +2011,10 @@ export default function CompanyDetail() {
 
             {availableSources.length > 0 && (
               <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-1">Sources</h4>
-                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company.</p>
+                <h4 className="text-sm font-medium mb-1">Sources <span className="text-destructive">*</span></h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company. At least one source is required.</p>
                 <div className="flex flex-wrap gap-2">
-                  {availableSources.map((source) => {
+                  {availableSources.filter(s => s.isActive).map((source) => {
                     const selected = editForm.sources.includes(source.code);
                     return (
                       <button

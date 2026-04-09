@@ -604,6 +604,10 @@ export default function UserManagement() {
 
   const handleSaveEdit = () => {
     if (!editingUser || !editFormData) return;
+    if ((editFormData.role === "consultant" || editFormData.role === "admin") && editFormData.sources.length === 0) {
+      toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
+      return;
+    }
     updateUserMutation.mutate({ id: editingUser.id, data: editFormData });
   };
 
@@ -852,6 +856,11 @@ export default function UserManagement() {
     // Clients must be assigned to a company
     if (newUser.role === "client" && !newUser.companyId) {
       toast({ title: "Company is required for client users", variant: "destructive" });
+      return;
+    }
+    // Consultants and admins must have at least one source
+    if ((newUser.role === "consultant" || newUser.role === "admin") && newUser.sources.length === 0) {
+      toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
     // Auto-generate fullName from firstName and lastName if not provided
@@ -1241,6 +1250,11 @@ export default function UserManagement() {
                         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground ml-1">
                           {u.consultantTier}
                         </span>
+                      )}
+                      {(u.role === "admin" || u.role === "consultant") && (!(u as any).sources || (u as any).sources.length === 0) && (
+                        <Badge variant="outline" className="text-xs w-fit text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-no-source-user-${u.id}`}>
+                          No source
+                        </Badge>
                       )}
                     </div>
                   </TableCell>
@@ -1733,8 +1747,8 @@ export default function UserManagement() {
 
               {(editFormData.role === "admin" || editFormData.role === "consultant") && availableSources.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-3">Sources Access</h4>
-                  <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. Leave empty to allow all sources.</p>
+                  <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
+                  <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
                   <div className="flex flex-wrap gap-2">
                     {availableSources.filter(s => s.isActive).map((source) => {
                       const selected = editFormData.sources.includes(source.code);
@@ -2414,8 +2428,8 @@ export default function UserManagement() {
 
             {(newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium mb-3">Sources Access</h4>
-                <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. Leave empty to allow all sources.</p>
+                <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
                 <div className="flex flex-wrap gap-2">
                   {availableSources.filter(s => s.isActive).map((source) => {
                     const selected = newUser.sources.includes(source.code);

@@ -183,15 +183,19 @@ function CompanyCard({
                 </span>
               )}
             </div>
-            {(company as any).sources && (company as any).sources.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {((company as any).sources as string[]).map((code) => (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(company as any).sources && (company as any).sources.length > 0 ? (
+                ((company as any).sources as string[]).map((code) => (
                   <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-source-${company.id}-${code}`}>
                     {code}
                   </Badge>
-                ))}
-              </div>
-            )}
+                ))
+              ) : (
+                <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-no-source-${company.id}`}>
+                  No source assigned
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
@@ -642,6 +646,10 @@ export default function Companies() {
     }
     if (!validatePostcode(formData.postalCode, formData.country)) {
       toast({ title: getPostcodeError(formData.country), variant: "destructive" });
+      return;
+    }
+    if (!formData.sources || formData.sources.length === 0) {
+      toast({ title: "At least one source is required", variant: "destructive" });
       return;
     }
     const submittedData = { ...formData };
@@ -1218,10 +1226,10 @@ export default function Companies() {
 
             {availableSources.length > 0 && (
               <div className="border-t pt-4">
-                <h4 className="text-sm font-medium mb-1">Sources</h4>
-                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company.</p>
+                <h4 className="text-sm font-medium mb-1">Sources <span className="text-destructive">*</span></h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company. At least one source is required.</p>
                 <div className="flex flex-wrap gap-2">
-                  {availableSources.map((source) => {
+                  {availableSources.filter(s => s.isActive).map((source) => {
                     const selected = formData.sources.includes(source.code);
                     return (
                       <button

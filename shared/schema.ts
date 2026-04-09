@@ -991,6 +991,7 @@ export interface SiteWithDetails extends Site {
   companyName?: string;
   companyNumber?: string;
   companySearchTag?: string;
+  companySources?: string[] | null;
   complianceSummary?: ComplianceSummary;
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];
