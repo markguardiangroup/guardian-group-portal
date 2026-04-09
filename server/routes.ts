@@ -4657,17 +4657,31 @@ export async function registerRoutes(
 
       // Send email notification for booking enquiries
       if (parsed.data.requestType === "booking") {
+        let courseName = `Course ID: ${parsed.data.trainingCourseId}`;
+        let courseCode = "";
+        let siteName = `Site ID: ${parsed.data.siteId}`;
+        let companyName = "Unknown Company";
+
         try {
-          const [course, site] = await Promise.all([
-            storage.getTrainingCourse(parsed.data.trainingCourseId),
-            storage.getSite(parsed.data.siteId),
-          ]);
-          const company = site?.entityId ? await storage.getCompany(site.entityId) : undefined;
+          const course = await storage.getTrainingCourse(parsed.data.trainingCourseId);
+          if (course) { courseName = course.title; courseCode = course.productCode; }
+        } catch { /* non-fatal */ }
+
+        try {
+          const site = await storage.getSite(parsed.data.siteId);
+          if (site) {
+            siteName = site.name;
+            const company = await storage.getCompany(site.companyId).catch(() => undefined);
+            if (company) companyName = company.name;
+          }
+        } catch { /* non-fatal */ }
+
+        try {
           await sendBookingEnquiryEmail({
-            courseName: course?.title ?? "Unknown Course",
-            courseCode: course?.productCode ?? "",
-            siteName: site?.name ?? "Unknown Site",
-            companyName: company?.name ?? "Unknown Company",
+            courseName,
+            courseCode,
+            siteName,
+            companyName,
             requestedByName: user.fullName,
             requestedByEmail: user.email,
             message: parsed.data.message ?? null,
