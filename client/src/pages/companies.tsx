@@ -184,8 +184,8 @@ function CompanyCard({
               )}
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {(company as any).sources && (company as any).sources.length > 0 ? (
-                ((company as any).sources as string[]).map((code) => (
+              {company.sources && company.sources.length > 0 ? (
+                company.sources.map((code) => (
                   <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-source-${company.id}-${code}`}>
                     {code}
                   </Badge>
@@ -523,7 +523,7 @@ export default function Companies() {
       county: company.county || "",
       postalCode: company.postalCode || "",
       country: company.country || "",
-      sources: (company as any).sources || [],
+      sources: company.sources || [],
     });
     setEditingCompany(company);
   };

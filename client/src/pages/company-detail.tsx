@@ -243,6 +243,15 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
                 </span>
               )}
             </div>
+            {site.companySources && site.companySources.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {site.companySources.map((code) => (
+                  <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-site-source-${site.id}-${code}`}>
+                    {code}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -1109,7 +1118,7 @@ export default function CompanyDetail() {
         contactUserId: matchingUser?.id || "",
         searchTag: company.searchTag || "",
         status: company.status || "active",
-        sources: (company as any).sources || [],
+        sources: company.sources || [],
       };
       setEditForm(initial);
       setEditFormOriginal(initial);
@@ -1436,13 +1445,13 @@ export default function CompanyDetail() {
                     <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
                   </div>
                 )}
-                {(isAdmin || user?.role === "consultant") && (company as any).sources && (company as any).sources.length > 0 && (
+                {(isAdmin || user?.role === "consultant") && company.sources && company.sources.length > 0 && (
                   <div className="flex items-start gap-2 text-sm">
                     <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                     <div>
                       <span className="text-muted-foreground">Sources: </span>
                       <span className="inline-flex flex-wrap gap-1 ml-1">
-                        {((company as any).sources as string[]).map((code: string) => (
+                        {company.sources.map((code: string) => (
                           <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-detail-source-${code}`}>
                             {code}
                           </Badge>

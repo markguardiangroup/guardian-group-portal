@@ -112,6 +112,7 @@ interface UserWithAssignments {
   consultantTier?: ConsultantTier | null;
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
+  sources?: string[] | null;
   // Profile fields
   title?: string | null;
   firstName?: string | null;
@@ -429,7 +430,7 @@ export default function UserManagement() {
       companyId: u.companyId || "",
       consultantTier: u.consultantTier || "standard",
       clientPermissionRole: "full",
-      sources: (u as any).sources || [],
+      sources: u.sources || [],
     });
     setUserSiteAssignments([]);
     setSelectedSiteToAdd("");
@@ -1251,7 +1252,7 @@ export default function UserManagement() {
                           {u.consultantTier}
                         </span>
                       )}
-                      {(u.role === "admin" || u.role === "consultant") && (!(u as any).sources || (u as any).sources.length === 0) && (
+                      {(u.role === "admin" || u.role === "consultant") && (!u.sources || u.sources.length === 0) && (
                         <Badge variant="outline" className="text-xs w-fit text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-no-source-user-${u.id}`}>
                           No source
                         </Badge>
@@ -1917,11 +1918,11 @@ export default function UserManagement() {
               )}
 
               {/* Sources */}
-              {(viewingUser.role === "admin" || viewingUser.role === "consultant") && (viewingUser as any).sources && (viewingUser as any).sources.length > 0 && (
+              {(viewingUser.role === "admin" || viewingUser.role === "consultant") && viewingUser.sources && viewingUser.sources.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-muted-foreground">Sources Access</h4>
                   <div className="flex flex-wrap gap-2">
-                    {((viewingUser as any).sources as string[]).map((code) => {
+                    {viewingUser.sources.map((code) => {
                       const src = availableSources.find(s => s.code === code);
                       return (
                         <Badge key={code} variant="outline" className="text-xs">

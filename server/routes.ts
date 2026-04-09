@@ -5540,7 +5540,9 @@ export async function registerRoutes(
       if (!entity) {
         return res.status(404).json({ error: "Entity not found" });
       }
-      res.json(entity);
+      // Include parent company sources for derived access control
+      const siteCompany = await storage.getCompany(entity.companyId);
+      res.json({ ...entity, companySources: siteCompany?.sources ?? null });
     } catch (error) {
       console.error("Get entity error:", error);
       res.status(500).json({ error: "Failed to fetch entity" });
@@ -9595,11 +9597,14 @@ export async function registerRoutes(
       } = req.body;
       
       // Validate sources for consultant/admin roles
-      if (sources !== undefined) {
+      {
         const targetUser = await storage.getUser(req.params.id);
         const effectiveRole = role ?? targetUser?.role;
-        if ((effectiveRole === "consultant" || effectiveRole === "admin") && (!Array.isArray(sources) || sources.length === 0)) {
-          return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+        if (effectiveRole === "consultant" || effectiveRole === "admin") {
+          const effectiveSources = sources !== undefined ? sources : (targetUser?.sources ?? []);
+          if (!Array.isArray(effectiveSources) || effectiveSources.length === 0) {
+            return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+          }
         }
       }
 
