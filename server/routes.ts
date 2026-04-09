@@ -439,6 +439,7 @@ export async function registerRoutes(
       legalAcceptedAt: user.legalAcceptedAt,
       consultantTier: user.consultantTier,
       legalAcceptanceRequired,
+      sources: user.sources,
     });
   });
 
@@ -5128,6 +5129,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "At least one source is required for a company" });
       }
 
+      // Pro consultants may only assign sources that are within their own source list
+      if (isProConsultant(user) && user.role !== "admin") {
+        const allowedSources = Array.isArray(user.sources) ? user.sources : [];
+        const forbidden = sources.filter((s: string) => !allowedSources.includes(s));
+        if (forbidden.length > 0) {
+          return res.status(403).json({ error: `You can only assign sources within your own access: ${forbidden.join(", ")}` });
+        }
+      }
+
       const existingCompanies = await storage.getCompanies();
       const duplicate = existingCompanies.find(
         (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase()
@@ -5229,6 +5239,14 @@ export async function registerRoutes(
       if (sources !== undefined) {
         if (!Array.isArray(sources) || sources.length === 0) {
           return res.status(400).json({ error: "At least one source is required for a company" });
+        }
+        // Pro consultants may only assign sources that are within their own source list
+        if (isProConsultant(user) && user.role !== "admin") {
+          const allowedSources = Array.isArray(user.sources) ? user.sources : [];
+          const forbidden = sources.filter((s: string) => !allowedSources.includes(s));
+          if (forbidden.length > 0) {
+            return res.status(403).json({ error: `You can only assign sources within your own access: ${forbidden.join(", ")}` });
+          }
         }
         updates.sources = sources;
       }

@@ -1245,7 +1245,7 @@ export default function Companies() {
                 <h4 className="text-sm font-medium mb-1">Sources <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company. At least one source is required.</p>
                 <div className="flex flex-wrap gap-2">
-                  {availableSources.filter(s => s.isActive).map((source) => {
+                  {availableSources.filter(s => s.isActive && (!isProConsultant || user?.sources?.includes(s.code))).map((source) => {
                     const selected = formData.sources.includes(source.code);
                     return (
                       <button
