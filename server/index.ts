@@ -155,6 +155,11 @@ process.on("uncaughtException", (err) => {
 });
 
 (async () => {
+  // Seed locked root Toolkit folder templates for all modules (idempotent)
+  storage.seedToolkitRootFolders().catch((err) =>
+    console.error("Startup toolkit root folder seed error:", err)
+  );
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)

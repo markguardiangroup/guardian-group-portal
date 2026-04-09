@@ -327,6 +327,7 @@ export interface IStorage {
   getFolderTemplate(id: string): Promise<FolderTemplate | undefined>;
   getFolderTemplateByToolkitFolderId(toolkitFolderId: string): Promise<FolderTemplate | undefined>;
   getModuleToolkitRootFolder(module: ModuleType): Promise<FolderTemplate | undefined>;
+  seedToolkitRootFolders(): Promise<void>;
   createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate>;
   updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined>;
   deleteFolderTemplate(id: string): Promise<boolean>;
@@ -2389,6 +2390,27 @@ export class MemStorage implements IStorage {
         )
       );
     return folder;
+  }
+
+  async seedToolkitRootFolders(): Promise<void> {
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+    for (const module of modules) {
+      const existing = await this.getModuleToolkitRootFolder(module);
+      if (!existing) {
+        await this.createFolderTemplate({
+          name: "Toolkit",
+          module,
+          parentId: null as any,
+          isRequired: false,
+          sortOrder: 0,
+          isActive: true,
+          isLocked: true,
+          toolkitFolderId: null as any,
+          createdBy: "system",
+        } as any);
+        console.log(`[seed] Created locked root Toolkit folder for module: ${module}`);
+      }
+    }
   }
 
   private async generateNextFolderCode(): Promise<string> {
