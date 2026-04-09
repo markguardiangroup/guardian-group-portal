@@ -1317,6 +1317,19 @@ export default function SiteDetail() {
 
   const COUNTRY_OPTIONS = ["England", "Ireland", "Northern Ireland", "Scotland", "Wales"];
 
+  const validateUKPostcode = (postcode: string) => /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i.test(postcode.trim());
+  const validateEircode = (postcode: string) => /^[A-Z]\d{2}\s?[A-Z0-9]{4}$/i.test(postcode.trim());
+  const validatePostcode = (postcode: string, country: string) => {
+    if (["England", "Northern Ireland", "Scotland", "Wales"].includes(country)) return validateUKPostcode(postcode);
+    if (country === "Ireland") return validateEircode(postcode);
+    return postcode.trim().length > 0;
+  };
+  const getPostcodeError = (country: string) => {
+    if (["England", "Northern Ireland", "Scotland", "Wales"].includes(country)) return "Please enter a valid UK postcode (e.g., BT1 1AA, SW1A 1AA)";
+    if (country === "Ireland") return "Please enter a valid Eircode (e.g., D02 AF30)";
+    return "Please enter a valid postal code";
+  };
+
   const COUNTY_MAP: Record<string, string[]> = {
     "England": [
       "Bedfordshire", "Berkshire", "Bristol", "Buckinghamshire", "Cambridgeshire",
@@ -1387,6 +1400,26 @@ export default function SiteDetail() {
   const handleSaveSite = () => {
     if (!editSiteData.name.trim()) {
       toast({ title: "Site name is required", variant: "destructive" });
+      return;
+    }
+    if (!editSiteData.addressLine1.trim()) {
+      toast({ title: "Address Line 1 is required", variant: "destructive" });
+      return;
+    }
+    if (!editSiteData.city.trim()) {
+      toast({ title: "City is required", variant: "destructive" });
+      return;
+    }
+    if (!editSiteData.country) {
+      toast({ title: "Country is required", variant: "destructive" });
+      return;
+    }
+    if (!editSiteData.county) {
+      toast({ title: "County is required", variant: "destructive" });
+      return;
+    }
+    if (!validatePostcode(editSiteData.postalCode, editSiteData.country)) {
+      toast({ title: getPostcodeError(editSiteData.country), variant: "destructive" });
       return;
     }
     updateSiteMutation.mutate(editSiteData);
@@ -1502,8 +1535,8 @@ export default function SiteDetail() {
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Address</h4>
               <div className="space-y-3">
-                <div className="grid gap-2">
-                  <Label htmlFor="site-address-line1">Address Line 1</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="site-address-line1">Address Line 1 <span className="text-destructive">*</span></Label>
                   <Input
                     id="site-address-line1"
                     value={editSiteData.addressLine1}
@@ -1512,7 +1545,7 @@ export default function SiteDetail() {
                     data-testid="input-site-address-line1"
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="site-address-line2">Address Line 2</Label>
                   <Input
                     id="site-address-line2"
@@ -1524,7 +1557,7 @@ export default function SiteDetail() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="site-city">City</Label>
+                    <Label htmlFor="site-city">City <span className="text-destructive">*</span></Label>
                     <Input
                       id="site-city"
                       value={editSiteData.city}
@@ -1534,7 +1567,7 @@ export default function SiteDetail() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="site-country">Country</Label>
+                    <Label htmlFor="site-country">Country <span className="text-destructive">*</span></Label>
                     <Select
                       value={editSiteData.country || ""}
                       onValueChange={(value) => setEditSiteData({ ...editSiteData, country: value, county: "" })}
@@ -1552,7 +1585,7 @@ export default function SiteDetail() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="site-county">County</Label>
+                    <Label htmlFor="site-county">County <span className="text-destructive">*</span></Label>
                     <Select
                       value={editSiteData.county || ""}
                       onValueChange={(value) => setEditSiteData({ ...editSiteData, county: value })}
@@ -1569,11 +1602,11 @@ export default function SiteDetail() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="site-postal-code">Postal Code</Label>
+                    <Label htmlFor="site-postal-code">Postal Code <span className="text-destructive">*</span></Label>
                     <Input
                       id="site-postal-code"
                       value={editSiteData.postalCode}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, postalCode: e.target.value })}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, postalCode: e.target.value.toUpperCase() })}
                       placeholder={editSiteData.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-site-postal-code"
                     />
