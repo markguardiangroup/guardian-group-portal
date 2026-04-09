@@ -25,6 +25,7 @@ import {
   Briefcase,
   Cloud,
   Award,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -178,6 +179,11 @@ const adminNavItems = [
     title: "Manage Pathways",
     url: "/admin/pathways",
     icon: Compass,
+  },
+  {
+    title: "Sources",
+    url: "/admin/sources",
+    icon: Tag,
   },
   {
     title: "Admin Reports",

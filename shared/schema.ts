@@ -1629,3 +1629,16 @@ export const testingTaskAssignments = pgTable("testing_task_assignments", {
 export const insertTestingTaskAssignmentSchema = createInsertSchema(testingTaskAssignments).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertTestingTaskAssignment = z.infer<typeof insertTestingTaskAssignmentSchema>;
 export type TestingTaskAssignment = typeof testingTaskAssignments.$inferSelect;
+
+// ==================== SOURCES ====================
+export const sources = pgTable("sources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  label: text("label").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSourceSchema = createInsertSchema(sources).omit({ id: true, createdAt: true });
+export type InsertSource = z.infer<typeof insertSourceSchema>;
+export type Source = typeof sources.$inferSelect;

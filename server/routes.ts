@@ -12036,5 +12036,59 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SOURCES ====================
+
+  const createSourceSchema = z.object({
+    code: z.string().min(1).max(20).toUpperCase(),
+    label: z.string().min(1),
+    isActive: z.boolean().optional(),
+  });
+
+  app.get("/api/sources", requireAuth, async (req, res) => {
+    try {
+      const sources = await storage.getSources();
+      res.json(sources);
+    } catch (error) {
+      console.error("Error fetching sources:", error);
+      res.status(500).json({ error: "Failed to fetch sources" });
+    }
+  });
+
+  app.post("/api/sources", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = createSourceSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const source = await storage.createSource({
+        code: parsed.data.code,
+        label: parsed.data.label,
+        isActive: parsed.data.isActive ?? true,
+      });
+      res.status(201).json(source);
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ error: "A source with that code already exists" });
+      }
+      console.error("Error creating source:", error);
+      res.status(500).json({ error: "Failed to create source" });
+    }
+  });
+
+  app.patch("/api/sources/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const source = await storage.updateSource(req.params.id, { isActive: parsed.data.isActive });
+      if (!source) return res.status(404).json({ error: "Source not found" });
+      res.json(source);
+    } catch (error) {
+      console.error("Error updating source:", error);
+      res.status(500).json({ error: "Failed to update source" });
+    }
+  });
+
   return httpServer;
 }

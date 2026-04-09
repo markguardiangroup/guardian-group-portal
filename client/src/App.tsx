@@ -57,6 +57,7 @@ import ClientUploads from "@/pages/client-uploads";
 import ToolkitDashboard from "@/pages/toolkit-dashboard";
 import ToolkitBrowse from "@/pages/toolkit-browse";
 import AdminPathways from "@/pages/admin-pathways";
+import AdminSources from "@/pages/admin-sources";
 import NotFound from "@/pages/not-found";
 
 function ScrollToTop() {
@@ -189,6 +190,7 @@ function Router() {
       <Route path="/toolkit" component={ToolkitDashboard} />
       <Route path="/toolkit/browse" component={ToolkitBrowse} />
       <Route path="/admin/pathways" component={AdminPathways} />
+      <Route path="/admin/sources" component={AdminSources} />
       <Route component={NotFound} />
     </Switch>
     </>

@@ -67,6 +67,8 @@ import {
   type TestingTaskAssignment, type InsertTestingTaskAssignment,
   testingTaskLists as testingTaskListsTable,
   testingTaskAssignments as testingTaskAssignmentsTable,
+  type Source, type InsertSource,
+  sources as sourcesTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
@@ -464,6 +466,12 @@ export interface IStorage {
   createTestingTaskAssignment(assignment: InsertTestingTaskAssignment): Promise<TestingTaskAssignment>;
   updateTestingTaskAssignment(id: string, updates: Partial<TestingTaskAssignment>): Promise<TestingTaskAssignment | undefined>;
   deleteTestingTaskAssignment(id: string): Promise<boolean>;
+
+  // Sources
+  getSources(): Promise<Source[]>;
+  getSource(id: string): Promise<Source | undefined>;
+  createSource(source: InsertSource): Promise<Source>;
+  updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -482,6 +490,10 @@ export class MemStorage implements IStorage {
     // Seed example pathways if none exist
     this.seedExamplePathways().catch(err => {
       console.error("Failed to seed example pathways:", err);
+    });
+    // Seed brand sources if none exist
+    this.seedSources().catch(err => {
+      console.error("Failed to seed sources:", err);
     });
   }
 
@@ -4110,6 +4122,47 @@ export class MemStorage implements IStorage {
     const result = await db.delete(testingTaskAssignmentsTable)
       .where(eq(testingTaskAssignmentsTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  // ==================== SOURCES ====================
+  private async seedSources(): Promise<void> {
+    try {
+      const existing = await db.select().from(sourcesTable).limit(1);
+      if (existing.length > 0) return;
+      const seeds = [
+        { code: "GS", label: "Guardian Support" },
+        { code: "WPHR", label: "Work Place HR" },
+        { code: "SSD", label: "Safety Services Direct" },
+        { code: "PSHR", label: "PS Human Resources" },
+        { code: "IFRA", label: "Independent Fire Risk Assessments" },
+        { code: "CQMS", label: "CQMS" },
+        { code: "ELIA", label: "Employment Law in Action" },
+        { code: "SPHERE", label: "Sphere RSM" },
+      ];
+      await db.insert(sourcesTable).values(seeds);
+      console.log("Seeded 8 brand sources");
+    } catch (err) {
+      console.error("Error seeding sources:", err);
+    }
+  }
+
+  async getSources(): Promise<Source[]> {
+    return db.select().from(sourcesTable).orderBy(asc(sourcesTable.code));
+  }
+
+  async getSource(id: string): Promise<Source | undefined> {
+    const [row] = await db.select().from(sourcesTable).where(eq(sourcesTable.id, id));
+    return row;
+  }
+
+  async createSource(source: InsertSource): Promise<Source> {
+    const [row] = await db.insert(sourcesTable).values(source).returning();
+    return row;
+  }
+
+  async updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined> {
+    const [row] = await db.update(sourcesTable).set(updates).where(eq(sourcesTable.id, id)).returning();
+    return row;
   }
 
 }
