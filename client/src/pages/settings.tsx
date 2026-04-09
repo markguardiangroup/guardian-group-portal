@@ -61,6 +61,7 @@ import {
   ChevronRight,
   UserPlus,
   CheckCircle2,
+  Printer,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -1201,6 +1202,70 @@ function TaskListForm({
   );
 }
 
+function printTaskList(list: TestingTaskList) {
+  const moduleLabel = MODULE_FULL_LABELS[list.module] ?? list.module;
+  const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const taskRows = list.tasks.map((task, i) => `
+    <div class="task">
+      <div class="checkbox"></div>
+      <div class="task-body">
+        <div class="task-label">${i + 1}. ${task.label}</div>
+        ${task.description ? `<div class="task-desc">${task.description}</div>` : ""}
+      </div>
+    </div>
+  `).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${list.title} — Task List</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; background: #fff; padding: 32px 40px; font-size: 13px; }
+    .header { border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 20px; }
+    .platform { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #666; margin-bottom: 6px; }
+    .title { font-size: 22px; font-weight: 700; line-height: 1.2; }
+    .meta { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+    .badge { display: inline-block; border: 1px solid #ccc; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .count { font-size: 12px; color: #555; }
+    .description { margin-bottom: 20px; color: #444; line-height: 1.5; border-left: 3px solid #ddd; padding-left: 10px; }
+    .tasks { display: flex; flex-direction: column; gap: 10px; }
+    .task { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; page-break-inside: avoid; }
+    .checkbox { width: 18px; height: 18px; border: 2px solid #555; border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+    .task-body { flex: 1; }
+    .task-label { font-weight: 600; line-height: 1.4; }
+    .task-desc { margin-top: 3px; color: #555; font-size: 12px; line-height: 1.4; }
+    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+    @media print { body { padding: 16px 20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="platform">Testing Checklist</div>
+    <div class="title">${list.title}</div>
+    <div class="meta">
+      <span class="badge">${moduleLabel}</span>
+      <span class="count">${list.tasks.length} task${list.tasks.length !== 1 ? "s" : ""}</span>
+    </div>
+  </div>
+  ${list.description ? `<div class="description">${list.description}</div>` : ""}
+  <div class="tasks">${taskRows}</div>
+  <div class="footer">
+    <span>Printed: ${dateStr}</span>
+    <span>Page 1</span>
+  </div>
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  }
+}
+
 function TestingTab() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1409,6 +1474,9 @@ function TestingTab() {
                           {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
                         </div>
                         <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => printTaskList(list)} data-testid={`button-print-tasklist-${list.id}`} title="Print task list">
+                            <Printer className="h-3.5 w-3.5" />
+                          </Button>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingList(list)} data-testid={`button-view-tasklist-${list.id}`}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
@@ -1539,7 +1607,14 @@ function TestingTab() {
 
                         {isExpanded && (
                           <div className="border-t px-4 pb-4 pt-3 space-y-2">
-                            {list.description && <p className="text-sm text-muted-foreground mb-3">{list.description}</p>}
+                            <div className="flex items-center justify-between mb-1">
+                              {list.description
+                                ? <p className="text-sm text-muted-foreground">{list.description}</p>
+                                : <span />}
+                              <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs shrink-0" onClick={() => printTaskList(list)} data-testid={`button-print-assignment-${a.id}`}>
+                                <Printer className="h-3.5 w-3.5" /> Print
+                              </Button>
+                            </div>
                             {list.tasks.map((task: TaskItem) => {
                               const checked = (a.completedTaskIds ?? []).includes(task.id);
                               return (
