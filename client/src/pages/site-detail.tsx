@@ -73,7 +73,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Site, User, ConsultantAssignment, ClientSiteAssignment, Company, DocumentTemplate, SiteTemplateOverride } from "@shared/schema";
+import type { Site, SiteWithDetails, User, ConsultantAssignment, ClientSiteAssignment, Company, DocumentTemplate, SiteTemplateOverride } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 
 type ClientAssignmentWithDetails = ClientSiteAssignment & {
@@ -101,7 +101,7 @@ interface UserWithoutPassword {
   createdAt: Date;
 }
 
-function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { entity: Site; onEditSite: () => void; companyId?: string; companyName?: string; siteId: string }) {
+function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { entity: Site & { companySources?: string[] | null }; onEditSite: () => void; companyId?: string; companyName?: string; siteId: string }) {
   const { data: siteStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
     queryKey: ["/api/sites", siteId, "stats"],
     queryFn: async () => {
@@ -173,6 +173,18 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
                 )}
                 {entity.contactPhone && <p>{entity.contactPhone}</p>}
                 {entity.contactEmail && <p>{entity.contactEmail}</p>}
+              </div>
+            </div>
+          )}
+          {entity.companySources && entity.companySources.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Sources</p>
+              <div className="flex flex-wrap gap-1.5">
+                {entity.companySources.map((code) => (
+                  <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-overview-source-${code}`}>
+                    {code}
+                  </Badge>
+                ))}
               </div>
             </div>
           )}
@@ -1239,7 +1251,7 @@ export default function SiteDetail() {
     contactUserId: "",
   });
 
-  const { data: entity, isLoading: entityLoading } = useQuery<Site>({
+  const { data: entity, isLoading: entityLoading } = useQuery<Site & { companySources?: string[] | null }>({
     queryKey: ["/api/sites", siteId],
     enabled: !!siteId,
   });

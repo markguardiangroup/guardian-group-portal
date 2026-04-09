@@ -456,6 +456,15 @@ export default function Sites() {
                         #{site.companyNumber}
                       </span>
                     )}
+                    {site.companySources && site.companySources.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {site.companySources.map((code) => (
+                          <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-site-company-source-${site.id}-${code}`}>
+                            {code}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className="text-sm text-muted-foreground">
