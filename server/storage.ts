@@ -2397,17 +2397,16 @@ export class MemStorage implements IStorage {
     for (const module of modules) {
       const existing = await this.getModuleToolkitRootFolder(module);
       if (!existing) {
-        await this.createFolderTemplate({
+        const payload: InsertFolderTemplate = {
           name: "Toolkit",
           module,
-          parentId: null as any,
           isRequired: false,
           sortOrder: 0,
           isActive: true,
           isLocked: true,
-          toolkitFolderId: null as any,
           createdBy: "system",
-        } as any);
+        };
+        await this.createFolderTemplate(payload);
         console.log(`[seed] Created locked root Toolkit folder for module: ${module}`);
       }
     }
