@@ -633,9 +633,21 @@ export default function UserManagement() {
       const response = await apiRequest("POST", `/api/users/${userId}/site-assignments/${siteId}`, {});
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       if (editingUser) {
         fetchUserSiteAssignments(editingUser.id);
+      }
+      // Patch the userNeedingSiteAssignment snapshot so the dialog shows the newly added site immediately
+      if (userNeedingSiteAssignment && userNeedingSiteAssignment.id === variables.userId) {
+        const siteName = sites?.find(s => s.id === variables.siteId)?.name || siteAssignmentConfirm?.siteName || "";
+        const site = sites?.find(s => s.id === variables.siteId);
+        setUserNeedingSiteAssignment({
+          ...userNeedingSiteAssignment,
+          siteAssignments: [
+            ...(userNeedingSiteAssignment.siteAssignments || []),
+            { siteId: variables.siteId, siteName, companyId: site?.companyId || "", companyName: "", isPrimary: false },
+          ],
+        });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
