@@ -4508,7 +4508,9 @@ export async function registerRoutes(
         courseOverview: z.array(z.string()).optional(),
         faqs: z.array(faqSchema).max(5).optional(),
         pricingTable: pricingTableSchema.optional(),
+        trainingMethod: z.enum(["online", "in_person"]).optional().nullable(),
         isRequired: z.boolean().optional(),
+        isFeatured: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
       });
