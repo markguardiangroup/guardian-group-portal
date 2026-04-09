@@ -1245,7 +1245,17 @@ function TestingTab() {
     queryKey: ["/api/consultants"],
     enabled: isAdmin,
   });
-  const allConsultants = rawConsultants;
+
+  const { data: rawAllUsers = [] } = useQuery<{ id: string; fullName: string; email: string; role: string }[]>({
+    queryKey: ["/api/users"],
+    enabled: isAdmin,
+  });
+  const adminUsers = rawAllUsers.filter(u => u.role === "admin");
+
+  const allConsultants = [
+    ...rawConsultants,
+    ...adminUsers.filter(a => !rawConsultants.some(c => c.id === a.id)),
+  ];
 
   const handleSaveList = async (data: { title: string; description: string; module: string; tasks: TaskItem[] }) => {
     setSavingList(true);
@@ -1286,12 +1296,12 @@ function TestingTab() {
     setAssigningList(true);
     try {
       await apiRequest("POST", "/api/testing-task-assignments", { taskListId: selectedListId, assignedTo: assignConsultantId });
-      toast({ title: "Consultant assigned" });
+      toast({ title: "User assigned" });
       setShowAssignDialog(false);
       setAssignConsultantId("");
       await refetchListAssignments();
     } catch {
-      toast({ title: "Error", description: "Failed to assign consultant", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to assign user", variant: "destructive" });
     } finally {
       setAssigningList(false);
     }
@@ -1343,7 +1353,7 @@ function TestingTab() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <CardTitle>Task Lists</CardTitle>
-                <CardDescription>Create and manage testing checklists for consultants</CardDescription>
+                <CardDescription>Create and manage testing checklists for consultants and admins</CardDescription>
               </div>
               {!showListForm && (
                 <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
@@ -1427,16 +1437,16 @@ function TestingTab() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <CardTitle>Assignments — {selectedList.title}</CardTitle>
-                <CardDescription>Assign this checklist to one or more consultants</CardDescription>
+                <CardDescription>Assign this checklist to one or more users</CardDescription>
               </div>
               <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0} data-testid="button-assign-consultant">
-                <UserPlus className="h-4 w-4 mr-2" /> Assign Consultant
+                <UserPlus className="h-4 w-4 mr-2" /> Assign User
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             {listAssignments.length === 0 && (
-              <p className="text-sm text-muted-foreground py-2">No consultants assigned yet.</p>
+              <p className="text-sm text-muted-foreground py-2">No users assigned yet.</p>
             )}
             <div className="space-y-2">
               {listAssignments.map((a: TestingAssignment) => {
@@ -1472,7 +1482,7 @@ function TestingTab() {
       {(isConsultant || isAdmin) && (
         <Card>
           <CardHeader>
-            <CardTitle>{isAdmin ? "My Testing Assignments (as Consultant)" : "My Testing Tasks"}</CardTitle>
+            <CardTitle>My Testing Assignments</CardTitle>
             <CardDescription>Task lists assigned to you — tick off tasks as you complete them</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1626,7 +1636,7 @@ function TestingTab() {
                 {/* Assignment progress summary — shown when there are assignments for this list */}
                 {selectedListId === viewingList.id && listAssignments.length > 0 && (
                   <div className="pt-4 border-t space-y-3">
-                    <h3 className="text-sm font-semibold text-foreground">Consultant Progress</h3>
+                    <h3 className="text-sm font-semibold text-foreground">User Progress</h3>
                     {listAssignments.map((a: TestingAssignment) => {
                       const total = viewingList.tasks.length;
                       const done = (a.completedTaskIds ?? []).length;
@@ -1677,7 +1687,7 @@ function TestingTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Assignment?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the consultant's access to this task list and delete their progress. This action cannot be undone.
+              This will remove the user's access to this task list and delete their progress. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1697,16 +1707,16 @@ function TestingTab() {
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Consultant</DialogTitle>
-            <DialogDescription>Choose a consultant to assign to "{selectedList?.title}"</DialogDescription>
+            <DialogTitle>Assign User</DialogTitle>
+            <DialogDescription>Choose a consultant or admin to assign to "{selectedList?.title}"</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {availableToAssign.length === 0 ? (
-              <p className="text-sm text-muted-foreground">All consultants are already assigned to this list.</p>
+              <p className="text-sm text-muted-foreground">All consultants and admins are already assigned to this list.</p>
             ) : (
               <Select value={assignConsultantId} onValueChange={setAssignConsultantId}>
                 <SelectTrigger data-testid="select-assign-consultant">
-                  <SelectValue placeholder="Select consultant" />
+                  <SelectValue placeholder="Select user" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableToAssign.map(c => (

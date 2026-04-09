@@ -12117,8 +12117,8 @@ export async function registerRoutes(
       const taskList = await storage.getTestingTaskList(taskListId);
       if (!taskList) return res.status(404).json({ error: "Task list not found" });
       const assignee = await storage.getUser(assignedTo);
-      if (!assignee || assignee.role !== "consultant") {
-        return res.status(400).json({ error: "Assignee must be a consultant" });
+      if (!assignee || (assignee.role !== "consultant" && assignee.role !== "admin")) {
+        return res.status(400).json({ error: "Assignee must be a consultant or admin" });
       }
       const assignment = await storage.createTestingTaskAssignment({
         taskListId,
