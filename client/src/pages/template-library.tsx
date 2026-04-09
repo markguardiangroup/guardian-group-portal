@@ -1634,7 +1634,7 @@ export default function TemplateLibraryPage() {
   
   const getWizardFoldersForModule = () => {
     return sortFoldersHierarchically(
-      folderTemplates.filter(f => f.module === wizardData.module && f.isActive)
+      folderTemplates.filter(f => f.module === wizardData.module && f.isActive && !f.isLocked && !f.toolkitFolderId)
     );
   };
   
@@ -2593,12 +2593,12 @@ export default function TemplateLibraryPage() {
               <Select value={bulkShared.folderTemplateId} onValueChange={(v) => setBulkShared({ ...bulkShared, folderTemplateId: v, createNewFolder: false })}>
                 <SelectTrigger data-testid="select-bulk-template-folder"><SelectValue placeholder="Select a folder" /></SelectTrigger>
                 <SelectContent>
-                  {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive)).map(f => (
+                  {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
                     <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive).length === 0 && (
+              {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
                 <p className="text-xs text-muted-foreground">No folders available for this module.</p>
               )}
             </div>
