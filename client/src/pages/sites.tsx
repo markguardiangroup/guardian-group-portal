@@ -531,6 +531,10 @@ export default function Sites() {
                 placeholder="e.g., Main Factory, Head Office"
                 value={newSite.name}
                 onChange={(e) => setNewSite({ ...newSite, name: e.target.value })}
+                onBlur={(e) => {
+                  const v = e.target.value.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                  setNewSite({ ...newSite, name: v });
+                }}
                 data-testid="input-site-name"
               />
             </div>
@@ -544,6 +548,10 @@ export default function Sites() {
                     id="address-line1"
                     value={newSite.addressLine1}
                     onChange={(e) => setNewSite({ ...newSite, addressLine1: e.target.value })}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                      setNewSite({ ...newSite, addressLine1: v });
+                    }}
                     placeholder="Street address"
                     data-testid="input-address-line1"
                   />
@@ -554,6 +562,10 @@ export default function Sites() {
                     id="address-line2"
                     value={newSite.addressLine2}
                     onChange={(e) => setNewSite({ ...newSite, addressLine2: e.target.value })}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                      setNewSite({ ...newSite, addressLine2: v });
+                    }}
                     placeholder="Suite, floor, building (optional)"
                     data-testid="input-address-line2"
                   />
@@ -565,6 +577,10 @@ export default function Sites() {
                       id="city"
                       value={newSite.city}
                       onChange={(e) => setNewSite({ ...newSite, city: e.target.value })}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                        setNewSite({ ...newSite, city: v });
+                      }}
                       placeholder="City"
                       data-testid="input-city"
                     />
@@ -609,7 +625,7 @@ export default function Sites() {
                     <Input
                       id="postal-code"
                       value={newSite.postalCode}
-                      onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value })}
+                      onChange={(e) => setNewSite({ ...newSite, postalCode: e.target.value.toUpperCase() })}
                       placeholder={newSite.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-postal-code"
                     />
