@@ -202,6 +202,7 @@ export default function UserManagement() {
     companyId: string;
     consultantTier: string;
     clientPermissionRole: string;
+    sources: string[];
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -226,6 +227,7 @@ export default function UserManagement() {
     companyId: "",
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
+    sources: [] as string[],
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -315,6 +317,17 @@ export default function UserManagement() {
   const filteredCompanies = companySearchQuery.trim() === "" 
     ? companies 
     : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
+
+  type Source = { id: string; code: string; label: string; isActive: boolean };
+  const { data: availableSources = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isAdmin || isConsultant,
+  });
 
   // Standard consultants can only create users for companies linked to their assigned sites
   const consultantAccessibleCompanyIds = isStandardConsultant
@@ -416,6 +429,7 @@ export default function UserManagement() {
       companyId: u.companyId || "",
       consultantTier: u.consultantTier || "standard",
       clientPermissionRole: "full",
+      sources: (u as any).sources || [],
     });
     setUserSiteAssignments([]);
     setSelectedSiteToAdd("");
@@ -807,6 +821,7 @@ export default function UserManagement() {
         companyId: "",
         consultantTier: "pro",
         clientPermissionRole: "full",
+        sources: [],
       });
       if (data.requiresSiteAssignment) {
         setUserNeedingSiteAssignment(data);
@@ -1716,6 +1731,38 @@ export default function UserManagement() {
                 </div>
               </div>
 
+              {(editFormData.role === "admin" || editFormData.role === "consultant") && availableSources.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Sources Access</h4>
+                  <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. Leave empty to allow all sources.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableSources.filter(s => s.isActive).map((source) => {
+                      const selected = editFormData.sources.includes(source.code);
+                      return (
+                        <button
+                          key={source.id}
+                          type="button"
+                          data-testid={`source-toggle-edit-${source.code}`}
+                          onClick={() => {
+                            const updated = selected
+                              ? editFormData.sources.filter(c => c !== source.code)
+                              : [...editFormData.sources, source.code];
+                            setEditFormData({ ...editFormData, sources: updated });
+                          }}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-border"
+                          }`}
+                        >
+                          <span className="font-bold">{source.code}</span>
+                          <span className="ml-1 opacity-80">{source.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
@@ -1851,6 +1898,24 @@ export default function UserManagement() {
                         {a.siteName}
                       </Badge>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sources */}
+              {(viewingUser.role === "admin" || viewingUser.role === "consultant") && (viewingUser as any).sources && (viewingUser as any).sources.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Sources Access</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {((viewingUser as any).sources as string[]).map((code) => {
+                      const src = availableSources.find(s => s.code === code);
+                      return (
+                        <Badge key={code} variant="outline" className="text-xs">
+                          <span className="font-bold">{code}</span>
+                          {src && <span className="ml-1 opacity-70">{src.label}</span>}
+                        </Badge>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -2346,6 +2411,39 @@ export default function UserManagement() {
                 </div>
               </div>
             </div>
+
+            {(newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-3">Sources Access</h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. Leave empty to allow all sources.</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableSources.filter(s => s.isActive).map((source) => {
+                    const selected = newUser.sources.includes(source.code);
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        data-testid={`source-toggle-new-${source.code}`}
+                        onClick={() => {
+                          const updated = selected
+                            ? newUser.sources.filter(c => c !== source.code)
+                            : [...newUser.sources, source.code];
+                          setNewUser({ ...newUser, sources: updated });
+                        }}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-muted border-border"
+                        }`}
+                      >
+                        <span className="font-bold">{source.code}</span>
+                        <span className="ml-1 opacity-80">{source.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div>
               <h4 className="text-sm font-medium mb-3">Additional Notes</h4>

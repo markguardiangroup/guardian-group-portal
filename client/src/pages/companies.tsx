@@ -183,6 +183,15 @@ function CompanyCard({
                 </span>
               )}
             </div>
+            {(company as any).sources && (company as any).sources.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {((company as any).sources as string[]).map((code) => (
+                  <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-source-${company.id}-${code}`}>
+                    {code}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -237,6 +246,7 @@ export default function Companies() {
     county: "",
     postalCode: "",
     country: "",
+    sources: [] as string[],
   });
   const [originalCompanyName, setOriginalCompanyName] = useState("");
   const [websiteError, setWebsiteError] = useState<string | null>(null);
@@ -290,6 +300,16 @@ export default function Companies() {
   }, [searchQuery]);
 
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
+
+  type Source = { id: string; code: string; label: string; isActive: boolean };
+  const { data: availableSources = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
     queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly }],
@@ -470,6 +490,7 @@ export default function Companies() {
       county: "",
       postalCode: "",
       country: "",
+      sources: [],
     });
     setModuleAccessData({
       healthSafety: false,
@@ -498,6 +519,7 @@ export default function Companies() {
       county: company.county || "",
       postalCode: company.postalCode || "",
       country: company.country || "",
+      sources: (company as any).sources || [],
     });
     setEditingCompany(company);
   };
@@ -1193,6 +1215,39 @@ export default function Companies() {
                 </div>
               </div>
             </div>
+
+            {availableSources.length > 0 && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-1">Sources</h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company.</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableSources.map((source) => {
+                    const selected = formData.sources.includes(source.code);
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        onClick={() => {
+                          const updated = selected
+                            ? formData.sources.filter((c) => c !== source.code)
+                            : [...formData.sources, source.code];
+                          setFormData({ ...formData, sources: updated });
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-foreground border-input hover:bg-muted"
+                        }`}
+                        data-testid={`button-source-${source.code}`}
+                      >
+                        {source.code}
+                        <span className="text-[10px] opacity-70">{source.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {!editingCompany && (
               <div className="border-t pt-4">

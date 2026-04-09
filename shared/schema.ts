@@ -67,6 +67,7 @@ export const companies = pgTable("companies", {
   toolkitAccess: boolean("toolkit_access").notNull().default(false),
   supportAccess: boolean("support_access").notNull().default(false),
   reportsAccess: boolean("reports_access").notNull().default(false),
+  sources: text("sources").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -113,6 +114,7 @@ export const users = pgTable("users", {
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
   // Client-specific: permission role within their site/company
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
+  sources: text("sources").array(),
   status: text("status").$type<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked">().notNull().default("invited"),
   lastLoginAt: timestamp("last_login_at"),
   legalAcceptedAt: timestamp("legal_accepted_at"),

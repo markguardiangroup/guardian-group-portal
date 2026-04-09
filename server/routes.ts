@@ -5073,7 +5073,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry, sources } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -5110,6 +5110,7 @@ export async function registerRoutes(
         country: country || null,
         employeeRange: employeeRange || null,
         industry: industry.trim(),
+        sources: Array.isArray(sources) ? sources : null,
       });
       
       await storage.createSite({
@@ -5162,7 +5163,7 @@ export async function registerRoutes(
         }
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry } = req.body;
+      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry, sources } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -5184,6 +5185,7 @@ export async function registerRoutes(
       if (searchTag !== undefined) updates.searchTag = searchTag || null;
       if (employeeRange !== undefined) updates.employeeRange = employeeRange || null;
       if (industry !== undefined) updates.industry = industry || null;
+      if (sources !== undefined) updates.sources = Array.isArray(sources) ? sources : null;
 
       // If a contactUserId is being set, auto-populate contact fields from the user's profile
       // (only if those fields weren't explicitly provided in the request)
@@ -8451,7 +8453,7 @@ export async function registerRoutes(
         username, email, fullName, role, companyId, 
         consultantTier, clientPermissionRole,
         title, firstName, lastName, jobTitle, department, phone, mobile,
-        preferredContactMethod, notes
+        preferredContactMethod, notes, sources
       } = req.body;
       
       // Consultants (pro and standard) can only create client users
@@ -8520,6 +8522,7 @@ export async function registerRoutes(
         mobile: mobile || null,
         preferredContactMethod: preferredContactMethod || "email",
         notes: notes || null,
+        sources: Array.isArray(sources) ? sources : null,
       });
       
       const { password: _, ...safeUser } = newUser;
@@ -9572,7 +9575,8 @@ export async function registerRoutes(
         notes,
         role,
         companyId,
-        consultantTier
+        consultantTier,
+        sources
       } = req.body;
       
       const updated = await storage.updateUser(req.params.id, {
@@ -9593,6 +9597,7 @@ export async function registerRoutes(
         ...(role !== undefined && { role }),
         ...(companyId !== undefined && { companyId }),
         ...(consultantTier !== undefined && { consultantTier }),
+        ...(sources !== undefined && { sources: Array.isArray(sources) ? sources : null }),
       });
       
       if (!updated) {

@@ -760,6 +760,7 @@ export default function CompanyDetail() {
     contactUserId: "",
     searchTag: "",
     status: "active" as "active" | "inactive" | "pending",
+    sources: [] as string[],
   });
   const [newSiteForm, setNewSiteForm] = useState({
     name: "",
@@ -798,6 +799,16 @@ export default function CompanyDetail() {
       return response.json();
     },
     enabled: !!companyId,
+  });
+
+  type Source = { id: string; code: string; label: string; isActive: boolean };
+  const { data: availableSources = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
 
   // Filter to get only client users from this company (used for contact dropdowns)
@@ -1098,6 +1109,7 @@ export default function CompanyDetail() {
         contactUserId: matchingUser?.id || "",
         searchTag: company.searchTag || "",
         status: company.status || "active",
+        sources: (company as any).sources || [],
       };
       setEditForm(initial);
       setEditFormOriginal(initial);
@@ -1418,6 +1430,21 @@ export default function CompanyDetail() {
                   <div className="flex items-center gap-2 text-sm">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
+                  </div>
+                )}
+                {(isAdmin || user?.role === "consultant") && (company as any).sources && (company as any).sources.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-muted-foreground">Sources: </span>
+                      <span className="inline-flex flex-wrap gap-1 ml-1">
+                        {((company as any).sources as string[]).map((code: string) => (
+                          <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-detail-source-${code}`}>
+                            {code}
+                          </Badge>
+                        ))}
+                      </span>
+                    </div>
                   </div>
                 )}
                 {(company.addressLine1 || company.city || company.postalCode) && (
@@ -1977,6 +2004,39 @@ export default function CompanyDetail() {
                 </div>
               </div>
             </div>
+
+            {availableSources.length > 0 && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium mb-1">Sources</h4>
+                <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company.</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableSources.map((source) => {
+                    const selected = editForm.sources.includes(source.code);
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        onClick={() => {
+                          const updated = selected
+                            ? editForm.sources.filter((c) => c !== source.code)
+                            : [...editForm.sources, source.code];
+                          setEditForm({ ...editForm, sources: updated });
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-foreground border-input hover:bg-muted"
+                        }`}
+                        data-testid={`button-edit-source-${source.code}`}
+                      >
+                        {source.code}
+                        <span className="text-[10px] opacity-70">{source.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Primary Contact (Optional)</h4>
