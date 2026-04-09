@@ -884,12 +884,10 @@ export default function CompanyDetail() {
         description: "The company details have been updated successfully.",
       });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update company. Please try again.",
-        variant: "destructive",
-      });
+    onError: (error: Error) => {
+      let message = "Failed to update company. Please try again.";
+      try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
+      toast({ title: "Failed to update company", description: message, variant: "destructive" });
     },
   });
 
@@ -1099,6 +1097,12 @@ export default function CompanyDetail() {
       const matchingUser = companyUsers.find(
         (u) => u.email === company.contactEmail || u.fullName === company.contactName
       );
+      // For pro consultants, strip any out-of-scope sources from initial form state
+      // to prevent legacy data silently blocking save.
+      const allowedSources = isProConsultant && user?.sources ? user.sources : null;
+      const initialSources = allowedSources
+        ? (company.sources || []).filter((s) => allowedSources.includes(s))
+        : company.sources || [];
       const initial = {
         name: company.name || "",
         companyNumber: company.companyNumber || "",
@@ -1118,7 +1122,7 @@ export default function CompanyDetail() {
         contactUserId: matchingUser?.id || "",
         searchTag: company.searchTag || "",
         status: company.status || "active",
-        sources: company.sources || [],
+        sources: initialSources,
       };
       setEditForm(initial);
       setEditFormOriginal(initial);

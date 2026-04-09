@@ -374,8 +374,10 @@ export default function Companies() {
         setIsRequiredDocsOpen(true);
       }
     },
-    onError: () => {
-      toast({ title: "Failed to create company", variant: "destructive" });
+    onError: (error: Error) => {
+      let message = "Failed to create company. Please try again.";
+      try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
+      toast({ title: "Failed to create company", description: message, variant: "destructive" });
     },
   });
 
@@ -390,8 +392,10 @@ export default function Companies() {
       setEditingCompany(null);
       resetForm();
     },
-    onError: () => {
-      toast({ title: "Failed to update company", variant: "destructive" });
+    onError: (error: Error) => {
+      let message = "Failed to update company. Please try again.";
+      try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
+      toast({ title: "Failed to update company", description: message, variant: "destructive" });
     },
   });
 
@@ -511,6 +515,12 @@ export default function Companies() {
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
+    // For pro consultants, strip any out-of-scope sources from the form state on open
+    // to prevent them silently blocking save due to legacy data.
+    const allowedSources = isProConsultant && user?.sources ? user.sources : null;
+    const initialSources = allowedSources
+      ? (company.sources || []).filter((s) => allowedSources.includes(s))
+      : company.sources || [];
     setFormData({
       name: company.name,
       companyNumber: company.companyNumber || "",
@@ -523,7 +533,7 @@ export default function Companies() {
       county: company.county || "",
       postalCode: company.postalCode || "",
       country: company.country || "",
-      sources: company.sources || [],
+      sources: initialSources,
     });
     setEditingCompany(company);
   };
