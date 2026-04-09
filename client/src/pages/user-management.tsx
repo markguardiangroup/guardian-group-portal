@@ -312,7 +312,7 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
     queryKey: ["/api/companies"],
     enabled: isAdmin || isConsultant,
   });
@@ -504,10 +504,18 @@ export default function UserManagement() {
     const effectiveIds = getEffectiveAssigned().map(a => a.siteId);
     // For clients, only show sites belonging to their assigned company
     const clientCompanyId = manageSitesUser?.role === "client" ? manageSitesUser.companyId : null;
-    const available = sites.filter(s =>
-      !effectiveIds.includes(s.id) &&
-      (!clientCompanyId || s.companyId === clientCompanyId)
-    );
+    // For consultants with sources, only show sites from companies whose sources overlap
+    const consultantSources = manageSitesUser?.role === "consultant" ? (manageSitesUser.sources || []) : null;
+    const available = sites.filter(s => {
+      if (effectiveIds.includes(s.id)) return false;
+      if (clientCompanyId && s.companyId !== clientCompanyId) return false;
+      if (consultantSources && consultantSources.length > 0) {
+        const company = companies.find(c => c.id === s.companyId);
+        const companySrcs = company?.sources || [];
+        if (companySrcs.length > 0 && !consultantSources.some(src => companySrcs.includes(src))) return false;
+      }
+      return true;
+    });
     const grouped: Record<string, { company: typeof companies[0]; sites: typeof sites }> = {};
     for (const site of available) {
       if (!grouped[site.companyId]) {
