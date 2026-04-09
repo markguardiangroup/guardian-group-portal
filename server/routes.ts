@@ -10,7 +10,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -4654,7 +4654,29 @@ export async function registerRoutes(
         requestedBy: user.id,
         status: "pending",
       });
-      
+
+      // Send email notification for booking enquiries
+      if (parsed.data.requestType === "booking") {
+        try {
+          const [course, site] = await Promise.all([
+            storage.getTrainingCourse(parsed.data.trainingCourseId),
+            storage.getSite(parsed.data.siteId),
+          ]);
+          const company = site?.entityId ? await storage.getCompany(site.entityId) : undefined;
+          await sendBookingEnquiryEmail({
+            courseName: course?.title ?? "Unknown Course",
+            courseCode: course?.productCode ?? "",
+            siteName: site?.name ?? "Unknown Site",
+            companyName: company?.name ?? "Unknown Company",
+            requestedByName: user.fullName,
+            requestedByEmail: user.email,
+            message: parsed.data.message ?? null,
+          });
+        } catch (emailError) {
+          console.error("Failed to send booking enquiry notification email:", emailError);
+        }
+      }
+
       res.status(201).json(request);
     } catch (error) {
       console.error("Create training request error:", error);

@@ -485,3 +485,93 @@ export async function sendClientSignOffEmail({
   console.log(`Client sign-off email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
+
+export async function sendBookingEnquiryEmail({
+  courseName,
+  courseCode,
+  siteName,
+  companyName,
+  requestedByName,
+  requestedByEmail,
+  message,
+}: {
+  courseName: string;
+  courseCode: string;
+  siteName: string;
+  companyName: string;
+  requestedByName: string;
+  requestedByEmail: string;
+  message?: string | null;
+}) {
+  const TO = "mark@guardiangroup.co.uk";
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [TO],
+    subject: `New Booking Enquiry — ${courseName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">New Booking Enquiry</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            A client has submitted a booking enquiry for the following course:
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 140px;">Course:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${courseName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Course Code:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${courseCode}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Company:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${companyName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Requested by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${requestedByName} (${requestedByEmail})</td>
+              </tr>
+              ${message ? `
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; vertical-align: top;">Requirements:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${message}</td>
+              </tr>` : ""}
+            </table>
+          </div>
+
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Please follow up with the client directly or log in to the portal to update the request status.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send booking enquiry email:", error);
+    throw new Error(`Failed to send booking enquiry email: ${error.message}`);
+  }
+
+  console.log(`Booking enquiry email sent for course "${courseName}" by ${requestedByEmail}, id: ${data?.id}`);
+  return data;
+}
