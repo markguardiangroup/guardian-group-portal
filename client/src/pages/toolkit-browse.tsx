@@ -76,6 +76,9 @@ import {
   ChevronLeft,
   CheckCircle2,
   RotateCcw,
+  FolderPlus,
+  Trash2,
+  Plus,
 } from "lucide-react";
 
 type ModuleType = "health_safety" | "human_resources" | "employment_law";
@@ -553,6 +556,10 @@ export default function ToolkitBrowse() {
   const [sheetSearch, setSheetSearch] = useState("");
   const [isFolderClosing, setIsFolderClosing] = useState(false);
 
+  // Admin folder management
+  const [showManageFolders, setShowManageFolders] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+
   const closeFolderDialog = () => {
     setIsFolderClosing(true);
   };
@@ -574,6 +581,36 @@ export default function ToolkitBrowse() {
 
   const { data: toolkit, isLoading } = useQuery<ToolkitData>({
     queryKey: ["/api/toolkit"],
+  });
+
+  const { data: allFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
+    queryKey: ["/api/toolkit/folders"],
+  });
+
+  const createFolderMutation = useMutation({
+    mutationFn: (data: { name: string; module: string }) =>
+      apiRequest("POST", "/api/toolkit/folders", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setNewFolderName("");
+      toast({ title: "Folder created", description: "The toolkit folder has been created." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to create folder", variant: "destructive" });
+    },
+  });
+
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/toolkit/folders/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      toast({ title: "Folder deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to delete folder", variant: "destructive" });
+    },
   });
 
   const { data: pathways } = useQuery<DocumentPathway[]>({
@@ -645,6 +682,18 @@ export default function ToolkitBrowse() {
               </p>
             </div>
           </div>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowManageFolders(true)}
+              data-testid="button-manage-toolkit-folders"
+              className="shrink-0"
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Manage Folders
+            </Button>
+          )}
         </div>
       </div>
     <div id="page-content" className="flex-1 overflow-auto space-y-7 p-6 dash-animate">
@@ -951,6 +1000,94 @@ export default function ToolkitBrowse() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Admin: Manage Toolkit Folders Dialog */}
+      {isAdmin && (
+        <Dialog open={showManageFolders} onOpenChange={setShowManageFolders}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FolderPlus className="h-5 w-5" />
+                Manage Toolkit Folders
+              </DialogTitle>
+              <DialogDescription>
+                Create and delete folders that templates are organised into within the Toolkit.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label>Add a new folder</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Folder name"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newFolderName.trim()) {
+                        createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
+                      }
+                    }}
+                    data-testid="input-new-folder-name"
+                  />
+                  <Button
+                    onClick={() => createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule })}
+                    disabled={!newFolderName.trim() || createFolderMutation.isPending}
+                    data-testid="button-create-toolkit-folder"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adding to: <strong>{MODULE_CONFIG[selectedModule].label}</strong>. Switch the module tab above to add to a different module.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Existing folders — {MODULE_CONFIG[selectedModule].label}</Label>
+                {allFolders.filter(f => f.module === selectedModule).length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No folders yet for this module.</p>
+                ) : (
+                  <div className="divide-y rounded-md border">
+                    {allFolders
+                      .filter(f => f.module === selectedModule)
+                      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+                      .map(folder => {
+                        const inUse = (toolkit?.folders ?? []).find(f => f.id === folder.id)?.templates.length ?? 0;
+                        return (
+                          <div key={folder.id} className="flex items-center justify-between px-3 py-2.5">
+                            <div>
+                              <p className="text-sm font-medium">{folder.name}</p>
+                              <p className="text-xs text-muted-foreground">{inUse} {inUse === 1 ? "template" : "templates"}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteFolderMutation.mutate(folder.id)}
+                              disabled={deleteFolderMutation.isPending}
+                              data-testid={`button-delete-folder-${folder.id}`}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowManageFolders(false)} data-testid="button-close-manage-folders">
+                Done
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
     </div>
   );
