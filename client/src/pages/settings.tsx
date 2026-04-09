@@ -989,13 +989,16 @@ type TestingAssignment = {
   assignedToUser?: { id: string; fullName: string; email: string };
 };
 
-const MODULE_ORDER = ["health_safety", "human_resources", "employment_law", "training", "general"] as const;
+const MODULE_ORDER = ["health_safety", "human_resources", "employment_law", "training", "toolkit", "support", "reports", "general"] as const;
 
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "H&S",
   human_resources: "HR",
   employment_law: "Employment Law",
   training: "Training",
+  toolkit: "Toolkit",
+  support: "Support",
+  reports: "Reports",
   general: "General",
 };
 
@@ -1004,6 +1007,9 @@ const MODULE_FULL_LABELS: Record<string, string> = {
   human_resources: "Human Resources",
   employment_law: "Employment Law",
   training: "Training",
+  toolkit: "Toolkit",
+  support: "Support",
+  reports: "Reports",
   general: "General",
 };
 
@@ -1012,6 +1018,9 @@ const MODULE_COLORS: Record<string, string> = {
   human_resources: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   employment_law: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
   training: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  toolkit: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  support: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+  reports: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   general: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300",
 };
 
@@ -1087,6 +1096,9 @@ function TaskListForm({
               <SelectItem value="human_resources">Human Resources</SelectItem>
               <SelectItem value="employment_law">Employment Law</SelectItem>
               <SelectItem value="training">Training</SelectItem>
+              <SelectItem value="toolkit">Toolkit</SelectItem>
+              <SelectItem value="support">Support</SelectItem>
+              <SelectItem value="reports">Reports</SelectItem>
             </SelectContent>
           </Select>
         </div>
