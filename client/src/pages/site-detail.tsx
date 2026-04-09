@@ -1540,7 +1540,7 @@ export default function SiteDetail() {
                   <Input
                     id="site-address-line1"
                     value={editSiteData.addressLine1}
-                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine1: e.target.value })}
+                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine1: e.target.value.toUpperCase() })}
                     placeholder="Street address"
                     data-testid="input-site-address-line1"
                   />
@@ -1550,7 +1550,7 @@ export default function SiteDetail() {
                   <Input
                     id="site-address-line2"
                     value={editSiteData.addressLine2}
-                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine2: e.target.value })}
+                    onChange={(e) => setEditSiteData({ ...editSiteData, addressLine2: e.target.value.toUpperCase() })}
                     placeholder="Suite, floor, building (optional)"
                     data-testid="input-site-address-line2"
                   />
@@ -1561,7 +1561,7 @@ export default function SiteDetail() {
                     <Input
                       id="site-city"
                       value={editSiteData.city}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, city: e.target.value })}
+                      onChange={(e) => setEditSiteData({ ...editSiteData, city: e.target.value.toUpperCase() })}
                       placeholder="City"
                       data-testid="input-site-city"
                     />
