@@ -3264,6 +3264,7 @@ export default function UserManagement() {
                     id={`bulk-user-${u.id}`}
                     checked={selectedBulkUserIds.has(u.id)}
                     onCheckedChange={() => toggleBulkUser(u.id)}
+                    onClick={(e) => e.stopPropagation()}
                     disabled={isBulkSending}
                     data-testid={`checkbox-bulk-user-${u.id}`}
                   />
