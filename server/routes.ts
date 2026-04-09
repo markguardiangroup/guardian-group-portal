@@ -5532,7 +5532,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create sites" });
       }
       
-      const { name, companyId, address, siteManager, contactPhone } = req.body;
+      const { name, companyId, address, siteManager, contactPhone, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactEmail } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Site name is required" });
@@ -5548,6 +5548,15 @@ export async function registerRoutes(
         address: address || null,
         siteManager: siteManager || null,
         contactPhone: contactPhone || null,
+        addressLine1: addressLine1 || null,
+        addressLine2: addressLine2 || null,
+        city: city || null,
+        county: county || null,
+        postalCode: postalCode || null,
+        country: country || null,
+        contactName: contactName || null,
+        contactPosition: contactPosition || null,
+        contactEmail: contactEmail || null,
       });
       
       // Auto-assign the company's primary contact to the new site
@@ -5598,7 +5607,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can update sites" });
       }
       
-      const { name, companyNumber, address, contactEmail, contactPhone, website } = req.body;
+      const { name, companyNumber, address, contactEmail, contactPhone, website, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactUserId } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
@@ -5607,6 +5616,15 @@ export async function registerRoutes(
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;
       if (contactPhone !== undefined) updates.contactPhone = contactPhone || null;
       if (website !== undefined) updates.website = website || null;
+      if (addressLine1 !== undefined) updates.addressLine1 = addressLine1 || null;
+      if (addressLine2 !== undefined) updates.addressLine2 = addressLine2 || null;
+      if (city !== undefined) updates.city = city || null;
+      if (county !== undefined) updates.county = county || null;
+      if (postalCode !== undefined) updates.postalCode = postalCode || null;
+      if (country !== undefined) updates.country = country || null;
+      if (contactName !== undefined) updates.contactName = contactName || null;
+      if (contactPosition !== undefined) updates.contactPosition = contactPosition || null;
+      if (contactUserId !== undefined) updates.contactUserId = contactUserId || null;
       
       const entity = await storage.updateSite(req.params.siteId, updates);
       if (!entity) {

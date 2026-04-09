@@ -1315,6 +1315,51 @@ export default function SiteDetail() {
     },
   });
 
+  const COUNTRY_OPTIONS = ["England", "Ireland", "Northern Ireland", "Scotland", "Wales"];
+
+  const COUNTY_MAP: Record<string, string[]> = {
+    "England": [
+      "Bedfordshire", "Berkshire", "Bristol", "Buckinghamshire", "Cambridgeshire",
+      "Cheshire", "City of London", "Cornwall", "County Durham", "Cumbria",
+      "Derbyshire", "Devon", "Dorset", "East Riding of Yorkshire", "East Sussex",
+      "Essex", "Gloucestershire", "Greater London", "Greater Manchester",
+      "Hampshire", "Herefordshire", "Hertfordshire", "Isle of Wight", "Kent",
+      "Lancashire", "Leicestershire", "Lincolnshire", "Merseyside", "Norfolk",
+      "North Yorkshire", "Northamptonshire", "Northumberland", "Nottinghamshire",
+      "Oxfordshire", "Rutland", "Shropshire", "Somerset", "South Yorkshire",
+      "Staffordshire", "Suffolk", "Surrey", "Tyne and Wear", "Warwickshire",
+      "West Midlands", "West Sussex", "West Yorkshire", "Wiltshire", "Worcestershire",
+    ],
+    "Ireland": [
+      "Carlow", "Cavan", "Clare", "Cork", "Donegal", "Dublin", "Galway",
+      "Kerry", "Kildare", "Kilkenny", "Laois", "Leitrim", "Limerick",
+      "Longford", "Louth", "Mayo", "Meath", "Monaghan", "Offaly",
+      "Roscommon", "Sligo", "Tipperary", "Waterford", "Westmeath",
+      "Wexford", "Wicklow",
+    ],
+    "Northern Ireland": [
+      "Antrim", "Armagh", "Down", "Fermanagh", "Londonderry", "Tyrone",
+    ],
+    "Scotland": [
+      "Aberdeen City", "Aberdeenshire", "Angus", "Argyll and Bute",
+      "Clackmannanshire", "Dumfries and Galloway", "Dundee City",
+      "East Ayrshire", "East Dunbartonshire", "East Lothian", "East Renfrewshire",
+      "Edinburgh", "Falkirk", "Fife", "Glasgow City", "Highland",
+      "Inverclyde", "Midlothian", "Moray", "North Ayrshire",
+      "North Lanarkshire", "Orkney Islands", "Perth and Kinross",
+      "Renfrewshire", "Scottish Borders", "Shetland Islands",
+      "South Ayrshire", "South Lanarkshire", "Stirling",
+      "West Dunbartonshire", "West Lothian", "Western Isles",
+    ],
+    "Wales": [
+      "Blaenau Gwent", "Bridgend", "Caerphilly", "Cardiff", "Carmarthenshire",
+      "Ceredigion", "Conwy", "Denbighshire", "Flintshire", "Gwynedd",
+      "Isle of Anglesey", "Merthyr Tydfil", "Monmouthshire", "Neath Port Talbot",
+      "Newport", "Pembrokeshire", "Powys", "Rhondda Cynon Taf", "Swansea",
+      "Torfaen", "Vale of Glamorgan", "Wrexham",
+    ],
+  };
+
   const handleEditSite = () => {
     if (entity) {
       // Try to find the user whose details match the current contact
@@ -1478,7 +1523,7 @@ export default function SiteDetail() {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="space-y-2">
                     <Label htmlFor="site-city">City</Label>
                     <Input
                       id="site-city"
@@ -1488,36 +1533,49 @@ export default function SiteDetail() {
                       data-testid="input-site-city"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-county">County</Label>
-                    <Input
-                      id="site-county"
-                      value={editSiteData.county}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, county: e.target.value })}
-                      placeholder="County"
-                      data-testid="input-site-county"
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="site-country">Country</Label>
+                    <Select
+                      value={editSiteData.country || ""}
+                      onValueChange={(value) => setEditSiteData({ ...editSiteData, country: value, county: "" })}
+                    >
+                      <SelectTrigger id="site-country" data-testid="select-site-country">
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRY_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="site-county">County</Label>
+                    <Select
+                      value={editSiteData.county || ""}
+                      onValueChange={(value) => setEditSiteData({ ...editSiteData, county: value })}
+                      disabled={!editSiteData.country}
+                    >
+                      <SelectTrigger id="site-county" data-testid="select-site-county">
+                        <SelectValue placeholder={editSiteData.country ? "Select county" : "Select country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(COUNTY_MAP[editSiteData.country] || []).map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="site-postal-code">Postal Code</Label>
                     <Input
                       id="site-postal-code"
                       value={editSiteData.postalCode}
                       onChange={(e) => setEditSiteData({ ...editSiteData, postalCode: e.target.value })}
-                      placeholder="Postal code"
+                      placeholder={editSiteData.country === "Ireland" ? "e.g., D02 AF30" : "e.g., BT1 1AA"}
                       data-testid="input-site-postal-code"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="site-country">Country</Label>
-                    <Input
-                      id="site-country"
-                      value={editSiteData.country}
-                      onChange={(e) => setEditSiteData({ ...editSiteData, country: e.target.value })}
-                      placeholder="Country"
-                      data-testid="input-site-country"
                     />
                   </div>
                 </div>
