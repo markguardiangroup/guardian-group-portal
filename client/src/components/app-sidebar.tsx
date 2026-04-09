@@ -375,8 +375,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {(moduleAccessLoading || hasActiveAccess("support")) && (
-                <SidebarMenuItem>
+              <SidebarMenuItem>
+                {(moduleAccessLoading || hasActiveAccess("support")) ? (
                   <SidebarMenuButton
                     asChild
                     isActive={location === "/support" || location.startsWith("/support/")}
@@ -402,8 +402,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       )}
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+                ) : (
+                  <SidebarMenuButton
+                    className="cursor-default opacity-60"
+                    data-testid="nav-support"
+                  >
+                    <Headphones className="h-4 w-4" />
+                    <span className="flex-1">Support</span>
+                    <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                      <Lock className="h-3 w-3 mr-1" />
+                      Locked
+                    </Badge>
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
