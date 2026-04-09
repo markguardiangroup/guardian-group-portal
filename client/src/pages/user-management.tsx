@@ -1202,6 +1202,7 @@ export default function UserManagement() {
               <TableHead className="w-24">Role</TableHead>
               <TableHead className="min-w-[160px]">Company</TableHead>
               <TableHead>Sites Assigned</TableHead>
+              <TableHead className="hidden md:table-cell">Sources</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-32">Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -1210,7 +1211,7 @@ export default function UserManagement() {
           <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!alreadyShown && !isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
             {isLoadingUsers ? null : paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"
                     ? "No users match your filters." 
                     : "No users found."}
@@ -1252,11 +1253,6 @@ export default function UserManagement() {
                           {u.consultantTier}
                         </span>
                       )}
-                      {(u.role === "admin" || u.role === "consultant") && (!u.sources || u.sources.length === 0) && (
-                        <Badge variant="outline" className="text-xs w-fit text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-no-source-user-${u.id}`}>
-                          No source
-                        </Badge>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -1296,6 +1292,25 @@ export default function UserManagement() {
                       </button>
                     ) : (
                       <span className="text-sm text-muted-foreground">None</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {(u.role === "admin" || u.role === "consultant") ? (
+                      u.sources && u.sources.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.sources.map((code) => (
+                            <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-user-${u.id}-${code}`}>
+                              {code}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-user-${u.id}`}>
+                          None
+                        </Badge>
+                      )
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>

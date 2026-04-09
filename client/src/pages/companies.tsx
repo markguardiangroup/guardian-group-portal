@@ -828,6 +828,7 @@ export default function Companies() {
               <TableHead>Company</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Industry</TableHead>
+              <TableHead className="hidden lg:table-cell">Sources</TableHead>
               <TableHead className="w-20">Sites</TableHead>
               <TableHead className="w-28">Status</TableHead>
               <TableHead className="w-10"></TableHead>
@@ -836,7 +837,7 @@ export default function Companies() {
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? null : companies.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"
                     ? "No companies match your filters."
                     : "No companies found. Add your first company to get started."}
@@ -884,6 +885,21 @@ export default function Companies() {
                     <span className="text-sm text-muted-foreground">
                       {(company as any).industry || "—"}
                     </span>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {company.sources && company.sources.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {company.sources.map((code) => (
+                          <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-${company.id}-${code}`}>
+                            {code}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-${company.id}`}>
+                        None
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
