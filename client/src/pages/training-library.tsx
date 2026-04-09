@@ -687,7 +687,7 @@ export default function TrainingLibrary() {
                   <Input
                     id="course-title"
                     value={courseForm.title}
-                    onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="e.g., Fire Warden Training"
                     data-testid="input-course-title"
                   />
@@ -697,7 +697,7 @@ export default function TrainingLibrary() {
                   <Input
                     id="course-provider"
                     value={courseForm.provider}
-                    onChange={(e) => setCourseForm({ ...courseForm, provider: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, provider: e.target.value }))}
                     placeholder="e.g., IOSH, HSE Direct"
                     data-testid="input-course-provider"
                   />
@@ -709,7 +709,7 @@ export default function TrainingLibrary() {
                   <Textarea
                     id="course-summary"
                     value={courseForm.summary}
-                    onChange={(e) => setCourseForm({ ...courseForm, summary: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, summary: e.target.value }))}
                     placeholder="Brief summary of the training course..."
                     rows={3}
                     data-testid="input-course-summary"
@@ -720,7 +720,7 @@ export default function TrainingLibrary() {
                   <Input
                     id="course-product-code"
                     value={courseForm.productCode}
-                    onChange={(e) => setCourseForm({ ...courseForm, productCode: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, productCode: e.target.value }))}
                     placeholder="e.g., TR-001"
                     data-testid="input-course-product-code"
                   />
@@ -731,7 +731,7 @@ export default function TrainingLibrary() {
                   <Label htmlFor="course-module">Module</Label>
                   <Select
                     value={courseForm.module}
-                    onValueChange={(v) => setCourseForm({ ...courseForm, module: v as ModuleType })}
+                    onValueChange={(v) => setCourseForm(prev => ({ ...prev, module: v as ModuleType }))}
                   >
                     <SelectTrigger data-testid="select-course-module">
                       <SelectValue />
@@ -747,7 +747,7 @@ export default function TrainingLibrary() {
                   <Label htmlFor="course-folder">Folder</Label>
                   <Select
                     value={courseForm.trainingFolderId || "none"}
-                    onValueChange={(v) => setCourseForm({ ...courseForm, trainingFolderId: v === "none" ? "" : v })}
+                    onValueChange={(v) => setCourseForm(prev => ({ ...prev, trainingFolderId: v === "none" ? "" : v }))}
                   >
                     <SelectTrigger data-testid="select-course-folder">
                       <SelectValue placeholder="Select folder" />
@@ -767,7 +767,7 @@ export default function TrainingLibrary() {
                   <Input
                     id="course-duration"
                     value={courseForm.duration}
-                    onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, duration: e.target.value }))}
                     placeholder="e.g., 2 hours"
                     data-testid="input-course-duration"
                   />
@@ -778,7 +778,7 @@ export default function TrainingLibrary() {
                   <Label htmlFor="course-method">Training Method</Label>
                   <Select
                     value={courseForm.trainingMethod || "none"}
-                    onValueChange={(v) => setCourseForm({ ...courseForm, trainingMethod: v === "none" ? null : v as TrainingMethod })}
+                    onValueChange={(v) => setCourseForm(prev => ({ ...prev, trainingMethod: v === "none" ? null : v as TrainingMethod }))}
                   >
                     <SelectTrigger data-testid="select-course-method">
                       <SelectValue placeholder="Select delivery method" />
@@ -795,7 +795,7 @@ export default function TrainingLibrary() {
                   <Input
                     id="course-link"
                     value={courseForm.externalLink}
-                    onChange={(e) => setCourseForm({ ...courseForm, externalLink: e.target.value })}
+                    onChange={(e) => setCourseForm(prev => ({ ...prev, externalLink: e.target.value }))}
                     placeholder="https://..."
                     data-testid="input-course-link"
                   />
@@ -806,7 +806,7 @@ export default function TrainingLibrary() {
                   <Switch
                     id="course-required"
                     checked={courseForm.isRequired}
-                    onCheckedChange={(checked) => setCourseForm({ ...courseForm, isRequired: checked })}
+                    onCheckedChange={(checked) => setCourseForm(prev => ({ ...prev, isRequired: checked as boolean }))}
                     data-testid="switch-course-required"
                   />
                   <Label htmlFor="course-required">Required Training</Label>
@@ -815,7 +815,7 @@ export default function TrainingLibrary() {
                   <Switch
                     id="course-featured"
                     checked={courseForm.isFeatured}
-                    onCheckedChange={(checked) => setCourseForm({ ...courseForm, isFeatured: checked })}
+                    onCheckedChange={(checked) => setCourseForm(prev => ({ ...prev, isFeatured: checked as boolean }))}
                     data-testid="switch-course-featured"
                   />
                   <Label htmlFor="course-featured">Featured</Label>
@@ -828,10 +828,10 @@ export default function TrainingLibrary() {
                       type="number"
                       className="w-20"
                       value={courseForm.renewalPeriodMonths || ""}
-                      onChange={(e) => setCourseForm({ 
-                        ...courseForm, 
+                      onChange={(e) => setCourseForm(prev => ({ 
+                        ...prev, 
                         renewalPeriodMonths: e.target.value ? parseInt(e.target.value) : null 
-                      })}
+                      }))}
                       data-testid="input-course-renewal"
                     />
                   </div>
@@ -851,9 +851,12 @@ export default function TrainingLibrary() {
                     key={index}
                     value={item}
                     onChange={(e) => {
-                      const newOverview = [...courseForm.courseOverview];
-                      newOverview[index] = e.target.value;
-                      setCourseForm({ ...courseForm, courseOverview: newOverview });
+                      const val = e.target.value;
+                      setCourseForm(prev => {
+                        const newOverview = [...prev.courseOverview];
+                        newOverview[index] = val;
+                        return { ...prev, courseOverview: newOverview };
+                      });
                     }}
                     placeholder={`Topic ${index + 1}`}
                     data-testid={`input-overview-${index}`}
@@ -874,9 +877,12 @@ export default function TrainingLibrary() {
                     <Input
                       value={faq.question}
                       onChange={(e) => {
-                        const newFaqs = [...courseForm.faqs];
-                        newFaqs[index] = { ...newFaqs[index], question: e.target.value };
-                        setCourseForm({ ...courseForm, faqs: newFaqs });
+                        const val = e.target.value;
+                        setCourseForm(prev => {
+                          const newFaqs = [...prev.faqs];
+                          newFaqs[index] = { ...newFaqs[index], question: val };
+                          return { ...prev, faqs: newFaqs };
+                        });
                       }}
                       placeholder={`Question ${index + 1}`}
                       data-testid={`input-faq-question-${index}`}
@@ -884,9 +890,12 @@ export default function TrainingLibrary() {
                     <Textarea
                       value={faq.answer}
                       onChange={(e) => {
-                        const newFaqs = [...courseForm.faqs];
-                        newFaqs[index] = { ...newFaqs[index], answer: e.target.value };
-                        setCourseForm({ ...courseForm, faqs: newFaqs });
+                        const val = e.target.value;
+                        setCourseForm(prev => {
+                          const newFaqs = [...prev.faqs];
+                          newFaqs[index] = { ...newFaqs[index], answer: val };
+                          return { ...prev, faqs: newFaqs };
+                        });
                       }}
                       placeholder={`Answer ${index + 1}`}
                       rows={2}
@@ -907,13 +916,10 @@ export default function TrainingLibrary() {
                       <TableHead className="w-1/2">
                         <Input
                           value={courseForm.pricingTable.headingRow.column1}
-                          onChange={(e) => setCourseForm({
-                            ...courseForm,
-                            pricingTable: {
-                              ...courseForm.pricingTable,
-                              headingRow: { ...courseForm.pricingTable.headingRow, column1: e.target.value }
-                            }
-                          })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCourseForm(prev => ({ ...prev, pricingTable: { ...prev.pricingTable, headingRow: { ...prev.pricingTable.headingRow, column1: val } } }));
+                          }}
                           placeholder="Column 1 Heading"
                           className="font-semibold"
                           data-testid="input-pricing-heading-1"
@@ -922,13 +928,10 @@ export default function TrainingLibrary() {
                       <TableHead className="w-1/2">
                         <Input
                           value={courseForm.pricingTable.headingRow.column2}
-                          onChange={(e) => setCourseForm({
-                            ...courseForm,
-                            pricingTable: {
-                              ...courseForm.pricingTable,
-                              headingRow: { ...courseForm.pricingTable.headingRow, column2: e.target.value }
-                            }
-                          })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCourseForm(prev => ({ ...prev, pricingTable: { ...prev.pricingTable, headingRow: { ...prev.pricingTable.headingRow, column2: val } } }));
+                          }}
                           placeholder="Column 2 Heading"
                           className="font-semibold"
                           data-testid="input-pricing-heading-2"
@@ -943,11 +946,11 @@ export default function TrainingLibrary() {
                           <Input
                             value={row.column1}
                             onChange={(e) => {
-                              const newRows = [...courseForm.pricingTable.dataRows];
-                              newRows[index] = { ...newRows[index], column1: e.target.value };
-                              setCourseForm({
-                                ...courseForm,
-                                pricingTable: { ...courseForm.pricingTable, dataRows: newRows }
+                              const val = e.target.value;
+                              setCourseForm(prev => {
+                                const newRows = [...prev.pricingTable.dataRows];
+                                newRows[index] = { ...newRows[index], column1: val };
+                                return { ...prev, pricingTable: { ...prev.pricingTable, dataRows: newRows } };
                               });
                             }}
                             placeholder={`Row ${index + 1} - Col 1`}
@@ -958,11 +961,11 @@ export default function TrainingLibrary() {
                           <Input
                             value={row.column2}
                             onChange={(e) => {
-                              const newRows = [...courseForm.pricingTable.dataRows];
-                              newRows[index] = { ...newRows[index], column2: e.target.value };
-                              setCourseForm({
-                                ...courseForm,
-                                pricingTable: { ...courseForm.pricingTable, dataRows: newRows }
+                              const val = e.target.value;
+                              setCourseForm(prev => {
+                                const newRows = [...prev.pricingTable.dataRows];
+                                newRows[index] = { ...newRows[index], column2: val };
+                                return { ...prev, pricingTable: { ...prev.pricingTable, dataRows: newRows } };
                               });
                             }}
                             placeholder={`Row ${index + 1} - Col 2`}
