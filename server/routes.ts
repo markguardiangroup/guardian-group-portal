@@ -739,17 +739,27 @@ export async function registerRoutes(
   // Function definition moved to before its first usage in Companies list route
 
   // Helper to check if a client user can access a site (based on companyId)
-  const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null }, siteId: string): Promise<boolean> => {
+  const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null }, siteId: string): Promise<boolean> => {
     // Admins have unrestricted access to all sites
     if (user.role === "admin") return true;
     
-    // Pro consultants have unrestricted access to all sites
-    if (isProConsultant(user)) return true;
+    // Pro consultants can access sites whose parent company shares at least one source
+    if (isProConsultant(user)) {
+      const site = await storage.getSite(siteId);
+      if (!site) return false;
+      const company = await storage.getCompany(site.companyId);
+      return sourcesOverlap(user.sources ?? [], company?.sources ?? []);
+    }
     
     // Standard consultants can only access sites they are assigned to
+    // that also share at least one source via the parent company
     if (user.role === "consultant" && user.id) {
       const assignments = await storage.getConsultantSites(user.id);
-      return assignments.some(a => a.siteId === siteId);
+      if (!assignments.some(a => a.siteId === siteId)) return false;
+      const site = await storage.getSite(siteId);
+      if (!site) return false;
+      const company = await storage.getCompany(site.companyId);
+      return sourcesOverlap(user.sources ?? [], company?.sources ?? []);
     }
     
     // Clients access depends on whether they have site assignments
@@ -4883,6 +4893,11 @@ export async function registerRoutes(
     return user.role === "consultant" && user.consultantTier === "pro";
   };
 
+  const sourcesOverlap = (a: string[] | null | undefined, b: string[] | null | undefined): boolean => {
+    if (!a || a.length === 0 || !b || b.length === 0) return false;
+    return a.some(s => b.includes(s));
+  };
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
@@ -4904,17 +4919,22 @@ export async function registerRoutes(
       // Role-based filtering
       const myAssigned = req.query.myAssigned === "true";
       if (user.role === "consultant") {
+        const mySources = user.sources ?? [];
         if (isProConsultant(user) && !myAssigned) {
-          // Pro consultants see all companies by default
+          // Pro consultants see companies whose sources overlap with their own
+          filteredCompanies = allCompanies.filter(c => sourcesOverlap(mySources, c.sources ?? []));
         } else {
-          // Standard consultants (or pro with myAssigned=true) see only their assigned
+          // Standard consultants (or pro with myAssigned=true) see only their assigned companies
+          // that also share at least one source
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          filteredCompanies = allCompanies.filter(c => siteCompanyIds.has(c.id));
+          filteredCompanies = allCompanies.filter(c =>
+            siteCompanyIds.has(c.id) && sourcesOverlap(mySources, c.sources ?? [])
+          );
         }
       } else if (user.role === "client" && user.companyId) {
         filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
@@ -4973,9 +4993,17 @@ export async function registerRoutes(
       
       // Check access
       if (user.role === "consultant") {
+        const mySources = user.sources ?? [];
         if (isProConsultant(user)) {
-          // Pro consultants have full access
+          // Pro consultants can only access companies that share at least one source
+          if (!sourcesOverlap(mySources, company.sources ?? [])) {
+            return res.status(403).json({ error: "Access denied" });
+          }
         } else {
+          // Standard consultants: must be assigned to a site in this company AND source must overlap
+          if (!sourcesOverlap(mySources, company.sources ?? [])) {
+            return res.status(403).json({ error: "Access denied" });
+          }
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
@@ -5389,15 +5417,22 @@ export async function registerRoutes(
       // Consultant site visibility
       if (user.role === "consultant") {
         const myAssigned = req.query.myAssigned === "true";
+        const mySources = user.sources ?? [];
         if (isProConsultant(user) && !myAssigned) {
-          // Pro consultants see all sites by default
-          res.json(allSites);
+          // Pro consultants see sites whose parent company shares at least one source
+          const filteredSites = allSites.filter(site =>
+            sourcesOverlap(mySources, site.companySources ?? [])
+          );
+          res.json(filteredSites);
           return;
         }
-        // Standard consultants (or pro with myAssigned=true) see only their assigned
+        // Standard consultants (or pro with myAssigned=true) see only their assigned sites
+        // that also share at least one source via the parent company
         const assignments = await storage.getConsultantSites(user.id);
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        const filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
+        const filteredSites = allSites.filter(site =>
+          assignedSiteIds.has(site.id) && sourcesOverlap(mySources, site.companySources ?? [])
+        );
         res.json(filteredSites);
         return;
       }
@@ -8358,35 +8393,59 @@ export async function registerRoutes(
       const allSites = await storage.getSites();
       const allCompanies = await storage.getCompanies();
 
+      const mySources = user.sources ?? [];
+
       // Standard (non-pro) consultants: only see clients for companies they are assigned to
-      // They must never see any other consultant or any admin
+      // that also share at least one source. They never see other consultants or admins.
       const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
       let allowedClientIds: Set<string> | null = null;
       if (isStandardConsultant) {
         const myAssignments = await storage.getConsultantSites(user.id);
         const mySiteIds = new Set(myAssignments.map(a => a.entityId));
-        const myCompanyIds = new Set(allSites.filter(s => mySiteIds.has(s.id)).map(s => s.companyId));
+        // Only keep sites whose parent company shares at least one source
+        const mySourceCompanyIds = new Set(
+          allSites
+            .filter(s => mySiteIds.has(s.id) && sourcesOverlap(mySources, allCompanies.find(c => c.id === s.companyId)?.sources ?? []))
+            .map(s => s.companyId)
+        );
         allowedClientIds = new Set<string>();
-        // Include clients explicitly assigned to one of the consultant's sites
+        // Include clients explicitly assigned to one of the consultant's sites (with source overlap)
         for (const siteId of mySiteIds) {
+          const site = allSites.find(s => s.id === siteId);
+          if (!site) continue;
+          const company = allCompanies.find(c => c.id === site.companyId);
+          if (!sourcesOverlap(mySources, company?.sources ?? [])) continue;
           const siteClients = await storage.getClientSiteAssignments(siteId);
           siteClients.forEach(a => allowedClientIds!.add(a.clientId));
         }
-        // Also include clients who belong to an assigned company but have no site yet
+        // Also include clients who belong to an allowed company but have no site yet
         allUsers
-          .filter(u => u.role === "client" && u.companyId && myCompanyIds.has(u.companyId))
+          .filter(u => u.role === "client" && u.companyId && mySourceCompanyIds.has(u.companyId))
           .forEach(u => allowedClientIds!.add(u.id));
       }
 
       // Apply filters:
-      // - Standard consultant: only their assigned clients (no admins, no other consultants)
-      // - Pro consultant:     all consultants + all clients (no admins)
+      // - Standard consultant: only their assigned clients from source-overlapping companies (no admins, no other consultants)
+      // - Pro consultant:     consultants + clients that share at least one source (no admins)
       // - Admin:              everyone
       let visibleUsers: typeof allUsers;
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
       } else if (isProConsultant(user)) {
-        visibleUsers = allUsers.filter(u => u.role !== "admin");
+        visibleUsers = allUsers.filter(u => {
+          if (u.role === "admin") return false;
+          if (u.role === "consultant") {
+            // See other consultants that share at least one source
+            return sourcesOverlap(mySources, u.sources ?? []);
+          }
+          if (u.role === "client") {
+            // See clients whose company shares at least one source
+            if (!u.companyId) return false;
+            const clientCompany = allCompanies.find(c => c.id === u.companyId);
+            return sourcesOverlap(mySources, clientCompany?.sources ?? []);
+          }
+          return false;
+        });
       } else {
         visibleUsers = allUsers;
       }
