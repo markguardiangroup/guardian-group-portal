@@ -135,6 +135,7 @@ interface UserWithAssignments {
   consultantTier?: string | null;
   clientPermissionRole?: string | null;
   siteAssignments?: SiteAssignment[];
+  sources?: string[] | null;
   jobTitle?: string | null;
   department?: string | null;
   phone?: string | null;
@@ -1029,7 +1030,14 @@ export default function CompanyDetail() {
     createSiteMutation.mutate(newSiteForm);
   };
 
-  const allConsultants = allUsers.filter(u => u.role === "consultant");
+  const companySources = company?.sources || [];
+  const allConsultants = allUsers.filter(u => {
+    if (u.role !== "consultant") return false;
+    if (companySources.length === 0) return true;
+    const consultantSources = u.sources || [];
+    if (consultantSources.length === 0) return true;
+    return consultantSources.some((s: string) => companySources.includes(s));
+  });
 
   const handleConsultantSelect = (consultantId: string) => {
     setAssignConsultantId(consultantId);
