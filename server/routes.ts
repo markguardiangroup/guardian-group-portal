@@ -780,14 +780,13 @@ export async function registerRoutes(
   };
 
   const canUserAccessFolder = async (
-    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null },
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     folder: { id: string; siteId: string; allocatedClientId: string | null }
   ): Promise<boolean> => {
     if (user.role === "admin") return true;
-    if (isProConsultant(user)) return true;
-    if (user.role === "consultant" && user.id) {
-      const assignments = await storage.getConsultantSites(user.id);
-      return assignments.some((a) => a.siteId === folder.siteId);
+    // Consultants (pro and standard) are gated by site-level source access
+    if (user.role === "consultant") {
+      return canUserAccessSite(user, folder.siteId);
     }
     if (user.role === "client" && user.id) {
       if (!user.companyId) return false;
@@ -5045,7 +5044,17 @@ export async function registerRoutes(
       if (!company) return res.status(404).json({ error: "Company not found" });
 
       if (user.role === "consultant") {
-        if (!isProConsultant(user)) {
+        const mySources = user.sources ?? [];
+        if (isProConsultant(user)) {
+          // Pro consultants can only access stats for companies that share at least one source
+          if (!sourcesOverlap(mySources, company.sources ?? [])) {
+            return res.status(403).json({ error: "Access denied" });
+          }
+        } else {
+          // Standard consultants: must share a source AND be assigned to a site in this company
+          if (!sourcesOverlap(mySources, company.sources ?? [])) {
+            return res.status(403).json({ error: "Access denied" });
+          }
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
