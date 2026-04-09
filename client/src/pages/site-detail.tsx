@@ -1526,7 +1526,7 @@ export default function SiteDetail() {
               <Input
                 id="site-name"
                 value={editSiteData.name}
-                onChange={(e) => setEditSiteData({ ...editSiteData, name: e.target.value })}
+                onChange={(e) => setEditSiteData({ ...editSiteData, name: e.target.value.replace(/\b\w/g, c => c.toUpperCase()) })}
                 placeholder="Enter site name"
                 data-testid="input-site-name"
               />
