@@ -4614,6 +4614,226 @@ export async function registerRoutes(
     }
   });
 
+  // One-time admin migration endpoint: seeds training folders + courses from dev into this environment
+  app.post("/api/admin/migrate-training-data", requireAuth, async (req, res) => {
+    try {
+      if ((req.user as any)?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      let foldersInserted = 0;
+      let coursesInserted = 0;
+      const errors: string[] = [];
+
+      const folders = [
+        { id: "5e7c6b6a-8d09-4e0c-bbb3-56081215ff4a", name: "Working Safely", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "a813d1de-688e-4193-a0c3-d4186f9c338b", name: "First Aid", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "bc567ea2-c137-4539-a53e-80cd0242fc31", name: "Risk Assessment", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "1cc8cee0-15f0-4700-b7a1-16199192be8a", name: "COSHH", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "35c6bfd4-e7e2-4ff0-836b-e8b3772eded7", name: "CDM (Construction Design Management)", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "7bf6aa8c-ffde-4188-b21b-f39e766fd03a", name: "Fire Safety", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "8e9c36fe-c976-432a-9b06-dbe1ef6301af", name: "Health & Safety Awareness", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "1199826b-5107-43d0-8fe9-d9181a5b3c3c", name: "SSIP Accreditations", module: "health_safety", sort_order: 0, is_active: false },
+        { id: "c01d5d10-837c-49a4-8fd1-f2002123c5e2", name: "IOSH", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "23ab97e5-e7e3-4b39-9a5f-244f66c71f8d", name: "Managing Safely", module: "health_safety", sort_order: 0, is_active: true },
+        { id: "8f016741-c4e7-43f4-9aa2-5d31039c615f", name: "Family Friendly", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "6ae00880-29da-44ca-a890-77a7e91b8d26", name: "Equal Opportunites", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "0f5c4bf0-52e1-4ebc-ada8-a2101639a50c", name: "Managing Sickness & Absence", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "9b8fa086-0fa1-4f21-9d54-8114cc7daf53", name: "Grievance Management & Handling", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "d1832e28-8c29-40c3-acf3-2ad9de16287d", name: "Discriminatory", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "63b138de-a946-4446-9897-e3960148ebc2", name: "Redundancy & Restructureing", module: "human_resources", sort_order: 0, is_active: true },
+        { id: "b9e3f130-4eb8-4a07-857f-c918d3fa3531", name: "Mock Employment Tribunal", module: "employment_law", sort_order: 0, is_active: true },
+        { id: "bc996bfa-45c7-407a-95b7-b8fca6cf8869", name: "TUPE", module: "employment_law", sort_order: 0, is_active: true },
+        { id: "d4f2542e-cf9f-43da-9e23-fe82b81dac19", name: "Management Employment Law", module: "employment_law", sort_order: 0, is_active: true },
+        { id: "a41d5ed1-4d10-4291-9862-35c5fb6fe88f", name: "Grievance", module: "employment_law", sort_order: 0, is_active: true },
+        { id: "8685fe7d-47f1-452c-84a0-860a9598a403", name: "Disciplinary", module: "employment_law", sort_order: 0, is_active: true },
+      ];
+
+      for (const f of folders) {
+        try {
+          const r = await pool.query(
+            `INSERT INTO training_folders (id, name, description, module, sort_order, is_active, created_by, created_at, updated_at)
+             VALUES ($1, $2, NULL, $3, $4, $5, 'user-admin', NOW(), NOW())
+             ON CONFLICT (id) DO NOTHING`,
+            [f.id, f.name, f.module, f.sort_order, f.is_active]
+          );
+          foldersInserted += r.rowCount ?? 0;
+        } catch (err: any) {
+          errors.push(`Folder ${f.name}: ${err.message}`);
+        }
+      }
+
+      const courses = [
+        {
+          id: "724c782a-84b8-42cb-ae04-7f22ded06edf",
+          title: "Fire Warden Training",
+          summary: "Comprehensive fire safety training for workplace wardens",
+          module: "health_safety",
+          training_folder_id: "5e7c6b6a-8d09-4e0c-bbb3-56081215ff4a",
+          provider: "IOSH",
+          external_link: null,
+          duration: "4 hours",
+          course_overview: ["Fire prevention basics"],
+          faqs: JSON.stringify([{ question: "Who needs this training?", answer: "All designated fire wardens" }]),
+          is_required: false,
+          renewal_period_months: null,
+          sort_order: 0,
+          is_active: false,
+          product_code: null,
+          pricing_table: null,
+          training_method: null,
+          is_featured: false,
+        },
+        {
+          id: "c0a9cc8f-dd15-4654-8bad-eaca9250cfa3",
+          title: "Working at Heights Training Course Online",
+          summary: "Online Working At Heights training course approved by RoSPA, available from £8.50. An essential health and safety training course for any employees working at heights or with ladders as part of their role. Our working at heights training course is not only cost effective, but it is recognised by major contractors, clients and all SSIP schemes such as CHAS, SafeContractor, ConstructionLine etc. Start your online training today.",
+          module: "health_safety",
+          training_folder_id: "5e7c6b6a-8d09-4e0c-bbb3-56081215ff4a",
+          provider: "ROSPA",
+          external_link: null,
+          duration: null,
+          course_overview: [
+            "Our Working At Heights Online Course ensures that you fulfil your statutory duty to keep employees safe and compliant to reduce the risk of a worker falling or an object falling and injuring someone below. ",
+            "This comprehensive Working at Heights Training Course covers safe working at height practices and the safe use and maintenance of any working at height equipment in accordance with the HSE's Work At Height Regulations.",
+            "This course is essential for, but not limited to: Builders, Contractors, Window cleaners, Decorators, Warehouse Workers, Construction Workers and Roofers. ",
+            "Our comprehensive online training course is divided into five modules, namely introduction, access equipment, using ladders, preventing and protecting and the final test.",
+            "Course can be taken on desktop, laptop or tablet Instant 24/7 access. ",
+          ],
+          faqs: JSON.stringify([
+            { question: "Is This Course CPD Accredited?", answer: "Yes, this course is fully CPD accredited. On completion, you'll receive a certificate of attendance or completion to use as evidence for your CPD records. " },
+            { question: "How many CPD points are available?", answer: "You can claim 0.5 CPD points for every 30 minutes of training completed, or 1 point per hour." },
+            { question: "When is the Certificate Available?", answer: "Immediately after successfully completing this online training course, a Working At Heights Certificate will be made available to download and print off, or save as a PDF document and emailed to you (the employer) to verify completion." },
+          ]),
+          is_required: false,
+          renewal_period_months: 12,
+          sort_order: 0,
+          is_active: true,
+          product_code: "OLC12",
+          pricing_table: JSON.stringify({ headingRow: { column1: "Per Person ", column2: "Price £  (exc VAT)" }, dataRows: [{ column1: "1", column2: "16.00" }, { column1: "2-9", column2: "13.50" }, { column1: "10-49", column2: "11.00" }, { column1: "50+", column2: "8.50" }] }),
+          training_method: "online",
+          is_featured: true,
+        },
+        {
+          id: "5680ea61-fa80-4c72-9fef-19fa3cca1a90",
+          title: "IOSH Managing Safely Digital Course",
+          summary: "As part of the IOSH 'Managing Safely' digitally delivered training course, supervisors, managers and team leaders, will be provided with the necessary knowledge needed to be responsible for the health and safety of their direct reports as well as others in the workplace.",
+          module: "health_safety",
+          training_folder_id: "c01d5d10-837c-49a4-8fd1-f2002123c5e2",
+          provider: "IOSH",
+          external_link: null,
+          duration: "10 hours",
+          course_overview: [
+            "Across this accredited digitally delivered course, business leaders will be encouraged to identify, evaluate and control workplace risks. ",
+            "Within the framework of this course, the attendee will learn how to assess the performance of existing health and safety systems, with a view to improving the efficiency of which these systems and policies are delivered",
+            "This course is perfect for those in supervisory roles across the business, from team leaders and junior managers, all the way through to senior department heads and board members. Where a supervisor has direct reports and/or a duty to manage the processes that impact other members of the workplace, they would benefit greatly from completing this course.",
+            "Led by workplace and health & safety experts, this course will provide; Peace of mind to business owners that their supervisory staff will always consider health and safety risks in the workplace.",
+          ],
+          faqs: JSON.stringify([
+            { question: "is this course certified?", answer: "Once you have completed the course, a certificate will be generated enabling you to evidence the completion and compliance. You'll be able to download a certificate that includes the course duration and confirmation of CPD accreditation." },
+            { question: "Is this course CPD Accredited?", answer: "Yes, this course is fully CPD accredited. On completion, you'll receive a certificate of attendance or completion to use as evidence for your CPD records." },
+            { question: "How many CPD points can I claim?", answer: "You can claim 0.5 CPD points for every 30 minutes of training completed, or 1 point per hour." },
+            { question: "How is the course delivered? ", answer: "The IOSH Managing Safely course is delivered digitally" },
+          ]),
+          is_required: false,
+          renewal_period_months: null,
+          sort_order: 0,
+          is_active: true,
+          product_code: "IOSHMANSAF2-1",
+          pricing_table: JSON.stringify({ headingRow: { column1: "Per Person ", column2: "Price £ (exc VAT)" }, dataRows: [{ column1: "1", column2: "200.00" }] }),
+          training_method: "online",
+          is_featured: true,
+        },
+        {
+          id: "301559a0-5aff-4a56-b3d3-e035b6980719",
+          title: "Disciplinary and Grievance Procedures",
+          summary: "Disciplinary and Grievance Procedures Online Training Courses available from just £7.50 per course. You can earn your disciplinary and grievance procedures training certificate in just 10 minutes with this comprehensive online course. Start your online disciplinary and grievance procedures course today.",
+          module: "human_resources",
+          training_folder_id: "9b8fa086-0fa1-4f21-9d54-8114cc7daf53",
+          provider: "Chartered health and safety e-learning supplier",
+          external_link: null,
+          duration: "up to 1 hour",
+          course_overview: [
+            "A disciplinary and grievance policy is a major part of any business and should be clearly communicated to all employees during their induction process.",
+            " Without one in place, employees are likely to be less engaged and operations may not run as smoothly, so it is in the best interests of your business to put a disciplinary and grievance procedure in place and ensure that all employees are aware of it.",
+            "An effective disciplinary and grievance policy will detail how employees should raise concerns, the steps that will follow, what constitutes as gross misconduct and grounds for dismissal and how to raise an appeal.",
+            "Ensure employees are aware of, and understand, the disciplinary and grievance policy Reduce the risk of misconduct and bad behaviour",
+            "This course is designed to provide employees with a comprehensive awareness of your Company's policy and procedures with regard to discipline and grievances.",
+          ],
+          faqs: JSON.stringify([
+            { question: "What does the course cover?", answer: "This Disciplinary and Grievance Procedures course is broken into three modules with a test at the end.\nThe course covers:\nDisciplinary process\nGrievance procedures\nMaking a claim to an employment tribunal" },
+            { question: "Is the course CPD accredited?", answer: "Yes, this course is fully CPD accredited. On completion, you'll receive a certificate of attendance or completion to use as evidence for your CPD records." },
+            { question: "How many CPD points can I claim?", answer: "You can claim 0.5 CPD points for every 30 minutes of training completed, or 1 point per hour." },
+            { question: "Will I receive a certificate? ", answer: "Yes – once you complete the course, you'll be able to download a certificate that includes the course duration and confirmation of CPD accreditation." },
+            { question: "When can I take the course?", answer: "You don't have to wait around to begin your disciplinary and grievance procedures training, as soon as you have completed your purchase you can get started.\nIt can be accessed any time of day, at your convenience, and the course can be taken on a laptop, desktop or tablet." },
+          ]),
+          is_required: false,
+          renewal_period_months: null,
+          sort_order: 0,
+          is_active: true,
+          product_code: "OLC33",
+          pricing_table: JSON.stringify({ headingRow: { column1: "Quantity (persons)", column2: "Price £ (exc VAT)" }, dataRows: [{ column1: "1", column2: "16.00" }, { column1: "2-9", column2: "13.50" }, { column1: "10-49", column2: "11.00" }, { column1: "50+", column2: "8.50" }] }),
+          training_method: null,
+          is_featured: true,
+        },
+        {
+          id: "3d421c27-0743-48e7-862a-b36f7ef58501",
+          title: "IOSH Managing Safely Digital Course",
+          summary: "IOSH (Institution of Occupational Safety and Health) is the Chartered body for health and safety professionals, a UK-based organisation recognised for its progressive approaches to improving the safety of all stakeholders in the workplace.\nAs part of the IOSH 'Managing Safely' digitally delivered training course, supervisors, managers and team leaders, will be provided with the necessary knowledge needed to be responsible for the health and safety of their direct reports as well as others in the workplace.\nAcross this accredited digitally delivered course, business leaders will be encouraged to identify, evaluate and control workplace risks. Within the framework of this course, the attendee will learn how to assess the performance of existing health and safety systems, with a view to improving the efficiency of which these systems and policies are delivered.",
+          module: "health_safety",
+          training_folder_id: "5e7c6b6a-8d09-4e0c-bbb3-56081215ff4a",
+          provider: "IOSH",
+          external_link: null,
+          duration: null,
+          course_overview: [
+            "Professional Training Course delivered Digitally",
+            "Certificate issued after course completion",
+          ],
+          faqs: JSON.stringify([
+            { question: "Who Should Take This Course?", answer: "This course is perfect for those in supervisory roles across the business, from team leaders and junior managers, all the way through to senior department heads and board members. Where a supervisor has direct reports and/or a duty to manage the processes that impact other members of the workplace, they would benefit greatly from completing this course." },
+          ]),
+          is_required: false,
+          renewal_period_months: null,
+          sort_order: 0,
+          is_active: true,
+          product_code: "IOSHMANSAF2-1",
+          pricing_table: JSON.stringify({ headingRow: { column1: "People Attending ", column2: "Price Per Head (exc VAT) £" }, dataRows: [{ column1: "1", column2: "200.00" }, { column1: "10", column2: "180.00" }] }),
+          training_method: null,
+          is_featured: false,
+        },
+      ];
+
+      for (const c of courses) {
+        try {
+          const r = await pool.query(
+            `INSERT INTO training_courses (
+               id, title, summary, module, training_folder_id, provider, external_link, duration,
+               course_overview, faqs, is_required, renewal_period_months, sort_order, is_active,
+               created_by, product_code, pricing_table, training_method, is_featured, created_at, updated_at
+             ) VALUES (
+               $1, $2, $3, $4, $5, $6, $7, $8,
+               $9, $10, $11, $12, $13, $14,
+               'user-admin', $15, $16, $17, $18, NOW(), NOW()
+             ) ON CONFLICT (id) DO NOTHING`,
+            [
+              c.id, c.title, c.summary, c.module, c.training_folder_id, c.provider, c.external_link, c.duration,
+              c.course_overview, c.faqs, c.is_required, c.renewal_period_months, c.sort_order, c.is_active,
+              c.product_code, c.pricing_table, c.training_method, c.is_featured,
+            ]
+          );
+          coursesInserted += r.rowCount ?? 0;
+        } catch (err: any) {
+          errors.push(`Course ${c.title}: ${err.message}`);
+        }
+      }
+
+      res.json({ success: true, foldersInserted, coursesInserted, errors });
+    } catch (error) {
+      console.error("Migration error:", error);
+      res.status(500).json({ error: "Migration failed" });
+    }
+  });
+
   // Training Requests
   app.get("/api/training-requests", requireAuth, async (req, res) => {
     try {
