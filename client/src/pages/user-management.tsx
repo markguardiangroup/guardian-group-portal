@@ -605,7 +605,8 @@ export default function UserManagement() {
 
   const handleSaveEdit = () => {
     if (!editingUser || !editFormData) return;
-    if ((editFormData.role === "consultant" || editFormData.role === "admin") && editFormData.sources.length === 0) {
+    // Only admins can assign sources; enforce the "at least one" validation only for admins
+    if (isAdmin && (editFormData.role === "consultant" || editFormData.role === "admin") && editFormData.sources.length === 0) {
       toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
@@ -1763,34 +1764,54 @@ export default function UserManagement() {
 
               {(editFormData.role === "admin" || editFormData.role === "consultant") && availableSources.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
-                  <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableSources.filter(s => s.isActive).map((source) => {
-                      const selected = editFormData.sources.includes(source.code);
-                      return (
-                        <button
-                          key={source.id}
-                          type="button"
-                          data-testid={`source-toggle-edit-${source.code}`}
-                          onClick={() => {
-                            const updated = selected
-                              ? editFormData.sources.filter(c => c !== source.code)
-                              : [...editFormData.sources, source.code];
-                            setEditFormData({ ...editFormData, sources: updated });
-                          }}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                            selected
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background hover:bg-muted border-border"
-                          }`}
-                        >
-                          <span className="font-bold">{source.code}</span>
-                          <span className="ml-1 opacity-80">{source.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <h4 className="text-sm font-medium mb-3">
+                    Sources Access {isAdmin && <span className="text-destructive">*</span>}
+                  </h4>
+                  {isAdmin ? (
+                    <>
+                      <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableSources.filter(s => s.isActive).map((source) => {
+                          const selected = editFormData.sources.includes(source.code);
+                          return (
+                            <button
+                              key={source.id}
+                              type="button"
+                              data-testid={`source-toggle-edit-${source.code}`}
+                              onClick={() => {
+                                const updated = selected
+                                  ? editFormData.sources.filter(c => c !== source.code)
+                                  : [...editFormData.sources, source.code];
+                                setEditFormData({ ...editFormData, sources: updated });
+                              }}
+                              className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background hover:bg-muted border-border"
+                              }`}
+                            >
+                              <span className="font-bold">{source.code}</span>
+                              <span className="ml-1 opacity-80">{source.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {editFormData.sources.length > 0 ? editFormData.sources.map((code) => {
+                        const src = availableSources.find(s => s.code === code);
+                        return (
+                          <Badge key={code} variant="outline" className="text-xs" data-testid={`source-badge-edit-${code}`}>
+                            <span className="font-bold">{code}</span>
+                            {src && <span className="ml-1 opacity-70">{src.label}</span>}
+                          </Badge>
+                        );
+                      }) : (
+                        <span className="text-xs text-muted-foreground">No sources assigned</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

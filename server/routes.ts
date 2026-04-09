@@ -9663,13 +9663,21 @@ export async function registerRoutes(
         consultantTier,
         sources
       } = req.body;
+
+      // Guard: only admins may assign/edit sources for consultant and admin users.
+      // Pro consultants may edit other fields but cannot change the sources field on
+      // consultant or admin target users — existing sources are preserved as-is.
+      const targetIsConsultantOrAdmin = targetUser.role === "consultant" || targetUser.role === "admin";
+      const sourcesPayload: string[] | undefined =
+        (currentUser.role !== "admin" && targetIsConsultantOrAdmin)
+          ? undefined  // strip sources from update; preserve existing value
+          : sources;
       
       // Validate sources for consultant/admin roles
       {
-        const targetUser = await storage.getUser(req.params.id);
         const effectiveRole = role ?? targetUser?.role;
         if (effectiveRole === "consultant" || effectiveRole === "admin") {
-          const effectiveSources = sources !== undefined ? sources : (targetUser?.sources ?? []);
+          const effectiveSources = sourcesPayload !== undefined ? sourcesPayload : (targetUser?.sources ?? []);
           if (!Array.isArray(effectiveSources) || effectiveSources.length === 0) {
             return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
           }
@@ -9694,7 +9702,7 @@ export async function registerRoutes(
         ...(role !== undefined && { role }),
         ...(companyId !== undefined && { companyId }),
         ...(consultantTier !== undefined && { consultantTier }),
-        ...(sources !== undefined && { sources: Array.isArray(sources) ? sources : null }),
+        ...(sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
       });
       
       if (!updated) {
