@@ -1281,7 +1281,7 @@ function TestingTab() {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [assignConsultantId, setAssignConsultantId] = useState("");
+  const [assignConsultantIds, setAssignConsultantIds] = useState<Set<string>>(new Set());
   const [assigningList, setAssigningList] = useState(false);
   const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
   const [confirmRemoveAssignmentId, setConfirmRemoveAssignmentId] = useState<string | null>(null);
@@ -1358,16 +1358,20 @@ function TestingTab() {
   };
 
   const handleAssign = async () => {
-    if (!selectedListId || !assignConsultantId) return;
+    if (!selectedListId || assignConsultantIds.size === 0) return;
     setAssigningList(true);
     try {
-      await apiRequest("POST", "/api/testing-task-assignments", { taskListId: selectedListId, assignedTo: assignConsultantId });
-      toast({ title: "User assigned" });
+      await Promise.all(
+        Array.from(assignConsultantIds).map(id =>
+          apiRequest("POST", "/api/testing-task-assignments", { taskListId: selectedListId, assignedTo: id })
+        )
+      );
+      toast({ title: assignConsultantIds.size === 1 ? "User assigned" : `${assignConsultantIds.size} users assigned` });
       setShowAssignDialog(false);
-      setAssignConsultantId("");
+      setAssignConsultantIds(new Set());
       await refetchListAssignments();
     } catch {
-      toast({ title: "Error", description: "Failed to assign user", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to assign users", variant: "destructive" });
     } finally {
       setAssigningList(false);
     }
@@ -1783,33 +1787,52 @@ function TestingTab() {
       </AlertDialog>
 
       {/* Assign Consultant Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent>
+      <Dialog open={showAssignDialog} onOpenChange={(open) => { setShowAssignDialog(open); if (!open) setAssignConsultantIds(new Set()); }}>
+        <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
-            <DialogTitle>Assign User</DialogTitle>
-            <DialogDescription>Choose a consultant or admin to assign to "{selectedList?.title}"</DialogDescription>
+            <DialogTitle>Assign Users</DialogTitle>
+            <DialogDescription>Select one or more users to assign to "{selectedList?.title}"</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="py-2">
             {availableToAssign.length === 0 ? (
               <p className="text-sm text-muted-foreground">All consultants and admins are already assigned to this list.</p>
             ) : (
-              <Select value={assignConsultantId} onValueChange={setAssignConsultantId}>
-                <SelectTrigger data-testid="select-assign-consultant">
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableToAssign.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.fullName} — {c.email}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="rounded-md border divide-y max-h-72 overflow-y-auto">
+                {availableToAssign.map(c => {
+                  const checked = assignConsultantIds.has(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                      data-testid={`label-assign-user-${c.id}`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => setAssignConsultantIds(prev => {
+                          const next = new Set(prev);
+                          if (v) next.add(c.id); else next.delete(c.id);
+                          return next;
+                        })}
+                        data-testid={`checkbox-assign-user-${c.id}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{c.fullName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{c.email}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {assignConsultantIds.size > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">{assignConsultantIds.size} user{assignConsultantIds.size !== 1 ? "s" : ""} selected</p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAssignDialog(false); setAssignConsultantId(""); }}>Cancel</Button>
-            <Button onClick={handleAssign} disabled={!assignConsultantId || assigningList} data-testid="button-confirm-assign">
+            <Button variant="outline" onClick={() => { setShowAssignDialog(false); setAssignConsultantIds(new Set()); }}>Cancel</Button>
+            <Button onClick={handleAssign} disabled={assignConsultantIds.size === 0 || assigningList} data-testid="button-confirm-assign">
               {assigningList && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Assign
+              Assign{assignConsultantIds.size > 1 ? ` (${assignConsultantIds.size})` : ""}
             </Button>
           </DialogFooter>
         </DialogContent>
