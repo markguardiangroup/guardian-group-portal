@@ -44,46 +44,55 @@ Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in
 
 ## Changelog Convention
 
-After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** log a new entry. The preferred method is direct file editing (agent has filesystem access and no session cookie needed).
+After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** call `POST /api/changelog/entries` to log a 1-line summary. This is the canonical required workflow.
 
-### File location
-`changelog.json` (project root)
+### Standard method: HTTP endpoint
 
-### Preferred method: direct file edit
+```
+POST /api/changelog/entries
+Content-Type: application/json
+Cookie: <admin session>
+
+{
+  "message": "string (required) — concise 1-line summary",
+  "category": "bug" | "enhancement" | "feature" | "other" (required),
+  "versionId": "string (optional — defaults to active version)"
+}
+```
+
+The request must be authenticated with an admin or consultant session. If no active session is available, use the fallback method below.
+
+### Full API surface (all endpoints require admin or consultant role)
+
+| Method | Path | Body / Query | Description |
+|--------|------|--------------|-------------|
+| GET | `/api/changelog/versions` | — | Returns full changelog with all versions and entries |
+| POST | `/api/changelog/versions` | `{ bump: "minor"\|"major", label?: string }` | Creates a new version |
+| PATCH | `/api/changelog/versions/:id` | `{ label: string }` | Updates a version label |
+| DELETE | `/api/changelog/versions/:id` | — | Deletes a version (not active) |
+| GET | `/api/changelog/entries` | `?versionId=<id>` (optional) | Returns flat list of entries |
+| POST | `/api/changelog/entries` | `{ message, category, versionId? }` | Creates an entry |
+| PATCH | `/api/changelog/entries/:id` | `{ message?, category? }` | Updates an entry |
+| DELETE | `/api/changelog/entries/:id` | — | Deletes an entry |
+
+### Fallback method: direct file edit (when no session is available)
+
+When the agent cannot make an authenticated HTTP request, append an entry directly to `changelog.json` at the project root:
+
 1. Read `changelog.json`
-2. Find the active version (`versions.find(v => v.id === activeVersionId)`)
-3. Append a new object to `version.entries`:
+2. Find `versions.find(v => v.id === activeVersionId)`
+3. Append to `version.entries`:
 ```json
 {
   "id": "<new UUID v4>",
   "patch": <version.patch>,
-  "message": "<concise 1-line summary of the change>",
+  "message": "<1-line summary>",
   "category": "<bug|enhancement|feature|other>",
   "createdAt": "<ISO timestamp>",
   "createdBy": "agent"
 }
 ```
-4. Write the updated JSON back to `changelog.json`
-
-### Alternative method: HTTP endpoint (when authenticated as admin)
-```
-POST /api/changelog/entries
-Content-Type: application/json
-
-{
-  "message": "string (required)",
-  "category": "bug" | "enhancement" | "feature" | "other" (required),
-  "versionId": "string (optional — defaults to active version)"
-}
-```
-Also available:
-- `GET /api/changelog/versions` — returns full changelog with all entries
-- `GET /api/changelog/entries?versionId=<id>` — returns flat list of entries, optionally filtered by version
-- `POST /api/changelog/versions` — `{ bump: "minor"|"major", label?: string }` — creates new version
-- `PATCH /api/changelog/entries/:id` — `{ message?, category? }` — updates an entry
-- `DELETE /api/changelog/entries/:id` — deletes an entry
-
-All changelog endpoints require admin or consultant role.
+4. Write the updated JSON back
 
 ### Category values
 | Value | Use for |
@@ -94,7 +103,7 @@ All changelog endpoints require admin or consultant role.
 | `other` | Refactors, docs, config changes |
 
 ### Message format
-Keep to one line, plain English. Examples:
+One line, plain English. Examples:
 - `"Fixed: Folder pre-population useEffect now fires when folderTemplates loads late"`
 - `"Enhancement: Support link always locked in production environment"`
 - `"Feature: Changelog / Release Notes section added to admin reports"`
