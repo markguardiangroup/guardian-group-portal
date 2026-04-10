@@ -376,7 +376,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                {(moduleAccessLoading || hasActiveAccess("support")) ? (
+                {(!import.meta.env.PROD && (moduleAccessLoading || hasActiveAccess("support"))) ? (
                   <SidebarMenuButton
                     asChild
                     isActive={location === "/support" || location.startsWith("/support/")}
