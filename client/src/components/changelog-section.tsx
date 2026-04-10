@@ -114,12 +114,6 @@ export default function ChangelogSection() {
     onSuccess: () => { invalidate(); setNewVersionOpen(false); setNewVersionLabel(""); },
   });
 
-  const updateVersionMutation = useMutation({
-    mutationFn: ({ id, label }: { id: string; label: string }) =>
-      apiRequest("PATCH", `/api/changelog/versions/${id}`, { label }),
-    onSuccess: invalidate,
-  });
-
   const deleteVersionMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/changelog/versions/${id}`),
     onSuccess: invalidate,
@@ -569,6 +563,7 @@ export default function ChangelogSection() {
                 <Checkbox
                   checked={selectedVersionIds.includes(v.id)}
                   onCheckedChange={() => toggleReportVersion(v.id)}
+                  onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex-1 min-w-0">
                   <span className="font-mono font-medium text-sm">{versionLabel(v)}</span>
