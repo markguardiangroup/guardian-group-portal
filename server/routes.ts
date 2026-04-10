@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
-import { readChangelog, writeChangelog, generateChangelogId, type ChangelogCategory } from "./changelog";
+import { readChangelog, writeChangelog, generateChangelogId, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -12305,6 +12305,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/changelog/entries", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const cl = await readChangelog();
+      const { versionId } = req.query as { versionId?: string };
+      let entries: (ChangelogEntry & { versionId: string })[] = [];
+      for (const v of cl.versions) {
+        if (versionId && v.id !== versionId) continue;
+        for (const e of v.entries) {
+          entries.push({ ...e, versionId: v.id });
+        }
+      }
+      res.json(entries);
+    } catch (err) {
+      console.error("Changelog GET entries error:", err);
+      res.status(500).json({ error: "Failed to read entries" });
+    }
+  });
+
   app.post("/api/changelog/versions", requireAuth, async (req, res) => {
     try {
       const user = await changelogAdminGuard(req, res);
@@ -12330,7 +12350,7 @@ export async function registerRoutes(
         newMinor += 1;
       }
 
-      const newVersion = {
+      const newVersion: import("./changelog").ChangelogVersion = {
         id: generateChangelogId(),
         major: newMajor,
         minor: newMinor,
@@ -12338,7 +12358,7 @@ export async function registerRoutes(
         label: parsed.data.label || "",
         isActive: true,
         createdAt: new Date().toISOString(),
-        entries: [] as any[],
+        entries: [],
       };
 
       cl.versions.push(newVersion);

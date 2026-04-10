@@ -44,18 +44,18 @@ Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in
 
 ## Changelog Convention
 
-After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** write a new entry to `changelog.json` at the project root. Do this by directly editing the file using the write/edit tools — no HTTP request needed.
+After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** log a new entry. The preferred method is direct file editing (agent has filesystem access and no session cookie needed).
 
 ### File location
 `changelog.json` (project root)
 
-### How to add an entry
+### Preferred method: direct file edit
 1. Read `changelog.json`
 2. Find the active version (`versions.find(v => v.id === activeVersionId)`)
-3. Append to `version.entries`:
+3. Append a new object to `version.entries`:
 ```json
 {
-  "id": "<new UUID>",
+  "id": "<new UUID v4>",
   "patch": <version.patch>,
   "message": "<concise 1-line summary of the change>",
   "category": "<bug|enhancement|feature|other>",
@@ -63,7 +63,27 @@ After completing any user-requested change (bug fix, enhancement, or new feature
   "createdBy": "agent"
 }
 ```
-4. Write the updated JSON back
+4. Write the updated JSON back to `changelog.json`
+
+### Alternative method: HTTP endpoint (when authenticated as admin)
+```
+POST /api/changelog/entries
+Content-Type: application/json
+
+{
+  "message": "string (required)",
+  "category": "bug" | "enhancement" | "feature" | "other" (required),
+  "versionId": "string (optional — defaults to active version)"
+}
+```
+Also available:
+- `GET /api/changelog/versions` — returns full changelog with all entries
+- `GET /api/changelog/entries?versionId=<id>` — returns flat list of entries, optionally filtered by version
+- `POST /api/changelog/versions` — `{ bump: "minor"|"major", label?: string }` — creates new version
+- `PATCH /api/changelog/entries/:id` — `{ message?, category? }` — updates an entry
+- `DELETE /api/changelog/entries/:id` — deletes an entry
+
+All changelog endpoints require admin or consultant role.
 
 ### Category values
 | Value | Use for |
@@ -74,7 +94,7 @@ After completing any user-requested change (bug fix, enhancement, or new feature
 | `other` | Refactors, docs, config changes |
 
 ### Message format
-Keep to one line, written in plain English. Examples:
+Keep to one line, plain English. Examples:
 - `"Fixed: Folder pre-population useEffect now fires when folderTemplates loads late"`
 - `"Enhancement: Support link always locked in production environment"`
 - `"Feature: Changelog / Release Notes section added to admin reports"`
