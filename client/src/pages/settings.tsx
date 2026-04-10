@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
@@ -1618,14 +1619,17 @@ function TestingTab() {
                             {list.tasks.map((task: TaskItem) => {
                               const checked = (a.completedTaskIds ?? []).includes(task.id);
                               return (
-                                <div key={task.id} className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${checked ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30" : ""}`}
-                                  data-testid={`task-checkbox-${task.id}`}>
-                                  <input
-                                    type="checkbox"
+                                <div
+                                  key={task.id}
+                                  className={`flex items-start gap-3 rounded-md border p-3 transition-colors cursor-pointer select-none ${checked ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/30" : "hover:bg-muted/40"}`}
+                                  onClick={() => !togglingTaskId && handleToggleTask(a, task.id)}
+                                  data-testid={`task-checkbox-${task.id}`}
+                                >
+                                  <Checkbox
                                     checked={checked}
                                     disabled={togglingTaskId === task.id}
-                                    onChange={() => handleToggleTask(a, task.id)}
-                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-emerald-600 cursor-pointer"
+                                    onCheckedChange={() => handleToggleTask(a, task.id)}
+                                    className={`mt-0.5 shrink-0 h-5 w-5 ${checked ? "border-emerald-600 bg-emerald-600 text-white" : ""}`}
                                     data-testid={`checkbox-task-${task.id}`}
                                   />
                                   <div className="flex-1 min-w-0">
