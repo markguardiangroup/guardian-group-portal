@@ -216,6 +216,7 @@ export default function CreateFromTemplate() {
   const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [renewalPeriodMonths, setRenewalPeriodMonths] = useState<number | null>(null);
   const [documentComments, setDocumentComments] = useState<string>("");
+  const [isRequiredForCompliance, setIsRequiredForCompliance] = useState(false);
   const [reviewDateInteracted, setReviewDateInteracted] = useState(false);
   const [reviewDateBlurred, setReviewDateBlurred] = useState(false);
   const [expiryDateInteracted, setExpiryDateInteracted] = useState(false);
@@ -258,10 +259,12 @@ export default function CreateFromTemplate() {
   const selectedSite = sites.find(s => s.id === primarySiteId);
   const selectedSiteObjects = sites.filter(s => selectedSiteIds.includes(s.id));
 
-  // Sync requiresApproval from template whenever the selected template changes
+  // Sync requiresApproval and isRequiredForCompliance from template whenever the selected template changes
   useEffect(() => {
     if (selectedTemplate) {
       setRequiresApproval(selectedTemplate.requiresApproval !== false);
+      const templateIsRequired = requiredTemplateIdSet.has(selectedTemplate.id) || !!selectedTemplate.isRequired;
+      setIsRequiredForCompliance(templateIsRequired);
       if (selectedTemplate.renewalPeriodMonths) {
         setComplianceMode("renewal");
         setRenewalPeriodMonths(selectedTemplate.renewalPeriodMonths);
@@ -273,7 +276,7 @@ export default function CreateFromTemplate() {
         setRenewalPeriodMonths(null);
       }
     }
-  }, [selectedTemplateId, selectedTemplate]);
+  }, [selectedTemplateId, selectedTemplate, requiredTemplateIdSet]);
 
   const templatePlaceholders: string[] = useMemo(() => {
     if (!selectedTemplate?.placeholders) return [];
@@ -568,6 +571,7 @@ export default function CreateFromTemplate() {
           source: "template" as const,
           templateId: selectedTemplate.id,
           templateVersion: selectedTemplate.version,
+          isRequired: isRequiredForCompliance,
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           reviewDate: reviewDate || undefined,
@@ -1307,6 +1311,31 @@ export default function CreateFromTemplate() {
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Required for Compliance */}
+            <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">Compliance</h3>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1 flex-1">
+                  <p className="text-sm font-medium text-foreground">Required for Compliance</p>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    {requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isRequired
+                      ? "This template is marked as required — the document will automatically count towards the compliance score for this site."
+                      : "Mark this document as required. If it is not compliant and up to date, it will count against the compliance score for this site."}
+                  </p>
+                </div>
+                <Switch
+                  checked={isRequiredForCompliance}
+                  onCheckedChange={requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isRequired ? undefined : setIsRequiredForCompliance}
+                  disabled={requiredTemplateIdSet.has(selectedTemplateId) || !!selectedTemplate?.isRequired}
+                  data-testid="toggle-is-required-compliance"
+                  className="shrink-0 mt-0.5"
+                />
+              </div>
             </div>
 
             {templatePlaceholders.length > 0 && (
