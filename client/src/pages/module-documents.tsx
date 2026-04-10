@@ -335,9 +335,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       toast({
         title: "Document restored",
         description: "The document has been restored from the archive.",
@@ -358,9 +361,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("DELETE", `/api/documents/${documentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       toast({ title: "Document deleted", description: "The document has been permanently deleted." });
     },
     onError: () => {
@@ -374,9 +379,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return apiRequest("POST", `/api/documents/${documentId}/archive`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       toast({
         title: "Document archived",
         description: "The document has been archived.",
@@ -1828,15 +1836,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const invalidateComplianceCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
-    queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
     queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
     queryClient.invalidateQueries({
+      refetchType: "all",
       predicate: (query) => {
         const key = query.queryKey;
         return Array.isArray(key) && typeof key[0] === "string" && key[0].includes("documents-hierarchy");
@@ -1935,13 +1944,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       return apiRequest("POST", `/api/documents/${id}/approval`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({
@@ -1985,13 +1995,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       return apiRequest("POST", `/api/documents/${id}/versions`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "versions"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "versions"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       setShowUploadVersionDialog(false);
       setNewVersionFile(null);
       setChangeNote("");
@@ -2025,14 +2037,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       return apiRequest("POST", `/api/documents/${id}/archive`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({
+        refetchType: "all",
         predicate: (query) => query.queryKey.some(
           (key) => typeof key === 'string' && key.includes('documents-hierarchy')
         )
@@ -2063,12 +2077,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       return apiRequest("POST", `/api/documents/${id}/restore`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       toast({
         title: "Document restored",
         description: "The document has been restored from the archive.",
@@ -2088,10 +2104,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       return apiRequest("DELETE", `/api/documents/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
       toast({ title: "Document deleted", description: "The document has been permanently deleted." });
       navigate(`${basePath}/documents`);
     },

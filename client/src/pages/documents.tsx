@@ -1211,13 +1211,15 @@ function DocumentDetailView({ id }: { id: string }) {
   }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const invalidateComplianceCaches = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
     queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
     queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
     queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
     queryClient.invalidateQueries({
+      refetchType: "all",
       predicate: (query) => {
         const key = query.queryKey;
         return Array.isArray(key) && typeof key[0] === "string" && key[0].includes("documents-hierarchy");
@@ -1283,10 +1285,12 @@ function DocumentDetailView({ id }: { id: string }) {
       return apiRequest("POST", `/api/documents/${id}/approval`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       setShowApprovalDialog(false);
       setFeedback("");
       toast({
