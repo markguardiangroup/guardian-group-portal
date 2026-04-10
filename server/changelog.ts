@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import os from "os";
 
 const CHANGELOG_PATH = path.resolve(process.cwd(), "changelog.json");
 
@@ -68,10 +67,21 @@ export async function readChangelog(): Promise<Changelog> {
 }
 
 export async function writeChangelog(data: Changelog): Promise<void> {
-  // Atomic write: write to a temp file then rename to avoid partial writes
-  const tmp = path.join(os.tmpdir(), `changelog-${Date.now()}.json`);
+  // Atomic write: write to a sibling temp file (same directory = same filesystem),
+  // then rename. Using the same directory avoids EXDEV cross-device errors.
+  const tmp = `${CHANGELOG_PATH}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf-8");
-  await fs.rename(tmp, CHANGELOG_PATH);
+  try {
+    await fs.rename(tmp, CHANGELOG_PATH);
+  } catch (err: any) {
+    if (err?.code === "EXDEV") {
+      // Cross-device fallback: copy then unlink
+      await fs.copyFile(tmp, CHANGELOG_PATH);
+      await fs.unlink(tmp).catch(() => undefined);
+    } else {
+      throw err;
+    }
+  }
 }
 
 export async function incrementPatchVersion(): Promise<void> {
