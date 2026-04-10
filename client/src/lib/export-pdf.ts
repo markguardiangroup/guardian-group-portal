@@ -488,6 +488,147 @@ export async function exportSummary(payload: SummaryPayload) {
   doc.save(`compliance-summary-${dateStamp()}.pdf`);
 }
 
+// ─── Report: Changelog ────────────────────────────────────────────────────────
+
+type ChangelogCategory = "bug" | "enhancement" | "feature" | "other";
+
+interface ChangelogEntry {
+  id: string;
+  patch: number;
+  message: string;
+  category: ChangelogCategory;
+  createdAt: string;
+}
+
+interface ChangelogVersion {
+  id: string;
+  major: number;
+  minor: number;
+  patch: number;
+  label: string;
+  isActive: boolean;
+  createdAt: string;
+  entries: ChangelogEntry[];
+}
+
+const CATEGORY_LABELS: Record<ChangelogCategory, string> = {
+  bug: "Bug Fix",
+  enhancement: "Enhancement",
+  feature: "New Feature",
+  other: "Other",
+};
+
+const CATEGORY_COLORS: Record<ChangelogCategory, [number, number, number]> = {
+  bug: [185, 28, 28],
+  enhancement: [29, 78, 216],
+  feature: [21, 128, 61],
+  other: [107, 114, 128],
+};
+
+function versionLabel(v: ChangelogVersion) {
+  return `v${v.major}.${v.minor}`;
+}
+
+function formatPatch(v: ChangelogVersion, patch: number) {
+  return `v${v.major}.${v.minor}.${String(patch).padStart(2, "0")}`;
+}
+
+export async function exportChangelogPdf(versions: ChangelogVersion[]) {
+  const logoDataUrl = await loadLogoDataUrl();
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const totalEntries = versions.reduce((n, v) => n + v.entries.length, 0);
+
+  let y = buildHeader(doc, {
+    title: "Changelog / Release Notes",
+    subtitle: `${versions.length} version${versions.length !== 1 ? "s" : ""} · ${totalEntries} total entries`,
+    logoDataUrl,
+  });
+
+  for (let vi = 0; vi < versions.length; vi++) {
+    const version = versions[vi];
+
+    // Check if we need a new page before each version header
+    if (vi > 0 && y > doc.internal.pageSize.getHeight() - 40) {
+      doc.addPage();
+      y = buildHeader(doc, { title: "Changelog / Release Notes", logoDataUrl });
+    }
+
+    // Version heading
+    y = sectionTitle(
+      doc,
+      `${versionLabel(version)}${version.label ? `  —  ${version.label}` : ""}  ·  ${new Date(version.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`,
+      y
+    );
+
+    if (version.entries.length === 0) {
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(...BRAND.muted);
+      doc.text("No entries for this version.", 18, y + 4);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+      y += 10;
+      continue;
+    }
+
+    // Group entries by patch, newest first
+    const patchMap = new Map<number, ChangelogEntry[]>();
+    for (const entry of version.entries) {
+      if (!patchMap.has(entry.patch)) patchMap.set(entry.patch, []);
+      patchMap.get(entry.patch)!.push(entry);
+    }
+    const patchNums = [...patchMap.keys()].sort((a, b) => b - a);
+
+    for (const patchNum of patchNums) {
+      const entries = patchMap.get(patchNum)!;
+
+      // Patch sub-header row
+      const rows = entries.map((e) => [
+        CATEGORY_LABELS[e.category] || e.category,
+        e.message,
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: [[`${formatPatch(version, patchNum)}`, ""]],
+        body: rows,
+        styles: { fontSize: 8.5, cellPadding: 2.5 },
+        headStyles: {
+          fillColor: [243, 244, 246] as [number, number, number],
+          textColor: BRAND.muted,
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+        columnStyles: {
+          0: { cellWidth: 32, fontStyle: "bold" },
+          1: { cellWidth: "auto" },
+        },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 0) {
+            const cat = entries[data.row.index]?.category as ChangelogCategory;
+            if (cat && CATEGORY_COLORS[cat]) {
+              data.cell.styles.textColor = CATEGORY_COLORS[cat];
+            }
+          }
+        },
+        margin: { left: 18, right: 14 },
+        tableWidth: pageW - 32,
+        didDrawPage: (data) => {
+          if (data.pageNumber > 1) buildHeader(doc, { title: "Changelog / Release Notes", logoDataUrl });
+        },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 4;
+    }
+
+    y += 4;
+  }
+
+  addPageNumbers(doc);
+  doc.save(`changelog-${dateStamp()}.pdf`);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function dateStamp() {

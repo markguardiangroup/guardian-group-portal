@@ -11,6 +11,7 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
+import { readChangelog, writeChangelog, generateChangelogId, type ChangelogCategory } from "./changelog";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -12278,6 +12279,202 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating source:", error);
       res.status(500).json({ error: "Failed to update source" });
+    }
+  });
+
+  // ─── Changelog ────────────────────────────────────────────────────────────
+
+  const changelogAdminGuard = async (req: any, res: any) => {
+    const user = await storage.getUser((req.session as any)?.userId);
+    if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+      res.status(403).json({ error: "Admin/consultant only" });
+      return null;
+    }
+    return user;
+  };
+
+  app.get("/api/changelog/versions", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const cl = await readChangelog();
+      res.json(cl);
+    } catch (err) {
+      console.error("Changelog GET versions error:", err);
+      res.status(500).json({ error: "Failed to read changelog" });
+    }
+  });
+
+  app.post("/api/changelog/versions", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const parsed = z.object({
+        bump: z.enum(["minor", "major"]),
+        label: z.string().optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+
+      const cl = await readChangelog();
+      const active = cl.versions.find((v) => v.id === cl.activeVersionId);
+      if (!active) return res.status(400).json({ error: "No active version" });
+
+      active.isActive = false;
+
+      let newMajor = active.major;
+      let newMinor = active.minor;
+      if (parsed.data.bump === "major") {
+        newMajor += 1;
+        newMinor = 0;
+      } else {
+        newMinor += 1;
+      }
+
+      const newVersion = {
+        id: generateChangelogId(),
+        major: newMajor,
+        minor: newMinor,
+        patch: 0,
+        label: parsed.data.label || "",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        entries: [] as any[],
+      };
+
+      cl.versions.push(newVersion);
+      cl.activeVersionId = newVersion.id;
+      await writeChangelog(cl);
+      res.status(201).json(newVersion);
+    } catch (err) {
+      console.error("Changelog POST versions error:", err);
+      res.status(500).json({ error: "Failed to create version" });
+    }
+  });
+
+  app.patch("/api/changelog/versions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const parsed = z.object({ label: z.string() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+
+      const cl = await readChangelog();
+      const version = cl.versions.find((v) => v.id === req.params.id);
+      if (!version) return res.status(404).json({ error: "Version not found" });
+
+      version.label = parsed.data.label;
+      await writeChangelog(cl);
+      res.json(version);
+    } catch (err) {
+      console.error("Changelog PATCH versions error:", err);
+      res.status(500).json({ error: "Failed to update version" });
+    }
+  });
+
+  app.delete("/api/changelog/versions/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+
+      const cl = await readChangelog();
+      const idx = cl.versions.findIndex((v) => v.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: "Version not found" });
+      if (cl.activeVersionId === req.params.id) {
+        return res.status(400).json({ error: "Cannot delete the active version" });
+      }
+      cl.versions.splice(idx, 1);
+      await writeChangelog(cl);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Changelog DELETE versions error:", err);
+      res.status(500).json({ error: "Failed to delete version" });
+    }
+  });
+
+  app.post("/api/changelog/entries", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const parsed = z.object({
+        message: z.string().min(1),
+        category: z.enum(["bug", "enhancement", "feature", "other"]),
+        versionId: z.string().optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+
+      const cl = await readChangelog();
+      const targetId = parsed.data.versionId || cl.activeVersionId;
+      const version = cl.versions.find((v) => v.id === targetId);
+      if (!version) return res.status(404).json({ error: "Version not found" });
+
+      const entry = {
+        id: generateChangelogId(),
+        patch: version.patch,
+        message: parsed.data.message,
+        category: parsed.data.category as ChangelogCategory,
+        createdAt: new Date().toISOString(),
+        createdBy: user.id,
+      };
+      version.entries.push(entry);
+      await writeChangelog(cl);
+      res.status(201).json(entry);
+    } catch (err) {
+      console.error("Changelog POST entries error:", err);
+      res.status(500).json({ error: "Failed to create entry" });
+    }
+  });
+
+  app.patch("/api/changelog/entries/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      const parsed = z.object({
+        message: z.string().min(1).optional(),
+        category: z.enum(["bug", "enhancement", "feature", "other"]).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+
+      const cl = await readChangelog();
+      let found = false;
+      for (const version of cl.versions) {
+        const entry = version.entries.find((e) => e.id === req.params.id);
+        if (entry) {
+          if (parsed.data.message !== undefined) entry.message = parsed.data.message;
+          if (parsed.data.category !== undefined) entry.category = parsed.data.category as ChangelogCategory;
+          found = true;
+          break;
+        }
+      }
+      if (!found) return res.status(404).json({ error: "Entry not found" });
+      await writeChangelog(cl);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Changelog PATCH entries error:", err);
+      res.status(500).json({ error: "Failed to update entry" });
+    }
+  });
+
+  app.delete("/api/changelog/entries/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+
+      const cl = await readChangelog();
+      let found = false;
+      for (const version of cl.versions) {
+        const idx = version.entries.findIndex((e) => e.id === req.params.id);
+        if (idx !== -1) {
+          version.entries.splice(idx, 1);
+          found = true;
+          break;
+        }
+      }
+      if (!found) return res.status(404).json({ error: "Entry not found" });
+      await writeChangelog(cl);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Changelog DELETE entries error:", err);
+      res.status(500).json({ error: "Failed to delete entry" });
     }
   });
 

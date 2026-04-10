@@ -8,6 +8,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { incrementPatchVersion } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -163,6 +164,16 @@ process.on("uncaughtException", (err) => {
   } catch (err) {
     console.error("Fatal: startup toolkit root folder seed failed:", err);
     process.exit(1);
+  }
+
+  // In production, each server startup = a new deployment → auto-increment patch version
+  if (process.env.NODE_ENV === "production") {
+    try {
+      await incrementPatchVersion();
+      log("Changelog patch version incremented (new deployment detected)");
+    } catch (err) {
+      console.error("Non-fatal: Failed to increment changelog patch version:", err);
+    }
   }
 
   // Run expired folder cleanup on startup and then daily

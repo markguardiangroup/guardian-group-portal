@@ -1,0 +1,40 @@
+{
+  "activeVersionId": "init-v1-0",
+  "versions": [
+    {
+      "id": "init-v1-0",
+      "major": 1,
+      "minor": 0,
+      "patch": 0,
+      "label": "Initial Release",
+      "isActive": true,
+      "createdAt": "2026-04-10T00:00:00.000Z",
+      "entries": [
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "patch": 0,
+          "message": "Feature: Changelog / Release Notes section added to admin reports with version cards, patch grouping, inline edit/delete, and PDF report export",
+          "category": "feature",
+          "createdAt": "2026-04-10T20:53:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "patch": 0,
+          "message": "Enhancement: Folder pre-population useEffect now includes selectedTemplate and folderTemplates in dependency array so it fires correctly when async data loads",
+          "category": "enhancement",
+          "createdAt": "2026-04-10T15:22:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "patch": 0,
+          "message": "Enhancement: Support link in sidebar now always shows as locked in production environment for all users",
+          "category": "enhancement",
+          "createdAt": "2026-04-10T15:35:00.000Z",
+          "createdBy": "agent"
+        }
+      ]
+    }
+  ]
+}

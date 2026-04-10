@@ -42,6 +42,43 @@ A database-first storage model uses PostgreSQL as the primary data store for all
 
 Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in object storage, with API endpoints for upload and retrieval. User acceptance is required during invitation flow and upon revision, triggering a re-acceptance workflow to block access until updated documents are reviewed.
 
+## Changelog Convention
+
+After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** write a new entry to `changelog.json` at the project root. Do this by directly editing the file using the write/edit tools — no HTTP request needed.
+
+### File location
+`changelog.json` (project root)
+
+### How to add an entry
+1. Read `changelog.json`
+2. Find the active version (`versions.find(v => v.id === activeVersionId)`)
+3. Append to `version.entries`:
+```json
+{
+  "id": "<new UUID>",
+  "patch": <version.patch>,
+  "message": "<concise 1-line summary of the change>",
+  "category": "<bug|enhancement|feature|other>",
+  "createdAt": "<ISO timestamp>",
+  "createdBy": "agent"
+}
+```
+4. Write the updated JSON back
+
+### Category values
+| Value | Use for |
+|-------|---------|
+| `bug` | Bug fixes |
+| `enhancement` | Improvements to existing features |
+| `feature` | Brand new features |
+| `other` | Refactors, docs, config changes |
+
+### Message format
+Keep to one line, written in plain English. Examples:
+- `"Fixed: Folder pre-population useEffect now fires when folderTemplates loads late"`
+- `"Enhancement: Support link always locked in production environment"`
+- `"Feature: Changelog / Release Notes section added to admin reports"`
+
 ## External Dependencies
 
 -   **Database**: PostgreSQL, Drizzle ORM, connect-pg-simple
