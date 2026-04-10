@@ -588,13 +588,13 @@ export default function CreateFromTemplate() {
       return results;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"], refetchType: "all" });
       const count = selectedSiteIds.length;
       toast({
         title: count > 1 ? "Documents Created" : "Document Created",

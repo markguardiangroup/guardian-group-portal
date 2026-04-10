@@ -495,7 +495,9 @@ export default function DocumentUpload() {
       return results;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
