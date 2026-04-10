@@ -103,10 +103,16 @@ When the agent cannot make an authenticated HTTP request, append an entry direct
 | `other` | Refactors, docs, config changes |
 
 ### Message format
-One line, plain English. Examples:
-- `"Fixed: Folder pre-population useEffect now fires when folderTemplates loads late"`
-- `"Enhancement: Support link always locked in production environment"`
-- `"Feature: Changelog / Release Notes section added to admin reports"`
+One line, plain English written for **non-technical users** — describe what changed from the user's perspective, not how it was implemented. Never include code terms (function names, hook names, array names, etc.).
+
+Good examples:
+- `"Folder template selection now populates correctly when creating documents from a template"`
+- `"Support link in sidebar now always shows as locked in production environment for all users"`
+- `"New Release Notes section added to admin reports — view, manage, and export a full history of platform updates"`
+
+Bad examples (too technical — avoid):
+- `"Enhancement: Folder pre-population useEffect now includes selectedTemplate and folderTemplates in dependency array so it fires correctly when async data loads"`
+- `"Fix: incrementPatchVersion() now uses atomic rename to avoid partial writes"`
 
 ## External Dependencies
 
