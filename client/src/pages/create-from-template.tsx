@@ -480,16 +480,18 @@ export default function CreateFromTemplate() {
     });
   };
 
-  // Auto-set folder after the primary site's folders have loaded
+  // Auto-set folder once site folders, the selected template, and folder templates are all loaded.
+  // Only fires when no folder is already chosen, so manual selection is never overridden.
   useEffect(() => {
-    if (!selectedTemplate || !primarySiteId || siteFolders.length === 0) return;
+    if (!selectedTemplate || !primarySiteId || siteFolders.length === 0 || folderTemplates.length === 0) return;
+    if (selectedFolderId) return; // user already picked a folder — don't override
     if (selectedTemplate.toolkitFolderId) return; // toolkit templates stay blank
     if (!selectedTemplate.folderTemplateId) return;
     const folderTemplate = folderTemplates.find(ft => ft.id === selectedTemplate.folderTemplateId);
     if (!folderTemplate) return;
     const matchingFolder = siteFolders.find(f => f.name === folderTemplate.name);
     if (matchingFolder) setSelectedFolderId(matchingFolder.id);
-  }, [siteFolders, primarySiteId]);
+  }, [siteFolders, primarySiteId, selectedTemplate, folderTemplates, selectedFolderId]);
 
   const createDocumentMutation = useMutation({
     mutationFn: async () => {
