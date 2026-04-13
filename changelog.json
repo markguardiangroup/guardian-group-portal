@@ -81,6 +81,14 @@
           "category": "improvement",
           "createdAt": "2026-04-13T15:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+          "patch": 0,
+          "message": "Removed the Setup Wizard from the template library — the button and the full step-by-step wizard process have been taken out",
+          "category": "improvement",
+          "createdAt": "2026-04-13T15:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
