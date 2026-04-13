@@ -33,6 +33,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-10T15:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+          "patch": 0,
+          "message": "Fixed: Consultants were incorrectly blocked from saving incidents due to a missing permissions check — all consultants assigned to a site can now report incidents as expected",
+          "category": "bug",
+          "createdAt": "2026-04-13T11:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

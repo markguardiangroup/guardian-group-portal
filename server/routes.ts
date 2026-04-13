@@ -327,6 +327,8 @@ export async function registerRoutes(
         role: user.role,
         companyId: user.companyId,
         clientPermissionRole: user.clientPermissionRole,
+        consultantTier: user.consultantTier,
+        sources: user.sources,
       };
 
       res.json({
