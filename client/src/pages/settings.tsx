@@ -204,6 +204,10 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Admins and pro consultants can edit name/email; standard consultants and clients cannot
+  const canEditIdentity = user?.role === "admin" || (user?.role === "consultant" && user?.consultantTier === "pro");
+
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [documentAlerts, setDocumentAlerts] = useState(true);
   const [reviewReminders, setReviewReminders] = useState(true);
@@ -422,20 +426,28 @@ export default function Settings() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName" className="flex items-center gap-1.5">
+                      First Name
+                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    </Label>
                     <Input 
                       id="firstName" 
                       value={profileForm.firstName}
                       onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                      disabled={!canEditIdentity}
                       data-testid="input-first-name" 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName" className="flex items-center gap-1.5">
+                      Last Name
+                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    </Label>
                     <Input 
                       id="lastName" 
                       value={profileForm.lastName}
                       onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                      disabled={!canEditIdentity}
                       data-testid="input-last-name" 
                     />
                   </div>
@@ -472,12 +484,16 @@ export default function Settings() {
                 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="flex items-center gap-1.5">
+                      Email
+                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    </Label>
                     <Input 
                       id="email" 
                       type="email" 
                       value={profileForm.email}
                       onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      disabled={!canEditIdentity}
                       data-testid="input-email" 
                     />
                   </div>
@@ -525,19 +541,22 @@ export default function Settings() {
                 </div>
               </div>
 
-              <Separator />
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={profileForm.notes}
-                  onChange={(e) => setProfileForm({ ...profileForm, notes: e.target.value })}
-                  placeholder="Any additional notes or information..."
-                  rows={3}
-                  data-testid="input-notes"
-                />
-              </div>
+              {canEditIdentity && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={profileForm.notes}
+                      onChange={(e) => setProfileForm({ ...profileForm, notes: e.target.value })}
+                      placeholder="Any additional notes or information..."
+                      rows={3}
+                      data-testid="input-notes"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="flex justify-end">
                 <Button 

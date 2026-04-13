@@ -9706,9 +9706,15 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
       
+      const isSelfEdit = currentUser.id === targetUser.id;
+      const isRestrictedRole = currentUser.role === "client" || (currentUser.role === "consultant" && !isProConsultant(currentUser));
+
       if (currentUser.role !== "admin") {
         if (isProConsultant(currentUser)) {
           // Pro consultants have full access to update users
+        } else if (isSelfEdit && isRestrictedRole) {
+          // Standard consultants and clients may update their own profile,
+          // but only a limited set of fields (enforced below)
         } else if (currentUser.role === "consultant" && targetUser.companyId) {
           // Standard consultants can only update users in their assigned companies
           const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
@@ -9748,6 +9754,10 @@ export async function registerRoutes(
         sources
       } = req.body;
 
+      // Standard consultants and clients editing their own profile may only update
+      // a limited set of contact/preference fields. This flag gates those fields below.
+      const allowFullFieldEdit = !(isSelfEdit && isRestrictedRole);
+
       // Guard: only admins may assign/edit sources for consultant and admin users.
       // Use the effective target role (post-update) so that a role change from client
       // to consultant/admin is also covered.
@@ -9767,24 +9777,25 @@ export async function registerRoutes(
       }
 
       const updated = await storage.updateUser(req.params.id, {
-        ...(status !== undefined && { status }),
-        // Normalize any incoming clientPermissionRole to "full" (only valid value now)
-        ...(clientPermissionRole !== undefined && { clientPermissionRole: "full" as const }),
-        ...(email !== undefined && { email }),
-        ...(fullName !== undefined && { fullName }),
+        // Admin-only / privileged fields — blocked for restricted self-edits
+        ...(allowFullFieldEdit && status !== undefined && { status }),
+        ...(allowFullFieldEdit && clientPermissionRole !== undefined && { clientPermissionRole: "full" as const }),
+        ...(allowFullFieldEdit && email !== undefined && { email }),
+        ...(allowFullFieldEdit && fullName !== undefined && { fullName }),
+        ...(allowFullFieldEdit && firstName !== undefined && { firstName }),
+        ...(allowFullFieldEdit && lastName !== undefined && { lastName }),
+        ...(allowFullFieldEdit && notes !== undefined && { notes }),
+        ...(allowFullFieldEdit && role !== undefined && { role }),
+        ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
+        ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
+        ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
+        // Fields everyone can update on their own profile
         ...(title !== undefined && { title }),
-        ...(firstName !== undefined && { firstName }),
-        ...(lastName !== undefined && { lastName }),
         ...(jobTitle !== undefined && { jobTitle }),
         ...(department !== undefined && { department }),
         ...(phone !== undefined && { phone }),
         ...(mobile !== undefined && { mobile }),
         ...(preferredContactMethod !== undefined && { preferredContactMethod }),
-        ...(notes !== undefined && { notes }),
-        ...(role !== undefined && { role }),
-        ...(companyId !== undefined && { companyId }),
-        ...(consultantTier !== undefined && { consultantTier }),
-        ...(sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
       });
       
       if (!updated) {

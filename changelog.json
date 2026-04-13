@@ -41,6 +41,14 @@
           "category": "bug",
           "createdAt": "2026-04-13T11:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+          "patch": 0,
+          "message": "Standard consultants and clients can now update their own profile details (job title, department, phone, mobile, preferred contact) — name and email remain managed by administrators",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T13:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
