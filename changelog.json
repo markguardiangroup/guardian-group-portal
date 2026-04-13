@@ -5,7 +5,7 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 0,
+      "patch": 1,
       "label": "Initial Release",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -36,7 +36,7 @@
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
-          "patch": 0,
+          "patch": 1,
           "message": "Fixed: Consultants were incorrectly blocked from saving incidents due to a missing permissions check — all consultants assigned to a site can now report incidents as expected",
           "category": "bug",
           "createdAt": "2026-04-13T11:50:00.000Z",
@@ -44,7 +44,7 @@
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
-          "patch": 0,
+          "patch": 1,
           "message": "Standard consultants and clients can now update their own profile details (job title, department, phone, mobile, preferred contact) — name and email remain managed by administrators",
           "category": "enhancement",
           "createdAt": "2026-04-13T13:15:00.000Z",
@@ -52,7 +52,7 @@
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
-          "patch": 0,
+          "patch": 1,
           "message": "Fixed a typo in the phone number example on the settings page — it was showing letters instead of numbers",
           "category": "bug",
           "createdAt": "2026-04-13T13:30:00.000Z",
@@ -60,7 +60,7 @@
         },
         {
           "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
-          "patch": 0,
+          "patch": 1,
           "message": "Fixed: profile changes on the settings page were not reflected when navigating away and back — the updated details now appear immediately without needing a page refresh",
           "category": "bug",
           "createdAt": "2026-04-13T13:45:00.000Z",
@@ -68,7 +68,7 @@
         },
         {
           "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
-          "patch": 0,
+          "patch": 1,
           "message": "Fixed: admins were blocked from saving their own profile with a 'sources required' error — the settings page no longer triggers this check when sources are not being changed",
           "category": "bug",
           "createdAt": "2026-04-13T13:55:00.000Z",
@@ -76,7 +76,7 @@
         },
         {
           "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
-          "patch": 0,
+          "patch": 1,
           "message": "Updated the empty folder message in the template library to say 'There are currently no documents assigned to this folder' instead of a drag-and-drop instruction",
           "category": "enhancement",
           "createdAt": "2026-04-13T15:30:00.000Z",
@@ -84,7 +84,7 @@
         },
         {
           "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
-          "patch": 0,
+          "patch": 1,
           "message": "Removed the Setup Wizard from the template library — the button and the full step-by-step wizard process have been taken out",
           "category": "enhancement",
           "createdAt": "2026-04-13T15:50:00.000Z",
@@ -92,7 +92,7 @@
         },
         {
           "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
-          "patch": 0,
+          "patch": 1,
           "message": "The comments dialog on feedback entries now shows the original feedback message at the top, so you always know what you are replying to",
           "category": "enhancement",
           "createdAt": "2026-04-13T16:10:00.000Z",
@@ -100,7 +100,7 @@
         },
         {
           "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
-          "patch": 0,
+          "patch": 1,
           "message": "Improved the error message shown when a file upload fails due to a timed-out session — users now see 'Your session has expired, please refresh the page and log back in' instead of a generic authentication error",
           "category": "enhancement",
           "createdAt": "2026-04-13T16:30:00.000Z",
@@ -108,7 +108,7 @@
         },
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
-          "patch": 0,
+          "patch": 1,
           "message": "Redesigned the Template Library page header to match the Training Library style — coloured icon badge on the left, and the Add Folder and Add Template buttons now appear at the top of the page on all three views (Templates, Files, and Folders)",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
@@ -116,7 +116,7 @@
         },
         {
           "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
-          "patch": 0,
+          "patch": 1,
           "message": "Admins can now permanently delete a case from the Cases list and an incident from the Incidents register — a confirmation dialog shows exactly what will be removed and requires typing DELETE before proceeding; existing audit history is preserved and a new audit entry is written recording who performed the deletion",
           "category": "enhancement",
           "createdAt": "2026-04-13T18:00:00.000Z",
