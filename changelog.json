@@ -65,6 +65,14 @@
           "category": "bug",
           "createdAt": "2026-04-13T13:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+          "patch": 0,
+          "message": "Fixed: admins were blocked from saving their own profile with a 'sources required' error — the settings page no longer triggers this check when sources are not being changed",
+          "category": "bug",
+          "createdAt": "2026-04-13T13:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

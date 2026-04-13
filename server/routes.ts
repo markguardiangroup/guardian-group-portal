@@ -9768,9 +9768,9 @@ export async function registerRoutes(
           ? undefined  // strip sources from update; preserve existing value
           : sources;
       
-      // Validate sources for consultant/admin roles
-      if (targetIsConsultantOrAdmin) {
-        const effectiveSources = sourcesPayload !== undefined ? sourcesPayload : (targetUser?.sources ?? []);
+      // Validate sources for consultant/admin roles — only when sources is explicitly submitted
+      if (targetIsConsultantOrAdmin && sources !== undefined) {
+        const effectiveSources = sourcesPayload ?? [];
         if (!Array.isArray(effectiveSources) || effectiveSources.length === 0) {
           return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
         }
