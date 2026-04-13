@@ -105,6 +105,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-13T16:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
+          "patch": 0,
+          "message": "Redesigned the Template Library page header to match the Training Library style — coloured icon badge on the left, and the Add Folder and Add Template buttons now appear at the top of the page on all three views (Templates, Files, and Folders)",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T17:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
