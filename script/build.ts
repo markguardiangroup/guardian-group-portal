@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, writeFile } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -32,7 +32,20 @@ const allowlist = [
   "zod-validation-error",
 ];
 
+async function bumpChangelogPatch() {
+  const changelogPath = "changelog.json";
+  const raw = await readFile(changelogPath, "utf-8");
+  const data = JSON.parse(raw);
+  const active = data.versions.find((v: any) => v.id === data.activeVersionId);
+  if (active) {
+    active.patch = (active.patch ?? 0) + 1;
+    console.log(`changelog patch bumped → v${active.major}.${active.minor}.${active.patch}`);
+  }
+  await writeFile(changelogPath, JSON.stringify(data, null, 2) + "\n", "utf-8");
+}
+
 async function buildAll() {
+  await bumpChangelogPatch();
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
