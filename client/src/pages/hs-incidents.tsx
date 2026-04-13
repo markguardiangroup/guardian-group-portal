@@ -1891,7 +1891,10 @@ function IncidentDetailView({ id }: { id: string }) {
         body: buffer,
       });
 
-      if (!uploadRes.ok) throw new Error("Upload failed");
+      if (!uploadRes.ok) {
+        if (uploadRes.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
+        throw new Error("Upload failed");
+      }
 
       const { objectPath } = await uploadRes.json();
 
@@ -1934,7 +1937,10 @@ function IncidentDetailView({ id }: { id: string }) {
           body: buffer,
         });
 
-        if (!uploadRes.ok) throw new Error("Upload failed");
+        if (!uploadRes.ok) {
+          if (uploadRes.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
+          throw new Error("Upload failed");
+        }
 
         const { objectPath } = await uploadRes.json();
 

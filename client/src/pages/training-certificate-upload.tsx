@@ -197,6 +197,7 @@ export default function TrainingCertificateUpload() {
       });
       
       if (!uploadResponse.ok) {
+        if (uploadResponse.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
         const errorData = await uploadResponse.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to upload file");
       }

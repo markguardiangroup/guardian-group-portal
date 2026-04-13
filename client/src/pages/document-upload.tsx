@@ -435,6 +435,7 @@ export default function DocumentUpload() {
       });
 
       if (!uploadResponse.ok) {
+        if (uploadResponse.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
         throw new Error("Failed to upload file to storage");
       }
 

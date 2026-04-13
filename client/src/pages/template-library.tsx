@@ -1088,6 +1088,9 @@ export default function TemplateLibraryPage() {
             body: file,
           });
           if (!uploadRes.ok) {
+            if (uploadRes.status === 401) {
+              throw new Error("Your session has expired — please refresh the page and log back in.");
+            }
             const errData = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
             throw new Error(errData.error || `Upload failed: ${uploadRes.status}`);
           }

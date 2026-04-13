@@ -1268,7 +1268,10 @@ function CaseDetailView({ id }: { id: string }) {
         },
         body: buffer,
       });
-      if (!uploadRes.ok) throw new Error("Failed to upload file");
+      if (!uploadRes.ok) {
+        if (uploadRes.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
+        throw new Error("Failed to upload file");
+      }
       const { objectPath } = await uploadRes.json();
 
       const docRecord = await apiRequest("POST", `/api/cases/${id}/documents`, {

@@ -56,6 +56,9 @@ export function SimpleFileUpload({
       });
 
       if (!uploadRes.ok) {
+        if (uploadRes.status === 401) {
+          throw new Error("Your session has expired — please refresh the page and log back in.");
+        }
         const errorData = await uploadRes.json().catch(() => ({ error: "Upload failed" }));
         throw new Error(errorData.error || `Upload failed: ${uploadRes.status}`);
       }

@@ -97,6 +97,14 @@
           "category": "improvement",
           "createdAt": "2026-04-13T16:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
+          "patch": 0,
+          "message": "Improved the error message shown when a file upload fails due to a timed-out session — users now see 'Your session has expired, please refresh the page and log back in' instead of a generic authentication error",
+          "category": "improvement",
+          "createdAt": "2026-04-13T16:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
