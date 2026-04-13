@@ -520,7 +520,7 @@ export default function Settings() {
                       type="tel" 
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      placeholder="+44 1onal 123456"
+                      placeholder="+44 1234 123456"
                       data-testid="input-phone" 
                     />
                   </div>
