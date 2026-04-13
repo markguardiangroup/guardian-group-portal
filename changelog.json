@@ -73,6 +73,14 @@
           "category": "bug",
           "createdAt": "2026-04-13T13:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+          "patch": 0,
+          "message": "Updated the empty folder message in the template library to say 'There are currently no documents assigned to this folder' instead of a drag-and-drop instruction",
+          "category": "improvement",
+          "createdAt": "2026-04-13T15:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

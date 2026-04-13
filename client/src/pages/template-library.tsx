@@ -1864,7 +1864,7 @@ export default function TemplateLibraryPage() {
             <div className="px-4 py-2 space-y-2">
               {templatesInFolder.length === 0 && children.length === 0 && (
                 <p className="text-sm text-muted-foreground py-2">
-                  {isAdmin ? "Drop templates here to assign them to this folder." : "No templates in this folder"}
+                  {"There are currently no documents assigned to this folder."}
                 </p>
               )}
               {templatesInFolder.map(template => (
