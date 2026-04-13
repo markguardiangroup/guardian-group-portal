@@ -202,24 +202,22 @@ export default function AdminReports() {
         </CardContent>
       </Card>
 
-      {/* Changelog Section — dev-only */}
-      {!import.meta.env.PROD && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              Changelog / Release Notes
-            </CardTitle>
-            <CardDescription>
-              Track software changes by version. Entries are logged here after each change request.
-              Patch versions (0.0.01) are auto-incremented on each deployment; minor and major versions are created manually.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChangelogSection />
-          </CardContent>
-        </Card>
-      )}
+      {/* Changelog Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Changelog / Release Notes
+          </CardTitle>
+          <CardDescription>
+            Track software changes by version. Entries are logged here after each change request.
+            Patch versions are auto-incremented on each deployment; minor and major versions are created manually.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChangelogSection />
+        </CardContent>
+      </Card>
 
       {/* Users Report Dialog */}
       <Dialog open={showUsersReport} onOpenChange={setShowUsersReport}>
