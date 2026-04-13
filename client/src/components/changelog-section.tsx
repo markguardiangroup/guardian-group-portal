@@ -353,9 +353,9 @@ export default function ChangelogSection() {
                             >
                               <Badge
                                 variant="outline"
-                                className={`text-xs px-1.5 py-0 shrink-0 ${CATEGORY_COLORS[entry.category]}`}
+                                className={`text-xs px-1.5 py-0 shrink-0 ${CATEGORY_COLORS[entry.category] ?? CATEGORY_COLORS.other}`}
                               >
-                                {CATEGORY_LABELS[entry.category]}
+                                {CATEGORY_LABELS[entry.category] ?? entry.category}
                               </Badge>
                               <span className="text-sm flex-1">{entry.message}</span>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

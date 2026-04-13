@@ -78,7 +78,7 @@
           "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
           "patch": 0,
           "message": "Updated the empty folder message in the template library to say 'There are currently no documents assigned to this folder' instead of a drag-and-drop instruction",
-          "category": "improvement",
+          "category": "enhancement",
           "createdAt": "2026-04-13T15:30:00.000Z",
           "createdBy": "agent"
         },
@@ -86,7 +86,7 @@
           "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
           "patch": 0,
           "message": "Removed the Setup Wizard from the template library — the button and the full step-by-step wizard process have been taken out",
-          "category": "improvement",
+          "category": "enhancement",
           "createdAt": "2026-04-13T15:50:00.000Z",
           "createdBy": "agent"
         },
@@ -94,7 +94,7 @@
           "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
           "patch": 0,
           "message": "The comments dialog on feedback entries now shows the original feedback message at the top, so you always know what you are replying to",
-          "category": "improvement",
+          "category": "enhancement",
           "createdAt": "2026-04-13T16:10:00.000Z",
           "createdBy": "agent"
         },
@@ -102,7 +102,7 @@
           "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
           "patch": 0,
           "message": "Improved the error message shown when a file upload fails due to a timed-out session — users now see 'Your session has expired, please refresh the page and log back in' instead of a generic authentication error",
-          "category": "improvement",
+          "category": "enhancement",
           "createdAt": "2026-04-13T16:30:00.000Z",
           "createdBy": "agent"
         }
