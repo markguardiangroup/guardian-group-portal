@@ -178,12 +178,15 @@ function CasesList() {
   }, [urlSiteId, urlCompany]);
   const [showArchived, setShowArchived] = useState(false);
   const [caseToArchive, setCaseToArchive] = useState<Case | null>(null);
+  const [caseToDelete, setCaseToDelete] = useState<Case | null>(null);
+  const [caseDeleteConfirmText, setCaseDeleteConfirmText] = useState("");
   const [metricDialog, setMetricDialog] = useState<null | "cases_active" | "cases_resolved" | "overdue" | "upcoming">(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isAdmin = user?.role === "admin";
   
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
@@ -274,6 +277,22 @@ function CasesList() {
     },
     onError: () => {
       toast({ title: "Failed to restore case", variant: "destructive" });
+    },
+  });
+
+  // Delete mutation
+  const deleteCaseMutation = useMutation({
+    mutationFn: async (caseId: string) => {
+      return apiRequest("DELETE", `/api/cases/${caseId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      toast({ title: "Case permanently deleted" });
+      setCaseToDelete(null);
+      setCaseDeleteConfirmText("");
+    },
+    onError: () => {
+      toast({ title: "Failed to delete case", variant: "destructive" });
     },
   });
   
@@ -794,6 +813,19 @@ function CasesList() {
                               )}
                             </>
                           )}
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => { setCaseToDelete(caseItem); setCaseDeleteConfirmText(""); }}
+                                className="text-destructive focus:text-destructive"
+                                data-testid={`button-delete-case-${caseItem.id}`}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Case
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -821,6 +853,56 @@ function CasesList() {
         onSubmit={(data) => createCaseMutation.mutate(data)}
         isLoading={createCaseMutation.isPending}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!caseToDelete} onOpenChange={(open) => { if (!open) { setCaseToDelete(null); setCaseDeleteConfirmText(""); } }}>
+        <DialogContent className="theme-el sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Case
+            </DialogTitle>
+            <DialogDescription>This action is permanent and cannot be undone.</DialogDescription>
+          </DialogHeader>
+          {caseToDelete && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-medium mb-2">You are about to permanently delete:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Case: <strong>{caseToDelete.caseReference}</strong></li>
+                  <li>Employee: <strong>{caseToDelete.employeeName}</strong></li>
+                  <li>All documents, milestones, notes, and checklist items</li>
+                  <li>All audit history for this case</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Type <strong className="text-destructive">DELETE</strong> to confirm
+                </p>
+                <Input
+                  value={caseDeleteConfirmText}
+                  onChange={(e) => setCaseDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  data-testid="input-delete-case-confirm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setCaseToDelete(null); setCaseDeleteConfirmText(""); }} data-testid="button-cancel-delete-case">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => caseToDelete && deleteCaseMutation.mutate(caseToDelete.id)}
+              disabled={caseDeleteConfirmText !== "DELETE" || deleteCaseMutation.isPending}
+              data-testid="button-confirm-delete-case"
+            >
+              {deleteCaseMutation.isPending ? "Deleting..." : "Delete Case"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Archive Confirmation Dialog */}
       <AlertDialog open={!!caseToArchive} onOpenChange={(open) => !open && setCaseToArchive(null)}>

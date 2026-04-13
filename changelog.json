@@ -113,6 +113,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
+          "patch": 0,
+          "message": "Admins can now permanently delete a case from the Cases list and an incident from the Incidents register — a confirmation dialog shows exactly what will be removed and requires typing DELETE before proceeding",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T18:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -7156,6 +7156,42 @@ export async function registerRoutes(
     }
   });
 
+  // Delete a case (admin only) — cascades all related data
+  app.delete("/api/cases/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete cases" });
+
+      const existingCase = await storage.getCase(req.params.id);
+      if (!existingCase) return res.status(404).json({ error: "Case not found" });
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const caseId = req.params.id;
+        await client.query(`DELETE FROM audit_logs WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE case_id = $1)`, [caseId]);
+        await client.query(`DELETE FROM documents WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM case_milestones WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM case_document_checklist WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM case_notes WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM cases WHERE id = $1`, [caseId]);
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      res.status(204).end();
+    } catch (error) {
+      console.error("Delete case error:", error);
+      res.status(500).json({ error: "Failed to delete case" });
+    }
+  });
+
   // Helper function to check case confidentiality access
   // Consultants with site access can see all confidential cases at their assigned sites
   const canAccessConfidentialCase = (caseData: any, user: any): boolean => {
@@ -11201,6 +11237,40 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting milestone:", error);
       res.status(500).json({ error: "Failed to delete milestone" });
+    }
+  });
+
+  // Delete an incident (admin only) — cascades all related data
+  app.delete("/api/incidents/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete incidents" });
+
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const incidentId = req.params.id;
+        await client.query(`DELETE FROM audit_logs WHERE incident_id = $1`, [incidentId]);
+        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE incident_id = $1)`, [incidentId]);
+        await client.query(`DELETE FROM documents WHERE incident_id = $1`, [incidentId]);
+        await client.query(`DELETE FROM incident_milestones WHERE incident_id = $1`, [incidentId]);
+        await client.query(`DELETE FROM incidents WHERE id = $1`, [incidentId]);
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      res.status(204).end();
+    } catch (error) {
+      console.error("Delete incident error:", error);
+      res.status(500).json({ error: "Failed to delete incident" });
     }
   });
 

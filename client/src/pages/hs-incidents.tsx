@@ -3596,11 +3596,30 @@ function IncidentsListView() {
   const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [metricDialog, setMetricDialog] = useState<null | "active" | "riddor" | "open_actions">(null);
+  const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
+  const [incidentDeleteConfirmText, setIncidentDeleteConfirmText] = useState("");
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
   const activeConfig = registerTypeConfig[registerType];
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const isAdmin = user?.role === "admin";
+  const { toast } = useToast();
+
+  const deleteIncidentMutation = useMutation({
+    mutationFn: async (incidentId: string) => {
+      return apiRequest("DELETE", `/api/incidents/${incidentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      toast({ title: "Incident permanently deleted" });
+      setIncidentToDelete(null);
+      setIncidentDeleteConfirmText("");
+    },
+    onError: () => {
+      toast({ title: "Failed to delete incident", variant: "destructive" });
+    },
+  });
 
   const { data: incidentsRaw, isLoading } = useQuery<Incident[]>({
     queryKey: ["/api/incidents"],
@@ -4227,6 +4246,19 @@ function IncidentsListView() {
                                   View Incident
                                 </Link>
                               </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => { setIncidentToDelete(incident); setIncidentDeleteConfirmText(""); }}
+                                    className="text-destructive focus:text-destructive"
+                                    data-testid={`button-delete-incident-${incident.id}`}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Incident
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -4302,6 +4334,56 @@ function IncidentsListView() {
         </Card>
       </div>
       )}
+
+      {/* Delete Incident Confirmation Dialog */}
+      <Dialog open={!!incidentToDelete} onOpenChange={(open) => { if (!open) { setIncidentToDelete(null); setIncidentDeleteConfirmText(""); } }}>
+        <DialogContent className="theme-hs sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Incident
+            </DialogTitle>
+            <DialogDescription>This action is permanent and cannot be undone.</DialogDescription>
+          </DialogHeader>
+          {incidentToDelete && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-medium mb-2">You are about to permanently delete:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  <li>Incident: <strong>{incidentToDelete.incidentReference}</strong></li>
+                  <li>Title: <strong>{incidentToDelete.title}</strong></li>
+                  <li>All documents and action items for this incident</li>
+                  <li>All audit history for this incident</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Type <strong className="text-destructive">DELETE</strong> to confirm
+                </p>
+                <Input
+                  value={incidentDeleteConfirmText}
+                  onChange={(e) => setIncidentDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  data-testid="input-delete-incident-confirm"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setIncidentToDelete(null); setIncidentDeleteConfirmText(""); }} data-testid="button-cancel-delete-incident">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => incidentToDelete && deleteIncidentMutation.mutate(incidentToDelete.id)}
+              disabled={incidentDeleteConfirmText !== "DELETE" || deleteIncidentMutation.isPending}
+              data-testid="button-confirm-delete-incident"
+            >
+              {deleteIncidentMutation.isPending ? "Deleting..." : "Delete Incident"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ReportIncidentDialog
         open={showReportDialog}
