@@ -258,7 +258,8 @@ export default function Settings() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"], refetchType: "all" });
       toast({
         title: "Profile Updated",
         description: "Your profile information has been saved.",
