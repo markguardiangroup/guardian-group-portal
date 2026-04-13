@@ -1728,21 +1728,46 @@ export default function TemplateLibraryPage() {
   
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 px-6 py-6 bg-background border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <BookOpen className="h-6 w-6" />
-            Template Library
-          </h1>
-          <p className="text-muted-foreground">
-            Manage templates, folders, and template types - the "Document Bible"
-          </p>
+      <div className="shrink-0 px-6 py-6 bg-background border-b flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+            <BookOpen className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Template Library</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage templates, folders, and template types - the "Document Bible"
+            </p>
+          </div>
         </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setFolderFormData(defaultFolderFormData); setIsFolderDialogOpen(true); }}
+              data-testid="button-add-folder"
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Add Folder
+            </Button>
+            <Button
+              onClick={() => {
+                const module = selectedModule === "all" ? "health_safety" : selectedModule;
+                setBulkShared({ ...defaultBulkSharedSettings, module });
+                setIsTemplateDialogOpen(true);
+              }}
+              data-testid="button-add-template"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Template
+            </Button>
+          </div>
+        )}
       </div>
       <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div>
           <TabsList>
             <TabsTrigger value="templates" data-testid="tab-templates">
               <FileText className="h-4 w-4 mr-2" />
@@ -1757,33 +1782,6 @@ export default function TemplateLibraryPage() {
               Folders
             </TabsTrigger>
           </TabsList>
-          
-          {isAdmin && (
-            <div className="flex gap-2">
-              {(activeTab === "templates" || activeTab === "files") && (
-                <Button onClick={() => {
-                  const module = selectedModule === "all" ? "health_safety" : selectedModule;
-                  setBulkShared({ ...defaultBulkSharedSettings, module });
-                  setIsTemplateDialogOpen(true);
-                }} data-testid="button-add-template">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Template
-                </Button>
-              )}
-              {activeTab === "folders" && (
-                <Button onClick={() => { setFolderFormData(defaultFolderFormData); setIsFolderDialogOpen(true); }} data-testid="button-add-folder">
-                  <FolderPlus className="h-4 w-4 mr-2" />
-                  Add Folder
-                </Button>
-              )}
-              {activeTab === "document-types" && (
-                <Button onClick={() => { setDocTypeFormData(defaultDocTypeFormData); setIsDocTypeDialogOpen(true); }} data-testid="button-add-document-type">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Template Type
-                </Button>
-              )}
-            </div>
-          )}
         </div>
         
         {/* Module Tabs - Enhanced Prominence */}
