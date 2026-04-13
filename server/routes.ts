@@ -7170,7 +7170,6 @@ export async function registerRoutes(
       try {
         await client.query("BEGIN");
         const caseId = req.params.id;
-        await client.query(`DELETE FROM audit_logs WHERE case_id = $1`, [caseId]);
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE case_id = $1)`, [caseId]);
         await client.query(`DELETE FROM documents WHERE case_id = $1`, [caseId]);
         await client.query(`DELETE FROM case_milestones WHERE case_id = $1`, [caseId]);
@@ -7184,6 +7183,16 @@ export async function registerRoutes(
       } finally {
         client.release();
       }
+
+      await storage.createAuditLog({
+        action: "case_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingCase.siteId,
+        caseId: existingCase.id,
+        module: "employment_law",
+        details: `Case ${existingCase.caseReference} (${existingCase.employeeName}) permanently deleted by ${user.fullName}`,
+      });
 
       res.status(204).end();
     } catch (error) {
@@ -11254,7 +11263,6 @@ export async function registerRoutes(
       try {
         await client.query("BEGIN");
         const incidentId = req.params.id;
-        await client.query(`DELETE FROM audit_logs WHERE incident_id = $1`, [incidentId]);
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE incident_id = $1)`, [incidentId]);
         await client.query(`DELETE FROM documents WHERE incident_id = $1`, [incidentId]);
         await client.query(`DELETE FROM incident_milestones WHERE incident_id = $1`, [incidentId]);
@@ -11266,6 +11274,16 @@ export async function registerRoutes(
       } finally {
         client.release();
       }
+
+      await storage.createAuditLog({
+        action: "incident_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: incident.siteId,
+        incidentId: incident.id,
+        module: "health_safety",
+        details: `Incident ${incident.incidentReference} ("${incident.title}") permanently deleted by ${user.fullName}`,
+      });
 
       res.status(204).end();
     } catch (error) {

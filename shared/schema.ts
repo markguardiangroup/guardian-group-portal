@@ -824,7 +824,9 @@ export type AuditAction =
   | "client_upload_downloaded"
   | "client_upload_deleted"
   | "client_folder_access_granted"
-  | "client_folder_access_revoked";
+  | "client_folder_access_revoked"
+  | "case_deleted"
+  | "incident_deleted";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
