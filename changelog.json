@@ -89,6 +89,14 @@
           "category": "improvement",
           "createdAt": "2026-04-13T15:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
+          "patch": 0,
+          "message": "The comments dialog on feedback entries now shows the original feedback message at the top, so you always know what you are replying to",
+          "category": "improvement",
+          "createdAt": "2026-04-13T16:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

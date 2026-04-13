@@ -262,7 +262,13 @@ export default function AdminFeedback() {
                             <DialogHeader>
                               <DialogTitle>Comments ({item.commentCount || 0})</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                            <div className="rounded-md border-l-4 border-l-primary bg-muted/50 px-4 py-3 space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                {item.userName} &middot; {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
+                              </p>
+                              <p className="text-sm">{item.message}</p>
+                            </div>
+                            <div className="space-y-4 max-h-[340px] overflow-y-auto pr-2">
                               {comments?.map((comment) => (
                                 <div key={comment.id} className="bg-muted p-3 rounded-lg space-y-1">
                                   <div className="flex justify-between items-start">
