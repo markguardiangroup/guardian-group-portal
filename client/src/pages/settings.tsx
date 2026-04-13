@@ -426,9 +426,8 @@ export default function Settings() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className="flex items-center gap-1.5">
-                      First Name
-                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <Label htmlFor="firstName">
+                      First Name{!canEditIdentity && <Lock className="inline h-3 w-3 ml-1.5 text-muted-foreground" />}
                     </Label>
                     <Input 
                       id="firstName" 
@@ -439,9 +438,8 @@ export default function Settings() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className="flex items-center gap-1.5">
-                      Last Name
-                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <Label htmlFor="lastName">
+                      Last Name{!canEditIdentity && <Lock className="inline h-3 w-3 ml-1.5 text-muted-foreground" />}
                     </Label>
                     <Input 
                       id="lastName" 
@@ -484,9 +482,8 @@ export default function Settings() {
                 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="flex items-center gap-1.5">
-                      Email
-                      {!canEditIdentity && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <Label htmlFor="email">
+                      Email{!canEditIdentity && <Lock className="inline h-3 w-3 ml-1.5 text-muted-foreground" />}
                     </Label>
                     <Input 
                       id="email" 
