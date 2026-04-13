@@ -49,6 +49,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-13T13:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+          "patch": 0,
+          "message": "Fixed a typo in the phone number example on the settings page — it was showing letters instead of numbers",
+          "category": "bug",
+          "createdAt": "2026-04-13T13:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
