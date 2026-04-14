@@ -164,6 +164,7 @@ export default function Login() {
 
       const isClientUser = userData.role === "client";
       await Promise.all([
+        p(["/api/auth/me"], "/api/auth/me"),
         p(["/api/sites"], "/api/sites"),
         p(["/api/companies"], "/api/companies"),
         p(["/api/user/module-access"], "/api/user/module-access"),
@@ -176,8 +177,6 @@ export default function Login() {
         p(["/api/incidents"], "/api/incidents"),
         p(["/api/cases"], "/api/cases"),
       ]);
-
-      queryClient.setQueryData(["/api/auth/me"], userData);
       const currentPath = window.location.pathname;
       if (!currentPath || currentPath === "/login") {
         setLocation("/");
