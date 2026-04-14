@@ -115,6 +115,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "c5d6e7f8-a9b0-1234-cdef-345678901234",
+          "patch": 2,
+          "message": "Fixed: pro consultants saw no selectable sources when creating a company — their assigned sources are now correctly available in the company creation form immediately after login",
+          "category": "bug",
+          "createdAt": "2026-04-14T09:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
           "patch": 2,
           "message": "Admins can now permanently delete a case from the Cases list and an incident from the Incidents register — a confirmation dialog shows exactly what will be removed and requires typing DELETE before proceeding; existing audit history is preserved and a new audit entry is written recording who performed the deletion",
