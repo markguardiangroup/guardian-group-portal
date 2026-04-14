@@ -103,16 +103,19 @@ When the agent cannot make an authenticated HTTP request, append an entry direct
 | `other` | Refactors, docs, config changes |
 
 ### Message format
-One line, plain English written for **non-technical users** — describe what changed from the user's perspective, not how it was implemented. Never include code terms (function names, hook names, array names, etc.).
+One short line, plain English written for **non-technical users**. Keep it punchy — state only what changed, not how or why. No em-dashes with extra explanation, no parenthetical lists of details. Never include code terms (function names, hook names, array names, etc.).
 
 Good examples:
-- `"Folder template selection now populates correctly when creating documents from a template"`
-- `"Support link in sidebar now always shows as locked in production environment for all users"`
-- `"New Release Notes section added to admin reports — view, manage, and export a full history of platform updates"`
+- `"Fixed folder template selection when creating documents from a template"`
+- `"Support link in sidebar always shows as locked in production"`
+- `"Added Release Notes section to admin reports"`
+- `"Fixed: pro consultants' assigned sources not showing in company creation form"`
+- `"Admins can now permanently delete cases and incidents, with confirmation dialog and full audit trail"`
 
-Bad examples (too technical — avoid):
-- `"Enhancement: Folder pre-population useEffect now includes selectedTemplate and folderTemplates in dependency array so it fires correctly when async data loads"`
-- `"Fix: incrementPatchVersion() now uses atomic rename to avoid partial writes"`
+Bad examples (too long or too technical — avoid):
+- `"Folder template selection now populates correctly when creating documents from a template"` — too wordy
+- `"New Release Notes section added to admin reports — view, manage, and export a full history of platform updates"` — drop everything after the em-dash
+- `"Fix: incrementPatchVersion() now uses atomic rename to avoid partial writes"` — technical, user-facing terms only
 
 ## External Dependencies
 
