@@ -786,12 +786,7 @@ export default function Companies() {
             </Button>
           )}
           {canCreateCompany && (
-            <Button size="sm" className="w-36" onClick={() => {
-              if (isProConsultant && (user as any)?.sources?.length) {
-                setFormData(prev => ({ ...prev, sources: [...((user as any).sources as string[])] }));
-              }
-              setIsAddOpen(true);
-            }} data-testid="button-add-company">
+            <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
               Add Company
             </Button>
