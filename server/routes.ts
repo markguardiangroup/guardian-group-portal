@@ -341,6 +341,7 @@ export async function registerRoutes(
         clientPermissionRole: user.clientPermissionRole,
         consultantTier: user.consultantTier,
         legalAcceptedAt: user.legalAcceptedAt,
+        sources: user.sources,
       });
     } catch (error) {
       console.error("Login error:", error);
