@@ -104,6 +104,7 @@ export default function ChangelogSection() {
 
   const { data: changelog, isLoading } = useQuery<ChangelogData>({
     queryKey: ["/api/changelog/versions"],
+    staleTime: 0,
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["/api/changelog/versions"], refetchType: "all" });
