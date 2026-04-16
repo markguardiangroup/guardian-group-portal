@@ -48,8 +48,41 @@ function mimeToExtension(mimeType: string): string {
     "application/rtf": "rtf",
     "text/plain": "txt",
     "text/csv": "csv",
+    "application/vnd.oasis.opendocument.text": "odt",
+    "application/vnd.oasis.opendocument.spreadsheet": "ods",
+    "application/vnd.oasis.opendocument.presentation": "odp",
+    "application/vnd.oasis.opendocument.graphics": "odg",
+    "text/html": "html",
+    "application/xhtml+xml": "xhtml",
   };
   return map[mimeType] ?? "bin";
+}
+
+/** Parse image dimensions from PNG/JPEG buffer headers without any-cast hacks. */
+function getImageDimensions(buffer: Buffer, mimeType: string): { width: number; height: number } {
+  try {
+    if (mimeType === "image/png" && buffer.length >= 24) {
+      const width = buffer.readUInt32BE(16);
+      const height = buffer.readUInt32BE(20);
+      if (width > 0 && height > 0) return { width, height };
+    } else if ((mimeType === "image/jpeg" || mimeType === "image/jpg") && buffer.length > 10) {
+      let i = 2;
+      while (i < buffer.length - 8) {
+        if (buffer[i] !== 0xff) break;
+        const marker = buffer[i + 1];
+        const segLen = buffer.readUInt16BE(i + 2);
+        if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+          const h = buffer.readUInt16BE(i + 5);
+          const w = buffer.readUInt16BE(i + 7);
+          if (w > 0 && h > 0) return { width: w, height: h };
+        }
+        i += 2 + segLen;
+      }
+    }
+  } catch {
+    // fall through
+  }
+  return { width: 800, height: 600 };
 }
 
 async function convertFileToPdf(
@@ -78,8 +111,7 @@ async function convertFileToPdf(
       const maxH = A4_H - 2 * MARGIN;
 
       try {
-        const imgData = (doc as any).openImage(fileBuffer);
-        const nW = imgData.width as number, nH = imgData.height as number;
+        const { width: nW, height: nH } = getImageDimensions(fileBuffer, mimeType);
         let drawW = nW, drawH = nH;
         if (nW > maxW || nH > maxH) {
           const scale = Math.min(maxW / nW, maxH / nH);

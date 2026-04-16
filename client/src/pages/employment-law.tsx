@@ -2468,7 +2468,9 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
-                          {bundle.cachedAt && <span className="ml-1">· cached</span>}
+                          {bundle.cachedAt && (
+                            <span className="ml-1">· Last generated {format(new Date(bundle.cachedAt), "d MMM yyyy")}</span>
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -2604,7 +2606,7 @@ function CaseDetailView({ id }: { id: string }) {
               {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               )}
-              Save
+              Save Bundle
             </Button>
             <Button
               disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
@@ -2614,7 +2616,7 @@ function CaseDetailView({ id }: { id: string }) {
               {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               )}
-              Save &amp; Download
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>
