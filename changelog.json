@@ -145,6 +145,14 @@
           "category": "feature",
           "createdAt": "2026-04-16T17:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-defa-567890123456",
+          "patch": 2,
+          "message": "Added Guardian Group website link to the sidebar for quick access to the main site",
+          "category": "enhancement",
+          "createdAt": "2026-04-16T18:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
