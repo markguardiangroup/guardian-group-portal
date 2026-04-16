@@ -2486,6 +2486,9 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
+                          {bundle.cachedFileUrl && bundle.fileSizeBytes ? (
+                            <span className="ml-1">· {formatFileSize(bundle.fileSizeBytes)}</span>
+                          ) : null}
                           {bundle.cachedAt && (
                             <span className="ml-1">· Last generated {format(new Date(bundle.cachedAt), "d MMM yyyy")}</span>
                           )}
