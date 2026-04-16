@@ -104,9 +104,12 @@ import {
   StickyNote,
   Maximize2,
   ClipboardList,
+  Package,
+  PackagePlus,
+  Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
+import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, CaseBundle, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -1409,6 +1412,106 @@ function CaseDetailView({ id }: { id: string }) {
   const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
   const [checklistItemToDelete, setChecklistItemToDelete] = useState<CaseDocumentChecklist | null>(null);
 
+  // Document Bundles
+  const { data: bundles = [] } = useQuery<CaseBundle[]>({
+    queryKey: ["/api/cases", id, "bundles"],
+    enabled: !!id,
+  });
+
+  const [showBundleDialog, setShowBundleDialog] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<CaseBundle | null>(null);
+  const [bundleName, setBundleName] = useState("");
+  const [bundleSelectedItemIds, setBundleSelectedItemIds] = useState<string[]>([]);
+  const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
+  const [bundleToDelete, setBundleToDelete] = useState<CaseBundle | null>(null);
+
+  const openNewBundleDialog = () => {
+    setEditingBundle(null);
+    setBundleName("");
+    setBundleSelectedItemIds([]);
+    setShowBundleDialog(true);
+  };
+
+  const openEditBundleDialog = (bundle: CaseBundle) => {
+    setEditingBundle(bundle);
+    setBundleName(bundle.name);
+    setBundleSelectedItemIds(bundle.checklistItemIds ?? []);
+    setShowBundleDialog(true);
+  };
+
+  const createBundleMutation = useMutation<CaseBundle, Error, { name: string; checklistItemIds: string[] }>({
+    mutationFn: (data) =>
+      apiRequest("POST", `/api/cases/${id}/bundles`, data).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "bundles"] });
+    },
+    onError: (err) => toast({ title: "Failed to save bundle", description: String(err), variant: "destructive" }),
+  });
+
+  const updateBundleMutation = useMutation<CaseBundle, Error, { bundleId: string; data: { name?: string; checklistItemIds?: string[] } }>({
+    mutationFn: ({ bundleId, data }) =>
+      apiRequest("PATCH", `/api/cases/${id}/bundles/${bundleId}`, data).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "bundles"] });
+    },
+    onError: (err) => toast({ title: "Failed to update bundle", description: String(err), variant: "destructive" }),
+  });
+
+  const deleteBundleMutation = useMutation({
+    mutationFn: (bundleId: string) => apiRequest("DELETE", `/api/cases/${id}/bundles/${bundleId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "bundles"] });
+      setBundleToDelete(null);
+      toast({ title: "Bundle deleted" });
+    },
+    onError: (err) => toast({ title: "Failed to delete bundle", description: String(err), variant: "destructive" }),
+  });
+
+  const handleSaveBundle = async (andDownload = false) => {
+    try {
+      const savedBundle: CaseBundle = editingBundle
+        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds: bundleSelectedItemIds } })
+        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds: bundleSelectedItemIds });
+      setShowBundleDialog(false);
+      if (!andDownload) {
+        toast({ title: editingBundle ? "Bundle updated" : "Bundle saved" });
+      } else {
+        await handleDownloadBundle(savedBundle);
+      }
+    } catch {
+      // errors handled in mutation onError
+    }
+  };
+
+  const handleDownloadBundle = async (bundle: CaseBundle) => {
+    setDownloadingBundleId(bundle.id);
+    try {
+      const res = await fetch(`/api/cases/${id}/bundles/${bundle.id}/download`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as any).error || "Failed to generate bundle");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${bundle.name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "bundles"] });
+      toast({ title: "Bundle downloaded" });
+    } catch (err) {
+      toast({ title: "Failed to download bundle", description: String(err), variant: "destructive" });
+    } finally {
+      setDownloadingBundleId(null);
+    }
+  };
+
   // Case Notes
   const { data: caseNotes = [] } = useQuery<(CaseNote & { createdByName: string })[]>({
     queryKey: ["/api/cases", id, "notes"],
@@ -2283,8 +2386,195 @@ function CaseDetailView({ id }: { id: string }) {
               )}
             </CardContent>
           </Card>
+
+          {/* Document Bundles */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5 text-pink-500" />
+                  Document Bundles
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Saved document sets for download as PDF</CardDescription>
+              </div>
+              {(user?.role === "admin" || user?.role === "consultant") && (
+                <Button size="sm" variant="outline" onClick={openNewBundleDialog} data-testid="button-new-bundle">
+                  <PackagePlus className="h-4 w-4 mr-1.5" />
+                  New Bundle
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="pt-4">
+              {bundles.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No bundles yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {bundles.map((bundle) => (
+                    <div
+                      key={bundle.id}
+                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+                      data-testid={`bundle-row-${bundle.id}`}
+                    >
+                      <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{bundle.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
+                          {bundle.cachedAt && <span className="ml-1">· cached</span>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          disabled={downloadingBundleId === bundle.id}
+                          onClick={() => handleDownloadBundle(bundle)}
+                          data-testid={`button-download-bundle-${bundle.id}`}
+                          title="Download bundle PDF"
+                        >
+                          {downloadingBundleId === bundle.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                        </Button>
+                        {(user?.role === "admin" || user?.role === "consultant") && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => openEditBundleDialog(bundle)}
+                              data-testid={`button-edit-bundle-${bundle.id}`}
+                              title="Edit bundle"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setBundleToDelete(bundle)}
+                              data-testid={`button-delete-bundle-${bundle.id}`}
+                              title="Delete bundle"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Bundle Dialog */}
+      <Dialog open={showBundleDialog} onOpenChange={setShowBundleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingBundle ? "Edit Bundle" : "New Document Bundle"}</DialogTitle>
+            <DialogDescription>
+              Choose a name and select checklist items to include in this bundle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Bundle Name</label>
+              <Input
+                value={bundleName}
+                onChange={(e) => setBundleName(e.target.value)}
+                placeholder="e.g. Claimant Documents"
+                data-testid="input-bundle-name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">
+                Select Documents ({bundleSelectedItemIds.length} selected)
+              </label>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto rounded border p-2">
+                {(checklistItems ?? []).filter(item => item.linkedDocumentId).length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2 text-center">No completed checklist items with documents</p>
+                ) : (
+                  (checklistItems ?? [])
+                    .filter(item => item.linkedDocumentId)
+                    .map(item => (
+                      <label
+                        key={item.id}
+                        className="flex items-start gap-2 cursor-pointer py-1 px-1 rounded hover:bg-muted/50"
+                        data-testid={`bundle-item-${item.id}`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={bundleSelectedItemIds.includes(item.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setBundleSelectedItemIds(prev => [...prev, item.id]);
+                            } else {
+                              setBundleSelectedItemIds(prev => prev.filter(x => x !== item.id));
+                            }
+                          }}
+                        />
+                        <span className="text-sm leading-snug">{item.title}</span>
+                      </label>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBundleDialog(false)}>Cancel</Button>
+            <Button
+              variant="outline"
+              disabled={!bundleName.trim() || bundleSelectedItemIds.length === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
+              onClick={() => handleSaveBundle(false)}
+              data-testid="button-save-bundle"
+            >
+              {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              )}
+              Save
+            </Button>
+            <Button
+              disabled={!bundleName.trim() || bundleSelectedItemIds.length === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
+              onClick={() => handleSaveBundle(true)}
+              data-testid="button-save-download-bundle"
+            >
+              {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              )}
+              Save &amp; Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bundle Delete Confirm */}
+      <AlertDialog open={!!bundleToDelete} onOpenChange={(o) => { if (!o) setBundleToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Bundle</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the bundle &ldquo;{bundleToDelete?.name}&rdquo;? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => bundleToDelete && deleteBundleMutation.mutate(bundleToDelete.id)}
+              data-testid="button-confirm-delete-bundle"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
         <AlertDialogContent>

@@ -220,6 +220,19 @@ export class ObjectStorageService {
     return `/objects/${entityId}`;
   }
 
+  // Saves a buffer to private storage and returns the normalized /objects/ path.
+  async saveBundle(buffer: Buffer, bundleId: string): Promise<string> {
+    const privateDir = this.getPrivateObjectDir();
+    const fullPath = `${privateDir}/bundles/${bundleId}.pdf`;
+    const pathParts = (fullPath.startsWith("/") ? fullPath.slice(1) : fullPath).split("/");
+    const bucketName = pathParts[0];
+    const objectName = pathParts.slice(1).join("/");
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    await file.save(buffer, { contentType: "application/pdf" });
+    return `/objects/bundles/${bundleId}.pdf`;
+  }
+
   // Deletes an object entity from storage by its normalized path.
   async deleteObjectEntityFile(objectPath: string): Promise<void> {
     try {

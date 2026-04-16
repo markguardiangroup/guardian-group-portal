@@ -69,6 +69,8 @@ import {
   testingTaskAssignments as testingTaskAssignmentsTable,
   type Source, type InsertSource,
   sources as sourcesTable,
+  type CaseBundle, type InsertCaseBundle,
+  caseBundles as caseBundlesTable,
   trainingModules as trainingModulesTable,
   trainingFolders as trainingFoldersTable,
   trainingCourses as trainingCoursesTable,
@@ -234,6 +236,13 @@ export interface IStorage {
   createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist>;
   updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined>;
   deleteCaseDocumentChecklistItem(id: string): Promise<void>;
+
+  // Case Bundles
+  getCaseBundles(caseId: string): Promise<CaseBundle[]>;
+  getCaseBundle(id: string): Promise<CaseBundle | undefined>;
+  createCaseBundle(bundle: InsertCaseBundle): Promise<CaseBundle>;
+  updateCaseBundle(id: string, updates: Partial<CaseBundle>): Promise<CaseBundle | undefined>;
+  deleteCaseBundle(id: string): Promise<void>;
 
   // Case Notes
   getCaseNotes(caseId: string): Promise<CaseNote[]>;
@@ -1551,6 +1560,36 @@ export class MemStorage implements IStorage {
 
   async deleteCaseDocumentChecklistItem(id: string): Promise<void> {
     await db.delete(caseDocumentChecklistTable).where(eq(caseDocumentChecklistTable.id, id));
+  }
+
+  // Case Bundles
+  async getCaseBundles(caseId: string): Promise<CaseBundle[]> {
+    return db.select().from(caseBundlesTable)
+      .where(eq(caseBundlesTable.caseId, caseId))
+      .orderBy(desc(caseBundlesTable.createdAt));
+  }
+
+  async getCaseBundle(id: string): Promise<CaseBundle | undefined> {
+    const [result] = await db.select().from(caseBundlesTable).where(eq(caseBundlesTable.id, id));
+    return result;
+  }
+
+  async createCaseBundle(bundle: InsertCaseBundle): Promise<CaseBundle> {
+    const now = new Date();
+    const [result] = await db.insert(caseBundlesTable).values({ ...bundle, createdAt: now, updatedAt: now }).returning();
+    return result;
+  }
+
+  async updateCaseBundle(id: string, updates: Partial<CaseBundle>): Promise<CaseBundle | undefined> {
+    const [result] = await db.update(caseBundlesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(caseBundlesTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCaseBundle(id: string): Promise<void> {
+    await db.delete(caseBundlesTable).where(eq(caseBundlesTable.id, id));
   }
 
   // Case Notes

@@ -1635,6 +1635,29 @@ export const insertTestingTaskAssignmentSchema = createInsertSchema(testingTaskA
 export type InsertTestingTaskAssignment = z.infer<typeof insertTestingTaskAssignmentSchema>;
 export type TestingTaskAssignment = typeof testingTaskAssignments.$inferSelect;
 
+// ==================== CASE BUNDLES ====================
+export const caseBundles = pgTable("case_bundles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull().references(() => cases.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  checklistItemIds: text("checklist_item_ids").array().notNull().default(sql`ARRAY[]::text[]`),
+  cachedFileUrl: text("cached_file_url"),
+  cachedAt: timestamp("cached_at"),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCaseBundleSchema = createInsertSchema(caseBundles).omit({
+  id: true,
+  cachedFileUrl: true,
+  cachedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCaseBundle = z.infer<typeof insertCaseBundleSchema>;
+export type CaseBundle = typeof caseBundles.$inferSelect;
+
 // ==================== SOURCES ====================
 export const sources = pgTable("sources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

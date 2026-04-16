@@ -4,6 +4,12 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import fs from "fs/promises";
+import { createWriteStream } from "fs";
+import path from "path";
+import os from "os";
+import { exec } from "child_process";
+import { promisify } from "util";
 import type { ModuleType, InvitationPurpose } from "@shared/schema";
 import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
@@ -12,6 +18,137 @@ import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, type ChangelogCategory, type ChangelogEntry } from "./changelog";
+
+const execAsync = promisify(exec);
+
+// ── Bundle PDF Generation ─────────────────────────────────────────────────────
+
+// Serial queue: only one LibreOffice conversion at a time globally
+let _libreOfficeQueue: Promise<unknown> = Promise.resolve();
+
+function withLibreOffice<T>(fn: () => Promise<T>): Promise<T> {
+  let res!: (v: T) => void;
+  let rej!: (e: unknown) => void;
+  const p = new Promise<T>((r, e) => { res = r; rej = e; });
+  _libreOfficeQueue = _libreOfficeQueue.then(
+    () => fn().then(res, rej),
+    () => fn().then(res, rej),
+  );
+  return p;
+}
+
+function mimeToExtension(mimeType: string): string {
+  const map: Record<string, string> = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/rtf": "rtf",
+    "text/plain": "txt",
+    "text/csv": "csv",
+  };
+  return map[mimeType] ?? "bin";
+}
+
+async function convertFileToPdf(
+  fileBuffer: Buffer,
+  mimeType: string,
+  tempDir: string,
+  index: number,
+): Promise<string> {
+  const outputPath = path.join(tempDir, `${index}.pdf`);
+
+  if (mimeType === "application/pdf") {
+    await fs.writeFile(outputPath, fileBuffer);
+    return outputPath;
+  }
+
+  if (mimeType.startsWith("image/")) {
+    await new Promise<void>((resolve, reject) => {
+      const doc = new PDFDocument({ size: "A4", margin: 0 });
+      const stream = createWriteStream(outputPath);
+      stream.on("finish", resolve);
+      stream.on("error", reject);
+      doc.pipe(stream);
+
+      const A4_W = 595, A4_H = 842, MARGIN = 20;
+      const maxW = A4_W - 2 * MARGIN;
+      const maxH = A4_H - 2 * MARGIN;
+
+      try {
+        const imgData = (doc as any).openImage(fileBuffer);
+        const nW = imgData.width as number, nH = imgData.height as number;
+        let drawW = nW, drawH = nH;
+        if (nW > maxW || nH > maxH) {
+          const scale = Math.min(maxW / nW, maxH / nH);
+          drawW = Math.floor(nW * scale);
+          drawH = Math.floor(nH * scale);
+        }
+        const x = (A4_W - drawW) / 2;
+        const y = (A4_H - drawH) / 2;
+        doc.image(fileBuffer, x, y, { width: drawW, height: drawH });
+      } catch (err) {
+        // If image embedding fails, create blank page
+        doc.text("(Image could not be rendered)", 50, 50);
+      }
+      doc.end();
+    });
+    return outputPath;
+  }
+
+  // Office file — convert via LibreOffice (serial queue)
+  return withLibreOffice(async () => {
+    const ext = mimeToExtension(mimeType);
+    const inputPath = path.join(tempDir, `${index}_src.${ext}`);
+    const outDir = path.join(tempDir, `lo_${index}`);
+    await fs.mkdir(outDir, { recursive: true });
+    await fs.writeFile(inputPath, fileBuffer);
+    await execAsync(
+      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
+      { timeout: 60_000, env: { ...process.env, HOME: outDir } },
+    );
+    const outFiles = await fs.readdir(outDir);
+    const pdfFile = outFiles.find(f => f.endsWith(".pdf"));
+    if (!pdfFile) throw new Error(`LibreOffice produced no PDF for file ${index}`);
+    await fs.rename(path.join(outDir, pdfFile), outputPath);
+    return outputPath;
+  });
+}
+
+async function mergePdfs(pdfPaths: string[], outputPath: string): Promise<void> {
+  const quoted = pdfPaths.map(p => `"${p}"`).join(" ");
+  await execAsync(
+    `gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="${outputPath}" ${quoted}`,
+    { timeout: 120_000 },
+  );
+}
+
+async function addPageNumbers(inputPath: string, outputPath: string): Promise<void> {
+  const psScript = `%!PS
+<</BeginPage {
+  gsave
+  /Helvetica findfont 9 scalefont setfont
+  0.55 0.55 0.55 setrgbcolor
+  currentpagedevice /PageSize get 0 get 30 sub
+  15
+  moveto
+  10 string cvs show
+  grestore
+} bind >> setpagedevice
+`;
+  const psPath = path.join(path.dirname(outputPath), `pagenums_${Date.now()}.ps`);
+  await fs.writeFile(psPath, psScript);
+  try {
+    await execAsync(
+      `gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="${outputPath}" "${psPath}" "${inputPath}"`,
+      { timeout: 120_000 },
+    );
+  } finally {
+    await fs.unlink(psPath).catch(() => {});
+  }
+}
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -7645,6 +7782,218 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete checklist item error:", error);
       res.status(500).json({ error: "Failed to delete checklist item" });
+    }
+  });
+
+  // ── Case Document Bundles ─────────────────────────────────────────────────
+
+  // List bundles for a case
+  app.get("/api/cases/:id/bundles", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!canAccessConfidentialCase(caseData, user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const bundles = await storage.getCaseBundles(req.params.id);
+      res.json(bundles);
+    } catch (error) {
+      console.error("List bundles error:", error);
+      res.status(500).json({ error: "Failed to fetch bundles" });
+    }
+  });
+
+  // Create bundle
+  app.post("/api/cases/:id/bundles", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot create bundles" });
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
+
+      const { name, checklistItemIds } = req.body;
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({ error: "Bundle name is required" });
+      }
+      if (!Array.isArray(checklistItemIds)) {
+        return res.status(400).json({ error: "checklistItemIds must be an array" });
+      }
+
+      const bundle = await storage.createCaseBundle({
+        caseId: req.params.id,
+        name: name.trim(),
+        checklistItemIds,
+        createdBy: user.id,
+      });
+      res.status(201).json(bundle);
+    } catch (error) {
+      console.error("Create bundle error:", error);
+      res.status(500).json({ error: "Failed to create bundle" });
+    }
+  });
+
+  // Update bundle (rename or change items — also clears cache)
+  app.patch("/api/cases/:caseId/bundles/:bundleId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot edit bundles" });
+
+      const bundle = await storage.getCaseBundle(req.params.bundleId);
+      if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
+
+      const updates: Record<string, unknown> = {};
+      if (req.body.name && typeof req.body.name === "string") updates.name = req.body.name.trim();
+      if (Array.isArray(req.body.checklistItemIds)) {
+        updates.checklistItemIds = req.body.checklistItemIds;
+        // Invalidate cache when items change
+        updates.cachedFileUrl = null;
+        updates.cachedAt = null;
+      }
+
+      const updated = await storage.updateCaseBundle(req.params.bundleId, updates);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update bundle error:", error);
+      res.status(500).json({ error: "Failed to update bundle" });
+    }
+  });
+
+  // Delete bundle
+  app.delete("/api/cases/:caseId/bundles/:bundleId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot delete bundles" });
+
+      const bundle = await storage.getCaseBundle(req.params.bundleId);
+      if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
+
+      // Clean up cached file if present
+      if (bundle.cachedFileUrl) {
+        const objectStorageService = new ObjectStorageService();
+        await objectStorageService.deleteObjectEntityFile(bundle.cachedFileUrl).catch(() => {});
+      }
+
+      await storage.deleteCaseBundle(req.params.bundleId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete bundle error:", error);
+      res.status(500).json({ error: "Failed to delete bundle" });
+    }
+  });
+
+  // Download (or generate) a bundle PDF
+  app.post("/api/cases/:caseId/bundles/:bundleId/download", requireAuth, async (req, res) => {
+    // Allow up to 5 minutes for generation
+    req.setTimeout(300_000);
+
+    let tempDir: string | null = null;
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const bundle = await storage.getCaseBundle(req.params.bundleId);
+      if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
+
+      const caseData = await storage.getCase(req.params.caseId);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
+
+      const objectStorageService = new ObjectStorageService();
+
+      // Serve from cache if available
+      if (bundle.cachedFileUrl) {
+        try {
+          const cachedFile = await objectStorageService.getObjectEntityFile(bundle.cachedFileUrl);
+          const safeName = `${bundle.name.replace(/[^\w\s.-]/g, "_")}.pdf`;
+          await objectStorageService.downloadObject(cachedFile, res, 0, safeName);
+          return;
+        } catch {
+          // Cache miss — regenerate
+          await storage.updateCaseBundle(bundle.id, { cachedFileUrl: null, cachedAt: null });
+        }
+      }
+
+      if (bundle.checklistItemIds.length === 0) {
+        return res.status(400).json({ error: "Bundle has no documents" });
+      }
+
+      // Load checklist items
+      const allChecklist = await storage.getCaseDocumentChecklist(req.params.caseId);
+      const selectedItems = allChecklist.filter(item => bundle.checklistItemIds.includes(item.id));
+
+      if (selectedItems.length === 0) {
+        return res.status(400).json({ error: "No matching checklist items found" });
+      }
+
+      // Create temp dir
+      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bundle_"));
+
+      const pdfPaths: string[] = [];
+
+      for (let i = 0; i < selectedItems.length; i++) {
+        const item = selectedItems[i];
+        if (!item.linkedDocumentId) continue;
+
+        const doc = await storage.getDocument(item.linkedDocumentId);
+        if (!doc || !doc.fileUrl) continue;
+
+        try {
+          const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
+          const [fileBuffer] = await objectFile.download();
+          const mimeType = doc.mimeType || "application/octet-stream";
+          const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i);
+          pdfPaths.push(pdfPath);
+        } catch (fileError) {
+          console.warn(`Bundle: skipping item ${item.id} due to error:`, fileError);
+        }
+      }
+
+      if (pdfPaths.length === 0) {
+        return res.status(400).json({ error: "No documents could be converted to PDF" });
+      }
+
+      // Merge all PDFs
+      const mergedPath = path.join(tempDir, "merged.pdf");
+      await mergePdfs(pdfPaths, mergedPath);
+
+      // Add page numbers
+      const numberedPath = path.join(tempDir, "final.pdf");
+      await addPageNumbers(mergedPath, numberedPath);
+
+      // Read the final PDF
+      const finalBuffer = await fs.readFile(numberedPath);
+
+      // Upload to GCS for caching
+      try {
+        const cachedUrl = await objectStorageService.saveBundle(finalBuffer, bundle.id);
+        await storage.updateCaseBundle(bundle.id, { cachedFileUrl: cachedUrl, cachedAt: new Date() });
+      } catch (cacheErr) {
+        console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);
+      }
+
+      // Stream the PDF to the client
+      const safeName = `${bundle.name.replace(/[^\w\s.-]/g, "_")}.pdf`;
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${safeName}"`,
+        "Content-Length": finalBuffer.length,
+      });
+      res.send(finalBuffer);
+    } catch (error) {
+      console.error("Bundle download error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to generate bundle PDF" });
+      }
+    } finally {
+      if (tempDir) {
+        fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
     }
   });
 
