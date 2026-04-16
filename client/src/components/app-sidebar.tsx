@@ -26,6 +26,7 @@ import {
   Cloud,
   Award,
   Tag,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -415,6 +416,18 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     </Badge>
                   </SidebarMenuButton>
                 )}
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="transition-colors"
+                  data-testid="nav-guardian-website"
+                >
+                  <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Guardian Group Website</span>
+                  </a>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
