@@ -2488,11 +2488,17 @@ function CaseDetailView({ id }: { id: string }) {
                           {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
                         </p>
                         {bundle.cachedFileUrl && (
-                          <p className="text-xs text-muted-foreground">
-                            {bundle.fileSizeBytes ? `${formatFileSize(bundle.fileSizeBytes)} · ` : ""}
-                            {bundle.pageCount ? `${bundle.pageCount} ${bundle.pageCount === 1 ? "page" : "pages"} · ` : ""}
-                            {bundle.cachedAt ? `Created: ${format(new Date(bundle.cachedAt), "dd/MM/yyyy")}` : ""}
-                          </p>
+                          <>
+                            <p className="text-xs text-muted-foreground">
+                              {bundle.fileSizeBytes ? `${formatFileSize(bundle.fileSizeBytes)} · ` : ""}
+                              {bundle.pageCount ? `${bundle.pageCount} ${bundle.pageCount === 1 ? "page" : "pages"}` : ""}
+                            </p>
+                            {bundle.cachedAt && (
+                              <p className="text-xs text-muted-foreground">
+                                Created: {format(new Date(bundle.cachedAt), "dd/MM/yyyy")}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
