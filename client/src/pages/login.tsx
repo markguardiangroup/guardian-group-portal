@@ -7,7 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle,
   Shield, Users, Scale, GraduationCap, FileCheck, BarChart3, CheckCircle2,
-  LayoutDashboard, CalendarDays, BellRing,
+  LayoutDashboard, CalendarDays, BellRing, ExternalLink,
 } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
@@ -243,12 +243,13 @@ export default function Login() {
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
 
           {/* ── Logo ── */}
-          <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 w-fit">
-            <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10" />
+          <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 w-fit transition-opacity duration-200 hover:opacity-80">
+            <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10 transition-transform duration-200 group-hover:scale-105" />
             <div className="leading-tight">
-              <span className="block text-white font-bold text-lg tracking-tight">Guardian</span>
+              <span className="block text-white font-bold text-lg tracking-tight group-hover:underline underline-offset-2">Guardian</span>
               <span className="block text-white/50 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
             </div>
+            <ExternalLink className="h-3.5 w-3.5 text-white/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start mt-1" />
           </a>
 
           {/* ── Hero ── */}
@@ -351,12 +352,13 @@ export default function Login() {
           style={{ background: "radial-gradient(circle, rgba(129,140,248,0.04) 0%, transparent 70%)" }} />
 
         {/* Mobile logo */}
-        <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="flex lg:hidden items-center gap-3 mb-8 relative z-10 w-fit">
-          <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover" />
+        <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="group flex lg:hidden items-center gap-3 mb-8 relative z-10 w-fit transition-opacity duration-200 hover:opacity-80">
+          <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />
           <div className="leading-tight">
-            <span className="block text-slate-800 font-bold text-lg tracking-tight">Guardian</span>
+            <span className="block text-slate-800 font-bold text-lg tracking-tight group-hover:underline underline-offset-2">Guardian</span>
             <span className="block text-slate-400 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
           </div>
+          <ExternalLink className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start mt-1" />
         </a>
 
         {isLoading ? (
