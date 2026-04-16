@@ -2489,6 +2489,9 @@ function CaseDetailView({ id }: { id: string }) {
                           {bundle.cachedFileUrl && bundle.fileSizeBytes ? (
                             <span className="ml-1">· {formatFileSize(bundle.fileSizeBytes)}</span>
                           ) : null}
+                          {bundle.cachedFileUrl && bundle.pageCount ? (
+                            <span className="ml-1">· {bundle.pageCount} {bundle.pageCount === 1 ? "page" : "pages"}</span>
+                          ) : null}
                           {bundle.cachedAt && (
                             <span className="ml-1">· Last generated {format(new Date(bundle.cachedAt), "d MMM yyyy")}</span>
                           )}

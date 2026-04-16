@@ -171,6 +171,19 @@ async function mergePdfs(pdfPaths: string[], outputPath: string): Promise<void> 
   );
 }
 
+async function countPdfPages(pdfPath: string): Promise<number> {
+  try {
+    const { stdout } = await execAsync(
+      `gs -q -dNODISPLAY -c "(${pdfPath}) (r) file runpdfbegin pdfpagecount = quit"`,
+      { timeout: 30_000 },
+    );
+    const n = parseInt(stdout.trim(), 10);
+    return isNaN(n) ? 0 : n;
+  } catch {
+    return 0;
+  }
+}
+
 async function addPageNumbers(inputPath: string, outputPath: string): Promise<void> {
   const psScript = `%!PS
 <</BeginPage {
@@ -8036,6 +8049,9 @@ export async function registerRoutes(
         // Read the final PDF
         const buf = await fs.readFile(numberedPath);
 
+        // Count pages in the generated PDF
+        const pageCount = await countPdfPages(numberedPath);
+
         // Upload to GCS for caching
         try {
           const cachedUrl = await objectStorageService.saveBundle(buf, bundle.id);
@@ -8043,6 +8059,7 @@ export async function registerRoutes(
             cachedFileUrl: cachedUrl,
             cachedAt: new Date(),
             fileSizeBytes: buf.length,
+            pageCount: pageCount || null,
           });
         } catch (cacheErr) {
           console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);

@@ -1644,6 +1644,7 @@ export const caseBundles = pgTable("case_bundles", {
   cachedFileUrl: text("cached_file_url"),
   cachedAt: timestamp("cached_at"),
   fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
+  pageCount: integer("page_count"),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
