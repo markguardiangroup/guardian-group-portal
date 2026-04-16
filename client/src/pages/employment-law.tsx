@@ -108,6 +108,7 @@ import {
   PackagePlus,
   Loader2,
   GripVertical,
+  FileDown,
 } from "lucide-react";
 import {
   DndContext,
@@ -1444,6 +1445,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [bundleCheckedIds, setBundleCheckedIds] = useState<Set<string>>(new Set());
   const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
   const [bundleToDelete, setBundleToDelete] = useState<CaseBundle | null>(null);
+  const [bundleEditConfirmPending, setBundleEditConfirmPending] = useState(false);
 
   const linkedChecklistItems = useMemo(
     () => (checklistItems ?? []).filter(item => item.linkedDocumentId),
@@ -1514,23 +1516,28 @@ function CaseDetailView({ id }: { id: string }) {
     onError: (err) => toast({ title: "Failed to delete bundle", description: String(err), variant: "destructive" }),
   });
 
-  const handleSaveBundle = async (andDownload = false) => {
+  const handleSaveBundle = async () => {
     try {
       const checklistItemIds = bundleItemOrder.filter(id => bundleCheckedIds.has(id));
-      const savedBundle: CaseBundle = editingBundle
+      editingBundle
         ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds } })
         : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds });
       setShowBundleDialog(false);
-      if (!andDownload) {
-        toast({
-          title: editingBundle ? "Bundle updated" : "Bundle saved",
-          description: "The PDF has not been generated yet. Click the Download button next to your bundle to generate and download it.",
-        });
-      } else {
-        await handleDownloadBundle(savedBundle);
-      }
+      setBundleEditConfirmPending(false);
+      toast({
+        title: editingBundle ? "Bundle updated" : "Bundle saved",
+        description: "Use the Create PDF button next to your bundle to generate and download it.",
+      });
     } catch {
       // errors handled in mutation onError
+    }
+  };
+
+  const handleSaveBundleWithCheck = () => {
+    if (editingBundle?.cachedFileUrl) {
+      setBundleEditConfirmPending(true);
+    } else {
+      handleSaveBundle();
     }
   };
 
@@ -2479,9 +2486,6 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
-                          {bundle.fileSizeBytes ? (
-                            <span className="ml-1">· {formatFileSize(bundle.fileSizeBytes)}</span>
-                          ) : null}
                           {bundle.cachedAt && (
                             <span className="ml-1">· Last generated {format(new Date(bundle.cachedAt), "d MMM yyyy")}</span>
                           )}
@@ -2495,12 +2499,14 @@ function CaseDetailView({ id }: { id: string }) {
                           disabled={downloadingBundleId === bundle.id}
                           onClick={() => handleDownloadBundle(bundle)}
                           data-testid={`button-download-bundle-${bundle.id}`}
-                          title="Download bundle PDF"
+                          title={bundle.cachedFileUrl ? "Download bundle PDF" : "Create PDF"}
                         >
                           {downloadingBundleId === bundle.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
+                          ) : bundle.cachedFileUrl ? (
                             <Download className="h-4 w-4" />
+                          ) : (
+                            <FileDown className="h-4 w-4" />
                           )}
                         </Button>
                         {(user?.role === "admin" || user?.role === "consultant") && (
@@ -2547,11 +2553,6 @@ function CaseDetailView({ id }: { id: string }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {editingBundle?.cachedFileUrl && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
-                Saving changes will permanently delete the existing generated PDF. You will need to download again to regenerate it.
-              </div>
-            )}
             <div>
               <label className="text-sm font-medium mb-1.5 block text-foreground">Bundle Name</label>
               <Input
@@ -2617,29 +2618,39 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowBundleDialog(false)}>Cancel</Button>
             <Button
-              variant="outline"
               disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
-              onClick={() => handleSaveBundle(false)}
+              onClick={editingBundle ? handleSaveBundleWithCheck : handleSaveBundle}
               data-testid="button-save-bundle"
             >
               {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
                 <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
               )}
-              Save Bundle
-            </Button>
-            <Button
-              disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
-              onClick={() => handleSaveBundle(true)}
-              data-testid="button-save-download-bundle"
-            >
-              {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              )}
-              Download
+              {editingBundle ? "Save Changes" : "Save Bundle"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bundle Edit — overwrite cached PDF confirmation */}
+      <AlertDialog open={bundleEditConfirmPending} onOpenChange={(o) => { if (!o) setBundleEditConfirmPending(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace existing PDF?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Saving these changes will permanently delete the existing generated PDF. You will need to create the PDF again to download it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBundleEditConfirmPending(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSaveBundle}
+              data-testid="button-confirm-bundle-overwrite"
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Bundle Delete Confirm */}
       <AlertDialog open={!!bundleToDelete} onOpenChange={(o) => { if (!o) setBundleToDelete(null); }}>
