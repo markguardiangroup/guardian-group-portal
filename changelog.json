@@ -161,6 +161,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-16T19:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-fabc-789012345678",
+          "patch": 2,
+          "message": "Removed Guardian Group Website link from the sidebar",
+          "category": "enhancement",
+          "createdAt": "2026-04-16T20:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
