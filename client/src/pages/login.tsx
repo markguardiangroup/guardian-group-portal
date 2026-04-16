@@ -243,13 +243,13 @@ export default function Login() {
         <div className="relative z-10 flex flex-col h-full px-12 py-10">
 
           {/* ── Logo ── */}
-          <div className="flex items-center gap-3">
+          <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 w-fit">
             <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10" />
             <div className="leading-tight">
               <span className="block text-white font-bold text-lg tracking-tight">Guardian</span>
               <span className="block text-white/50 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
             </div>
-          </div>
+          </a>
 
           {/* ── Hero ── */}
           <div className="mt-10">
@@ -351,13 +351,13 @@ export default function Login() {
           style={{ background: "radial-gradient(circle, rgba(129,140,248,0.04) 0%, transparent 70%)" }} />
 
         {/* Mobile logo */}
-        <div className="flex lg:hidden items-center gap-3 mb-8 relative z-10">
+        <a href="https://www.guardiangroup.co.uk" target="_blank" rel="noopener noreferrer" className="flex lg:hidden items-center gap-3 mb-8 relative z-10 w-fit">
           <img src={logoIcon} alt="Guardian Group" className="h-10 w-10 rounded-full object-cover" />
           <div className="leading-tight">
             <span className="block text-slate-800 font-bold text-lg tracking-tight">Guardian</span>
             <span className="block text-slate-400 text-xs font-semibold tracking-[0.2em] uppercase">Group</span>
           </div>
-        </div>
+        </a>
 
         {isLoading ? (
           <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-5 text-center">
