@@ -1539,14 +1539,18 @@ function CaseDetailView({ id }: { id: string }) {
         credentials: "include",
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as any).error || "Failed to generate bundle");
+        const errBody = await res.json().catch(() => ({})) as Record<string, unknown>;
+        throw new Error(typeof errBody.error === "string" ? errBody.error : "Failed to generate bundle");
       }
+      // Read Content-Disposition for the correct server-generated filename
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const filenameMatch = disposition.match(/filename="([^"]+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `${bundle.name}.pdf`;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${bundle.name}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

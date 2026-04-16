@@ -37,6 +37,20 @@ function withLibreOffice<T>(fn: () => Promise<T>): Promise<T> {
   return p;
 }
 
+// Serial queue: only one bundle PDF generation pipeline at a time globally
+let _bundleQueue: Promise<unknown> = Promise.resolve();
+
+function withBundleGeneration<T>(fn: () => Promise<T>): Promise<T> {
+  let res!: (v: T) => void;
+  let rej!: (e: unknown) => void;
+  const p = new Promise<T>((r, e) => { res = r; rej = e; });
+  _bundleQueue = _bundleQueue.then(
+    () => fn().then(res, rej),
+    () => fn().then(res, rej),
+  );
+  return p;
+}
+
 function mimeToExtension(mimeType: string): string {
   const map: Record<string, string> = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
@@ -7971,62 +7985,67 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bundle has no documents" });
       }
 
-      // Load checklist items — preserve bundle's custom ordering via checklistItemIds
-      const allChecklist = await storage.getCaseDocumentChecklist(req.params.caseId);
-      const checklistMap = new Map(allChecklist.map(item => [item.id, item]));
-      const selectedItems = bundle.checklistItemIds
-        .map(id => checklistMap.get(id))
-        .filter((item): item is (typeof allChecklist)[number] => !!item);
+      // Serialize the entire generation pipeline so only one bundle is generated at a time
+      const finalBuffer = await withBundleGeneration(async () => {
+        // Load checklist items — preserve bundle's custom ordering via checklistItemIds
+        const allChecklist = await storage.getCaseDocumentChecklist(req.params.caseId);
+        const checklistMap = new Map(allChecklist.map(item => [item.id, item]));
+        const selectedItems = bundle.checklistItemIds
+          .map(id => checklistMap.get(id))
+          .filter((item): item is (typeof allChecklist)[number] => !!item);
 
-      if (selectedItems.length === 0) {
-        return res.status(400).json({ error: "No matching checklist items found" });
-      }
-
-      // Create temp dir
-      tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bundle_"));
-
-      const pdfPaths: string[] = [];
-
-      for (let i = 0; i < selectedItems.length; i++) {
-        const item = selectedItems[i];
-        if (!item.linkedDocumentId) continue;
-
-        const doc = await storage.getDocument(item.linkedDocumentId);
-        if (!doc || !doc.fileUrl) continue;
-
-        try {
-          const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
-          const [fileBuffer] = await objectFile.download();
-          const mimeType = doc.mimeType || "application/octet-stream";
-          const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i);
-          pdfPaths.push(pdfPath);
-        } catch (fileError) {
-          console.warn(`Bundle: skipping item ${item.id} due to error:`, fileError);
+        if (selectedItems.length === 0) {
+          throw new Error("No matching checklist items found");
         }
-      }
 
-      if (pdfPaths.length === 0) {
-        return res.status(400).json({ error: "No documents could be converted to PDF" });
-      }
+        // Create temp dir
+        tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bundle_"));
 
-      // Merge all PDFs
-      const mergedPath = path.join(tempDir, "merged.pdf");
-      await mergePdfs(pdfPaths, mergedPath);
+        const pdfPaths: string[] = [];
 
-      // Add page numbers
-      const numberedPath = path.join(tempDir, "final.pdf");
-      await addPageNumbers(mergedPath, numberedPath);
+        for (let i = 0; i < selectedItems.length; i++) {
+          const item = selectedItems[i];
+          if (!item.linkedDocumentId) continue;
 
-      // Read the final PDF
-      const finalBuffer = await fs.readFile(numberedPath);
+          const doc = await storage.getDocument(item.linkedDocumentId);
+          if (!doc || !doc.fileUrl) continue;
 
-      // Upload to GCS for caching
-      try {
-        const cachedUrl = await objectStorageService.saveBundle(finalBuffer, bundle.id);
-        await storage.updateCaseBundle(bundle.id, { cachedFileUrl: cachedUrl, cachedAt: new Date() });
-      } catch (cacheErr) {
-        console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);
-      }
+          try {
+            const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
+            const [fileBuffer] = await objectFile.download();
+            const mimeType = doc.mimeType || "application/octet-stream";
+            const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i);
+            pdfPaths.push(pdfPath);
+          } catch (fileError) {
+            console.warn(`Bundle: skipping item ${item.id} due to error:`, fileError);
+          }
+        }
+
+        if (pdfPaths.length === 0) {
+          throw new Error("No documents could be converted to PDF");
+        }
+
+        // Merge all PDFs
+        const mergedPath = path.join(tempDir, "merged.pdf");
+        await mergePdfs(pdfPaths, mergedPath);
+
+        // Add page numbers
+        const numberedPath = path.join(tempDir, "final.pdf");
+        await addPageNumbers(mergedPath, numberedPath);
+
+        // Read the final PDF
+        const buf = await fs.readFile(numberedPath);
+
+        // Upload to GCS for caching
+        try {
+          const cachedUrl = await objectStorageService.saveBundle(buf, bundle.id);
+          await storage.updateCaseBundle(bundle.id, { cachedFileUrl: cachedUrl, cachedAt: new Date() });
+        } catch (cacheErr) {
+          console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);
+        }
+
+        return buf;
+      });
 
       // Stream the PDF to the client
       res.set({
