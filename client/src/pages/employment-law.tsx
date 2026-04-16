@@ -1522,7 +1522,10 @@ function CaseDetailView({ id }: { id: string }) {
         : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds });
       setShowBundleDialog(false);
       if (!andDownload) {
-        toast({ title: editingBundle ? "Bundle updated" : "Bundle saved" });
+        toast({
+          title: editingBundle ? "Bundle updated" : "Bundle saved",
+          description: "The PDF has not been generated yet. Click the Download button next to your bundle to generate and download it.",
+        });
       } else {
         await handleDownloadBundle(savedBundle);
       }
@@ -1533,6 +1536,10 @@ function CaseDetailView({ id }: { id: string }) {
 
   const handleDownloadBundle = async (bundle: CaseBundle) => {
     setDownloadingBundleId(bundle.id);
+    toast({
+      title: "Generating PDF…",
+      description: "This may take a few minutes depending on the number of files. The file will download automatically when complete.",
+    });
     try {
       const res = await fetch(`/api/cases/${id}/bundles/${bundle.id}/download`, {
         method: "POST",
@@ -2472,6 +2479,9 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
+                          {bundle.fileSizeBytes ? (
+                            <span className="ml-1">· {formatFileSize(bundle.fileSizeBytes)}</span>
+                          ) : null}
                           {bundle.cachedAt && (
                             <span className="ml-1">· Last generated {format(new Date(bundle.cachedAt), "d MMM yyyy")}</span>
                           )}
@@ -2537,8 +2547,13 @@ function CaseDetailView({ id }: { id: string }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {editingBundle?.cachedFileUrl && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2.5 text-sm text-amber-800 dark:text-amber-300">
+                Saving changes will permanently delete the existing generated PDF. You will need to download again to regenerate it.
+              </div>
+            )}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Bundle Name</label>
+              <label className="text-sm font-medium mb-1.5 block text-foreground">Bundle Name</label>
               <Input
                 value={bundleName}
                 onChange={(e) => setBundleName(e.target.value)}
@@ -2548,7 +2563,7 @@ function CaseDetailView({ id }: { id: string }) {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium">
+                <label className="text-sm font-medium text-foreground">
                   Documents ({bundleCheckedIds.size} / {bundleItemOrder.length} selected)
                 </label>
                 {bundleItemOrder.length > 0 && (
@@ -2632,7 +2647,7 @@ function CaseDetailView({ id }: { id: string }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Bundle</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the bundle &ldquo;{bundleToDelete?.name}&rdquo;? This cannot be undone.
+              The bundle &ldquo;{bundleToDelete?.name}&rdquo; will be permanently deleted and cannot be recovered. Any generated PDF will also be permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3431,6 +3446,12 @@ interface MissingRequiredTemplateDetail {
   companyName: string;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 // Sortable item for bundle document list
 function SortableBundleItem({
   id,
@@ -3473,7 +3494,7 @@ function SortableBundleItem({
         onChange={(e) => onCheckedChange(e.target.checked)}
         data-testid={`bundle-item-checkbox-${id}`}
       />
-      <span className="text-sm leading-snug truncate">{title}</span>
+      <span className="text-sm leading-snug truncate text-foreground">{title}</span>
     </div>
   );
 }

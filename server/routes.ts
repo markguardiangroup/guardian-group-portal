@@ -8039,7 +8039,11 @@ export async function registerRoutes(
         // Upload to GCS for caching
         try {
           const cachedUrl = await objectStorageService.saveBundle(buf, bundle.id);
-          await storage.updateCaseBundle(bundle.id, { cachedFileUrl: cachedUrl, cachedAt: new Date() });
+          await storage.updateCaseBundle(bundle.id, {
+            cachedFileUrl: cachedUrl,
+            cachedAt: new Date(),
+            fileSizeBytes: buf.length,
+          });
         } catch (cacheErr) {
           console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);
         }

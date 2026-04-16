@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex, jsonb, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1643,6 +1643,7 @@ export const caseBundles = pgTable("case_bundles", {
   checklistItemIds: text("checklist_item_ids").array().notNull().default(sql`ARRAY[]::text[]`),
   cachedFileUrl: text("cached_file_url"),
   cachedAt: timestamp("cached_at"),
+  fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
