@@ -107,7 +107,24 @@ import {
   Package,
   PackagePlus,
   Loader2,
+  GripVertical,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
 import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, CaseBundle, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
@@ -1421,21 +1438,51 @@ function CaseDetailView({ id }: { id: string }) {
   const [showBundleDialog, setShowBundleDialog] = useState(false);
   const [editingBundle, setEditingBundle] = useState<CaseBundle | null>(null);
   const [bundleName, setBundleName] = useState("");
-  const [bundleSelectedItemIds, setBundleSelectedItemIds] = useState<string[]>([]);
+  // bundleItemOrder: all linked item IDs in user's drag order (determines PDF order)
+  const [bundleItemOrder, setBundleItemOrder] = useState<string[]>([]);
+  // bundleCheckedIds: which of the above are selected/included
+  const [bundleCheckedIds, setBundleCheckedIds] = useState<Set<string>>(new Set());
   const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
   const [bundleToDelete, setBundleToDelete] = useState<CaseBundle | null>(null);
+
+  const linkedChecklistItems = useMemo(
+    () => (checklistItems ?? []).filter(item => item.linkedDocumentId),
+    [checklistItems],
+  );
+  const linkedChecklistMap = useMemo(
+    () => new Map(linkedChecklistItems.map(item => [item.id, item])),
+    [linkedChecklistItems],
+  );
+  const bundleSensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
+  const handleBundleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setBundleItemOrder(prev => {
+        const oldIndex = prev.indexOf(String(active.id));
+        const newIndex = prev.indexOf(String(over.id));
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
 
   const openNewBundleDialog = () => {
     setEditingBundle(null);
     setBundleName("");
-    setBundleSelectedItemIds([]);
+    const ids = linkedChecklistItems.map(item => item.id);
+    setBundleItemOrder(ids);
+    setBundleCheckedIds(new Set(ids)); // all selected by default
     setShowBundleDialog(true);
   };
 
   const openEditBundleDialog = (bundle: CaseBundle) => {
     setEditingBundle(bundle);
     setBundleName(bundle.name);
-    setBundleSelectedItemIds(bundle.checklistItemIds ?? []);
+    const linkedIds = new Set(linkedChecklistItems.map(item => item.id));
+    const savedIds = (bundle.checklistItemIds ?? []).filter(id => linkedIds.has(id));
+    const savedIdsSet = new Set(savedIds);
+    const remainingIds = linkedChecklistItems.map(item => item.id).filter(id => !savedIdsSet.has(id));
+    setBundleItemOrder([...savedIds, ...remainingIds]);
+    setBundleCheckedIds(new Set(savedIds));
     setShowBundleDialog(true);
   };
 
@@ -1469,9 +1516,10 @@ function CaseDetailView({ id }: { id: string }) {
 
   const handleSaveBundle = async (andDownload = false) => {
     try {
+      const checklistItemIds = bundleItemOrder.filter(id => bundleCheckedIds.has(id));
       const savedBundle: CaseBundle = editingBundle
-        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds: bundleSelectedItemIds } })
-        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds: bundleSelectedItemIds });
+        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds } })
+        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds });
       setShowBundleDialog(false);
       if (!andDownload) {
         toast({ title: editingBundle ? "Bundle updated" : "Bundle saved" });
@@ -2493,36 +2541,54 @@ function CaseDetailView({ id }: { id: string }) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">
-                Select Documents ({bundleSelectedItemIds.length} selected)
-              </label>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto rounded border p-2">
-                {(checklistItems ?? []).filter(item => item.linkedDocumentId).length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2 text-center">No completed checklist items with documents</p>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium">
+                  Documents ({bundleCheckedIds.size} / {bundleItemOrder.length} selected)
+                </label>
+                {bundleItemOrder.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => {
+                      if (bundleCheckedIds.size === bundleItemOrder.length) {
+                        setBundleCheckedIds(new Set());
+                      } else {
+                        setBundleCheckedIds(new Set(bundleItemOrder));
+                      }
+                    }}
+                    data-testid="button-bundle-select-all"
+                  >
+                    {bundleCheckedIds.size === bundleItemOrder.length ? "Deselect All" : "Select All"}
+                  </button>
+                )}
+              </div>
+              <div className="max-h-60 overflow-y-auto rounded border divide-y">
+                {bundleItemOrder.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No completed checklist items with documents</p>
                 ) : (
-                  (checklistItems ?? [])
-                    .filter(item => item.linkedDocumentId)
-                    .map(item => (
-                      <label
-                        key={item.id}
-                        className="flex items-start gap-2 cursor-pointer py-1 px-1 rounded hover:bg-muted/50"
-                        data-testid={`bundle-item-${item.id}`}
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-0.5"
-                          checked={bundleSelectedItemIds.includes(item.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setBundleSelectedItemIds(prev => [...prev, item.id]);
-                            } else {
-                              setBundleSelectedItemIds(prev => prev.filter(x => x !== item.id));
-                            }
-                          }}
-                        />
-                        <span className="text-sm leading-snug">{item.title}</span>
-                      </label>
-                    ))
+                  <DndContext sensors={bundleSensors} collisionDetection={closestCenter} onDragEnd={handleBundleDragEnd}>
+                    <SortableContext items={bundleItemOrder} strategy={verticalListSortingStrategy}>
+                      {bundleItemOrder.map(itemId => {
+                        const item = linkedChecklistMap.get(itemId);
+                        if (!item) return null;
+                        return (
+                          <SortableBundleItem
+                            key={itemId}
+                            id={itemId}
+                            title={item.title}
+                            checked={bundleCheckedIds.has(itemId)}
+                            onCheckedChange={(checked) => {
+                              setBundleCheckedIds(prev => {
+                                const next = new Set(prev);
+                                if (checked) next.add(itemId); else next.delete(itemId);
+                                return next;
+                              });
+                            }}
+                          />
+                        );
+                      })}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             </div>
@@ -2531,7 +2597,7 @@ function CaseDetailView({ id }: { id: string }) {
             <Button variant="outline" onClick={() => setShowBundleDialog(false)}>Cancel</Button>
             <Button
               variant="outline"
-              disabled={!bundleName.trim() || bundleSelectedItemIds.length === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
+              disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
               onClick={() => handleSaveBundle(false)}
               data-testid="button-save-bundle"
             >
@@ -2541,7 +2607,7 @@ function CaseDetailView({ id }: { id: string }) {
               Save
             </Button>
             <Button
-              disabled={!bundleName.trim() || bundleSelectedItemIds.length === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
+              disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
               onClick={() => handleSaveBundle(true)}
               data-testid="button-save-download-bundle"
             >
@@ -3357,6 +3423,53 @@ interface MissingRequiredTemplateDetail {
   siteName: string;
   companyId: string;
   companyName: string;
+}
+
+// Sortable item for bundle document list
+function SortableBundleItem({
+  id,
+  title,
+  checked,
+  onCheckedChange,
+}: {
+  id: string;
+  title: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 select-none"
+      data-testid={`bundle-item-${id}`}
+    >
+      <button
+        type="button"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+        {...listeners}
+        {...attributes}
+        tabIndex={-1}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <input
+        type="checkbox"
+        className="shrink-0"
+        checked={checked}
+        onChange={(e) => onCheckedChange(e.target.checked)}
+        data-testid={`bundle-item-checkbox-${id}`}
+      />
+      <span className="text-sm leading-snug truncate">{title}</span>
+    </div>
+  );
 }
 
 // Employment Law Dashboard with company/site filters

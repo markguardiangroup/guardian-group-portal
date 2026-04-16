@@ -7846,14 +7846,23 @@ export async function registerRoutes(
       const bundle = await storage.getCaseBundle(req.params.bundleId);
       if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
 
+      const caseData = await storage.getCase(req.params.caseId);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
+
       const updates: Record<string, unknown> = {};
       if (req.body.name && typeof req.body.name === "string") updates.name = req.body.name.trim();
       if (Array.isArray(req.body.checklistItemIds)) {
         updates.checklistItemIds = req.body.checklistItemIds;
-        // Invalidate cache when items change
-        updates.cachedFileUrl = null;
-        updates.cachedAt = null;
       }
+
+      // Invalidate + delete cached PDF on any change
+      if (bundle.cachedFileUrl) {
+        const objectStorageService = new ObjectStorageService();
+        await objectStorageService.deleteObjectEntityFile(bundle.cachedFileUrl).catch(() => {});
+      }
+      updates.cachedFileUrl = null;
+      updates.cachedAt = null;
 
       const updated = await storage.updateCaseBundle(req.params.bundleId, updates);
       res.json(updated);
@@ -7872,6 +7881,10 @@ export async function registerRoutes(
 
       const bundle = await storage.getCaseBundle(req.params.bundleId);
       if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
+
+      const caseData = await storage.getCase(req.params.caseId);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       // Clean up cached file if present
       if (bundle.cachedFileUrl) {
@@ -7906,12 +7919,15 @@ export async function registerRoutes(
 
       const objectStorageService = new ObjectStorageService();
 
+      // Build filename: {caseRef}-{bundle-name-slug}.pdf
+      const bundleSlug = bundle.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const downloadFilename = `${caseData.caseReference}-${bundleSlug}.pdf`;
+
       // Serve from cache if available
       if (bundle.cachedFileUrl) {
         try {
           const cachedFile = await objectStorageService.getObjectEntityFile(bundle.cachedFileUrl);
-          const safeName = `${bundle.name.replace(/[^\w\s.-]/g, "_")}.pdf`;
-          await objectStorageService.downloadObject(cachedFile, res, 0, safeName);
+          await objectStorageService.downloadObject(cachedFile, res, 0, downloadFilename);
           return;
         } catch {
           // Cache miss — regenerate
@@ -7923,9 +7939,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bundle has no documents" });
       }
 
-      // Load checklist items
+      // Load checklist items — preserve bundle's custom ordering via checklistItemIds
       const allChecklist = await storage.getCaseDocumentChecklist(req.params.caseId);
-      const selectedItems = allChecklist.filter(item => bundle.checklistItemIds.includes(item.id));
+      const checklistMap = new Map(allChecklist.map(item => [item.id, item]));
+      const selectedItems = bundle.checklistItemIds
+        .map(id => checklistMap.get(id))
+        .filter((item): item is (typeof allChecklist)[number] => !!item);
 
       if (selectedItems.length === 0) {
         return res.status(400).json({ error: "No matching checklist items found" });
@@ -7978,10 +7997,9 @@ export async function registerRoutes(
       }
 
       // Stream the PDF to the client
-      const safeName = `${bundle.name.replace(/[^\w\s.-]/g, "_")}.pdf`;
       res.set({
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${safeName}"`,
+        "Content-Disposition": `attachment; filename="${downloadFilename}"`,
         "Content-Length": finalBuffer.length,
       });
       res.send(finalBuffer);
