@@ -1261,12 +1261,6 @@ export default function SiteDetail() {
     enabled: !!entity?.companyId,
   });
 
-  const { data: allSitesForSync = [] } = useQuery<Site[]>({
-    queryKey: ["/api/sites"],
-    enabled: !!entity?.companyId,
-  });
-  const companySiteCount = allSitesForSync.filter((s) => s.companyId === entity?.companyId).length;
-
   type AddressFields = {
     addressLine1: string; addressLine2: string; city: string;
     county: string; postalCode: string; country: string;
@@ -1275,7 +1269,7 @@ export default function SiteDetail() {
     companyId: string; companyName: string; newAddress: AddressFields;
   }>(null);
   const pendingAddressSyncRef = useRef<null | {
-    siteCount: number; companyId: string; companyName: string; newAddress: AddressFields;
+    companyId: string; companyName: string; newAddress: AddressFields;
   }>(null);
 
   // Fetch all users to filter for company users
@@ -1321,7 +1315,7 @@ export default function SiteDetail() {
       const response = await apiRequest("PATCH", `/api/sites/${siteId}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Site updated successfully" });
@@ -1330,16 +1324,27 @@ export default function SiteDetail() {
       const sync = pendingAddressSyncRef.current;
       pendingAddressSyncRef.current = null;
       if (sync) {
-        if (sync.siteCount === 1) {
-          setAddressSyncDialog({
-            companyId: sync.companyId,
-            companyName: sync.companyName,
-            newAddress: sync.newAddress,
-          });
-        } else if (sync.siteCount > 1) {
+        try {
+          const res = await fetch("/api/sites", { credentials: "include" });
+          if (!res.ok) throw new Error("fetch failed");
+          const sites: Array<{ id: string; companyId: string }> = await res.json();
+          const siteCount = sites.filter((s) => s.companyId === sync.companyId).length;
+          if (siteCount === 1) {
+            setAddressSyncDialog({
+              companyId: sync.companyId,
+              companyName: sync.companyName,
+              newAddress: sync.newAddress,
+            });
+          } else {
+            toast({
+              title: "Address updated",
+              description: "Remember to update the company address and other sites manually.",
+            });
+          }
+        } catch {
           toast({
             title: "Address updated",
-            description: "Remember to update the company address and other sites manually.",
+            description: "Remember to update the company address manually.",
           });
         }
       }
@@ -1473,24 +1478,19 @@ export default function SiteDetail() {
       return;
     }
 
-    if (entity && entity.companyId && companySiteCount > 0) {
-      const ADDRESS_FIELDS = ["addressLine1", "addressLine2", "city", "county", "postalCode", "country"] as const;
-      const addressChanged = ADDRESS_FIELDS.some(
-        (f) => (editSiteData[f] || "") !== ((entity as any)[f] || "")
-      );
+    if (entity && entity.companyId) {
+      const pickAddr = (o: { addressLine1?: string | null; addressLine2?: string | null; city?: string | null; county?: string | null; postalCode?: string | null; country?: string | null }): AddressFields => ({
+        addressLine1: o.addressLine1 || "", addressLine2: o.addressLine2 || "",
+        city: o.city || "", county: o.county || "", postalCode: o.postalCode || "", country: o.country || "",
+      });
+      const oldAddr = pickAddr(entity);
+      const newAddr = pickAddr(editSiteData);
+      const addressChanged = (Object.keys(oldAddr) as Array<keyof AddressFields>).some((k) => oldAddr[k] !== newAddr[k]);
       if (addressChanged) {
         pendingAddressSyncRef.current = {
-          siteCount: companySiteCount,
           companyId: entity.companyId,
           companyName: parentCompany?.name || "",
-          newAddress: {
-            addressLine1: editSiteData.addressLine1,
-            addressLine2: editSiteData.addressLine2,
-            city: editSiteData.city,
-            county: editSiteData.county,
-            postalCode: editSiteData.postalCode,
-            country: editSiteData.country,
-          },
+          newAddress: newAddr,
         };
       }
     }

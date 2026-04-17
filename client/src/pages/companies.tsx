@@ -409,12 +409,17 @@ export default function Companies() {
         if (sync.siteCount === 1) {
           try {
             const res = await fetch("/api/sites", { credentials: "include" });
+            if (!res.ok) throw new Error("fetch failed");
             const sites: Array<{ id: string; name: string; companyId: string }> = await res.json();
             const site = sites.find((s) => s.companyId === sync.companyId);
             if (site) {
               setAddressSyncDialog({ siteId: site.id, siteName: site.name, newAddress: sync.newAddress });
+            } else {
+              toast({ title: "Address updated", description: "Remember to update the site address manually." });
             }
-          } catch {}
+          } catch {
+            toast({ title: "Address updated", description: "Remember to update the site address manually." });
+          }
         } else if (sync.siteCount > 1) {
           toast({
             title: "Address updated",
@@ -729,22 +734,18 @@ export default function Companies() {
       }
     }
     if (editingCompany) {
-      const ADDRESS_FIELDS = ["addressLine1", "addressLine2", "city", "county", "postalCode", "country"] as const;
-      const addressChanged = ADDRESS_FIELDS.some(
-        (f) => (submittedData[f] || "") !== ((editingCompany as any)[f] || "")
-      );
+      const pickAddr = (o: { addressLine1?: string | null; addressLine2?: string | null; city?: string | null; county?: string | null; postalCode?: string | null; country?: string | null }): AddressFields => ({
+        addressLine1: o.addressLine1 || "", addressLine2: o.addressLine2 || "",
+        city: o.city || "", county: o.county || "", postalCode: o.postalCode || "", country: o.country || "",
+      });
+      const oldAddr = pickAddr(editingCompany);
+      const newAddr = pickAddr(submittedData);
+      const addressChanged = (Object.keys(oldAddr) as Array<keyof AddressFields>).some((k) => oldAddr[k] !== newAddr[k]);
       if (addressChanged && editingCompany.siteCount > 0) {
         pendingAddressSyncRef.current = {
           siteCount: editingCompany.siteCount,
           companyId: editingCompany.id,
-          newAddress: {
-            addressLine1: submittedData.addressLine1,
-            addressLine2: submittedData.addressLine2,
-            city: submittedData.city,
-            county: submittedData.county,
-            postalCode: submittedData.postalCode,
-            country: submittedData.country,
-          },
+          newAddress: newAddr,
         };
       }
       updateMutation.mutate({ id: editingCompany.id, data: submittedData });
