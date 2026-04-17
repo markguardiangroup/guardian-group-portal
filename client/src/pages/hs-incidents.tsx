@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import {
   AlertTriangle,
+  Ban,
   Search,
   Plus,
   Calendar,
@@ -1316,6 +1317,8 @@ function getAuditActionStyle(action: string): { icon: (props: any) => JSX.Elemen
     case "milestone_added":        return { icon: Calendar,          bg: "bg-purple-50 dark:bg-purple-950",color: "text-purple-600 dark:text-purple-400" };
     case "milestone_completed":    return { icon: CheckCircle,       bg: "bg-green-50 dark:bg-green-950",  color: "text-green-600 dark:text-green-400" };
     case "update_document":        return { icon: Pencil,            bg: "bg-blue-50 dark:bg-blue-950",    color: "text-blue-600 dark:text-blue-400" };
+    case "company_suspended":      return { icon: Ban,               bg: "bg-red-50 dark:bg-red-950",      color: "text-red-600 dark:text-red-400" };
+    case "company_reactivated":    return { icon: CheckCircle,       bg: "bg-green-50 dark:bg-green-950",  color: "text-green-600 dark:text-green-400" };
     default:                       return { icon: Shield,            bg: "bg-muted",                        color: "text-muted-foreground" };
   }
 }

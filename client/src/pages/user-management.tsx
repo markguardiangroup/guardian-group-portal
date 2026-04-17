@@ -56,6 +56,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import {
   Users,
+  Ban,
   Search,
   Plus,
   MoreHorizontal,
@@ -2044,6 +2045,8 @@ export default function UserManagement() {
                     case "comment_added": return { icon: <MessageSquare className="h-3.5 w-3.5" />, bg: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" };
                     case "password_change": case "password_changed": case "password_reset": return { icon: <LockKeyhole className="h-3.5 w-3.5" />, bg: "bg-muted text-muted-foreground" };
                     case "document_viewed": case "document_downloaded": return { icon: <Eye className="h-3.5 w-3.5" />, bg: "bg-muted text-muted-foreground" };
+                    case "company_suspended": return { icon: <Ban className="h-3.5 w-3.5" />, bg: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" };
+                    case "company_reactivated": return { icon: <CheckCircle className="h-3.5 w-3.5" />, bg: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" };
                     default: return { icon: <Activity className="h-3.5 w-3.5" />, bg: "bg-muted text-muted-foreground" };
                   }
                 }
