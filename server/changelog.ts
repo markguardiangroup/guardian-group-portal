@@ -84,14 +84,6 @@ export async function writeChangelog(data: Changelog): Promise<void> {
   }
 }
 
-export async function incrementPatchVersion(): Promise<void> {
-  const cl = await readChangelog();
-  const active = cl.versions.find((v) => v.id === cl.activeVersionId);
-  if (!active) return;
-  active.patch += 1;
-  await writeChangelog(cl);
-}
-
 export function generateChangelogId(): string {
   return crypto.randomUUID();
 }
