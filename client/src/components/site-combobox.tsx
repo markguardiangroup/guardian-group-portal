@@ -29,6 +29,7 @@ interface SiteComboboxProps {
   className?: string;
   includeAllOption?: boolean;
   testId?: string;
+  disabled?: boolean;
 }
 
 export function SiteCombobox({
@@ -39,6 +40,7 @@ export function SiteCombobox({
   className,
   includeAllOption = true,
   testId,
+  disabled = false,
 }: SiteComboboxProps) {
   const [open, setOpen] = useState(false);
 
@@ -46,18 +48,21 @@ export function SiteCombobox({
     ? null 
     : sites.find((e) => e.id === value);
   
-  const displayValue = value === "all" || !value
-    ? "All Sites"
-    : selectedSite?.name || placeholder;
+  const displayValue = disabled
+    ? "Select a company first"
+    : value === "all" || !value
+      ? "All Sites"
+      : selectedSite?.name || placeholder;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("justify-between", className)}
+          disabled={disabled}
+          className={cn("justify-between", disabled && "opacity-50 cursor-not-allowed", className)}
           data-testid={testId}
         >
           <span className="truncate">{displayValue}</span>

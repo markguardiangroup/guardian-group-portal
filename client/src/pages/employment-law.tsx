@@ -484,6 +484,7 @@ function CasesList() {
                     onValueChange={handleSiteChange}
                     className="w-[200px]"
                     testId="select-site-cases"
+                    disabled={isPrivilegedUser && (!selectedCompany || selectedCompany === "all")}
                   />
                 </div>
               </div>

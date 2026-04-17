@@ -1069,6 +1069,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     onValueChange={handleSiteChange}
                     className="w-[200px]"
                     testId="select-site-cloudshare"
+                    disabled={!selectedCompany || selectedCompany === "all"}
                   />
                 </div>
               </div>

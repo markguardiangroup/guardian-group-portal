@@ -3761,6 +3761,7 @@ function IncidentsListView() {
                     onValueChange={handleSiteChange}
                     className="w-[200px]"
                     testId="select-site-incidents"
+                    disabled={!selectedCompany || selectedCompany === "all"}
                   />
                 </div>
               </div>

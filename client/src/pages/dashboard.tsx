@@ -1310,6 +1310,7 @@ export default function Dashboard() {
                     onValueChange={handleSiteChange}
                     className="w-[200px]"
                     testId="select-site-dashboard"
+                    disabled={isPrivilegedUser && (!selectedCompany || selectedCompany === "all")}
                   />
                 </div>
               </div>

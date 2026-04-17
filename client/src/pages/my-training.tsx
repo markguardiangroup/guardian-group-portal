@@ -230,6 +230,7 @@ export default function MyTraining() {
                   onValueChange={setSelectedSiteId}
                   className="w-44"
                   testId="select-site-training"
+                  disabled={companies.length > 1 && (!selectedCompany || selectedCompany === "all")}
                 />
               </div>
             </div>
