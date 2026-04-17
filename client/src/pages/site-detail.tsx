@@ -1774,7 +1774,7 @@ export default function SiteDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>Update company address?</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>{parentCompany?.name}</strong> has the same address as this site had before the update. Would you like to copy the new address to the company too?
+              Would you like to copy the new address to <strong>{parentCompany?.name}</strong> as well?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
