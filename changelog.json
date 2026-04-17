@@ -322,6 +322,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-17T17:17:48.594Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e7b4120fa9c3",
+          "patch": 4,
+          "message": "Fixed: address sync prompt now also fires when editing a company from its detail page, not only from the companies list",
+          "category": "bugfix",
+          "createdAt": "2026-04-17T18:17:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

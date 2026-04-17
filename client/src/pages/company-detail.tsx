@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -701,6 +701,10 @@ export default function CompanyDetail() {
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormOriginal, setEditFormOriginal] = useState<Record<string, string> | null>(null);
+  const companyAddrFields = ["addressLine1", "addressLine2", "city", "county", "postalCode", "country"] as const;
+  const companyAddressSnapshotRef = useRef({ addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+  const [addressSyncSites, setAddressSyncSites] = useState<Array<{ id: string; name: string }> | null>(null);
+  const [addressSyncNewData, setAddressSyncNewData] = useState<{ addressLine1: string; addressLine2: string; city: string; county: string; postalCode: string; country: string } | null>(null);
   const [unsavedChangesOpen, setUnsavedChangesOpen] = useState(false);
   const [addSiteDialogOpen, setAddSiteDialogOpen] = useState(false);
   const [assignConsultantOpen, setAssignConsultantOpen] = useState(false);
@@ -874,7 +878,7 @@ export default function CompanyDetail() {
       const response = await apiRequest("PATCH", `/api/companies/${companyId}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       setEditFormOriginal(null);
@@ -884,11 +888,58 @@ export default function CompanyDetail() {
         title: "Company updated",
         description: "The company details have been updated successfully.",
       });
+
+      const newAddr = {
+        addressLine1: variables.addressLine1, addressLine2: variables.addressLine2,
+        city: variables.city, county: variables.county,
+        postalCode: variables.postalCode, country: variables.country,
+      };
+      const oldAddr = companyAddressSnapshotRef.current;
+      const addrChanged = companyAddrFields.some(
+        (f) => (newAddr[f] || "").trim().toLowerCase() !== (oldAddr[f] || "").trim().toLowerCase()
+      );
+      if (!addrChanged) return;
+
+      try {
+        const res = await fetch(`/api/companies/${companyId}`, { credentials: "include" });
+        if (!res.ok) return;
+        const co = await res.json();
+        const sites: Array<{ id: string; name: string; addressLine1?: string; addressLine2?: string; city?: string; county?: string; postalCode?: string; country?: string }> = co.sites || [];
+        const matchingSites = sites.length === 1
+          ? sites
+          : sites.filter((site) =>
+              companyAddrFields.every(
+                (f) => (site[f] || "").trim().toLowerCase() === (oldAddr[f] || "").trim().toLowerCase()
+              )
+            );
+        if (matchingSites.length > 0) {
+          setAddressSyncSites(matchingSites.map((s) => ({ id: s.id, name: s.name })));
+          setAddressSyncNewData(newAddr);
+        }
+      } catch {
+        // silently ignore
+      }
     },
     onError: (error: Error) => {
       let message = "Failed to update company. Please try again.";
       try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
       toast({ title: "Failed to update company", description: message, variant: "destructive" });
+    },
+  });
+
+  const syncSitesMutation = useMutation({
+    mutationFn: async ({ sites, address }: { sites: Array<{ id: string }>; address: typeof addressSyncNewData }) => {
+      if (!address) throw new Error("No address");
+      await Promise.all(sites.map((site) => apiRequest("PATCH", `/api/sites/${site.id}`, address)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      toast({ title: `${addressSyncSites?.length === 1 ? "Site" : "Sites"} address updated` });
+      setAddressSyncSites(null);
+      setAddressSyncNewData(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update site address", variant: "destructive" });
     },
   });
 
@@ -1131,6 +1182,14 @@ export default function CompanyDetail() {
         searchTag: company.searchTag || "",
         status: company.status || "active",
         sources: initialSources,
+      };
+      companyAddressSnapshotRef.current = {
+        addressLine1: company.addressLine1 || "",
+        addressLine2: company.addressLine2 || "",
+        city: company.city || "",
+        county: company.county || "",
+        postalCode: company.postalCode || "",
+        country: company.country || "",
       };
       setEditForm(initial);
       setEditFormOriginal(initial);
@@ -2809,6 +2868,34 @@ export default function CompanyDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!addressSyncSites} onOpenChange={(open) => { if (!open) { setAddressSyncSites(null); setAddressSyncNewData(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update {addressSyncSites?.length === 1 ? "site" : "sites"} address?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>The following {addressSyncSites?.length === 1 ? "site has" : "sites have"} the same address as this company had before the update:</p>
+                <ul className="list-disc pl-5 my-2">
+                  {addressSyncSites?.map((s) => <li key={s.id}>{s.name}</li>)}
+                </ul>
+                <p>Would you like to copy the new address to {addressSyncSites?.length === 1 ? "it" : "them"} too?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setAddressSyncSites(null); setAddressSyncNewData(null); }}>No, keep site address</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => addressSyncSites && syncSitesMutation.mutate({ sites: addressSyncSites, address: addressSyncNewData })}
+              disabled={syncSitesMutation.isPending}
+              data-testid="button-confirm-sync-site-address"
+            >
+              {syncSitesMutation.isPending ? "Updating..." : `Yes, update ${addressSyncSites?.length === 1 ? "site" : "sites"}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       </div>
     </div>
   );
