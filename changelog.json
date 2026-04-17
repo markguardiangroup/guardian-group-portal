@@ -290,6 +290,30 @@
           "category": "feature",
           "createdAt": "2026-04-17T15:32:27.726Z",
           "createdBy": "system"
+        },
+        {
+          "id": "0793c6ddef8b",
+          "patch": 4,
+          "message": "Feedback & comments now preserve line breaks and paragraphs exactly as typed",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "93e3f8278d9d",
+          "patch": 4,
+          "message": "Users can now edit their own feedback (when it has no upvotes or comments) and edit their own comments",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "aa98822ac1a8",
+          "patch": 4,
+          "message": "Sites dropdown is now locked until a Company is selected — prevents confusion when multiple sites share the same name (e.g. Head Office)",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
         }
       ]
     }
