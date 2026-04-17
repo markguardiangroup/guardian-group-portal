@@ -335,7 +335,7 @@
           "id": "a91e43c2bf05",
           "patch": 4,
           "message": "Fixed: after accepting an address copy to sites, the updated addresses now appear immediately on the company's sites list without needing a page refresh",
-          "category": "bugfix",
+          "category": "bug",
           "createdAt": "2026-04-17T18:35:00.000Z",
           "createdBy": "agent"
         },
@@ -343,7 +343,7 @@
           "id": "b72d15fe8c91",
           "patch": 4,
           "message": "Fixed: site address on the company Sites tab now shows the full address including Address Line 2 and County",
-          "category": "bugfix",
+          "category": "bug",
           "createdAt": "2026-04-17T18:40:00.000Z",
           "createdBy": "agent"
         }
