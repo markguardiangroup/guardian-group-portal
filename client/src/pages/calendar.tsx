@@ -662,7 +662,7 @@ export default function CalendarPage() {
                   onValueChange={setSelectedSiteId}
                   className="w-[160px]"
                   testId="select-site-calendar"
-                  disabled={!selectedCompany || selectedCompany === "all"}
+                  disabled={isPrivileged && (!selectedCompany || selectedCompany === "all")}
                 />
                 <Select value={moduleFilter} onValueChange={setModuleFilter}>
                   <SelectTrigger className="w-[160px]" data-testid="select-module-filter">
