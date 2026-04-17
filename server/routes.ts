@@ -352,7 +352,7 @@ export async function registerRoutes(
 
   // Destroy all active sessions belonging to client users of a given company.
   // Uses direct SQL to avoid loading the entire users table into memory.
-  async function destroyCompanyClientSessions(companyId: string): Promise<void> {
+  async function destroyCompanyClientSessions(companyId: string): Promise<number> {
     try {
       // Targeted query: fetch only the IDs of client users for this company
       const { rows: userRows } = await pool.query<{ id: string }>(
@@ -360,16 +360,19 @@ export async function registerRoutes(
         [companyId]
       );
       const clientUserIds = userRows.map(r => r.id);
-      if (clientUserIds.length === 0) return;
+      if (clientUserIds.length === 0) return 0;
       const { rowCount } = await pool.query(
         "DELETE FROM session WHERE (sess::json->>'userId') = ANY($1::text[])",
         [clientUserIds]
       );
-      console.log(`[company-status] Terminated ${rowCount ?? 0} session(s) for ${clientUserIds.length} client(s) of company ${companyId}`);
+      const terminated = rowCount ?? 0;
+      console.log(`[company-status] Terminated ${terminated} session(s) for ${clientUserIds.length} client(s) of company ${companyId}`);
+      return terminated;
     } catch (err) {
       // Log but do not re-throw: the status update has already been persisted.
       // Any sessions that slip through will be caught by the auth/me safety net.
       console.error("[company-status] Failed to destroy client sessions:", err);
+      return 0;
     }
   }
 
@@ -5540,6 +5543,9 @@ export async function registerRoutes(
         }
       }
       
+      const existingCompanyForPatch = updates.status !== undefined ? await storage.getCompany(req.params.id) : null;
+      const previousStatusForPatch = existingCompanyForPatch?.status ?? null;
+
       const company = await storage.updateCompany(req.params.id, updates);
       
       if (!company) {
@@ -5547,8 +5553,32 @@ export async function registerRoutes(
       }
       
       // If company is being suspended, immediately log out all its client users
-      if (updates.status === "on_hold" || updates.status === "inactive") {
-        await destroyCompanyClientSessions(req.params.id);
+      const patchStatusChanged = updates.status !== undefined && previousStatusForPatch !== updates.status;
+      if (patchStatusChanged && (updates.status === "on_hold" || updates.status === "inactive")) {
+        const terminatedSessions = await destroyCompanyClientSessions(req.params.id);
+        await storage.createAuditLog({
+          action: "company_suspended",
+          entityType: "company",
+          entityId: req.params.id,
+          userId: user.id,
+          userName: user.fullName,
+          details: `Company "${company.name}" status changed from ${previousStatusForPatch} to ${updates.status}. ${terminatedSessions} client session(s) terminated.`,
+          metadata: { previousStatus: previousStatusForPatch, newStatus: updates.status, terminatedSessions },
+        });
+      } else if (
+        patchStatusChanged &&
+        (updates.status === "active" || updates.status === "pending") &&
+        (previousStatusForPatch === "on_hold" || previousStatusForPatch === "inactive")
+      ) {
+        await storage.createAuditLog({
+          action: "company_reactivated",
+          entityType: "company",
+          entityId: req.params.id,
+          userId: user.id,
+          userName: user.fullName,
+          details: `Company "${company.name}" status changed from ${previousStatusForPatch} to ${updates.status}.`,
+          metadata: { previousStatus: previousStatusForPatch, newStatus: updates.status },
+        });
       }
 
       // Auto-assign primary contact user to all company sites
@@ -5604,6 +5634,12 @@ export async function registerRoutes(
       if (!status || !["pending", "active", "on_hold", "inactive"].includes(status)) {
         return res.status(400).json({ error: "Invalid status value" });
       }
+
+      const existingCompany = await storage.getCompany(req.params.id);
+      if (!existingCompany) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      const previousStatus = existingCompany.status;
       
       const company = await storage.updateCompany(req.params.id, { status });
       
@@ -5611,9 +5647,33 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Company not found" });
       }
 
-      // Immediately log out all client users of this company when suspended
-      if (status === "on_hold" || status === "inactive") {
-        await destroyCompanyClientSessions(req.params.id);
+      const statusChanged = previousStatus !== status;
+      const isSuspended = status === "on_hold" || status === "inactive";
+      const isReactivated = (status === "active" || status === "pending") &&
+        (previousStatus === "on_hold" || previousStatus === "inactive");
+
+      let terminatedSessions = 0;
+      if (statusChanged && isSuspended) {
+        terminatedSessions = await destroyCompanyClientSessions(req.params.id);
+        await storage.createAuditLog({
+          action: "company_suspended",
+          entityType: "company",
+          entityId: req.params.id,
+          userId: user.id,
+          userName: user.fullName,
+          details: `Company "${company.name}" status changed from ${previousStatus} to ${status}. ${terminatedSessions} client session(s) terminated.`,
+          metadata: { previousStatus, newStatus: status, terminatedSessions },
+        });
+      } else if (statusChanged && isReactivated) {
+        await storage.createAuditLog({
+          action: "company_reactivated",
+          entityType: "company",
+          entityId: req.params.id,
+          userId: user.id,
+          userName: user.fullName,
+          details: `Company "${company.name}" status changed from ${previousStatus} to ${status}.`,
+          metadata: { previousStatus, newStatus: status },
+        });
       }
       
       res.json(company);
