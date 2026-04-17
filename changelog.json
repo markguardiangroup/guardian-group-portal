@@ -186,7 +186,7 @@
         {
           "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
           "patch": 3,
-          "message": "Fixed: login could hang indefinitely if a background data request failed after sign-in",
+          "message": "Fixed: login could hang or return to the sign-in page due to slow background data requests after sign-in",
           "category": "bugfix",
           "createdAt": "2026-04-17T09:00:00.000Z",
           "createdBy": "agent"

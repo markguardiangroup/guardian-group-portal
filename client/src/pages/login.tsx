@@ -150,38 +150,19 @@ export default function Login() {
       const res = await apiRequest("POST", "/api/auth/login", data);
       return res.json();
     },
-    onSuccess: async (userData) => {
+    onSuccess: (userData) => {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
 
-      const f = async (url: string) => {
-        const res = await fetch(url, { credentials: "include" });
-        if (!res.ok) throw new Error(`${res.status}`);
-        return res.json();
-      };
-      const p = (key: unknown[], url: string) =>
-        queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
+      // Seed the auth cache immediately so AuthProvider sees the user without
+      // needing to re-fetch, which eliminates the race window that caused the
+      // "10-second hang then back to login" issue.
+      queryClient.setQueryData(["/api/auth/me"], userData);
 
-      const isClientUser = userData.role === "client";
-      await Promise.allSettled([
-        p(["/api/auth/me"], "/api/auth/me"),
-        p(["/api/sites"], "/api/sites"),
-        p(["/api/companies"], "/api/companies"),
-        p(["/api/user/module-access"], "/api/user/module-access"),
-        p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary"),
-        p(["/api/documents", null, null], "/api/documents"),
-        p(["/api/missing-required-templates", null, null], "/api/missing-required-templates"),
-        p(["/api/support-requests", null], "/api/support-requests"),
-        p(["/api/support-requests/counts"], "/api/support-requests/counts"),
-        p(["/api/training-bookings"], "/api/training-bookings"),
-        p(["/api/incidents"], "/api/incidents"),
-        p(["/api/cases"], "/api/cases"),
-      ]);
+      // Navigate straight away — the DataPrefetcher in AuthenticatedApp handles
+      // background loading of all other data once the user lands on the dashboard.
       setIsSubmitting(false);
-      const currentPath = window.location.pathname;
-      if (!currentPath || currentPath === "/login") {
-        setLocation("/");
-      }
+      setLocation("/");
     },
     onError: async (error: Error) => {
       setIsSubmitting(false);
