@@ -1455,6 +1455,10 @@ function CaseDetailView({ id }: { id: string }) {
     () => new Map(linkedChecklistItems.map(item => [item.id, item])),
     [linkedChecklistItems],
   );
+  const documentMap = useMemo(
+    () => new Map((documents ?? []).map(doc => [doc.id, doc])),
+    [documents],
+  );
   const bundleSensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
   const handleBundleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -2603,11 +2607,14 @@ function CaseDetailView({ id }: { id: string }) {
                       {bundleItemOrder.map(itemId => {
                         const item = linkedChecklistMap.get(itemId);
                         if (!item) return null;
+                        const linkedDoc = item.linkedDocumentId ? documentMap.get(item.linkedDocumentId) : undefined;
                         return (
                           <SortableBundleItem
                             key={itemId}
                             id={itemId}
                             title={item.title}
+                            fileName={linkedDoc?.fileName}
+                            mimeType={linkedDoc?.mimeType}
                             checked={bundleCheckedIds.has(itemId)}
                             onCheckedChange={(checked) => {
                               setBundleCheckedIds(prev => {
@@ -3473,19 +3480,50 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getBundleFileTypeLabel(mimeType?: string | null, fileName?: string | null): string {
+  if (mimeType) {
+    const map: Record<string, string> = {
+      "application/pdf": "PDF",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+      "application/msword": "DOC",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+      "application/vnd.ms-excel": "XLS",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PPTX",
+      "application/vnd.oasis.opendocument.text": "ODT",
+      "text/html": "HTML",
+      "image/jpeg": "JPEG",
+      "image/png": "PNG",
+      "image/gif": "GIF",
+      "image/webp": "WEBP",
+    };
+    const label = map[mimeType] ?? mimeType.split("/").pop()?.toUpperCase() ?? "";
+    if (label) return label;
+  }
+  if (fileName) {
+    const ext = fileName.split(".").pop()?.toUpperCase();
+    if (ext) return ext;
+  }
+  return "";
+}
+
 // Sortable item for bundle document list
 function SortableBundleItem({
   id,
   title,
+  fileName,
+  mimeType,
   checked,
   onCheckedChange,
 }: {
   id: string;
   title: string;
+  fileName?: string | null;
+  mimeType?: string | null;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const fileTypeLabel = getBundleFileTypeLabel(mimeType, fileName);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -3495,7 +3533,7 @@ function SortableBundleItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 select-none"
+      className="flex items-center gap-2 px-2 py-2 hover:bg-muted/50 select-none"
       data-testid={`bundle-item-${id}`}
     >
       <button
@@ -3515,7 +3553,16 @@ function SortableBundleItem({
         onChange={(e) => onCheckedChange(e.target.checked)}
         data-testid={`bundle-item-checkbox-${id}`}
       />
-      <span className="text-sm leading-snug truncate text-foreground">{title}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm leading-snug truncate text-foreground">{title}</p>
+        {(fileName || fileTypeLabel) && (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {fileName && <span>{fileName}</span>}
+            {fileName && fileTypeLabel && <span className="mx-1">·</span>}
+            {fileTypeLabel && <span>{fileTypeLabel}</span>}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
