@@ -350,6 +350,24 @@ export async function registerRoutes(
   // Register object storage routes for file uploads
   registerObjectStorageRoutes(app);
 
+  // Destroy all active sessions for an array of user IDs (e.g. when company is suspended)
+  async function destroyCompanyClientSessions(companyId: string): Promise<void> {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const clientUserIds = allUsers
+        .filter(u => u.role === "client" && u.companyId === companyId)
+        .map(u => u.id);
+      if (clientUserIds.length === 0) return;
+      await pool.query(
+        "DELETE FROM session WHERE (sess::json->>'userId') = ANY($1::text[])",
+        [clientUserIds]
+      );
+      console.log(`[company-status] Terminated ${clientUserIds.length} client session(s) for company ${companyId}`);
+    } catch (err) {
+      console.error("[company-status] Failed to destroy client sessions:", err);
+    }
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -427,6 +445,14 @@ export async function registerRoutes(
       // Return a generic 401 so the reason isn't revealed; do not count this toward lockout.
       if (user.status === "inactive") {
         return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      // Block client users whose company is On Hold or Inactive
+      if (user.role === "client" && user.companyId) {
+        const userCompany = await storage.getCompany(user.companyId);
+        if (userCompany && (userCompany.status === "on_hold" || userCompany.status === "inactive")) {
+          return res.status(403).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
+        }
       }
 
       // Check password - support both bcrypt hashed and legacy plain text (for migration)
@@ -603,6 +629,11 @@ export async function registerRoutes(
       const company = await storage.getCompany(user.companyId);
       if (company) {
         companyName = company.name;
+        // Safety net: if the company is suspended, destroy the session and kick the client out
+        if (user.role === "client" && (company.status === "on_hold" || company.status === "inactive")) {
+          req.session.destroy(() => {});
+          return res.status(401).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
+        }
       }
     }
 
@@ -5510,6 +5541,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Company not found" });
       }
       
+      // If company is being suspended, immediately log out all its client users
+      if (updates.status === "on_hold" || updates.status === "inactive") {
+        await destroyCompanyClientSessions(req.params.id);
+      }
+
       // Auto-assign primary contact user to all company sites
       if (contactUserId) {
         if (!contactUser) contactUser = await storage.getUser(contactUserId);
@@ -5568,6 +5604,11 @@ export async function registerRoutes(
       
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Immediately log out all client users of this company when suspended
+      if (status === "on_hold" || status === "inactive") {
+        await destroyCompanyClientSessions(req.params.id);
       }
       
       res.json(company);

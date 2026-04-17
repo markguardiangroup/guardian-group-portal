@@ -282,6 +282,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-17T15:20:53.903Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "fdf2d30a0b16",
+          "patch": 4,
+          "message": "Company access control: client users are now automatically logged out when their company is set to On Hold or Inactive. Re-login is blocked until the company is restored to Active or Pending, showing: \"Your account is currently unavailable. Please contact your Consultant.\"",
+          "category": "feature",
+          "createdAt": "2026-04-17T15:32:27.726Z",
+          "createdBy": "system"
         }
       ]
     }
