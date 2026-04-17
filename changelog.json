@@ -34,7 +34,8 @@
         "d1e2f3a4-b5c6-7890-defa-012345678901",
         "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
         "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
-        "a0c79eac-8479-4977-a3ec-5af46bf30389"
+        "a0c79eac-8479-4977-a3ec-5af46bf30389",
+        "68d685d0-2252-4c94-a36a-0eadecd4d7a9"
       ],
       "entries": [
         {
@@ -227,6 +228,14 @@
           "message": "Fixed: company dropdown filters across Employment Law, H&S Incidents, Training, Sites, Reports, Support, and Client Uploads pages now show all companies, not just the first page",
           "category": "bug",
           "createdAt": "2026-04-17T14:36:47.515Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
+          "patch": 4,
+          "message": "Fixed: company list endpoint no longer caps results at 100 — all companies are returned when requested by dropdowns and filters",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:46:19.279Z",
           "createdBy": "agent"
         }
       ]

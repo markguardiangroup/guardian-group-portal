@@ -5146,7 +5146,7 @@ export async function registerRoutes(
       
       // Parse query parameters for pagination and search
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const limit = Math.max(1, parseInt(req.query.limit as string) || 20);
       const search = (req.query.search as string || "").toLowerCase();
       const status = req.query.status as string | undefined;
       
