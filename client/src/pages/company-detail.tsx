@@ -826,11 +826,10 @@ export default function CompanyDetail() {
     (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive"
   );
 
-  // All users tab: clients in this company + non-pro consultants assigned to any of this company's sites
+  // All users tab: clients in this company + all consultants explicitly assigned to any of this company's sites
   const companySiteIds = new Set((company?.sites || []).map((s: SiteWithDetails) => s.id));
   const tabConsultants = allUsers.filter(u =>
     u.role === "consultant" &&
-    u.consultantTier !== "pro" &&
     (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId))
   );
   const tabClients = allUsers.filter(u => u.role === "client" && u.companyId === companyId);
