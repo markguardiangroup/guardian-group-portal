@@ -38,7 +38,9 @@
         "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
         "64d8d9ae-b983-4381-86cf-011b36416e1c",
         "175a2948-b234-463f-be87-85854bd21592",
-        "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b"
+        "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
+        "9dc4f768-fe90-494d-a989-d3885f470ed9",
+        "157b7507-3110-48f2-a0ec-ed9f36cda9bc"
       ],
       "entries": [
         {
@@ -263,6 +265,22 @@
           "message": "Fixed: pro consultants explicitly assigned to a company's sites now correctly appear in the company Users list",
           "category": "bug",
           "createdAt": "2026-04-17T15:02:50.178Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9dc4f768-fe90-494d-a989-d3885f470ed9",
+          "patch": 4,
+          "message": "Fixed: toolkit folder dropdown in the Add Templates dialog now always loads fresh data, preventing empty lists after a folder is created",
+          "category": "bug",
+          "createdAt": "2026-04-17T15:20:53.903Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
+          "patch": 4,
+          "message": "Improved: Add Templates dialog now has a \"Create New\" option for toolkit folders, so folders can be created without leaving the dialog",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T15:20:53.903Z",
           "createdBy": "agent"
         }
       ]

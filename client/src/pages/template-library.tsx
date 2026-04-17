@@ -498,6 +498,7 @@ export default function TemplateLibraryPage() {
 
   const { data: toolkitFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
     queryKey: ["/api/toolkit/folders"],
+    refetchOnMount: "always",
   });
   
   // Helper to invalidate documents hierarchy cache (depends on folder/document templates)
@@ -2391,16 +2392,52 @@ export default function TemplateLibraryPage() {
             {bulkShared.visibility === "public" && (
               <div className="space-y-2">
                 <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
-                <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false })}>
-                  <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
-                  <SelectContent>
-                    {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
-                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
-                  <p className="text-xs text-muted-foreground">No Toolkit folders available for this module.</p>
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={!bulkShared.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                    data-testid="button-bulk-select-existing-toolkit-folder"
+                  >
+                    Select Existing
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={bulkShared.createNewToolkitFolder ? "default" : "outline"}
+                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: true, toolkitFolderId: "" })}
+                    data-testid="button-bulk-create-new-toolkit-folder"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create New
+                  </Button>
+                </div>
+                {!bulkShared.createNewToolkitFolder ? (
+                  <>
+                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false })}>
+                      <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
+                      <SelectContent>
+                        {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
+                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
+                      <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-1 p-3 border rounded-md bg-muted/30">
+                    <Label htmlFor="bulk-new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
+                    <Input
+                      id="bulk-new-toolkit-folder-name"
+                      value={bulkShared.newToolkitFolderName}
+                      onChange={(e) => setBulkShared({ ...bulkShared, newToolkitFolderName: e.target.value })}
+                      placeholder="e.g., Fire Safety"
+                      data-testid="input-bulk-new-toolkit-folder-name"
+                    />
+                  </div>
                 )}
               </div>
             )}
