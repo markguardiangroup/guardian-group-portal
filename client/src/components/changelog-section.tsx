@@ -33,6 +33,7 @@ import {
   GitBranch,
   FileDown,
   History,
+  Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,6 +55,8 @@ export interface ChangelogVersion {
   major: number;
   minor: number;
   patch: number;
+  /** The patch number last pushed to production. When publishedPatch < patch, there are unreleased changes. */
+  publishedPatch?: number;
   label: string;
   isActive: boolean;
   createdAt: string;
@@ -140,6 +143,13 @@ export default function ChangelogSection() {
   const deleteEntryMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/changelog/entries/${id}`),
     onSuccess: invalidate,
+  });
+
+  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
+
+  const bumpAfterPublishMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/changelog/bump-after-publish"),
+    onSuccess: () => { invalidate(); setConfirmPublishOpen(false); },
   });
 
   const toggleCard = (id: string) =>
@@ -256,6 +266,19 @@ export default function ChangelogSection() {
                             Active
                           </Badge>
                         )}
+                        {version.isActive && version.publishedPatch !== undefined && (
+                          <Badge
+                            variant="outline"
+                            className={`text-xs px-1.5 py-0 font-mono ${
+                              version.publishedPatch < version.patch
+                                ? "border-amber-400 text-amber-600 dark:text-amber-400"
+                                : "border-emerald-400 text-emerald-600 dark:text-emerald-400"
+                            }`}
+                            title={version.publishedPatch < version.patch ? "Unreleased changes exist" : "Dev and production are in sync"}
+                          >
+                            Live: {formatPatch(version, version.publishedPatch)}
+                          </Badge>
+                        )}
                         {version.label && (
                           <span className="text-sm text-muted-foreground">— {version.label}</span>
                         )}
@@ -264,6 +287,17 @@ export default function ChangelogSection() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{version.entries.length} entr{version.entries.length !== 1 ? "ies" : "y"}</span>
                       <span>{format(new Date(version.createdAt), "d MMM yyyy")}</span>
+                      {version.isActive && (
+                        <button
+                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setConfirmPublishOpen(true); }}
+                          data-testid="button-mark-published"
+                          title="Mark current patch as published to production"
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>Published</span>
+                        </button>
+                      )}
                       {!version.isActive && (
                         <button
                           className="text-destructive hover:text-destructive/80 transition-colors"
@@ -536,6 +570,40 @@ export default function ChangelogSection() {
               data-testid="button-confirm-new-version"
             >
               Create Version
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as Published Confirmation Dialog */}
+      <Dialog open={confirmPublishOpen} onOpenChange={setConfirmPublishOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Mark as Published
+            </DialogTitle>
+            <DialogDescription>
+              {changelog && (() => {
+                const active = changelog.versions.find((v) => v.id === changelog.activeVersionId);
+                if (!active) return null;
+                return (
+                  <>
+                    This records that <span className="font-mono font-medium">{formatPatch(active, active.patch)}</span> is now live on production,
+                    then advances the dev version to <span className="font-mono font-medium">{formatPatch(active, active.patch + 1)}</span> so future changes land on the next patch.
+                  </>
+                );
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmPublishOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => bumpAfterPublishMutation.mutate()}
+              disabled={bumpAfterPublishMutation.isPending}
+              data-testid="button-confirm-mark-published"
+            >
+              {bumpAfterPublishMutation.isPending ? "Marking…" : "Confirm"}
             </Button>
           </DialogFooter>
         </DialogContent>

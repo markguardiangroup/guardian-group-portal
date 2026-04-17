@@ -76,6 +76,18 @@ The request must be authenticated with an admin or consultant session. If no act
 | POST | `/api/changelog/entries` | `{ message, category, versionId? }` | Creates an entry |
 | PATCH | `/api/changelog/entries/:id` | `{ message?, category? }` | Updates an entry |
 | DELETE | `/api/changelog/entries/:id` | — | Deletes an entry |
+| POST | `/api/changelog/bump-after-publish` | — | Records current patch as live on prod, increments dev patch by 1 |
+
+### Publish model (explicit bump, never auto-increment on startup)
+
+The `patch` field on the active version is the **dev patch** (current working number). `publishedPatch` tracks what is live on production.
+
+**After every production deploy** the user (or agent) should call `POST /api/changelog/bump-after-publish` (or press the **"Published" button** in the changelog admin UI). This:
+1. Sets `publishedPatch = patch` (recording what prod now has).
+2. Increments `patch` by 1 (ready for the next dev cycle).
+3. Snaps `patchedEntryIds` so future entries never trigger a spurious bump.
+
+The patch is **never** incremented automatically on server startup — this prevented silent version collisions during Replit deploy restarts.
 
 ### Fallback method: direct file edit (when no session is available)
 

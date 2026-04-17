@@ -5,7 +5,8 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 3,
+      "patch": 4,
+      "publishedPatch": 4,
       "label": "Initial Release",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -28,7 +29,10 @@
         "b4c5d6e7-f8a9-0123-bcde-234567890123",
         "e5f6a7b8-c9d0-1234-cdef-456789012345",
         "a7b8c9d0-e1f2-3456-efab-678901234567",
-        "b9c0d1e2-f3a4-5678-bcde-890123456789"
+        "b9c0d1e2-f3a4-5678-bcde-890123456789",
+        "c0d1e2f3-a4b5-6789-cdef-901234567890",
+        "d1e2f3a4-b5c6-7890-defa-012345678901",
+        "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4"
       ],
       "entries": [
         {
@@ -185,7 +189,7 @@
         },
         {
           "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
-          "patch": 3,
+          "patch": 4,
           "message": "Fixed: login could hang or return to the sign-in page due to slow background data requests after sign-in",
           "category": "bugfix",
           "createdAt": "2026-04-17T09:00:00.000Z",
@@ -193,10 +197,18 @@
         },
         {
           "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
-          "patch": 3,
+          "patch": 4,
           "message": "Fixed: session timeout now stays active across tabs — if any tab is in use, idle tabs will not sign you out",
           "category": "bugfix",
           "createdAt": "2026-04-17T10:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
+          "patch": 4,
+          "message": "Fixed: changelog patch model now uses explicit publish-then-bump — patch number no longer auto-increments on server restart or deploy",
+          "category": "bug",
+          "createdAt": "2026-04-17T13:51:01.944Z",
           "createdBy": "agent"
         }
       ]

@@ -17,7 +17,7 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
-import { readChangelog, writeChangelog, generateChangelogId, type ChangelogCategory, type ChangelogEntry } from "./changelog";
+import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 
 const execAsync = promisify(exec);
 
@@ -12977,6 +12977,11 @@ export async function registerRoutes(
         createdBy: user.id,
       };
       version.entries.push(entry);
+      // Keep patchedEntryIds in sync so this entry never triggers a spurious patch bump
+      if (!version.patchedEntryIds) version.patchedEntryIds = [];
+      if (!version.patchedEntryIds.includes(entry.id)) {
+        version.patchedEntryIds.push(entry.id);
+      }
       await writeChangelog(cl);
       res.status(201).json(entry);
     } catch (err) {
@@ -13036,6 +13041,26 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Changelog DELETE entries error:", err);
       res.status(500).json({ error: "Failed to delete entry" });
+    }
+  });
+
+  /**
+   * POST /api/changelog/bump-after-publish
+   * Called immediately after a confirmed production deploy.
+   * Sets publishedPatch = current patch, increments dev patch by 1,
+   * and syncs patchedEntryIds — so new entries go on the next patch number.
+   */
+  app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
+    try {
+      const user = await changelogAdminGuard(req, res);
+      if (!user) return;
+      await bumpDevPatchAfterPublish();
+      const cl = await readChangelog();
+      const active = cl.versions.find((v) => v.id === cl.activeVersionId);
+      res.json({ patch: active?.patch, publishedPatch: active?.publishedPatch });
+    } catch (err) {
+      console.error("Changelog bump-after-publish error:", err);
+      res.status(500).json({ error: "Failed to bump patch" });
     }
   });
 

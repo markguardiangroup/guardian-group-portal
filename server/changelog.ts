@@ -20,12 +20,23 @@ export interface ChangelogVersion {
   major: number;
   minor: number;
   patch: number;
+  /**
+   * The patch number that was live on production at the last publish.
+   * Dev patch is always >= publishedPatch.
+   * After a publish, bumpDevPatchAfterPublish() sets publishedPatch = patch
+   * and increments patch by 1, ready for the next dev cycle.
+   */
+  publishedPatch?: number;
   label: string;
   isActive: boolean;
   createdAt: string;
   entries: ChangelogEntry[];
-  // IDs of entries that existed when the patch was last incremented.
-  // Used by dev startup to detect new entries and auto-bump patch.
+  /**
+   * IDs of all entries that existed when patchedEntryIds was last written.
+   * Kept in sync whenever entries are added via the API.
+   * No longer used for auto-increment on startup — patch management is now
+   * explicit (see bumpDevPatchAfterPublish).
+   */
   patchedEntryIds?: string[];
 }
 
@@ -42,6 +53,7 @@ const DEFAULT_CHANGELOG: Changelog = {
       major: 1,
       minor: 0,
       patch: 0,
+      publishedPatch: 0,
       label: "Initial Release",
       isActive: true,
       createdAt: new Date().toISOString(),
@@ -82,26 +94,32 @@ export async function writeChangelog(data: Changelog): Promise<void> {
 }
 
 /**
- * Called on dev server startup only.
- * If the active version has entries whose IDs are not in patchedEntryIds,
- * the patch number is incremented and patchedEntryIds is updated to the
- * current full set of entry IDs.
- * Production never calls this — its changelog.json is frozen at deploy time.
+ * Called explicitly after a confirmed publish to production.
+ *
+ * Sets publishedPatch = current patch (recording what prod now has),
+ * then increments patch by 1 so the next dev cycle has its own number.
+ * Also snaps patchedEntryIds to the full current entry list.
+ *
+ * This is the ONLY place the patch number is incremented — it must never
+ * happen automatically on server restart (which also fires during deploys).
  */
-export async function autoIncrementPatchIfChanged(): Promise<void> {
+export async function bumpDevPatchAfterPublish(): Promise<void> {
   const cl = await readChangelog();
   const active = cl.versions.find((v) => v.id === cl.activeVersionId);
   if (!active) return;
 
-  const currentIds = new Set(active.entries.map((e) => e.id));
-  const patchedIds = new Set(active.patchedEntryIds ?? []);
-
-  const hasNewEntries = [...currentIds].some((id) => !patchedIds.has(id));
-  if (!hasNewEntries) return;
-
+  active.publishedPatch = active.patch;
   active.patch += 1;
-  active.patchedEntryIds = [...currentIds];
+  active.patchedEntryIds = active.entries.map((e) => e.id);
   await writeChangelog(cl);
+}
+
+/**
+ * Kept for reference — no longer called automatically on startup.
+ * Use bumpDevPatchAfterPublish() after confirming a production deploy.
+ */
+export async function autoIncrementPatchIfChanged(): Promise<void> {
+  await bumpDevPatchAfterPublish();
 }
 
 export function generateChangelogId(): string {

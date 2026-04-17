@@ -8,7 +8,6 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
-import { autoIncrementPatchIfChanged } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -164,16 +163,6 @@ process.on("uncaughtException", (err) => {
   } catch (err) {
     console.error("Fatal: startup toolkit root folder seed failed:", err);
     process.exit(1);
-  }
-
-  // In dev, auto-increment the changelog patch if new entries exist since the last bump.
-  // Production never changes the patch — it uses whatever was bundled at deploy time.
-  if (process.env.NODE_ENV !== "production") {
-    try {
-      await autoIncrementPatchIfChanged();
-    } catch (err) {
-      console.error("Non-fatal: Failed to auto-increment changelog patch:", err);
-    }
   }
 
   // Run expired folder cleanup on startup and then daily
