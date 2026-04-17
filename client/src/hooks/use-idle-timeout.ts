@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const IDLE_TIMEOUT_MS = import.meta.env.DEV ? 30 * 60 * 1000 : 5 * 60 * 1000;
 const WARNING_LEAD_MS = 60 * 1000;
+const ACTIVITY_KEY = "guardian_last_activity";
 
 interface UseIdleTimeoutOptions {
   timeoutMs?: number;
@@ -38,8 +39,9 @@ export function useIdleTimeout({
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTimeoutRef = useRef(onTimeout);
-  // True while the warning modal is visible — activity events are ignored in this state
   const warningActiveRef = useRef(false);
+  // Throttle local→localStorage writes (at most once per second)
+  const lastBroadcastRef = useRef(0);
 
   useEffect(() => {
     onTimeoutRef.current = onTimeout;
@@ -57,14 +59,12 @@ export function useIdleTimeout({
   const resetTimer = useCallback(() => {
     if (!enabled) return;
 
-    // Clear warning state so the modal is dismissed
     warningActiveRef.current = false;
     clearAll();
     setShowWarning(false);
     setSecondsRemaining(warningLeadMs / 1000);
 
     warningTimerRef.current = setTimeout(() => {
-      // Mark warning as active — activity events will now be ignored
       warningActiveRef.current = true;
       setShowWarning(true);
       setSecondsRemaining(warningLeadMs / 1000);
@@ -81,6 +81,18 @@ export function useIdleTimeout({
     }, timeoutMs - warningLeadMs);
 
     logoutTimerRef.current = setTimeout(() => {
+      // Before signing out, check if another tab was active within the timeout window.
+      // If so, reset our timer instead of logging out.
+      try {
+        const lastActivity = parseInt(localStorage.getItem(ACTIVITY_KEY) ?? "0", 10);
+        const elapsed = Date.now() - lastActivity;
+        if (elapsed < timeoutMs) {
+          resetTimer();
+          return;
+        }
+      } catch {
+        // localStorage unavailable — proceed with logout
+      }
       clearAll();
       onTimeoutRef.current();
     }, timeoutMs);
@@ -94,9 +106,31 @@ export function useIdleTimeout({
       return;
     }
 
-    // Only reset timer on activity when the warning is NOT showing
     const handle = () => {
+      // Broadcast this tab's activity to other tabs (throttled to 1/s)
+      const now = Date.now();
+      if (now - lastBroadcastRef.current > 1000) {
+        lastBroadcastRef.current = now;
+        try {
+          localStorage.setItem(ACTIVITY_KEY, String(now));
+        } catch {
+          // ignore
+        }
+      }
+
       if (!warningActiveRef.current) {
+        resetTimer();
+      }
+    };
+
+    // Listen for activity broadcast from OTHER tabs via the storage event
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== ACTIVITY_KEY) return;
+      // Another tab was active — reset our timer if we're not already in the warning
+      if (!warningActiveRef.current) {
+        resetTimer();
+      } else {
+        // Even if warning is showing, a truly active other tab should dismiss it
         resetTimer();
       }
     };
@@ -104,10 +138,12 @@ export function useIdleTimeout({
     ACTIVITY_EVENTS.forEach((ev) =>
       document.addEventListener(ev, handle, { passive: true })
     );
+    window.addEventListener("storage", handleStorage);
     resetTimer();
 
     return () => {
       ACTIVITY_EVENTS.forEach((ev) => document.removeEventListener(ev, handle));
+      window.removeEventListener("storage", handleStorage);
       clearAll();
     };
   }, [enabled, resetTimer, clearAll]);

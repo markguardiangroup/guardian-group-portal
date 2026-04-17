@@ -190,6 +190,14 @@
           "category": "bugfix",
           "createdAt": "2026-04-17T09:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
+          "patch": 3,
+          "message": "Fixed: session timeout now stays active across tabs — if any tab is in use, idle tabs will not sign you out",
+          "category": "bugfix",
+          "createdAt": "2026-04-17T10:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
