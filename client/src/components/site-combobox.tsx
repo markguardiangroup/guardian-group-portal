@@ -60,7 +60,7 @@ export function SiteCombobox({
         <Button
           variant="outline"
           role="combobox"
-          aria-expanded={open}
+          aria-expanded={disabled ? false : open}
           disabled={disabled}
           className={cn("justify-between", disabled && "opacity-50 cursor-not-allowed", className)}
           data-testid={testId}
