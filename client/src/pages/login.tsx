@@ -163,7 +163,7 @@ export default function Login() {
         queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
 
       const isClientUser = userData.role === "client";
-      await Promise.all([
+      await Promise.allSettled([
         p(["/api/auth/me"], "/api/auth/me"),
         p(["/api/sites"], "/api/sites"),
         p(["/api/companies"], "/api/companies"),
@@ -177,6 +177,7 @@ export default function Login() {
         p(["/api/incidents"], "/api/incidents"),
         p(["/api/cases"], "/api/cases"),
       ]);
+      setIsSubmitting(false);
       const currentPath = window.location.pathname;
       if (!currentPath || currentPath === "/login") {
         setLocation("/");
