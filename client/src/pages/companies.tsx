@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -290,6 +290,17 @@ export default function Companies() {
     postalCode: "",
     country: "",
   });
+  type AddressFields = {
+    addressLine1: string; addressLine2: string; city: string;
+    county: string; postalCode: string; country: string;
+  };
+  const [addressSyncDialog, setAddressSyncDialog] = useState<null | {
+    siteId: string; siteName: string; newAddress: AddressFields;
+  }>(null);
+  const pendingAddressSyncRef = useRef<null | {
+    siteCount: number; companyId: string; newAddress: AddressFields;
+  }>(null);
+
   const { toast } = useToast();
   const { user } = useAuth();
   const limit = 20;
@@ -386,16 +397,52 @@ export default function Companies() {
       const response = await apiRequest("PATCH", `/api/companies/${id}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Company updated successfully" });
       setEditingCompany(null);
       resetForm();
+
+      const sync = pendingAddressSyncRef.current;
+      pendingAddressSyncRef.current = null;
+      if (sync) {
+        if (sync.siteCount === 1) {
+          try {
+            const res = await fetch("/api/sites", { credentials: "include" });
+            const sites: Array<{ id: string; name: string; companyId: string }> = await res.json();
+            const site = sites.find((s) => s.companyId === sync.companyId);
+            if (site) {
+              setAddressSyncDialog({ siteId: site.id, siteName: site.name, newAddress: sync.newAddress });
+            }
+          } catch {}
+        } else if (sync.siteCount > 1) {
+          toast({
+            title: "Address updated",
+            description: "Remember to update the address on the other sites manually.",
+          });
+        }
+      }
     },
     onError: (error: Error) => {
+      pendingAddressSyncRef.current = null;
       let message = "Failed to update company. Please try again.";
       try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
       toast({ title: "Failed to update company", description: message, variant: "destructive" });
+    },
+  });
+
+  const syncAddressToSiteMutation = useMutation({
+    mutationFn: async ({ siteId, address }: { siteId: string; address: AddressFields }) => {
+      const response = await apiRequest("PATCH", `/api/sites/${siteId}`, address);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      setAddressSyncDialog(null);
+      toast({ title: "Address copied to site" });
+    },
+    onError: () => {
+      toast({ title: "Failed to copy address to site", variant: "destructive" });
     },
   });
 
@@ -682,6 +729,24 @@ export default function Companies() {
       }
     }
     if (editingCompany) {
+      const ADDRESS_FIELDS = ["addressLine1", "addressLine2", "city", "county", "postalCode", "country"] as const;
+      const addressChanged = ADDRESS_FIELDS.some(
+        (f) => (submittedData[f] || "") !== ((editingCompany as any)[f] || "")
+      );
+      if (addressChanged && editingCompany.siteCount > 0) {
+        pendingAddressSyncRef.current = {
+          siteCount: editingCompany.siteCount,
+          companyId: editingCompany.id,
+          newAddress: {
+            addressLine1: submittedData.addressLine1,
+            addressLine2: submittedData.addressLine2,
+            city: submittedData.city,
+            county: submittedData.county,
+            postalCode: submittedData.postalCode,
+            country: submittedData.country,
+          },
+        };
+      }
       updateMutation.mutate({ id: editingCompany.id, data: submittedData });
     } else {
       setPendingCompanyData({ ...submittedData });
@@ -1621,6 +1686,54 @@ export default function Companies() {
               </Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!addressSyncDialog} onOpenChange={(open) => { if (!open) setAddressSyncDialog(null); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Copy Address to Site?
+            </DialogTitle>
+            <DialogDescription>
+              Would you like to copy the updated address to{" "}
+              <strong>{addressSyncDialog?.siteName}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          {addressSyncDialog && (
+            <div className="rounded-md border bg-muted/40 px-4 py-3 text-sm space-y-0.5">
+              {addressSyncDialog.newAddress.addressLine1 && <p>{addressSyncDialog.newAddress.addressLine1}</p>}
+              {addressSyncDialog.newAddress.addressLine2 && <p>{addressSyncDialog.newAddress.addressLine2}</p>}
+              {(addressSyncDialog.newAddress.city || addressSyncDialog.newAddress.county) && (
+                <p>{[addressSyncDialog.newAddress.city, addressSyncDialog.newAddress.county].filter(Boolean).join(", ")}</p>
+              )}
+              {addressSyncDialog.newAddress.postalCode && <p>{addressSyncDialog.newAddress.postalCode}</p>}
+              {addressSyncDialog.newAddress.country && <p>{addressSyncDialog.newAddress.country}</p>}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setAddressSyncDialog(null)}
+              data-testid="button-skip-address-sync"
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={() =>
+                addressSyncDialog &&
+                syncAddressToSiteMutation.mutate({
+                  siteId: addressSyncDialog.siteId,
+                  address: addressSyncDialog.newAddress,
+                })
+              }
+              disabled={syncAddressToSiteMutation.isPending}
+              data-testid="button-confirm-address-sync"
+            >
+              {syncAddressToSiteMutation.isPending ? "Copying..." : "Copy Address"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
