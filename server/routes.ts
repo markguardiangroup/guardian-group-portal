@@ -350,20 +350,25 @@ export async function registerRoutes(
   // Register object storage routes for file uploads
   registerObjectStorageRoutes(app);
 
-  // Destroy all active sessions for an array of user IDs (e.g. when company is suspended)
+  // Destroy all active sessions belonging to client users of a given company.
+  // Uses direct SQL to avoid loading the entire users table into memory.
   async function destroyCompanyClientSessions(companyId: string): Promise<void> {
     try {
-      const allUsers = await storage.getAllUsers();
-      const clientUserIds = allUsers
-        .filter(u => u.role === "client" && u.companyId === companyId)
-        .map(u => u.id);
+      // Targeted query: fetch only the IDs of client users for this company
+      const { rows: userRows } = await pool.query<{ id: string }>(
+        "SELECT id FROM users WHERE entity_id = $1 AND role = 'client'",
+        [companyId]
+      );
+      const clientUserIds = userRows.map(r => r.id);
       if (clientUserIds.length === 0) return;
-      await pool.query(
+      const { rowCount } = await pool.query(
         "DELETE FROM session WHERE (sess::json->>'userId') = ANY($1::text[])",
         [clientUserIds]
       );
-      console.log(`[company-status] Terminated ${clientUserIds.length} client session(s) for company ${companyId}`);
+      console.log(`[company-status] Terminated ${rowCount ?? 0} session(s) for ${clientUserIds.length} client(s) of company ${companyId}`);
     } catch (err) {
+      // Log but do not re-throw: the status update has already been persisted.
+      // Any sessions that slip through will be caught by the auth/me safety net.
       console.error("[company-status] Failed to destroy client sessions:", err);
     }
   }
