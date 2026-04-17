@@ -5,7 +5,7 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 2,
+      "patch": 3,
       "label": "Initial Release",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -160,7 +160,7 @@
         },
         {
           "id": "e5f6a7b8-c9d0-1234-cdef-456789012345",
-          "patch": 2,
+          "patch": 3,
           "message": "Consultants can now build and download PDF document bundles from a case's checklist items",
           "category": "feature",
           "createdAt": "2026-04-16T17:00:00.000Z",
@@ -168,7 +168,7 @@
         },
         {
           "id": "a7b8c9d0-e1f2-3456-efab-678901234567",
-          "patch": 2,
+          "patch": 3,
           "message": "Guardian Group logo on the login page now links to guardiangroup.co.uk",
           "category": "enhancement",
           "createdAt": "2026-04-16T19:00:00.000Z",
