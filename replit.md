@@ -46,7 +46,9 @@ Admin-managed legal documents (Terms & Conditions, Privacy Policy) are stored in
 
 ## Changelog Convention
 
-After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** call `POST /api/changelog/entries` to log a 1-line summary. This is the canonical required workflow.
+> **MANDATORY — no exceptions.** Every change delivered to the user — no matter how small — requires a changelog entry before the work is considered done. This includes minor UI tweaks, copy fixes, and one-line changes. Forgetting to add an entry is a process failure. Task agents must also include changelog entries as part of their work. The entry must be added using one of the two methods below.
+
+After completing any user-requested change (bug fix, enhancement, or new feature), the agent **must** add a changelog entry. This is a hard requirement, not optional.
 
 ### Standard method: HTTP endpoint
 
