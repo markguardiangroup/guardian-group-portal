@@ -313,7 +313,7 @@ export default function UserManagement() {
   });
 
   const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
     enabled: isAdmin || isConsultant,
   });
   const companies = companiesResponse?.companies || [];
@@ -718,7 +718,7 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies?limit=1000"] });
       setShowSiteAssignmentMessage(false);
       setUserNeedingSiteAssignment(null);
       setSetPrimaryContact(false);
@@ -1132,7 +1132,7 @@ export default function UserManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/consultants"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/companies?limit=1000"] }),
     ]);
     setIsRefreshing(false);
   };

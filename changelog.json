@@ -32,7 +32,8 @@
         "b9c0d1e2-f3a4-5678-bcde-890123456789",
         "c0d1e2f3-a4b5-6789-cdef-901234567890",
         "d1e2f3a4-b5c6-7890-defa-012345678901",
-        "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4"
+        "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
+        "23b692fe-eeb8-4410-9be4-566e3e4ece3a"
       ],
       "entries": [
         {
@@ -209,6 +210,14 @@
           "message": "Fixed: changelog patch model now uses explicit publish-then-bump — patch number no longer auto-increments on server restart or deploy",
           "category": "bug",
           "createdAt": "2026-04-17T13:51:01.944Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
+          "patch": 4,
+          "message": "Fixed: company dropdown when adding a user now shows all companies, not just the first page",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:02:51.746Z",
           "createdBy": "agent"
         }
       ]
