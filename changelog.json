@@ -314,6 +314,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-17T16:14:19.625Z",
           "createdBy": "system"
+        },
+        {
+          "id": "c243f52f18f4",
+          "patch": 4,
+          "message": "When a company or site address is updated, you are now prompted to copy the new address to any matching sites or the parent company",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T17:17:48.594Z",
+          "createdBy": "agent"
         }
       ]
     }

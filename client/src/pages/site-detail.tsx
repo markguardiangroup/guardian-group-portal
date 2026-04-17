@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useLocation, useSearch, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -1256,10 +1256,18 @@ export default function SiteDetail() {
     enabled: !!siteId,
   });
 
-  const { data: parentCompany } = useQuery<Company>({
+  const { data: parentCompany } = useQuery<Company & { sites?: Array<{ id: string }> }>({
     queryKey: ["/api/companies", entity?.companyId],
     enabled: !!entity?.companyId,
   });
+
+  const siteAddressSnapshotRef = useRef({
+    addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "",
+  });
+  const [companySyncOpen, setCompanySyncOpen] = useState(false);
+  const [companySyncAddress, setCompanySyncAddress] = useState<{
+    addressLine1: string; addressLine2: string; city: string; county: string; postalCode: string; country: string;
+  } | null>(null);
 
   // Fetch all users to filter for company users
   const { data: allUsers = [] } = useQuery<User[]>({
@@ -1299,19 +1307,65 @@ export default function SiteDetail() {
     }
   };
 
+  const addrFields = ["addressLine1", "addressLine2", "city", "county", "postalCode", "country"] as const;
+  type AddrSnapshot = Record<typeof addrFields[number], string>;
+
   const updateSiteMutation = useMutation({
     mutationFn: async (data: typeof editSiteData) => {
       const response = await apiRequest("PATCH", `/api/sites/${siteId}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Site updated successfully" });
       setIsEditSiteOpen(false);
+
+      const newAddr: AddrSnapshot = {
+        addressLine1: variables.addressLine1, addressLine2: variables.addressLine2,
+        city: variables.city, county: variables.county,
+        postalCode: variables.postalCode, country: variables.country,
+      };
+      const oldAddr = siteAddressSnapshotRef.current;
+      const addrChanged = addrFields.some(
+        (f) => (newAddr[f] || "").trim().toLowerCase() !== (oldAddr[f] || "").trim().toLowerCase()
+      );
+      if (!addrChanged || !parentCompany) return;
+
+      const companyAddr: AddrSnapshot = {
+        addressLine1: parentCompany.addressLine1 || "", addressLine2: parentCompany.addressLine2 || "",
+        city: parentCompany.city || "", county: parentCompany.county || "",
+        postalCode: parentCompany.postalCode || "", country: parentCompany.country || "",
+      };
+      const companyHasOneSite = (parentCompany.sites?.length ?? 0) === 1;
+      const companyMatchedOldSite = addrFields.every(
+        (f) => (companyAddr[f] || "").trim().toLowerCase() === (oldAddr[f] || "").trim().toLowerCase()
+      );
+      if (companyHasOneSite || companyMatchedOldSite) {
+        setCompanySyncAddress(newAddr);
+        setCompanySyncOpen(true);
+      }
     },
     onError: () => {
       toast({ title: "Failed to update site", variant: "destructive" });
+    },
+  });
+
+  const syncCompanyMutation = useMutation({
+    mutationFn: async (address: AddrSnapshot) => {
+      if (!entity?.companyId) throw new Error("Missing company");
+      const response = await apiRequest("PATCH", `/api/companies/${entity.companyId}`, address);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", entity?.companyId] });
+      toast({ title: "Company address updated" });
+      setCompanySyncOpen(false);
+      setCompanySyncAddress(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update company address", variant: "destructive" });
     },
   });
 
@@ -1375,6 +1429,14 @@ export default function SiteDetail() {
 
   const handleEditSite = () => {
     if (entity) {
+      siteAddressSnapshotRef.current = {
+        addressLine1: entity.addressLine1 || "",
+        addressLine2: entity.addressLine2 || "",
+        city: entity.city || "",
+        county: entity.county || "",
+        postalCode: entity.postalCode || "",
+        country: entity.country || "",
+      };
       // Try to find the user whose details match the current contact
       const matchingUser = companyUsers.find(
         (u) => u.email === entity.contactEmail || u.fullName === entity.contactName
@@ -1706,6 +1768,32 @@ export default function SiteDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={companySyncOpen} onOpenChange={(open) => { if (!open) { setCompanySyncOpen(false); setCompanySyncAddress(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update company address?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{parentCompany?.name}</strong> has the same address as this site had before the update. Would you like to copy the new address to the company too?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => { setCompanySyncOpen(false); setCompanySyncAddress(null); }}
+              data-testid="button-skip-company-sync"
+            >
+              No, keep it
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => companySyncAddress && syncCompanyMutation.mutate(companySyncAddress)}
+              disabled={syncCompanyMutation.isPending}
+              data-testid="button-confirm-company-sync"
+            >
+              {syncCompanyMutation.isPending ? "Updating..." : "Yes, update company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </div>
   );
