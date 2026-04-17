@@ -314,14 +314,6 @@
           "category": "enhancement",
           "createdAt": "2026-04-17T16:14:19.625Z",
           "createdBy": "system"
-        },
-        {
-          "id": "a7a761a15c6e",
-          "patch": 4,
-          "message": "Editing a company or site address now prompts you to copy the updated address to the linked record",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T16:36:03.538Z",
-          "createdBy": "agent"
         }
       ]
     }
