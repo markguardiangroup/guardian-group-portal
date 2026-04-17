@@ -421,6 +421,7 @@ export interface IStorage {
   toggleFeedbackUpvote(id: string, userId: string): Promise<Feedback | undefined>;
   getFeedbackComments(feedbackId: string): Promise<FeedbackComment[]>;
   createFeedbackComment(comment: InsertFeedbackComment): Promise<FeedbackComment>;
+  updateFeedbackComment(id: string, content: string): Promise<FeedbackComment | undefined>;
   toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined>;
   markFeedbackRead(feedbackId: string, userId: string): Promise<void>;
   getFeedbackWithMetadata(userId: string): Promise<(Feedback & { commentCount: number; hasUnreadComments: boolean })[]>;
@@ -3652,6 +3653,14 @@ export class MemStorage implements IStorage {
       updatedAt: now,
     }).returning();
     return created;
+  }
+
+  async updateFeedbackComment(id: string, content: string): Promise<FeedbackComment | undefined> {
+    const [updated] = await db.update(feedbackCommentsTable)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(feedbackCommentsTable.id, id))
+      .returning();
+    return updated;
   }
 
   async toggleCommentLike(commentId: string, userId: string): Promise<FeedbackComment | undefined> {

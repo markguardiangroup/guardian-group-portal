@@ -10876,25 +10876,71 @@ export async function registerRoutes(
   app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      // Only admins can update feedback
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update feedback" });
-      }
 
       const parseResult = updateFeedbackSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid update data" });
       }
 
-      const updated = await storage.updateFeedback(req.params.id, parseResult.data);
-      if (!updated) {
+      const existing = await storage.getFeedbackItem(req.params.id);
+      if (!existing) {
         return res.status(404).json({ error: "Feedback not found" });
       }
 
+      const isAdmin = user.role === "admin";
+      const isOwner = existing.userId === user.id;
+
+      // Status changes are admin-only
+      if (parseResult.data.status !== undefined && !isAdmin) {
+        return res.status(403).json({ error: "Only admins can change feedback status" });
+      }
+
+      // Message edits are owner-only and only when no engagement yet
+      if (parseResult.data.message !== undefined) {
+        if (!isOwner) {
+          return res.status(403).json({ error: "You can only edit your own feedback" });
+        }
+        // Check no upvotes or comments exist
+        const upvoteCount = (existing.upvotes || []).length;
+        const comments = await storage.getFeedbackComments(req.params.id);
+        if (upvoteCount > 0 || comments.length > 0) {
+          return res.status(409).json({ error: "Cannot edit feedback that has upvotes or comments" });
+        }
+      }
+
+      const updated = await storage.updateFeedback(req.params.id, parseResult.data);
       res.json(updated);
     } catch (error) {
       console.error("Error updating feedback:", error);
       res.status(500).json({ error: "Failed to update feedback" });
+    }
+  });
+
+  app.patch("/api/feedback/comments/:id", requireAuth, requirePrivileged, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const { content } = req.body;
+      if (!content || typeof content !== "string" || !content.trim()) {
+        return res.status(400).json({ error: "Comment content is required" });
+      }
+
+      // Verify ownership via a targeted query on the comment row
+      const { rows } = await pool.query<{ user_id: string }>(
+        "SELECT user_id FROM feedback_comments WHERE id = $1",
+        [req.params.id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+      if (rows[0].user_id !== user.id) {
+        return res.status(403).json({ error: "You can only edit your own comments" });
+      }
+
+      const updated = await storage.updateFeedbackComment(req.params.id, content.trim());
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      res.status(500).json({ error: "Failed to update comment" });
     }
   });
 
