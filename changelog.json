@@ -338,6 +338,14 @@
           "category": "bugfix",
           "createdAt": "2026-04-17T18:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b72d15fe8c91",
+          "patch": 4,
+          "message": "Fixed: site address on the company Sites tab now shows the full address including Address Line 2 and County",
+          "category": "bugfix",
+          "createdAt": "2026-04-17T18:40:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

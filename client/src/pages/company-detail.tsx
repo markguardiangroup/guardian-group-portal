@@ -209,7 +209,7 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
                 <h4 className="font-medium">{site.name}</h4>
                 {(site.addressLine1 || site.city) && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
+                    {[site.addressLine1, site.addressLine2, site.city, site.county, site.postalCode].filter(Boolean).join(", ")}
                   </p>
                 )}
               </div>
