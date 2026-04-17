@@ -40,6 +40,7 @@ interface UserReportData {
   fullName: string;
   email: string;
   role: UserRole;
+  consultantTier?: string | null;
   status: string;
   companyId: string | null;
   jobTitle?: string | null;
@@ -72,6 +73,14 @@ export default function AdminReports() {
     client: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
   };
 
+  const proConsultantColor = "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800";
+
+  const getUserRoleLabel = (u: UserReportData) =>
+    u.role === "consultant" && u.consultantTier === "pro" ? "Pro Consultant" : roleLabels[u.role];
+
+  const getUserRoleColor = (u: UserReportData) =>
+    u.role === "consultant" && u.consultantTier === "pro" ? proConsultantColor : roleColors[u.role];
+
   const downloadUsersCSV = () => {
     const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites"];
     const rows = usersData.map(user => {
@@ -81,7 +90,7 @@ export default function AdminReports() {
         user.referenceNumber || "",
         user.fullName,
         user.email,
-        roleLabels[user.role],
+        getUserRoleLabel(user),
         user.status,
         company?.name || "",
         user.jobTitle || "",
@@ -236,8 +245,9 @@ export default function AdminReports() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Roles:</span>
-                <Badge variant="outline" className={roleColors.admin}>Admin</Badge>
+                <Badge variant="outline" className={roleColors.admin}>Administrator</Badge>
                 <Badge variant="outline" className={roleColors.consultant}>Consultant</Badge>
+                <Badge variant="outline" className={proConsultantColor}>Pro Consultant</Badge>
                 <Badge variant="outline" className={roleColors.client}>Client</Badge>
               </div>
               <Button variant="outline" size="sm" onClick={downloadUsersCSV} data-testid="button-download-users-csv">
@@ -280,8 +290,8 @@ export default function AdminReports() {
                         </TableCell>
                         <TableCell className="text-sm">{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={roleColors[user.role]}>
-                            {roleLabels[user.role]}
+                          <Badge variant="outline" className={getUserRoleColor(user)}>
+                            {getUserRoleLabel(user)}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -332,7 +342,7 @@ export default function AdminReports() {
                   <div className="mb-3 flex items-center justify-between">
                     <h4 className="font-medium">Summary</h4>
                   </div>
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-5 gap-4">
                     <div className="rounded-md border p-3 text-center">
                       <p className="text-2xl font-semibold">{usersData.length}</p>
                       <p className="text-sm text-muted-foreground">Total Users</p>
@@ -345,9 +355,15 @@ export default function AdminReports() {
                     </div>
                     <div className="rounded-md border p-3 text-center">
                       <p className="text-2xl font-semibold text-blue-600">
-                        {usersData.filter(u => u.role === "consultant").length}
+                        {usersData.filter(u => u.role === "consultant" && u.consultantTier !== "pro").length}
                       </p>
                       <p className="text-sm text-muted-foreground">Consultants</p>
+                    </div>
+                    <div className="rounded-md border p-3 text-center">
+                      <p className="text-2xl font-semibold text-indigo-600">
+                        {usersData.filter(u => u.role === "consultant" && u.consultantTier === "pro").length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Pro Consultants</p>
                     </div>
                     <div className="rounded-md border p-3 text-center">
                       <p className="text-2xl font-semibold text-emerald-600">

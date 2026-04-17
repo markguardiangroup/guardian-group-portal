@@ -330,6 +330,14 @@
           "category": "bugfix",
           "createdAt": "2026-04-17T18:17:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f3c910ab7d82",
+          "patch": 4,
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T18:28:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
