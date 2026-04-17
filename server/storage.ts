@@ -589,112 +589,273 @@ export class MemStorage implements IStorage {
     return await db.select().from(sitesTable);
   }
 
+  /**
+   * Computes a compliance summary in memory from pre-loaded data.
+   * Called by the batched getSitesWithDetails / getSitesWithDetailsByCompanyId
+   * so that no per-site DB queries are needed.
+   */
+  private computeComplianceSummaryInMemory(
+    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null }[],
+    siteOverrides: { templateId: string; action: string }[],
+    companyRequired: { templateId: string }[],
+    templateMap: Map<string, { id: string; visibility?: string | null }>,
+  ): ComplianceSummary {
+    const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+    const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
+
+    const effectiveTemplateIds = [
+      ...companyRequired.map(r => r.templateId).filter(id => !excludedIds.has(id)),
+      ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
+    ];
+
+    let slotTotal = 0;
+    let slotCompliantDocs = 0;
+    let slotReview = 0;
+    let slotOverdue = 0;
+    let missingRequired = 0;
+    const consumedTemplateIds = new Set<string>();
+
+    for (const templateId of effectiveTemplateIds) {
+      const tmpl = templateMap.get(templateId);
+      if (!tmpl || tmpl.visibility !== "private") continue;
+      consumedTemplateIds.add(templateId);
+      slotTotal++;
+      const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
+      if (matchingDocs.length === 0) { missingRequired++; continue; }
+      for (const d of matchingDocs) {
+        if (d.status === "compliant") slotCompliantDocs++;
+        else if (d.status === "overdue") slotOverdue++;
+        else if (d.status === "review_required") slotReview++;
+      }
+    }
+
+    const manualRequired = siteDocs.filter(d =>
+      d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
+    );
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+
+    const total = slotTotal + manualRequired.length;
+    const compliant = slotCompliantDocs + manualCompliant;
+    const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
+    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    const scoreDenominator = compliant + review + overdue + missingRequired;
+
+    return {
+      totalDocuments: total,
+      compliantDocuments: compliant,
+      reviewRequired: review,
+      overdueDocuments: overdue,
+      missingRequiredDocuments: missingRequired,
+      pendingApprovals: pending,
+      awaitingYourApproval: 0,
+      awaitingOthersApproval: 0,
+      complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+    };
+  }
+
+  /**
+   * Loads all sites with full detail in ~8 parallel DB queries (previously one query
+   * per site plus one per assigned consultant — easily hundreds of round-trips).
+   */
   async getSitesWithDetails(): Promise<SiteWithDetails[]> {
-    const sites = await db.select().from(sitesTable);
-    const companies = await db.select().from(companiesTable);
+    const [
+      sites,
+      companies,
+      allDocs,
+      allSiteOverrides,
+      allCompanyRequired,
+      allActiveTemplates,
+      allModuleAccess,
+      allAssignments,
+      allUsers,
+    ] = await Promise.all([
+      db.select().from(sitesTable),
+      db.select().from(companiesTable),
+      db.select().from(documentsTable).where(and(
+        eq(documentsTable.isArchived, false),
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId),
+      )),
+      db.select().from(siteTemplateOverridesTable),
+      db.select().from(companyRequiredTemplatesTable),
+      db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
+      db.select().from(siteModuleAccessTable),
+      db.select().from(consultantAssignmentsTable),
+      db.select().from(usersTable),
+    ]);
+
     const companiesMap = new Map(companies.map(c => [c.id, c]));
-    
-    return Promise.all(sites.map(async (site) => {
-      const summary = await this.getSiteComplianceSummary(site.id);
-      const moduleAccessList = await this.getSiteModuleAccess(site.id);
-      
+    const templateMap = new Map(allActiveTemplates.map(t => [t.id, t]));
+    const usersMap = new Map(allUsers.map(u => [u.id, u]));
+
+    // Group by siteId / companyId for O(1) lookups
+    const docsBySite = new Map<string, typeof allDocs>();
+    for (const d of allDocs) {
+      if (!d.siteId) continue;
+      if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
+      docsBySite.get(d.siteId)!.push(d);
+    }
+    const overridesBySite = new Map<string, typeof allSiteOverrides>();
+    for (const o of allSiteOverrides) {
+      if (!overridesBySite.has(o.siteId)) overridesBySite.set(o.siteId, []);
+      overridesBySite.get(o.siteId)!.push(o);
+    }
+    const requiredByCompany = new Map<string, typeof allCompanyRequired>();
+    for (const r of allCompanyRequired) {
+      if (!requiredByCompany.has(r.companyId)) requiredByCompany.set(r.companyId, []);
+      requiredByCompany.get(r.companyId)!.push(r);
+    }
+    const moduleAccessBySite = new Map<string, typeof allModuleAccess>();
+    for (const a of allModuleAccess) {
+      if (!moduleAccessBySite.has(a.siteId)) moduleAccessBySite.set(a.siteId, []);
+      moduleAccessBySite.get(a.siteId)!.push(a);
+    }
+    const assignmentsBySite = new Map<string, typeof allAssignments>();
+    for (const a of allAssignments) {
+      const key = a.entityId ?? a.siteId;
+      if (!key) continue;
+      if (!assignmentsBySite.has(key)) assignmentsBySite.set(key, []);
+      assignmentsBySite.get(key)!.push(a);
+    }
+
+    return sites.map(site => {
+      const company = companiesMap.get(site.companyId);
+      const siteDocs = docsBySite.get(site.id) ?? [];
+
+      const complianceSummary = this.computeComplianceSummaryInMemory(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        requiredByCompany.get(site.companyId) ?? [],
+        templateMap,
+      );
+
+      const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
-      } = {
-        health_safety: "hidden",
-        human_resources: "hidden",
-        employment_law: "hidden",
-        support: "hidden",
-      };
-      
-      for (const access of moduleAccessList) {
-        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law" || access.module === "support") {
-          moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
+      } = { health_safety: "hidden", human_resources: "hidden", employment_law: "hidden", support: "hidden" };
+      for (const a of moduleAccessList) {
+        if (a.module === "health_safety" || a.module === "human_resources" || a.module === "employment_law" || a.module === "support") {
+          moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
         }
       }
-      
-      // Get assigned consultants
-      const assignments = await this.getConsultantAssignments(site.id);
-      const assignedConsultants = await Promise.all(
-        assignments.map(async (assignment: ConsultantAssignment) => {
-          const user = await this.getUser(assignment.consultantId);
-          return {
-            id: assignment.consultantId,
-            name: user?.fullName || "Unknown",
-            isPrimary: assignment.isPrimary,
-          };
-        })
-      );
-      
-      // Get company info
-      const company = companiesMap.get(site.companyId);
-      
-      return { 
-        ...site, 
+
+      const assignments = assignmentsBySite.get(site.id) ?? [];
+      const assignedConsultants = assignments.map(a => ({
+        id: a.consultantId,
+        name: usersMap.get(a.consultantId)?.fullName ?? "Unknown",
+        isPrimary: a.isPrimary,
+      }));
+
+      return {
+        ...site,
         companyName: company?.name,
         companyNumber: company?.companyNumber ?? undefined,
         companySearchTag: company?.searchTag ?? undefined,
         companySources: company?.sources ?? null,
-        complianceSummary: summary, 
-        moduleAccess, 
-        assignedConsultants 
+        complianceSummary,
+        moduleAccess,
+        assignedConsultants,
       };
-    }));
+    });
   }
 
   async getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]> {
-    // Filter sites first to avoid processing unrelated sites
-    const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
-    const company = await this.getCompany(companyId);
-    
-    return Promise.all(companySites.map(async (site) => {
-      const summary = await this.getSiteComplianceSummary(site.id);
-      const moduleAccessList = await this.getSiteModuleAccess(site.id);
-      
+    // Filter sites first then batch the rest — avoids per-site queries
+    const [companySites, company, allSiteOverrides, allCompanyRequired, allActiveTemplates, allModuleAccess, allAssignments, allUsers] = await Promise.all([
+      db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
+      this.getCompany(companyId),
+      db.select().from(siteTemplateOverridesTable),
+      db.select().from(companyRequiredTemplatesTable).where(eq(companyRequiredTemplatesTable.companyId, companyId)),
+      db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
+      db.select().from(siteModuleAccessTable),
+      db.select().from(consultantAssignmentsTable),
+      db.select().from(usersTable),
+    ]);
+
+    if (companySites.length === 0) return [];
+
+    const siteIds = new Set(companySites.map(s => s.id));
+
+    const allDocs = await db.select().from(documentsTable).where(and(
+      eq(documentsTable.isArchived, false),
+      isNull(documentsTable.caseId),
+      isNull(documentsTable.incidentId),
+    ));
+
+    const templateMap = new Map(allActiveTemplates.map(t => [t.id, t]));
+    const usersMap = new Map(allUsers.map(u => [u.id, u]));
+
+    const docsBySite = new Map<string, typeof allDocs>();
+    for (const d of allDocs) {
+      if (!d.siteId || !siteIds.has(d.siteId)) continue;
+      if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
+      docsBySite.get(d.siteId)!.push(d);
+    }
+    const overridesBySite = new Map<string, typeof allSiteOverrides>();
+    for (const o of allSiteOverrides) {
+      if (!siteIds.has(o.siteId)) continue;
+      if (!overridesBySite.has(o.siteId)) overridesBySite.set(o.siteId, []);
+      overridesBySite.get(o.siteId)!.push(o);
+    }
+    const moduleAccessBySite = new Map<string, typeof allModuleAccess>();
+    for (const a of allModuleAccess) {
+      if (!siteIds.has(a.siteId)) continue;
+      if (!moduleAccessBySite.has(a.siteId)) moduleAccessBySite.set(a.siteId, []);
+      moduleAccessBySite.get(a.siteId)!.push(a);
+    }
+    const assignmentsBySite = new Map<string, typeof allAssignments>();
+    for (const a of allAssignments) {
+      const key = a.entityId ?? a.siteId;
+      if (!key || !siteIds.has(key)) continue;
+      if (!assignmentsBySite.has(key)) assignmentsBySite.set(key, []);
+      assignmentsBySite.get(key)!.push(a);
+    }
+
+    return companySites.map(site => {
+      const siteDocs = docsBySite.get(site.id) ?? [];
+
+      const complianceSummary = this.computeComplianceSummaryInMemory(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        allCompanyRequired,
+        templateMap,
+      );
+
+      const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
-      } = {
-        health_safety: "hidden",
-        human_resources: "hidden",
-        employment_law: "hidden",
-        support: "hidden",
-      };
-      
-      for (const access of moduleAccessList) {
-        if (access.module === "health_safety" || access.module === "human_resources" || access.module === "employment_law" || access.module === "support") {
-          moduleAccess[access.module] = access.status as "active" | "visible" | "hidden";
+      } = { health_safety: "hidden", human_resources: "hidden", employment_law: "hidden", support: "hidden" };
+      for (const a of moduleAccessList) {
+        if (a.module === "health_safety" || a.module === "human_resources" || a.module === "employment_law" || a.module === "support") {
+          moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
         }
       }
-      
-      const assignments = await this.getConsultantAssignments(site.id);
-      const assignedConsultants = await Promise.all(
-        assignments.map(async (assignment: ConsultantAssignment) => {
-          const user = await this.getUser(assignment.consultantId);
-          return {
-            id: assignment.consultantId,
-            name: user?.fullName || "Unknown",
-            isPrimary: assignment.isPrimary,
-          };
-        })
-      );
-      
-      return { 
-        ...site, 
+
+      const assignments = assignmentsBySite.get(site.id) ?? [];
+      const assignedConsultants = assignments.map(a => ({
+        id: a.consultantId,
+        name: usersMap.get(a.consultantId)?.fullName ?? "Unknown",
+        isPrimary: a.isPrimary,
+      }));
+
+      return {
+        ...site,
         companyName: company?.name,
         companyNumber: company?.companyNumber ?? undefined,
         companySearchTag: company?.searchTag ?? undefined,
         companySources: company?.sources ?? null,
-        complianceSummary: summary, 
-        moduleAccess, 
-        assignedConsultants 
+        complianceSummary,
+        moduleAccess,
+        assignedConsultants,
       };
-    }));
+    });
   }
 
   async getSite(id: string): Promise<Site | undefined> {

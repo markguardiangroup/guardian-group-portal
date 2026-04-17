@@ -373,6 +373,8 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
       // Navigation data – used across sidebar/header on every page
       p(["/api/sites"], "/api/sites");
       p(["/api/companies"], "/api/companies");
+      // Users list – prefetch so user-management page hits cache on first visit
+      if (!isClientUser) p(["/api/users"], "/api/users");
       p(["/api/support-requests/counts"], "/api/support-requests/counts");
 
       // Main dashboard – all queries used by the overview page (no site/company filter)

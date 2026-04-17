@@ -108,8 +108,10 @@ export default function Sites() {
   });
   const { toast } = useToast();
 
+  // Key matches the prefetcher's cache key when not filtering — avoids a redundant fetch on first visit
+  const sitesQueryKey = isProConsultant && myAssignedOnly ? ["/api/sites?myAssigned=true"] : ["/api/sites"];
   const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites", { myAssigned: isProConsultant && myAssignedOnly }],
+    queryKey: sitesQueryKey,
     staleTime: 60 * 1000,
     queryFn: async () => {
       const url = isProConsultant && myAssignedOnly ? "/api/sites?myAssigned=true" : "/api/sites";
