@@ -8293,12 +8293,12 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin and consultants can set module access
-      if (user.role !== "admin" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can manage module access" });
+      // Only admin and pro consultants can set module access
+      if (user.role !== "admin" && !(user.role === "consultant" && user.consultantTier === "pro")) {
+        return res.status(403).json({ error: "Only admins and pro consultants can manage module access" });
       }
       
-      // Consultants need canManageModules permission on this site
+      // Pro consultants need to be assigned to this site
       if (user.role === "consultant") {
         const assignments = await storage.getConsultantAssignments(user.id);
         const siteAssignment = assignments.find(a => a.siteId === req.params.siteId);
@@ -8377,9 +8377,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can set company module access
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can manage company module access" });
+      // Only admin and pro consultants can set company module access
+      if (user.role !== "admin" && !(user.role === "consultant" && user.consultantTier === "pro")) {
+        return res.status(403).json({ error: "Only admins and pro consultants can manage company module access" });
       }
       
       const { healthSafety, humanResources, employmentLaw, training, toolkit, support, reports } = req.body;

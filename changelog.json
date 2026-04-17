@@ -5,7 +5,7 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 3,
+      "patch": 4,
       "label": "Initial Release",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -27,7 +27,8 @@
         "c5d6e7f8-a9b0-1234-cdef-345678901234",
         "b4c5d6e7-f8a9-0123-bcde-234567890123",
         "e5f6a7b8-c9d0-1234-cdef-456789012345",
-        "a7b8c9d0-e1f2-3456-efab-678901234567"
+        "a7b8c9d0-e1f2-3456-efab-678901234567",
+        "b9c0d1e2-f3a4-5678-bcde-890123456789"
       ],
       "entries": [
         {
@@ -172,6 +173,14 @@
           "message": "Guardian Group logo on the login page now links to guardiangroup.co.uk",
           "category": "enhancement",
           "createdAt": "2026-04-16T19:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b9c0d1e2-f3a4-5678-bcde-890123456789",
+          "patch": 3,
+          "message": "Pro consultants can now manage module access at both company and site level",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T08:00:00.000Z",
           "createdBy": "agent"
         }
       ]
