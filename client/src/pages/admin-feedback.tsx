@@ -266,7 +266,7 @@ export default function AdminFeedback() {
                               <p className="text-xs font-medium text-muted-foreground">
                                 {item.userName} &middot; {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
                               </p>
-                              <p className="text-sm">{item.message}</p>
+                              <p className="text-sm whitespace-pre-wrap">{item.message}</p>
                             </div>
                             <div className="space-y-4 max-h-[340px] overflow-y-auto pr-2">
                               {comments?.map((comment) => (
@@ -286,7 +286,7 @@ export default function AdminFeedback() {
                                       {comment.likes?.length || 0}
                                     </Button>
                                   </div>
-                                  <p className="text-sm">{comment.content}</p>
+                                  <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                                   <p className="text-[10px] text-muted-foreground">
                                     {format(new Date(comment.createdAt), "HH:mm, dd MMM")}
                                   </p>
