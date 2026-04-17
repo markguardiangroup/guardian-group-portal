@@ -614,7 +614,7 @@ export default function Reports() {
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies"] });
+  const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies?limit=1000"] });
   const companies = companiesData?.companies || [];
   const { data: allSites = [] } = useQuery<Site[]>({ queryKey: ["/api/sites"] });
 

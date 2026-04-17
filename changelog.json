@@ -33,7 +33,8 @@
         "c0d1e2f3-a4b5-6789-cdef-901234567890",
         "d1e2f3a4-b5c6-7890-defa-012345678901",
         "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
-        "23b692fe-eeb8-4410-9be4-566e3e4ece3a"
+        "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
+        "a0c79eac-8479-4977-a3ec-5af46bf30389"
       ],
       "entries": [
         {
@@ -218,6 +219,14 @@
           "message": "Fixed: company dropdown when adding a user now shows all companies, not just the first page",
           "category": "bug",
           "createdAt": "2026-04-17T14:02:51.746Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a0c79eac-8479-4977-a3ec-5af46bf30389",
+          "patch": 4,
+          "message": "Fixed: company dropdown filters across Employment Law, H&S Incidents, Training, Sites, Reports, Support, and Client Uploads pages now show all companies, not just the first page",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:36:47.515Z",
           "createdBy": "agent"
         }
       ]

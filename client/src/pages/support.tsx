@@ -713,7 +713,7 @@ export default function Support() {
   });
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
     enabled: user?.role === "admin",
   });
   const companies = companiesResponse?.companies || [];

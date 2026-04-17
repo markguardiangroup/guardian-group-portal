@@ -120,7 +120,7 @@ export default function Sites() {
   });
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
   });
   const companies = companiesResponse?.companies;
 
@@ -323,7 +323,7 @@ export default function Sites() {
     setIsRefreshing(true);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/companies?limit=1000"] }),
     ]);
     setIsRefreshing(false);
   };

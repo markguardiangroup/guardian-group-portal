@@ -977,7 +977,7 @@ function CreateCaseDialog({
 
   // Fetch companies for selection
   const { data: companies } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
     select: (data: any) => data.companies || data,
   });
 

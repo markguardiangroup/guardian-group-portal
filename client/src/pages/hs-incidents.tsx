@@ -3631,7 +3631,7 @@ function IncidentsListView() {
   });
 
   const { data: companiesData } = useQuery<any>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
     enabled: isPrivileged,
   });
   const companies = companiesData?.companies ?? [];

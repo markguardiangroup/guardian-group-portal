@@ -128,7 +128,7 @@ export default function TrainingDashboard() {
   });
 
   const { data: companiesData } = useQuery<{ companies: Company[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
   });
   const companies = companiesData?.companies || [];
 

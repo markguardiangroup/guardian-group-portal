@@ -341,9 +341,9 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   });
 
   const { data: companiesData } = useQuery<{ companies: Company[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
     queryFn: async () => {
-      const res = await fetch("/api/companies", { credentials: "include" });
+      const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch companies");
       return res.json();
     },

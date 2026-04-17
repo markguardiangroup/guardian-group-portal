@@ -51,7 +51,7 @@ export default function AdminReports() {
   const [showUsersReport, setShowUsersReport] = useState(false);
 
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies?limit=1000"],
   });
   const companies = companiesData?.companies || [];
 
