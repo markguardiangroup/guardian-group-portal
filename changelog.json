@@ -324,19 +324,19 @@
           "createdBy": "agent"
         },
         {
-          "id": "e7b4120fa9c3",
-          "patch": 4,
-          "message": "Fixed: address sync prompt now also fires when editing a company from its detail page, not only from the companies list",
-          "category": "bugfix",
-          "createdAt": "2026-04-17T18:17:00.000Z",
-          "createdBy": "agent"
-        },
-        {
           "id": "f3c910ab7d82",
           "patch": 4,
           "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a91e43c2bf05",
+          "patch": 4,
+          "message": "Fixed: after accepting an address copy to sites, the updated addresses now appear immediately on the company's sites list without needing a page refresh",
+          "category": "bugfix",
+          "createdAt": "2026-04-17T18:35:00.000Z",
           "createdBy": "agent"
         }
       ]

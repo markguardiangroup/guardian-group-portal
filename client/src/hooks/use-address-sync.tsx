@@ -33,13 +33,16 @@ export function useAddressSync() {
 
   const [syncSites, setSyncSites] = useState<Array<{ id: string; name: string }> | null>(null);
   const [syncNewData, setSyncNewData] = useState<AddressFields | null>(null);
+  const [syncCompanyId, setSyncCompanyId] = useState<string | null>(null);
 
   const syncSitesMutation = useMutation({
-    mutationFn: async ({ sites, address }: { sites: Array<{ id: string }>; address: AddressFields }) => {
+    mutationFn: async ({ sites, address }: { sites: Array<{ id: string }>; address: AddressFields; companyId: string }) => {
       await Promise.all(sites.map((site) => apiRequest("PATCH", `/api/sites/${site.id}`, address)));
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: `${syncSites?.length === 1 ? "Site" : "Sites"} address updated` });
       setSyncSites(null);
       setSyncNewData(null);
@@ -82,6 +85,7 @@ export function useAddressSync() {
       if (matchingSites.length > 0) {
         setSyncSites(matchingSites.map((s) => ({ id: s.id, name: s.name })));
         setSyncNewData(newAddr);
+        setSyncCompanyId(companyId);
       }
     } catch {
       // silently ignore
@@ -91,6 +95,7 @@ export function useAddressSync() {
   function dismiss() {
     setSyncSites(null);
     setSyncNewData(null);
+    setSyncCompanyId(null);
   }
 
   const AddressSyncDialog = (
@@ -121,7 +126,7 @@ export function useAddressSync() {
             No, keep as is
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => syncSites && syncNewData && syncSitesMutation.mutate({ sites: syncSites, address: syncNewData })}
+            onClick={() => syncSites && syncNewData && syncCompanyId && syncSitesMutation.mutate({ sites: syncSites, address: syncNewData, companyId: syncCompanyId })}
             disabled={syncSitesMutation.isPending}
             data-testid="button-confirm-sites-sync"
           >
