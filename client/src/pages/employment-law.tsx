@@ -1233,7 +1233,7 @@ function CaseDetailView({ id }: { id: string }) {
     return companyUsers.filter(u => restrictedUserIds.includes(u.id));
   }, [companyUsers, restrictedUserIds]);
 
-  // Get users who could be added to access list (only clients)
+  // Get users who could be added to access list (only clients, show inactive greyed out)
   const availableUsers = useMemo(() => {
     if (!companyUsers) return [];
     return companyUsers.filter(u => !restrictedUserIds.includes(u.id) && u.role === "client");
@@ -3151,26 +3151,40 @@ function CaseDetailView({ id }: { id: string }) {
                   <div className="space-y-2 border-t pt-4">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add a user</p>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {availableUsers.map(u => (
-                        <div
-                          key={u.id}
-                          className="flex items-center justify-between p-2.5 rounded-lg border hover-elevate cursor-pointer"
-                          onClick={() => {
-                            const newList = [...restrictedUserIds, u.id];
-                            updateCaseMutation.mutate({ restrictedToUsers: newList as any });
-                          }}
-                          data-testid={`button-grant-access-${u.id}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{u.fullName}</p>
-                              <p className="text-xs text-muted-foreground">{u.email}</p>
+                      {availableUsers.map(u => {
+                        const isInactive = u.status === "inactive";
+                        return (
+                          <div
+                            key={u.id}
+                            className={cn(
+                              "flex items-center justify-between p-2.5 rounded-lg border",
+                              isInactive
+                                ? "opacity-50 cursor-not-allowed bg-muted/30"
+                                : "hover-elevate cursor-pointer"
+                            )}
+                            onClick={() => {
+                              if (isInactive) return;
+                              const newList = [...restrictedUserIds, u.id];
+                              updateCaseMutation.mutate({ restrictedToUsers: newList as any });
+                            }}
+                            data-testid={`button-grant-access-${u.id}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm font-medium">{u.fullName}</p>
+                                <p className="text-xs text-muted-foreground">{u.email}</p>
+                              </div>
+                              {isInactive && (
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground border">
+                                  Inactive
+                                </span>
+                              )}
                             </div>
+                            <UserPlus className={cn("h-4 w-4", isInactive ? "text-muted-foreground" : "text-pink-600")} />
                           </div>
-                          <UserPlus className="h-4 w-4 text-pink-600" />
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
