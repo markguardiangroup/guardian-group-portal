@@ -346,6 +346,14 @@
           "category": "bug",
           "createdAt": "2026-04-17T18:40:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4a78e21c903",
+          "patch": 4,
+          "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
+          "category": "feature",
+          "createdAt": "2026-04-19T13:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

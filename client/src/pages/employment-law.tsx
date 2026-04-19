@@ -77,6 +77,7 @@ import {
   ChevronUp,
   ChevronRight,
   Scale,
+  Handshake,
   Users,
   Upload,
   Download,
@@ -140,6 +141,7 @@ const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgCol
 
 const caseTypeConfig: Record<CaseType, { label: string; icon: typeof Briefcase }> = {
   tribunal_claim: { label: "Tribunal Case", icon: Scale },
+  acas_conciliation: { label: "ACAS Conciliation", icon: Handshake },
 };
 
 function CaseStatusBadge({ status }: { status: CaseStatus }) {
@@ -692,6 +694,7 @@ function CasesList() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
+                  <SelectItem value="acas_conciliation">ACAS Conciliation</SelectItem>
                 </SelectContent>
               </Select>
               {isPrivilegedUser && (
@@ -1067,6 +1070,7 @@ function CreateCaseDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
+                <SelectItem value="acas_conciliation">ACAS Conciliation</SelectItem>
               </SelectContent>
             </Select>
           </div>
