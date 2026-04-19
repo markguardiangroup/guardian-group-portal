@@ -1313,6 +1313,11 @@ export default function UserManagement() {
                           {u.consultantTier}
                         </span>
                       )}
+                      {u.role === "consultant" && u.consultantPermissions?.caseAdvocate && (
+                        <Badge variant="outline" className="w-fit text-[10px] px-1.5 py-0 bg-pink-50 dark:bg-pink-950/30 text-pink-700 dark:text-pink-400 border-pink-300 dark:border-pink-700" data-testid={`badge-case-advocate-${u.id}`}>
+                          Case Advocate
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -1950,6 +1955,11 @@ export default function UserManagement() {
                        viewingUser.status === "invite_required" ? "Invite Required" : 
                        viewingUser.status.charAt(0).toUpperCase() + viewingUser.status.slice(1)}
                     </Badge>
+                    {viewingUser.role === "consultant" && viewingUser.consultantPermissions?.caseAdvocate && (
+                      <Badge variant="outline" className="bg-pink-50 dark:bg-pink-950/30 text-pink-700 dark:text-pink-400 border-pink-300 dark:border-pink-700" data-testid="badge-case-advocate-profile">
+                        Case Advocate
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
