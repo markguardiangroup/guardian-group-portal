@@ -201,7 +201,7 @@
         {
           "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
           "patch": 4,
-          "message": "Fixed: login could hang or return to the sign-in page due to slow background data requests after sign-in",
+          "message": "Fixed: login could hang due to slow background data requests",
           "category": "bug",
           "createdAt": "2026-04-17T09:00:00.000Z",
           "createdBy": "agent"
@@ -209,7 +209,7 @@
         {
           "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
           "patch": 4,
-          "message": "Fixed: session timeout now stays active across tabs — if any tab is in use, idle tabs will not sign you out",
+          "message": "Fixed: session timeout stays active while any tab is in use",
           "category": "bug",
           "createdAt": "2026-04-17T10:00:00.000Z",
           "createdBy": "agent"
@@ -217,7 +217,7 @@
         {
           "id": "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
           "patch": 4,
-          "message": "Fixed: changelog patch model now uses explicit publish-then-bump — patch number no longer auto-increments on server restart or deploy",
+          "message": "Fixed: patch number no longer auto-increments on server restart",
           "category": "bug",
           "createdAt": "2026-04-17T13:51:01.944Z",
           "createdBy": "agent"
@@ -233,7 +233,7 @@
         {
           "id": "a0c79eac-8479-4977-a3ec-5af46bf30389",
           "patch": 4,
-          "message": "Fixed: company dropdown filters across Employment Law, H&S Incidents, Training, Sites, Reports, Support, and Client Uploads pages now show all companies, not just the first page",
+          "message": "Fixed: all company dropdown filters now show the full company list",
           "category": "bug",
           "createdAt": "2026-04-17T14:36:47.515Z",
           "createdBy": "agent"
@@ -241,7 +241,7 @@
         {
           "id": "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
           "patch": 4,
-          "message": "Fixed: company list endpoint no longer caps results at 100 — all companies are returned when requested by dropdowns and filters",
+          "message": "Fixed: company list no longer capped at 100 results",
           "category": "bug",
           "createdAt": "2026-04-17T14:46:19.279Z",
           "createdBy": "agent"
@@ -249,7 +249,7 @@
         {
           "id": "64d8d9ae-b983-4381-86cf-011b36416e1c",
           "patch": 4,
-          "message": "Improved: sites list loads significantly faster — replaced hundreds of per-site database queries with a single batched load regardless of site count",
+          "message": "Improved: sites list now loads significantly faster",
           "category": "enhancement",
           "createdAt": "2026-04-17T14:56:52.390Z",
           "createdBy": "agent"
@@ -257,7 +257,7 @@
         {
           "id": "175a2948-b234-463f-be87-85854bd21592",
           "patch": 4,
-          "message": "Improved: users and sites lists now use data already loaded at sign-in rather than re-fetching on first visit",
+          "message": "Improved: users and sites lists no longer re-fetch on first visit",
           "category": "enhancement",
           "createdAt": "2026-04-17T14:56:52.391Z",
           "createdBy": "agent"
@@ -265,7 +265,7 @@
         {
           "id": "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
           "patch": 4,
-          "message": "Fixed: pro consultants explicitly assigned to a company's sites now correctly appear in the company Users list",
+          "message": "Fixed: pro consultants assigned to sites now appear in the company Users list",
           "category": "bug",
           "createdAt": "2026-04-17T15:02:50.178Z",
           "createdBy": "agent"
@@ -273,7 +273,7 @@
         {
           "id": "9dc4f768-fe90-494d-a989-d3885f470ed9",
           "patch": 4,
-          "message": "Fixed: toolkit folder dropdown in the Add Templates dialog now always loads fresh data, preventing empty lists after a folder is created",
+          "message": "Fixed: toolkit folder dropdown in Add Templates now always loads fresh data",
           "category": "bug",
           "createdAt": "2026-04-17T15:20:53.903Z",
           "createdBy": "agent"
@@ -281,7 +281,7 @@
         {
           "id": "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
           "patch": 4,
-          "message": "Improved: Add Templates dialog now has a \"Create New\" option for toolkit folders, so folders can be created without leaving the dialog",
+          "message": "Add Templates dialog now includes a Create New folder option inline",
           "category": "enhancement",
           "createdAt": "2026-04-17T15:20:53.903Z",
           "createdBy": "agent"
@@ -289,7 +289,7 @@
         {
           "id": "fdf2d30a0b16",
           "patch": 4,
-          "message": "Company access control: client users are now automatically logged out when their company is set to On Hold or Inactive. Re-login is blocked until the company is restored to Active or Pending, showing: \"Your account is currently unavailable. Please contact your Consultant.\"",
+          "message": "Client users are blocked from logging in when their company is On Hold or Inactive",
           "category": "feature",
           "createdAt": "2026-04-17T15:32:27.726Z",
           "createdBy": "system"
@@ -313,7 +313,7 @@
         {
           "id": "aa98822ac1a8",
           "patch": 4,
-          "message": "Sites dropdown is now locked until a Company is selected — prevents confusion when multiple sites share the same name (e.g. Head Office)",
+          "message": "Sites dropdown locks until a Company is selected",
           "category": "enhancement",
           "createdAt": "2026-04-17T16:14:19.625Z",
           "createdBy": "system"
@@ -337,7 +337,7 @@
         {
           "id": "a91e43c2bf05",
           "patch": 4,
-          "message": "Fixed: after accepting an address copy to sites, the updated addresses now appear immediately on the company's sites list without needing a page refresh",
+          "message": "Fixed: address updates now reflect immediately on the company's sites list",
           "category": "bug",
           "createdAt": "2026-04-17T18:35:00.000Z",
           "createdBy": "agent"
@@ -361,7 +361,7 @@
         {
           "id": "e8b2f94d1c37",
           "patch": 4,
-          "message": "Consultants can now be granted Case Advocate permission by administrators — only Case Advocates may view and create Employment Law cases. Non-Case Advocate consultants see a clear access-restricted message on the Cases page",
+          "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
           "createdBy": "agent"
@@ -369,7 +369,7 @@
         {
           "id": "f1c73ae09b56",
           "patch": 4,
-          "message": "Case Advocate consultants only see cases from companies matching their assigned sources — standard consultants further filtered to their site assignments",
+          "message": "Case Advocates only see cases matching their assigned sources",
           "category": "feature",
           "createdAt": "2026-04-19T14:51:00.000Z",
           "createdBy": "agent"
@@ -377,7 +377,7 @@
         {
           "id": "a3c82e15d640",
           "patch": 4,
-          "message": "Added Template Library and Training Library consultant permissions — administrators can grant or revoke access per consultant; menu options are hidden entirely when access is not granted",
+          "message": "Admins can grant or revoke Template Library and Training Library access per consultant",
           "category": "feature",
           "createdAt": "2026-04-19T15:30:00.000Z",
           "createdBy": "agent"
@@ -385,7 +385,7 @@
         {
           "id": "b7f91d03c852",
           "patch": 4,
-          "message": "Template Library and Training Library permission toggles are available in both the Edit Permissions dialog and the Create Consultant form",
+          "message": "Template and Training Library permission toggles appear in both the Permissions dialog and Create Consultant form",
           "category": "feature",
           "createdAt": "2026-04-19T15:31:00.000Z",
           "createdBy": "agent"
@@ -393,7 +393,7 @@
         {
           "id": "c9e04bf72d13",
           "patch": 4,
-          "message": "Case Access dialog now prevents adding non-active users — invited, locked, and suspended users are shown greyed out with an Inactive badge and cannot be selected",
+          "message": "Fixed: non-active users are greyed out and unselectable in the Case Access dialog",
           "category": "bug",
           "createdAt": "2026-04-19T16:20:00.000Z",
           "createdBy": "agent"
