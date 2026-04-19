@@ -208,8 +208,10 @@ function CasesList() {
   const { toast } = useToast();
   
   const isClientUser = user?.role === "client";
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const isAdmin = user?.role === "admin";
+  const isConsultant = user?.role === "consultant";
+  const isCaseAdvocate = isAdmin || (isConsultant && user?.consultantPermissions?.caseAdvocate === true);
+  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
@@ -491,7 +493,7 @@ function CasesList() {
                 </div>
               </div>
             )}
-            {(user?.role === "admin" || user?.role === "consultant") && (
+            {isCaseAdvocate && (
               <Button 
                 onClick={() => setShowCreateDialog(true)}
                 className="bg-pink-600 hover:bg-pink-700"
@@ -506,6 +508,20 @@ function CasesList() {
       </div>
       
       <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
+      {isConsultant && !isCaseAdvocate ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+          <div className="rounded-full bg-muted p-4">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Access Restricted</h3>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              You don't have the Case Advocate permission required to view Employment Law cases. Please contact your administrator to request access.
+            </p>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="grid gap-4 md:grid-cols-3">
           {/* Tile 1: Cases — active + resolved split */}
           <div className="rounded-lg border-l-4 border-l-pink-500 border bg-card shadow-sm transition-all hover:shadow-md">
@@ -952,6 +968,8 @@ function CasesList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </>
+      )}
       </div>
     </div>
   );

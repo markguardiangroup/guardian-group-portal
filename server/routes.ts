@@ -677,6 +677,7 @@ export async function registerRoutes(
       notes: user.notes,
       legalAcceptedAt: user.legalAcceptedAt,
       consultantTier: user.consultantTier,
+      consultantPermissions: user.consultantPermissions,
       legalAcceptanceRequired,
       sources: user.sources,
     });
@@ -7150,6 +7151,14 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
+      // Consultants must have the Case Advocate permission to access cases
+      if (user.role === "consultant") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.json([]);
+        }
+      }
+
       const siteId = req.query.siteId as string | undefined;
       const entityId = req.query.entityId as string | undefined;
       const status = req.query.status as any;
@@ -7188,10 +7197,36 @@ export async function registerRoutes(
       }
 
       const cases = await storage.getCases(filters);
+
+      // Source-based filtering for consultants: only show cases from companies whose
+      // sources overlap with the consultant's own sources. Standard consultants must
+      // additionally be assigned to the case's site.
+      let sourceScopedCases = cases;
+      if (user.role === "consultant") {
+        const mySources = user.sources ?? [];
+        let assignedSiteIds: Set<string> | null = null;
+        if (!isProConsultant(user) && user.id) {
+          const assignments = await storage.getConsultantSites(user.id);
+          assignedSiteIds = new Set(assignments.map(a => a.entityId));
+        }
+        // Build a map of companyId -> company for the entity IDs in these cases
+        const uniqueEntityIds = [...new Set(cases.map(c => c.entityId))];
+        const companyMap: Record<string, { sources?: string[] | null }> = {};
+        await Promise.all(uniqueEntityIds.map(async (eid) => {
+          const company = await storage.getCompany(eid);
+          if (company) companyMap[eid] = company;
+        }));
+        sourceScopedCases = cases.filter(c => {
+          const company = companyMap[c.entityId];
+          if (!sourcesOverlap(mySources, company?.sources ?? [])) return false;
+          if (assignedSiteIds && !assignedSiteIds.has(c.siteId)) return false;
+          return true;
+        });
+      }
       
       // Filter out confidential cases for non-privileged users
       // Consultants with site access can see all cases (including confidential) at their assigned sites
-      const filteredCases = cases.filter(c => {
+      const filteredCases = sourceScopedCases.filter(c => {
         if (!c.isConfidential) return true;
         if (user.role === "admin") return true;
         if (user.role === "consultant") return true; // Consultants can see all confidential cases at their assigned sites
@@ -7242,6 +7277,14 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
+      // Consultants must have the Case Advocate permission to access any case
+      if (user.role === "consultant") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.status(403).json({ error: "Case Advocate permission required to view cases" });
+        }
+      }
+
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) {
         return res.status(404).json({ error: "Case not found" });
@@ -7284,6 +7327,14 @@ export async function registerRoutes(
       // Only admins and consultants can create cases
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot create employment law cases" });
+      }
+
+      // Consultants must have the Case Advocate permission to create cases
+      if (user.role === "consultant") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.status(403).json({ error: "Case Advocate permission required to create cases" });
+        }
       }
 
       const parseResult = createCaseSchema.safeParse(req.body);
@@ -9200,7 +9251,7 @@ export async function registerRoutes(
         username, email, fullName, role, companyId, 
         consultantTier, clientPermissionRole,
         title, firstName, lastName, jobTitle, department, phone, mobile,
-        preferredContactMethod, notes, sources
+        preferredContactMethod, notes, sources, consultantPermissions
       } = req.body;
       
       // Consultants (pro and standard) can only create client users
@@ -9272,6 +9323,7 @@ export async function registerRoutes(
         companyId: companyId || null,
         status: userRole === "client" ? "site_required" : "invited",
         consultantTier: consultantTier || null,
+        consultantPermissions: (userRole === "consultant" && consultantPermissions && typeof consultantPermissions === "object") ? consultantPermissions : null,
         clientPermissionRole: "full",
         title: title || null,
         firstName: firstName || null,
@@ -10399,6 +10451,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update user error:", error);
       res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  // Update consultant permissions (admin-only)
+  app.patch("/api/users/:id/permissions", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (targetUser.role !== "consultant") {
+        return res.status(400).json({ error: "Permissions can only be set for consultant users" });
+      }
+      const permissionsSchema = z.object({
+        caseAdvocate: z.boolean(),
+      });
+      const parsed = permissionsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid permissions data", details: parsed.error.format() });
+      }
+      const existing = (targetUser.consultantPermissions as Record<string, unknown> | null) ?? {};
+      const updated = await storage.updateUser(req.params.id, {
+        consultantPermissions: { ...existing, ...parsed.data },
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update permissions error:", error);
+      res.status(500).json({ error: "Failed to update permissions" });
     }
   });
 

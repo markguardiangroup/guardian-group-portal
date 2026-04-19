@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Users,
   Ban,
@@ -115,6 +116,7 @@ interface UserWithAssignments {
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
   sources?: string[] | null;
+  consultantPermissions?: { caseAdvocate?: boolean } | null;
   // Profile fields
   title?: string | null;
   firstName?: string | null;
@@ -231,6 +233,7 @@ export default function UserManagement() {
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
     sources: [] as string[],
+    consultantPermissions: { caseAdvocate: false } as { caseAdvocate: boolean },
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -271,6 +274,10 @@ export default function UserManagement() {
     companyId: string;
     newUserId: string;
   } | null>(null);
+
+  const [permissionsUser, setPermissionsUser] = useState<UserWithAssignments | null>(null);
+  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean }>({ caseAdvocate: false });
+  const [isSavingPermissions, setIsSavingPermissions] = useState(false);
 
   const generateUsername = (firstName: string, lastName: string): string => {
     const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -851,6 +858,7 @@ export default function UserManagement() {
         consultantTier: "pro",
         clientPermissionRole: "full",
         sources: [],
+        consultantPermissions: { caseAdvocate: false },
       });
       if (data.requiresSiteAssignment) {
         setUserNeedingSiteAssignment(data);
@@ -1437,6 +1445,18 @@ export default function UserManagement() {
                               Edit User
                             </DropdownMenuItem>
                           </>
+                        )}
+                        {isAdmin && u.role === "consultant" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setPermissionsUser(u);
+                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false });
+                            }}
+                            data-testid={`button-edit-permissions-${u.id}`}
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            Edit Permissions
+                          </DropdownMenuItem>
                         )}
                         {(isAdmin || isPro ? u.role !== "admin" : isStandardConsultant && u.role === "client") && (
                           <DropdownMenuItem onClick={() => openManageSitesDialog(u)} data-testid={`button-manage-sites-${u.id}`}>
@@ -2516,6 +2536,30 @@ export default function UserManagement() {
               </div>
             </div>
 
+            {isAdmin && newUser.role === "consultant" && (
+              <div>
+                <h4 className="text-sm font-medium mb-3">Permissions</h4>
+                <p className="text-xs text-muted-foreground mb-3">Control which features this consultant can access.</p>
+                <div className="space-y-1">
+                  <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Case Advocate</p>
+                      <p className="text-xs text-muted-foreground">
+                        Allows this consultant to view and create Employment Law cases for their assigned sources.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newUser.consultantPermissions.caseAdvocate}
+                      onCheckedChange={(checked) =>
+                        setNewUser({ ...newUser, consultantPermissions: { ...newUser.consultantPermissions, caseAdvocate: checked } })
+                      }
+                      data-testid="switch-new-permission-case-advocate"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isAdmin && (newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
@@ -3318,6 +3362,59 @@ export default function UserManagement() {
                   Send ({selectedBulkUserIds.size})
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={!!permissionsUser} onOpenChange={(open) => { if (!open) setPermissionsUser(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Permissions — {permissionsUser?.fullName}</DialogTitle>
+            <DialogDescription>
+              Manage feature permissions for this consultant. Changes take effect immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 space-y-1">
+            {/* Permission row: Case Advocate */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Case Advocate</p>
+                <p className="text-xs text-muted-foreground">
+                  Allows this consultant to view and create Employment Law cases for their assigned sources. When off, they have no access to cases.
+                </p>
+              </div>
+              <Switch
+                checked={permissionsForm.caseAdvocate}
+                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, caseAdvocate: checked })}
+                data-testid="switch-permission-case-advocate"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPermissionsUser(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isSavingPermissions}
+              data-testid="button-save-permissions"
+              onClick={async () => {
+                if (!permissionsUser) return;
+                setIsSavingPermissions(true);
+                try {
+                  await apiRequest("PATCH", `/api/users/${permissionsUser.id}/permissions`, permissionsForm);
+                  queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+                  toast({ title: "Permissions updated", description: `Permissions saved for ${permissionsUser.fullName}.` });
+                  setPermissionsUser(null);
+                } catch {
+                  toast({ title: "Failed to save permissions", variant: "destructive" });
+                } finally {
+                  setIsSavingPermissions(false);
+                }
+              }}
+            >
+              {isSavingPermissions ? "Saving..." : "Save Permissions"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -15,6 +15,11 @@ export type ConsultantTier = "pro" | "standard";
 // Client permission roles (for client users within their entity)
 export type ClientPermissionRole = "full";
 
+// Consultant feature permissions (stored as JSONB; null = all off)
+export type ConsultantPermissions = {
+  caseAdvocate?: boolean;
+};
+
 // Site request status
 export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
 
@@ -112,6 +117,8 @@ export const users = pgTable("users", {
   companyId: varchar("entity_id"),
   // Consultant-specific: tier level
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
+  // Consultant-specific: feature permissions (e.g. { caseAdvocate: true })
+  consultantPermissions: jsonb("consultant_permissions").$type<ConsultantPermissions>(),
   // Client-specific: permission role within their site/company
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
   sources: text("sources").array(),

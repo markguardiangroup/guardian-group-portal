@@ -354,6 +354,22 @@
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e8b2f94d1c37",
+          "patch": 4,
+          "message": "Consultants can now be granted Case Advocate permission by administrators — only Case Advocates may view and create Employment Law cases. Non-Case Advocate consultants see a clear access-restricted message on the Cases page",
+          "category": "feature",
+          "createdAt": "2026-04-19T14:50:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f1c73ae09b56",
+          "patch": 4,
+          "message": "Case Advocate consultants only see cases from companies matching their assigned sources — standard consultants further filtered to their site assignments",
+          "category": "feature",
+          "createdAt": "2026-04-19T14:51:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
