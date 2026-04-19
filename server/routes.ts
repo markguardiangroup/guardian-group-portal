@@ -10479,7 +10479,8 @@ export async function registerRoutes(
       const updated = await storage.updateUser(req.params.id, {
         consultantPermissions: { ...existing, ...parsed.data },
       });
-      res.json(updated);
+      const { password: _pw, ...safeUser } = updated as Record<string, unknown>;
+      res.json(safeUser);
     } catch (error) {
       console.error("Update permissions error:", error);
       res.status(500).json({ error: "Failed to update permissions" });
