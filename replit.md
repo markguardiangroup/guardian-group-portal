@@ -8,6 +8,12 @@ The Guardian Group H&S Web Portal is a B2B compliance platform designed for Heal
 
 Preferred communication style: Simple, everyday language.
 
+**Changelog entries must be concise** — keep messages short and punchy (under ~80 characters where possible). No long explanations, no lists of affected pages, no technical implementation detail. Lead with the user-facing impact. Examples of the right tone:
+- "Fixed: login could hang due to slow background data requests"
+- "Improved: sites list now loads significantly faster"
+- "Admins can grant Case Advocate permission to consultants"
+- "Fixed: non-active users are greyed out in the Case Access dialog"
+
 ## System Architecture
 
 The system uses a React 18, TypeScript, and Vite-based frontend with Wouter for routing, TanStack React Query for state management, and shadcn/ui components styled with Tailwind CSS. The backend is an Express.js application with a RESTful JSON API, Drizzle ORM, PostgreSQL, and Zod for schema validation. Session management uses Express sessions with `connect-pg-simple`.
