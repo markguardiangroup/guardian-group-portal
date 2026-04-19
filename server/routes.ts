@@ -268,6 +268,7 @@ const createCaseSchema = z.object({
 });
 
 const updateCaseSchema = z.object({
+  caseNumber: z.string().min(1).optional(),
   status: z.enum(["open", "under_investigation", "hearing_scheduled", "resolved", "closed"]).optional(),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),
@@ -7343,6 +7344,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid case data", details: parseResult.error.format() });
       }
 
+      // Check for duplicate case number
+      const existingByNumber = await storage.getCaseByCaseNumber(parseResult.data.caseNumber);
+      if (existingByNumber) {
+        return res.status(409).json({ error: "A case with this case number already exists" });
+      }
+
       const { restrictedToUsers, ...restData } = parseResult.data;
       const caseData = await storage.createCase({
         ...restData,
@@ -7392,6 +7399,14 @@ export async function registerRoutes(
       const parseResult = updateCaseSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid update data", details: parseResult.error.format() });
+      }
+
+      // Check for duplicate case number when updating
+      if (parseResult.data.caseNumber) {
+        const existingByNumber = await storage.getCaseByCaseNumber(parseResult.data.caseNumber, req.params.id);
+        if (existingByNumber) {
+          return res.status(409).json({ error: "A case with this case number already exists" });
+        }
       }
 
       const updates: any = { ...parseResult.data };

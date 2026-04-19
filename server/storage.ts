@@ -216,6 +216,7 @@ export interface IStorage {
   // Cases (Employment Law)
   getCases(filters?: { siteId?: string; entityId?: string; status?: CaseStatus; includeArchived?: boolean }): Promise<Case[]>;
   getCase(id: string): Promise<Case | undefined>;
+  getCaseByCaseNumber(caseNumber: string, excludeId?: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
   updateCase(id: string, updates: Partial<Case>): Promise<Case | undefined>;
   archiveCase(id: string): Promise<Case | undefined>;
@@ -1576,6 +1577,12 @@ export class MemStorage implements IStorage {
   async getCase(id: string): Promise<Case | undefined> {
     const [result] = await db.select().from(casesTable).where(eq(casesTable.id, id));
     return result;
+  }
+
+  async getCaseByCaseNumber(caseNumber: string, excludeId?: string): Promise<Case | undefined> {
+    const results = await db.select().from(casesTable).where(eq(casesTable.caseNumber, caseNumber));
+    if (excludeId) return results.find(c => c.id !== excludeId);
+    return results[0];
   }
 
   private async generateNextCaseReference(): Promise<string> {

@@ -44,7 +44,8 @@
         "a3c82e15d640",
         "b7f91d03c852",
         "c9e04bf72d13",
-        "d2f15e84a701"
+        "d2f15e84a701",
+        "e3a26f95b812"
       ],
       "entries": [
         {
@@ -405,6 +406,14 @@
           "message": "Cases now have a mandatory Case Number field shown in the case list",
           "category": "feature",
           "createdAt": "2026-04-19T17:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e3a26f95b812",
+          "patch": 4,
+          "message": "Case Number can be edited from the case detail view; duplicates are blocked",
+          "category": "feature",
+          "createdAt": "2026-04-19T17:30:00.000Z",
           "createdBy": "agent"
         }
       ]

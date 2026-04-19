@@ -364,14 +364,20 @@ function CasesList() {
       setShowCreateDialog(false);
       toast({ title: "Case created successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to create case", variant: "destructive" });
+    onError: (error: any) => {
+      const msg = error?.message ?? "";
+      if (msg.startsWith("409")) {
+        toast({ title: "Case number already in use", description: "Please choose a different case number.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to create case", variant: "destructive" });
+      }
     },
   });
 
   const filteredCases = cases?.filter(c => {
     const matchesSearch = searchQuery === "" || 
       c.caseReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.caseNumber && c.caseNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
       c.employeeName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
     const matchesType = typeFilter === "all" || c.caseType === typeFilter;
@@ -1174,6 +1180,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [editingCaseNumber, setEditingCaseNumber] = useState(false);
+  const [caseNumberDraft, setCaseNumberDraft] = useState("");
   const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
@@ -1263,6 +1271,14 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setShowStatusDialog(false);
       toast({ title: "Case updated successfully" });
+    },
+    onError: (error: any) => {
+      const msg = error?.message ?? "";
+      if (msg.startsWith("409")) {
+        toast({ title: "Case number already in use", description: "Please choose a different case number.", variant: "destructive" });
+      } else {
+        toast({ title: "Failed to update case", variant: "destructive" });
+      }
     },
   });
 
@@ -1735,10 +1751,62 @@ function CaseDetailView({ id }: { id: string }) {
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {caseData.isConfidential && <Lock className="h-5 w-5 text-pink-600" />}
-                {caseData.caseReference}
-              </h1>
+                {editingCaseNumber ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="text-2xl font-bold border-b-2 border-pink-500 bg-transparent focus:outline-none w-48"
+                      value={caseNumberDraft}
+                      onChange={e => setCaseNumberDraft(e.target.value)}
+                      autoFocus
+                      data-testid="input-case-number-edit"
+                    />
+                    <Button
+                      size="sm"
+                      className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                      onClick={() => {
+                        if (!caseNumberDraft.trim()) return;
+                        updateCaseMutation.mutate(
+                          { caseNumber: caseNumberDraft.trim() } as any,
+                          { onSuccess: () => setEditingCaseNumber(false) }
+                        );
+                      }}
+                      disabled={updateCaseMutation.isPending || !caseNumberDraft.trim()}
+                      data-testid="button-save-case-number"
+                    >
+                      {updateCaseMutation.isPending ? "Saving…" : "Save"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setEditingCaseNumber(false)}
+                      data-testid="button-cancel-case-number"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold">
+                      {caseData.caseNumber || caseData.caseReference}
+                    </h1>
+                    {(user?.role === "admin" || user?.role === "consultant") && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => { setCaseNumberDraft(caseData.caseNumber || ""); setEditingCaseNumber(true); }}
+                        data-testid="button-edit-case-number"
+                        title="Edit case number"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
               <CaseStatusBadge status={caseData.status as CaseStatus} />
               <CaseTypeBadge type={caseData.caseType as CaseType} />
             </div>
