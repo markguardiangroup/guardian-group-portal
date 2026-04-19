@@ -42,7 +42,8 @@
         "9dc4f768-fe90-494d-a989-d3885f470ed9",
         "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
         "a3c82e15d640",
-        "b7f91d03c852"
+        "b7f91d03c852",
+        "c9e04bf72d13"
       ],
       "entries": [
         {
@@ -387,6 +388,14 @@
           "message": "Template Library and Training Library permission toggles are available in both the Edit Permissions dialog and the Create Consultant form",
           "category": "feature",
           "createdAt": "2026-04-19T15:31:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c9e04bf72d13",
+          "patch": 4,
+          "message": "Case Access dialog now prevents adding non-active users — invited, locked, and suspended users are shown greyed out with an Inactive badge and cannot be selected",
+          "category": "bug",
+          "createdAt": "2026-04-19T16:20:00.000Z",
           "createdBy": "agent"
         }
       ]
