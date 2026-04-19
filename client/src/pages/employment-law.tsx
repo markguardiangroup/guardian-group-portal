@@ -3153,7 +3153,7 @@ function CaseDetailView({ id }: { id: string }) {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add a user</p>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {availableUsers.map(u => {
-                        const isInactive = u.status === "inactive";
+                        const isInactive = u.status !== "active";
                         return (
                           <div
                             key={u.id}
