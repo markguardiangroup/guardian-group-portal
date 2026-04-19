@@ -43,7 +43,8 @@
         "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
         "a3c82e15d640",
         "b7f91d03c852",
-        "c9e04bf72d13"
+        "c9e04bf72d13",
+        "d2f15e84a701"
       ],
       "entries": [
         {
@@ -396,6 +397,14 @@
           "message": "Fixed: non-active users are greyed out and unselectable in the Case Access dialog",
           "category": "bug",
           "createdAt": "2026-04-19T16:20:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d2f15e84a701",
+          "patch": 4,
+          "message": "Cases now have a mandatory Case Number field shown in the case list",
+          "category": "feature",
+          "createdAt": "2026-04-19T17:00:00.000Z",
           "createdBy": "agent"
         }
       ]

@@ -734,7 +734,7 @@ function CasesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Case No.</TableHead>
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
@@ -761,7 +761,7 @@ function CasesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Case No.</TableHead>
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
@@ -778,7 +778,7 @@ function CasesList() {
                         {caseItem.isConfidential && <Lock className="h-3 w-3 text-pink-600" />}
                         {caseItem.isArchived && <Archive className="h-3 w-3 text-muted-foreground" />}
                         <span className={caseItem.isArchived ? "text-muted-foreground" : ""}>
-                          {caseItem.caseReference}
+                          {caseItem.caseNumber || caseItem.caseReference}
                         </span>
                         {caseItem.isArchived && (
                           <Badge variant="outline" className="text-xs text-muted-foreground">
@@ -990,6 +990,7 @@ function CreateCaseDialog({
   const [formData, setFormData] = useState({
     entityId: "",
     siteId: "",
+    caseNumber: "",
     employeeName: "",
     employeeId: "",
     caseType: "tribunal_claim" as CaseType,
@@ -1076,6 +1077,17 @@ function CreateCaseDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Case Number <span className="text-destructive">*</span></label>
+            <Input
+              value={formData.caseNumber}
+              onChange={(e) => setFormData({ ...formData, caseNumber: e.target.value })}
+              placeholder="e.g. ET/12345/2025"
+              required
+              data-testid="input-case-number"
+            />
           </div>
 
           <div className="space-y-2">
