@@ -40,7 +40,9 @@
         "175a2948-b234-463f-be87-85854bd21592",
         "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
         "9dc4f768-fe90-494d-a989-d3885f470ed9",
-        "157b7507-3110-48f2-a0ec-ed9f36cda9bc"
+        "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
+        "a3c82e15d640",
+        "b7f91d03c852"
       ],
       "entries": [
         {
@@ -369,6 +371,22 @@
           "message": "Case Advocate consultants only see cases from companies matching their assigned sources — standard consultants further filtered to their site assignments",
           "category": "feature",
           "createdAt": "2026-04-19T14:51:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a3c82e15d640",
+          "patch": 4,
+          "message": "Added Template Library and Training Library consultant permissions — administrators can grant or revoke access per consultant; menu options are hidden entirely when access is not granted",
+          "category": "feature",
+          "createdAt": "2026-04-19T15:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b7f91d03c852",
+          "patch": 4,
+          "message": "Template Library and Training Library permission toggles are available in both the Edit Permissions dialog and the Create Consultant form",
+          "category": "feature",
+          "createdAt": "2026-04-19T15:31:00.000Z",
           "createdBy": "agent"
         }
       ]

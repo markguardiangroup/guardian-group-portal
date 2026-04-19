@@ -18,6 +18,8 @@ export type ClientPermissionRole = "full";
 // Consultant feature permissions (stored as JSONB; null = all off)
 export type ConsultantPermissions = {
   caseAdvocate?: boolean;
+  trainingLibrary?: boolean;
+  templateLibrary?: boolean;
 };
 
 // Site request status

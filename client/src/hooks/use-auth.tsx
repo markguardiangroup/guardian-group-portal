@@ -13,7 +13,7 @@ interface AuthUser {
   role: UserRole;
   companyId: string | null;
   consultantTier?: string | null;
-  consultantPermissions?: { caseAdvocate?: boolean } | null;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
   companyName?: string | null;
   clientPermissionRole?: string | null;
   referenceNumber?: string | null;

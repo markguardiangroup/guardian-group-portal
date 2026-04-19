@@ -116,7 +116,7 @@ interface UserWithAssignments {
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
   sources?: string[] | null;
-  consultantPermissions?: { caseAdvocate?: boolean } | null;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
   // Profile fields
   title?: string | null;
   firstName?: string | null;
@@ -233,7 +233,7 @@ export default function UserManagement() {
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
     sources: [] as string[],
-    consultantPermissions: { caseAdvocate: false } as { caseAdvocate: boolean },
+    consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false } as { caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean },
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -276,7 +276,7 @@ export default function UserManagement() {
   } | null>(null);
 
   const [permissionsUser, setPermissionsUser] = useState<UserWithAssignments | null>(null);
-  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean }>({ caseAdvocate: false });
+  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean }>({ caseAdvocate: false, trainingLibrary: false, templateLibrary: false });
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
 
   const generateUsername = (firstName: string, lastName: string): string => {
@@ -858,7 +858,7 @@ export default function UserManagement() {
         consultantTier: "pro",
         clientPermissionRole: "full",
         sources: [],
-        consultantPermissions: { caseAdvocate: false },
+        consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false },
       });
       if (data.requiresSiteAssignment) {
         setUserNeedingSiteAssignment(data);
@@ -1455,7 +1455,7 @@ export default function UserManagement() {
                           <DropdownMenuItem
                             onClick={() => {
                               setPermissionsUser(u);
-                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false });
+                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false, trainingLibrary: u.consultantPermissions?.trainingLibrary ?? false, templateLibrary: u.consultantPermissions?.templateLibrary ?? false });
                             }}
                             data-testid={`button-edit-permissions-${u.id}`}
                           >
@@ -2566,6 +2566,36 @@ export default function UserManagement() {
                       data-testid="switch-new-permission-case-advocate"
                     />
                   </div>
+                  <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Template Library</p>
+                      <p className="text-xs text-muted-foreground">
+                        Grants access to the Template Library in the Tools menu.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newUser.consultantPermissions.templateLibrary}
+                      onCheckedChange={(checked) =>
+                        setNewUser({ ...newUser, consultantPermissions: { ...newUser.consultantPermissions, templateLibrary: checked } })
+                      }
+                      data-testid="switch-new-permission-template-library"
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Training Library</p>
+                      <p className="text-xs text-muted-foreground">
+                        Grants access to the Training Library in the Tools menu.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newUser.consultantPermissions.trainingLibrary}
+                      onCheckedChange={(checked) =>
+                        setNewUser({ ...newUser, consultantPermissions: { ...newUser.consultantPermissions, trainingLibrary: checked } })
+                      }
+                      data-testid="switch-new-permission-training-library"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -3399,6 +3429,34 @@ export default function UserManagement() {
                 checked={permissionsForm.caseAdvocate}
                 onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, caseAdvocate: checked })}
                 data-testid="switch-permission-case-advocate"
+              />
+            </div>
+            {/* Permission row: Template Library */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Template Library</p>
+                <p className="text-xs text-muted-foreground">
+                  Grants access to the Template Library in the Tools menu. When off, the option is hidden from the sidebar.
+                </p>
+              </div>
+              <Switch
+                checked={permissionsForm.templateLibrary}
+                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, templateLibrary: checked })}
+                data-testid="switch-permission-template-library"
+              />
+            </div>
+            {/* Permission row: Training Library */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Training Library</p>
+                <p className="text-xs text-muted-foreground">
+                  Grants access to the Training Library in the Tools menu. When off, the option is hidden from the sidebar.
+                </p>
+              </div>
+              <Switch
+                checked={permissionsForm.trainingLibrary}
+                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, trainingLibrary: checked })}
+                data-testid="switch-permission-training-library"
               />
             </div>
           </div>

@@ -228,11 +228,13 @@ const consultantNavItems = [
     title: "Template Library",
     url: "/template-library",
     icon: BookOpen,
+    permission: "templateLibrary" as const,
   },
   {
     title: "Training Library",
     url: "/training-library",
     icon: GraduationCap,
+    permission: "trainingLibrary" as const,
   },
   {
     title: "Admin Reports",
@@ -260,6 +262,7 @@ interface AuthUser {
   companyId: string | null;
   companyName?: string | null;
   consultantTier?: string | null;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
   clientPermissionRole?: string | null;
   referenceNumber?: string | null;
   title?: string | null;
@@ -653,6 +656,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenu>
                 {(user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro)
                   .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
+                  .filter((item) => {
+                    const perm = (item as any).permission as keyof NonNullable<AuthUser["consultantPermissions"]> | undefined;
+                    if (user?.role === "consultant" && perm) {
+                      return user.consultantPermissions?.[perm] === true;
+                    }
+                    return true;
+                  })
                   .map((item) => {
                   const isActive = location === item.url || 
                     (item.url !== "/" && location.startsWith(item.url));
