@@ -1011,16 +1011,8 @@ export async function registerRoutes(
       const site = await storage.getSite(siteId);
       if (!site) return false;
       
-      // Determine the effective company set for this client.
-      // If the client belongs to a GO company, they can see all member companies' sites.
-      const effectiveCompanyIds = new Set<string>([user.companyId]);
-      const siteCompany = await storage.getCompany(site.companyId);
-      // Check if the site's company is a member of the client's company (i.e., client is a GO user)
-      if (siteCompany && siteCompany.groupOwnerId === user.companyId) {
-        effectiveCompanyIds.add(site.companyId);
-      }
-
-      // Site must be in the client's effective company set
+      // Site must be in the client's effective company set (own company + GO members)
+      const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
       if (!effectiveCompanyIds.has(site.companyId)) return false;
       
       // Client can only access sites they are explicitly assigned to
@@ -5187,6 +5179,18 @@ export async function registerRoutes(
     return a.some(s => b.includes(s));
   };
 
+  /**
+   * Returns the effective set of company IDs a client/consultant user can see.
+   * If the user's own company is a Group Owner, includes all its member companies.
+   * Admins should not call this — they have unrestricted access.
+   */
+  const getEffectiveCompanyIds = async (userCompanyId: string): Promise<Set<string>> => {
+    const ids = new Set<string>([userCompanyId]);
+    const members = await storage.getGroupMembers(userCompanyId);
+    for (const m of members) ids.add(m.id);
+    return ids;
+  };
+
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
@@ -5210,30 +5214,38 @@ export async function registerRoutes(
       if (user.role === "consultant") {
         const mySources = user.sources ?? [];
         if (isProConsultant(user) && !myAssigned) {
-          // Pro consultants see companies whose sources overlap with their own
-          filteredCompanies = allCompanies.filter(c => sourcesOverlap(mySources, c.sources ?? []));
+          // Pro consultants see companies whose sources overlap with their own,
+          // PLUS member companies of any GO company they can see
+          const directlyVisible = new Set(
+            allCompanies.filter(c => sourcesOverlap(mySources, c.sources ?? [])).map(c => c.id)
+          );
+          const goExpandedIds = new Set<string>(directlyVisible);
+          for (const cId of directlyVisible) {
+            const members = await storage.getGroupMembers(cId);
+            for (const m of members) goExpandedIds.add(m.id);
+          }
+          filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
         } else {
           // Standard consultants (or pro with myAssigned=true) see only their assigned companies
-          // that also share at least one source
+          // that also share at least one source, PLUS member companies of any GO they're assigned to
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
+          // GO expansion
+          const goExpandedIds = new Set<string>(siteCompanyIds);
+          for (const cId of siteCompanyIds) {
+            const members = await storage.getGroupMembers(cId);
+            for (const m of members) goExpandedIds.add(m.id);
+          }
           filteredCompanies = allCompanies.filter(c =>
-            siteCompanyIds.has(c.id) && sourcesOverlap(mySources, c.sources ?? [])
+            goExpandedIds.has(c.id) && sourcesOverlap(mySources, c.sources ?? [])
           );
         }
       } else if (user.role === "client" && user.companyId) {
-        const effectiveIds = new Set([user.companyId]);
-        // If the user belongs to a GO company, also show all member companies
-        const userCompanyInList = allCompanies.find(c => c.id === user.companyId);
-        if (userCompanyInList?.isGroupOwner) {
-          for (const c of allCompanies) {
-            if (c.groupOwnerId === user.companyId) effectiveIds.add(c.id);
-          }
-        }
+        const effectiveIds = await getEffectiveCompanyIds(user.companyId);
         filteredCompanies = allCompanies.filter(c => effectiveIds.has(c.id));
       } else if (user.role !== "admin") {
         filteredCompanies = [];
@@ -5292,12 +5304,23 @@ export async function registerRoutes(
       if (user.role === "consultant") {
         const mySources = user.sources ?? [];
         if (isProConsultant(user)) {
-          // Pro consultants can only access companies that share at least one source
-          if (!sourcesOverlap(mySources, company.sources ?? [])) {
-            return res.status(403).json({ error: "Access denied" });
+          // Pro consultants can access companies that share at least one source,
+          // OR are member companies of any GO they can directly see
+          const directAccess = sourcesOverlap(mySources, company.sources ?? []);
+          if (!directAccess) {
+            // Check if this company is a GO member of a company the consultant CAN see
+            if (company.groupOwnerId) {
+              const goCompany = await storage.getCompany(company.groupOwnerId);
+              if (!goCompany || !sourcesOverlap(mySources, goCompany.sources ?? [])) {
+                return res.status(403).json({ error: "Access denied" });
+              }
+            } else {
+              return res.status(403).json({ error: "Access denied" });
+            }
           }
         } else {
-          // Standard consultants: must be assigned to a site in this company AND source must overlap
+          // Standard consultants: must be assigned to a site in this company (or its GO)
+          // AND source must overlap
           if (!sourcesOverlap(mySources, company.sources ?? [])) {
             return res.status(403).json({ error: "Access denied" });
           }
@@ -5307,14 +5330,17 @@ export async function registerRoutes(
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          if (!siteCompanyIds.has(company.id)) {
+          // Allow if directly assigned OR if this company is a GO member of an assigned company
+          const isDirectlyAssigned = siteCompanyIds.has(company.id);
+          const isGoMemberOfAssigned = company.groupOwnerId != null && siteCompanyIds.has(company.groupOwnerId);
+          if (!isDirectlyAssigned && !isGoMemberOfAssigned) {
             return res.status(403).json({ error: "Access denied" });
           }
         }
       } else if (user.role === "client") {
-        const isOwnCompany = user.companyId === company.id;
-        const isGoMember = company.groupOwnerId != null && user.companyId === company.groupOwnerId;
-        if (!isOwnCompany && !isGoMember) {
+        if (!user.companyId) return res.status(403).json({ error: "Access denied" });
+        const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+        if (!effectiveIds.has(company.id)) {
           return res.status(403).json({ error: "Access denied" });
         }
       } else if (user.role !== "admin") {
@@ -5355,12 +5381,21 @@ export async function registerRoutes(
       if (user.role === "consultant") {
         const mySources = user.sources ?? [];
         if (isProConsultant(user)) {
-          // Pro consultants can only access stats for companies that share at least one source
-          if (!sourcesOverlap(mySources, company.sources ?? [])) {
-            return res.status(403).json({ error: "Access denied" });
+          // Pro consultants can access stats for companies that share at least one source,
+          // OR are GO members of a company they can see
+          const directAccess = sourcesOverlap(mySources, company.sources ?? []);
+          if (!directAccess) {
+            if (company.groupOwnerId) {
+              const goCompany = await storage.getCompany(company.groupOwnerId);
+              if (!goCompany || !sourcesOverlap(mySources, goCompany.sources ?? [])) {
+                return res.status(403).json({ error: "Access denied" });
+              }
+            } else {
+              return res.status(403).json({ error: "Access denied" });
+            }
           }
         } else {
-          // Standard consultants: must share a source AND be assigned to a site in this company
+          // Standard consultants: must share a source AND be assigned to a site in this company or its GO
           if (!sourcesOverlap(mySources, company.sources ?? [])) {
             return res.status(403).json({ error: "Access denied" });
           }
@@ -5370,10 +5405,14 @@ export async function registerRoutes(
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          if (!siteCompanyIds.has(company.id)) return res.status(403).json({ error: "Access denied" });
+          const isDirectlyAssigned = siteCompanyIds.has(company.id);
+          const isGoMemberOfAssigned = company.groupOwnerId != null && siteCompanyIds.has(company.groupOwnerId);
+          if (!isDirectlyAssigned && !isGoMemberOfAssigned) return res.status(403).json({ error: "Access denied" });
         }
       } else if (user.role === "client") {
-        if (user.companyId !== company.id) return res.status(403).json({ error: "Access denied" });
+        if (!user.companyId) return res.status(403).json({ error: "Access denied" });
+        const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+        if (!effectiveIds.has(company.id)) return res.status(403).json({ error: "Access denied" });
       } else if (user.role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -5874,30 +5913,54 @@ export async function registerRoutes(
         const myAssigned = req.query.myAssigned === "true";
         const mySources = user.sources ?? [];
         if (isProConsultant(user) && !myAssigned) {
-          // Pro consultants see sites whose parent company shares at least one source
+          // Pro consultants see sites whose parent company shares at least one source,
+          // PLUS all sites in member companies of any GO company they can see
+          const visibleCompanyIds = new Set(
+            allSites
+              .filter(site => sourcesOverlap(mySources, site.companySources ?? []))
+              .map(site => site.companyId)
+          );
+          // Expand: for each visible company that is a GO, include its member companies
+          const goExpanded = new Set<string>(visibleCompanyIds);
+          for (const cId of visibleCompanyIds) {
+            const members = await storage.getGroupMembers(cId);
+            for (const m of members) goExpanded.add(m.id);
+          }
           const filteredSites = allSites.filter(site =>
-            sourcesOverlap(mySources, site.companySources ?? [])
+            sourcesOverlap(mySources, site.companySources ?? []) || goExpanded.has(site.companyId)
           );
           res.json(filteredSites);
           return;
         }
         // Standard consultants (or pro with myAssigned=true) see only their assigned sites
-        // that also share at least one source via the parent company
+        // that also share at least one source via the parent company,
+        // PLUS all sites in member companies of any GO company they're assigned to
         const assignments = await storage.getConsultantSites(user.id);
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        // Build effective company set: assigned company + their GO members
+        const assignedCompanyIds = new Set(
+          allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId)
+        );
+        const goExpandedCompanyIds = new Set<string>(assignedCompanyIds);
+        for (const cId of assignedCompanyIds) {
+          const members = await storage.getGroupMembers(cId);
+          for (const m of members) goExpandedCompanyIds.add(m.id);
+        }
         const filteredSites = allSites.filter(site =>
-          assignedSiteIds.has(site.id) && sourcesOverlap(mySources, site.companySources ?? [])
+          (assignedSiteIds.has(site.id) || goExpandedCompanyIds.has(site.companyId)) &&
+          sourcesOverlap(mySources, site.companySources ?? [])
         );
         res.json(filteredSites);
         return;
       }
       
-      // Client sees only their explicitly assigned sites
+      // Client sees only their explicitly assigned sites (across their company + any GO member companies)
       if (user.role === "client" && user.companyId) {
+        const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
         const clientSiteAssignments = await storage.getClientSites(user.id);
         const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
         const filteredSites = allSites.filter(site => 
-          site.companyId === user.companyId && assignedSiteIds.has(site.id)
+          effectiveCompanyIds.has(site.companyId) && assignedSiteIds.has(site.id)
         );
         res.json(filteredSites);
         return;
