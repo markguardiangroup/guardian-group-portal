@@ -319,9 +319,11 @@ export default function ChangelogSection() {
                         <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
                           {formatPatch(version, patchNum)}
                         </span>
-                        <span className="text-xs text-muted-foreground/60">
-                          {format(latestDate, "d MMM yyyy")}
-                        </span>
+                        {(!version.isActive || patchNum <= (version.publishedPatch ?? -1)) && (
+                          <span className="text-xs text-muted-foreground/60">
+                            {format(latestDate, "d MMM yyyy")}
+                          </span>
+                        )}
                         <div className="flex-1 border-t border-muted" />
                       </div>
                       <div className="space-y-1.5 pl-2">
