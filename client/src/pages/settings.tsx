@@ -1304,6 +1304,7 @@ function TestingTab() {
   const [deletingAssignmentId, setDeletingAssignmentId] = useState<string | null>(null);
   const [confirmRemoveAssignmentId, setConfirmRemoveAssignmentId] = useState<string | null>(null);
   const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null);
+  const [confirmArchiveListId, setConfirmArchiveListId] = useState<string | null>(null);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archivingListId, setArchivingListId] = useState<string | null>(null);
@@ -1584,7 +1585,7 @@ function TestingTab() {
                         <Button
                           size="icon" variant="ghost" className="h-8 w-8"
                           disabled={archivingListId === selectedList.id}
-                          onClick={() => handleArchiveList(selectedList.id, !selectedList.isArchived)}
+                          onClick={() => setConfirmArchiveListId(selectedList.id)}
                           data-testid={`button-archive-tasklist-${selectedList.id}`}
                           title={selectedList.isArchived ? "Restore" : "Archive"}
                         >
@@ -1827,6 +1828,38 @@ function TestingTab() {
               onClick={() => { if (confirmDeleteListId) { handleDeleteList(confirmDeleteListId); setConfirmDeleteListId(null); } }}
             >
               Delete Task List
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Archive / Restore Task List Dialog */}
+      <AlertDialog open={!!confirmArchiveListId} onOpenChange={(open) => !open && setConfirmArchiveListId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {taskLists.find(l => l.id === confirmArchiveListId)?.isArchived ? "Restore Task List?" : "Archive Task List?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {taskLists.find(l => l.id === confirmArchiveListId)?.isArchived
+                ? `"${taskLists.find(l => l.id === confirmArchiveListId)?.title}" will be moved back to the active list.`
+                : `"${taskLists.find(l => l.id === confirmArchiveListId)?.title}" will be removed from the active list. You can restore it from the archived view at any time.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-confirm-archive-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-archive-ok"
+              onClick={() => {
+                if (confirmArchiveListId) {
+                  const list = taskLists.find(l => l.id === confirmArchiveListId);
+                  handleArchiveList(confirmArchiveListId, !list?.isArchived);
+                  setConfirmArchiveListId(null);
+                }
+              }}
+            >
+              {taskLists.find(l => l.id === confirmArchiveListId)?.isArchived ? "Restore" : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
