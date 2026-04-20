@@ -71,7 +71,8 @@
         "q5m48r17n034",
         "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
         "60b6ecca-714c-4dfc-958b-948cec848e75",
-        "2997224e-c260-4080-8433-d028faa0bd29"
+        "2997224e-c260-4080-8433-d028faa0bd29",
+        "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e"
       ],
       "entries": [
         {
@@ -560,6 +561,14 @@
           "message": "Company list: filter by group shows the Group Owner and all its members",
           "category": "feature",
           "createdAt": "2026-04-20T15:23:13.045Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e",
+          "patch": 5,
+          "message": "Patch version auto-increments on every production deployment",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:26:39.129Z",
           "createdBy": "user-admin"
         }
       ]

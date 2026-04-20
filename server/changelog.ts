@@ -115,10 +115,21 @@ export async function bumpDevPatchAfterPublish(): Promise<void> {
 }
 
 /**
- * Kept for reference — no longer called automatically on startup.
- * Use bumpDevPatchAfterPublish() after confirming a production deploy.
+ * Called automatically on production server startup.
+ *
+ * Bumps the patch only when there are entries not covered by patchedEntryIds
+ * (i.e. new changes have been deployed since the last recorded publish).
+ * Safe to call on every restart — idempotent if nothing has changed.
  */
 export async function autoIncrementPatchIfChanged(): Promise<void> {
+  const cl = await readChangelog();
+  const active = cl.versions.find((v) => v.id === cl.activeVersionId);
+  if (!active) return;
+
+  const patchedSet = new Set(active.patchedEntryIds ?? []);
+  const hasNewEntries = active.entries.some((e) => !patchedSet.has(e.id));
+  if (!hasNewEntries) return;
+
   await bumpDevPatchAfterPublish();
 }
 

@@ -8,6 +8,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { autoIncrementPatchIfChanged } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -211,6 +212,11 @@ process.on("uncaughtException", (err) => {
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
+    // Auto-bump patch on production startup — idempotent, only fires when
+    // new changelog entries exist that weren't present at the last publish.
+    autoIncrementPatchIfChanged().catch((err) =>
+      console.error("[changelog] Auto-bump failed:", err)
+    );
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
