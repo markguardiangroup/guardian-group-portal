@@ -3691,9 +3691,13 @@ export async function registerRoutes(
   // Get all document templates (optionally filtered by module or folder)
   app.get("/api/document-templates", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as ModuleType | undefined;
       const folderTemplateId = req.query.folderTemplateId as string | undefined;
-      const templates = await storage.getDocumentTemplates(module, folderTemplateId);
+      // Admins see all templates; others only see source-matched templates
+      const userSources = user.role === "admin" ? undefined : (user.sources ?? []);
+      const templates = await storage.getDocumentTemplates(module, folderTemplateId, userSources);
       res.json(templates);
     } catch (error) {
       console.error("Get document templates error:", error);
@@ -3774,6 +3778,7 @@ export async function registerRoutes(
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
         toolkitFolderId: z.string().nullable().optional(),
+        sources: z.array(z.string()).optional(), // Source codes restricting visibility
       });
       
       const parsed = schema.safeParse(req.body);
@@ -3829,6 +3834,28 @@ export async function registerRoutes(
     }
   });
   
+  // Bulk assign / clear sources on multiple templates (admin only) — MUST be before /:id
+  app.patch("/api/document-templates/bulk-sources", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Only admins can bulk-update template sources" });
+      }
+      const schema = z.object({
+        templateIds: z.array(z.string()).min(1),
+        sources: z.array(z.string()),
+        mode: z.enum(["merge", "clear"]),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      await storage.bulkUpdateTemplateSources(parsed.data.templateIds, parsed.data.sources, parsed.data.mode);
+      res.json({ success: true, count: parsed.data.templateIds.length });
+    } catch (error) {
+      console.error("Bulk update template sources error:", error);
+      res.status(500).json({ error: "Failed to bulk update template sources" });
+    }
+  });
+
   // Update document template (admin only, except folder reassignment which consultants can also do)
   app.patch("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
@@ -3856,8 +3883,10 @@ export async function registerRoutes(
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
+        sources: z.array(z.string()).optional(), // Source codes restricting visibility
         folderTemplateId: z.string().nullable().optional(), // Allow folder reassignment (Template Library), null = unassigned
         toolkitFolderId: z.string().nullable().optional(), // Allow toolkit folder assignment (Toolkit drag-and-drop)
+        synopsis: z.string().optional(),
       });
       
       const parsed = schema.safeParse(req.body);

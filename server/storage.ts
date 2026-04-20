@@ -2756,9 +2756,9 @@ export class MemStorage implements IStorage {
   // DOCUMENT TEMPLATES (The "Document Bible")
   // ============================================
   
-  async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]> {
+  async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[]): Promise<DocumentTemplate[]> {
     let query = db.select().from(documentTemplatesTable);
-    const conditions = [];
+    const conditions: any[] = [];
     if (module) {
       conditions.push(eq(documentTemplatesTable.module, module));
     }
@@ -2771,7 +2771,36 @@ export class MemStorage implements IStorage {
       query = query.where(and(...conditions)) as typeof query;
     }
     const templates = await query.orderBy(asc(documentTemplatesTable.sortOrder));
+
+    // Source filtering: if userSources provided, return only templates that have no
+    // sources set (visible to all) OR share at least one source with the user.
+    if (userSources !== undefined) {
+      return templates.filter(t => {
+        const ts = t.sources ?? [];
+        if (ts.length === 0) return true; // no restriction — visible to all
+        return userSources.some(s => ts.includes(s));
+      });
+    }
     return templates;
+  }
+
+  async bulkUpdateTemplateSources(
+    templateIds: string[],
+    sources: string[],
+    mode: "merge" | "clear"
+  ): Promise<void> {
+    if (!templateIds.length) return;
+    for (const id of templateIds) {
+      const [current] = await db.select({ sources: documentTemplatesTable.sources })
+        .from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+      if (!current) continue;
+      const newSources = mode === "clear"
+        ? []
+        : [...new Set([...(current.sources ?? []), ...sources])];
+      await db.update(documentTemplatesTable)
+        .set({ sources: newSources, updatedAt: new Date() })
+        .where(eq(documentTemplatesTable.id, id));
+    }
   }
   
   async getArchivedDocumentTemplates(): Promise<DocumentTemplate[]> {
@@ -2839,6 +2868,7 @@ export class MemStorage implements IStorage {
       renewalPeriodMonths: template.renewalPeriodMonths ?? null,
       requiresApproval: template.requiresApproval ?? true,
       visibility: template.visibility ?? "public",
+      sources: template.sources ?? [],
       isActive: template.isActive ?? true,
       sortOrder: template.sortOrder ?? 0,
       createdBy: template.createdBy,

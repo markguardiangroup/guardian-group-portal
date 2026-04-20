@@ -75,7 +75,8 @@
         "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e",
         "d4d951da-c8a0-4d72-b127-0aa37efeb4ba",
         "3a3a8c29-aa97-49eb-a04c-6193b383ca5d",
-        "60062e3c-d0c5-4c84-b19e-fde12146a63b"
+        "60062e3c-d0c5-4c84-b19e-fde12146a63b",
+        "d87c774e-195d-452b-b8fe-19bea4a36965"
       ],
       "entries": [
         {
@@ -580,6 +581,14 @@
           "message": "Patch headings now show the date of the latest entry in that patch",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:35:35.857Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "d87c774e-195d-452b-b8fe-19bea4a36965",
+          "patch": 5,
+          "message": "Template source filtering: restrict template visibility by source",
+          "category": "feature",
+          "createdAt": "2026-04-20T15:59:29.769Z",
           "createdBy": "user-admin"
         }
       ]

@@ -101,7 +101,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType } from "@shared/schema";
+import type { FolderTemplate, DocumentTemplate, DocumentTypeRecord, FolderDocumentTypeRule, ModuleType, Source } from "@shared/schema";
 
 import {
   DndContext,
@@ -212,6 +212,7 @@ type TemplateFormData = {
   toolkitFolderId: string;
   createNewToolkitFolder: boolean;
   newToolkitFolderName: string;
+  sources: string[];
 };
 
 type BulkSharedSettings = {
@@ -225,6 +226,7 @@ type BulkSharedSettings = {
   toolkitFolderId: string;
   createNewToolkitFolder: boolean;
   newToolkitFolderName: string;
+  sources: string[];
 };
 
 type BulkFileItem = {
@@ -250,6 +252,7 @@ const defaultBulkSharedSettings: BulkSharedSettings = {
   toolkitFolderId: "",
   createNewToolkitFolder: false,
   newToolkitFolderName: "",
+  sources: [],
 };
 
 type FolderFormData = {
@@ -294,6 +297,7 @@ const defaultTemplateFormData: TemplateFormData = {
   toolkitFolderId: "",
   createNewToolkitFolder: false,
   newToolkitFolderName: "",
+  sources: [],
 };
 
 const defaultFolderFormData: FolderFormData = {
@@ -481,6 +485,15 @@ export default function TemplateLibraryPage() {
   // Show archived toggle
   const [showArchived, setShowArchived] = useState(false);
   
+  // Source filter
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  // Bulk selection state (for assigning/clearing sources)
+  const [bulkSelecting, setBulkSelecting] = useState(false);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<string>>(new Set());
+  const [isBulkSourcesDialogOpen, setIsBulkSourcesDialogOpen] = useState(false);
+  const [bulkSourcesMode, setBulkSourcesMode] = useState<"merge" | "clear">("merge");
+  const [bulkSourcesPick, setBulkSourcesPick] = useState<string[]>([]);
+
   // Folder expansion state - starts collapsed by default
   const [openFolders, setOpenFolders] = useState<string[]>([]);
   
@@ -499,6 +512,10 @@ export default function TemplateLibraryPage() {
   const { data: toolkitFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
     queryKey: ["/api/toolkit/folders"],
     refetchOnMount: "always",
+  });
+
+  const { data: allSources = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
   });
   
   // Helper to invalidate documents hierarchy cache (depends on folder/document templates)
@@ -578,6 +595,23 @@ export default function TemplateLibraryPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to permanently delete template", variant: "destructive" });
+    },
+  });
+
+  const bulkUpdateSourcesMutation = useMutation({
+    mutationFn: async ({ templateIds, sources, mode }: { templateIds: string[]; sources: string[]; mode: "merge" | "clear" }) => {
+      return apiRequest("PATCH", "/api/document-templates/bulk-sources", { templateIds, sources, mode });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      setIsBulkSourcesDialogOpen(false);
+      setBulkSelecting(false);
+      setSelectedTemplateIds(new Set());
+      setBulkSourcesPick([]);
+      toast({ title: vars.mode === "clear" ? "Sources cleared" : "Sources assigned", description: `Updated ${vars.templateIds.length} template${vars.templateIds.length !== 1 ? "s" : ""}.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update sources", variant: "destructive" });
     },
   });
 
@@ -815,8 +849,12 @@ export default function TemplateLibraryPage() {
     } else if (approvalFilter === "auto_compliant") {
       result = result.filter(t => t.requiresApproval === false);
     }
+    // Source filter (admin only — others get pre-filtered by the API)
+    if (sourceFilter !== "all") {
+      result = result.filter(t => (t.sources ?? []).includes(sourceFilter));
+    }
     return result;
-  }, [templates, selectedModule, searchQuery, requiredFilter, renewalFilter, approvalFilter]);
+  }, [templates, selectedModule, searchQuery, requiredFilter, renewalFilter, approvalFilter, sourceFilter]);
   
   const filteredDocTypes = useMemo(() => {
     let result = documentTypes;
@@ -1208,6 +1246,7 @@ export default function TemplateLibraryPage() {
           renewalPeriodMonths: bulkShared.renewalPeriodMonths,
           requiresApproval: bulkShared.requiresApproval,
           visibility: bulkShared.visibility,
+          sources: bulkShared.sources,
           toolkitFolderId: isBulkPublic ? (toolkitFolderId || null) : null,
         });
         setBulkFileItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i)));
@@ -1261,6 +1300,7 @@ export default function TemplateLibraryPage() {
       toolkitFolderId: (template as any).toolkitFolderId || "",
       createNewToolkitFolder: false,
       newToolkitFolderName: "",
+      sources: template.sources ?? [],
     });
     setIsEditTemplateDialogOpen(true);
   };
@@ -1307,6 +1347,7 @@ export default function TemplateLibraryPage() {
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
         requiresApproval: templateFormData.requiresApproval,
         visibility: templateFormData.visibility,
+        sources: templateFormData.sources,
         toolkitFolderId: templateFormData.visibility === "public" ? toolkitFolderId : null,
       } as any,
     });
@@ -1476,9 +1517,22 @@ export default function TemplateLibraryPage() {
     const FileIcon = getFileIcon(template.mimeType);
     
     return (
-      <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover-elevate" data-testid={`template-card-${template.id}`}>
+      <div
+        className={`flex items-center justify-between p-3 rounded-lg border bg-card hover-elevate ${bulkSelecting ? "cursor-pointer" : ""} ${bulkSelecting && selectedTemplateIds.has(template.id) ? "ring-2 ring-primary border-primary" : ""}`}
+        data-testid={`template-card-${template.id}`}
+        onClick={bulkSelecting ? () => {
+          const next = new Set(selectedTemplateIds);
+          if (next.has(template.id)) next.delete(template.id); else next.add(template.id);
+          setSelectedTemplateIds(next);
+        } : undefined}
+      >
         <div className="flex items-center gap-3">
-          {isDraggable && isAdmin && (
+          {bulkSelecting && (
+            <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${selectedTemplateIds.has(template.id) ? "bg-primary border-primary" : "border-muted-foreground"}`}>
+              {selectedTemplateIds.has(template.id) && <Check className="h-3 w-3 text-white" />}
+            </div>
+          )}
+          {!bulkSelecting && isDraggable && isAdmin && (
             <div 
               {...dragHandleProps} 
               className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted"
@@ -1519,6 +1573,11 @@ export default function TemplateLibraryPage() {
               {(template as any).visibility === "private" && (
                 <Badge variant="outline" className="text-purple-600 border-purple-600 text-xs py-0">
                   Private
+                </Badge>
+              )}
+              {isAdmin && (template.sources ?? []).length > 0 && (
+                <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs py-0" title={`Sources: ${(template.sources ?? []).join(", ")}`}>
+                  {(template.sources ?? []).length} source{(template.sources ?? []).length !== 1 ? "s" : ""}
                 </Badge>
               )}
             </div>
@@ -1859,6 +1918,35 @@ export default function TemplateLibraryPage() {
                 </SelectContent>
               </Select>
               
+              {isAdmin && allSources.filter(s => s.isActive).length > 0 && (
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-44" data-testid="select-source-filter">
+                    <SelectValue placeholder="All Sources" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {allSources.filter(s => s.isActive).map(s => (
+                      <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {isAdmin && (
+                <Button
+                  variant={bulkSelecting ? "default" : "outline"}
+                  onClick={() => {
+                    setBulkSelecting(!bulkSelecting);
+                    setSelectedTemplateIds(new Set());
+                  }}
+                  data-testid="button-bulk-select-mode"
+                  className="whitespace-nowrap"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  {bulkSelecting ? "Exit Select" : "Select Sources"}
+                </Button>
+              )}
+
               {folderTemplates.length > 0 && (
                 <Button 
                   variant="outline" 
@@ -1882,6 +1970,53 @@ export default function TemplateLibraryPage() {
             </>
           )}
         </div>
+
+        {/* Bulk selection action bar */}
+        {bulkSelecting && (
+          <div className="flex items-center gap-3 p-3 rounded-lg border bg-primary/5 border-primary/20">
+            <span className="text-sm font-medium text-primary">
+              {selectedTemplateIds.size} template{selectedTemplateIds.size !== 1 ? "s" : ""} selected
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={selectedTemplateIds.size === 0}
+                onClick={() => {
+                  setBulkSourcesMode("merge");
+                  setBulkSourcesPick([]);
+                  setIsBulkSourcesDialogOpen(true);
+                }}
+                data-testid="button-bulk-assign-sources"
+              >
+                Assign Sources
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:text-destructive border-destructive/30"
+                disabled={selectedTemplateIds.size === 0}
+                onClick={() => {
+                  setBulkSourcesMode("clear");
+                  setBulkSourcesPick([]);
+                  setIsBulkSourcesDialogOpen(true);
+                }}
+                data-testid="button-bulk-clear-sources"
+              >
+                Clear Sources
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedTemplateIds(new Set())}
+                disabled={selectedTemplateIds.size === 0}
+                data-testid="button-bulk-deselect-all"
+              >
+                Deselect All
+              </Button>
+            </div>
+          </div>
+        )}
         
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
@@ -2502,6 +2637,37 @@ export default function TemplateLibraryPage() {
               </div>
             </div>
 
+            {/* Source Restrictions */}
+            {allSources.filter(s => s.isActive).length > 0 && (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-sm font-medium">Source Restrictions</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Limit visibility to users from specific sources. Leave empty to show to everyone.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {allSources.filter(s => s.isActive).map(s => {
+                    const checked = bulkShared.sources.includes(s.code);
+                    return (
+                      <button
+                        key={s.code}
+                        type="button"
+                        onClick={() => {
+                          const next = checked
+                            ? bulkShared.sources.filter(c => c !== s.code)
+                            : [...bulkShared.sources, s.code];
+                          setBulkShared({ ...bulkShared, sources: next });
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
+                        data-testid={`button-bulk-source-${s.code}`}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* ── File picker ── */}
             <div className="space-y-2">
               <Label>Template Files <span className="text-destructive">*</span></Label>
@@ -2804,6 +2970,36 @@ export default function TemplateLibraryPage() {
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
             </div>
+            {/* Source Restrictions */}
+            {allSources.filter(s => s.isActive).length > 0 && (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-sm font-medium">Source Restrictions</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Limit visibility to users from specific sources. Leave empty to show to everyone.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {allSources.filter(s => s.isActive).map(s => {
+                    const checked = templateFormData.sources.includes(s.code);
+                    return (
+                      <button
+                        key={s.code}
+                        type="button"
+                        onClick={() => {
+                          const next = checked
+                            ? templateFormData.sources.filter(c => c !== s.code)
+                            : [...templateFormData.sources, s.code];
+                          setTemplateFormData({ ...templateFormData, sources: next });
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
+                        data-testid={`button-edit-source-${s.code}`}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditTemplateDialogOpen(false)}>Cancel</Button>
@@ -3069,6 +3265,68 @@ export default function TemplateLibraryPage() {
               data-testid="button-confirm-permanent-delete"
             >
               {permanentDeleteTemplateMutation.isPending ? "Deleting..." : "Delete Permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Sources Dialog */}
+      <Dialog open={isBulkSourcesDialogOpen} onOpenChange={setIsBulkSourcesDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{bulkSourcesMode === "clear" ? "Clear Sources" : "Assign Sources"}</DialogTitle>
+            <DialogDescription>
+              {bulkSourcesMode === "clear"
+                ? `Remove all source restrictions from ${selectedTemplateIds.size} selected template${selectedTemplateIds.size !== 1 ? "s" : ""}.`
+                : `Add source restrictions to ${selectedTemplateIds.size} selected template${selectedTemplateIds.size !== 1 ? "s" : ""}. Existing sources will be preserved.`}
+            </DialogDescription>
+          </DialogHeader>
+          {bulkSourcesMode === "merge" && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">Select sources to assign:</p>
+              <div className="flex flex-wrap gap-2">
+                {allSources.filter(s => s.isActive).map(s => {
+                  const checked = bulkSourcesPick.includes(s.code);
+                  return (
+                    <button
+                      key={s.code}
+                      type="button"
+                      onClick={() => {
+                        const next = checked
+                          ? bulkSourcesPick.filter(c => c !== s.code)
+                          : [...bulkSourcesPick, s.code];
+                        setBulkSourcesPick(next);
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
+                      data-testid={`button-bulk-dialog-source-${s.code}`}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {bulkSourcesPick.length === 0 && (
+                <p className="text-xs text-amber-600">Select at least one source to assign.</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBulkSourcesDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant={bulkSourcesMode === "clear" ? "destructive" : "default"}
+              disabled={(bulkSourcesMode === "merge" && bulkSourcesPick.length === 0) || bulkUpdateSourcesMutation.isPending}
+              onClick={() => bulkUpdateSourcesMutation.mutate({
+                templateIds: [...selectedTemplateIds],
+                sources: bulkSourcesPick,
+                mode: bulkSourcesMode,
+              })}
+              data-testid="button-confirm-bulk-sources"
+            >
+              {bulkUpdateSourcesMutation.isPending
+                ? "Updating..."
+                : bulkSourcesMode === "clear"
+                  ? "Clear All Sources"
+                  : "Assign Sources"}
             </Button>
           </DialogFooter>
         </DialogContent>
