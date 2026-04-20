@@ -1263,6 +1263,7 @@ export default function UserManagement() {
               <TableHead className="min-w-[160px]">Company</TableHead>
               <TableHead>Sites Assigned</TableHead>
               <TableHead className="hidden md:table-cell">Sources</TableHead>
+              <TableHead className="hidden md:table-cell">Permissions</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-32">Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -1377,6 +1378,40 @@ export default function UserManagement() {
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {u.role === "consultant" ? (() => {
+                      const PERMS = [
+                        { key: "caseAdvocate", label: "Case Advocate", className: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700" },
+                        { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
+                        { key: "templateLibrary", label: "Template Lib", className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" },
+                      ];
+                      const active = PERMS.filter(p => (u.consultantPermissions as any)?.[p.key]);
+                      if (active.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
+                      const visible = active.slice(0, 2);
+                      const overflow = active.slice(2);
+                      return (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {visible.map(p => (
+                            <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`} data-testid={`badge-perm-${p.key}-${u.id}`}>{p.label}</Badge>
+                          ))}
+                          {overflow.length > 0 && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="text-xs text-muted-foreground hover:text-foreground border border-dashed rounded px-1.5 py-0.5 transition-colors" data-testid={`badge-perm-overflow-${u.id}`}>+{overflow.length}</button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-2" align="start">
+                                <div className="flex flex-col gap-1">
+                                  {overflow.map(p => (
+                                    <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`}>{p.label}</Badge>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      );
+                    })() : <span className="text-sm text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
                     <Badge 
