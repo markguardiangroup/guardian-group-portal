@@ -869,6 +869,11 @@ export default function Settings() {
                   <Badge variant="outline" className="text-base px-3 py-1 capitalize">
                     {user?.role || "client"}
                   </Badge>
+                  {user?.role === "consultant" && user?.consultantTier === "pro" && (
+                    <Badge className="text-xs px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700" variant="outline">
+                      Pro
+                    </Badge>
+                  )}
                   <span className="text-sm text-muted-foreground">
                     {user?.role === "admin" && "Full system access"}
                     {user?.role === "consultant" && "Can manage clients and documents"}
