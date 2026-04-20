@@ -726,6 +726,7 @@ export default function CompanyDetail() {
   const [addMembersDialogOpen, setAddMembersDialogOpen] = useState(false);
   const [addMembersSearch, setAddMembersSearch] = useState("");
   const [addMembersSelected, setAddMembersSelected] = useState<Set<string>>(new Set());
+  const [memberToUnlink, setMemberToUnlink] = useState<{ id: string; name: string } | null>(null);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
@@ -1883,16 +1884,7 @@ export default function CompanyDetail() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                onClick={() => {
-                                  // Unlink: navigate to member company and set its GO to null
-                                  apiRequest("PATCH", `/api/companies/${member.id}/group-owner`, { groupOwnerId: null })
-                                    .then(() => {
-                                      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-                                      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-                                      toast({ title: `${member.name} unlinked from Group Owner` });
-                                    })
-                                    .catch(() => toast({ title: "Failed to unlink company", variant: "destructive" }));
-                                }}
+                                onClick={() => setMemberToUnlink({ id: member.id, name: member.name })}
                                 disabled={setGroupOwnerMutation.isPending}
                                 data-testid={`button-remove-member-${member.id}`}
                               >
@@ -2579,6 +2571,39 @@ export default function CompanyDetail() {
               disabled={updateCompanyMutation.isPending}
             >
               Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!memberToUnlink} onOpenChange={(open) => { if (!open) setMemberToUnlink(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink Company</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlink <strong>{memberToUnlink?.name}</strong> from this group? This will revoke the company's access to shared group data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-unlink-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-unlink-confirm"
+              onClick={() => {
+                if (!memberToUnlink) return;
+                apiRequest("PATCH", `/api/companies/${memberToUnlink.id}/group-owner`, { groupOwnerId: null })
+                  .then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+                    toast({ title: `${memberToUnlink.name} unlinked from Group Owner` });
+                    setMemberToUnlink(null);
+                  })
+                  .catch(() => {
+                    toast({ title: "Failed to unlink company", variant: "destructive" });
+                    setMemberToUnlink(null);
+                  });
+              }}
+            >
+              Unlink
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
