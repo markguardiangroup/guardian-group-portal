@@ -1792,8 +1792,8 @@ export default function UserManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-role">Role</Label>
-                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.role === "admin" || (editingUser.id === user?.id && isPro)}>
-                        <SelectTrigger id="edit-role" data-testid="select-edit-role" disabled={editingUser.role === "admin" || (editingUser.id === user?.id && isPro)}>
+                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id}>
+                        <SelectTrigger id="edit-role" data-testid="select-edit-role" disabled={editingUser.id === user?.id}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
