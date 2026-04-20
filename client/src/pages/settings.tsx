@@ -859,6 +859,57 @@ export default function Settings() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
+                <CardTitle>Your Permissions</CardTitle>
+                <CardDescription>
+                  Based on your current role
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-base px-3 py-1 capitalize">
+                    {user?.role || "client"}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    {user?.role === "admin" && "Full system access"}
+                    {user?.role === "consultant" && "Can manage clients and documents"}
+                    {user?.role === "client" && "Access to your organisation's content"}
+                  </span>
+                </div>
+
+                {user?.role === "consultant" && (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-sm font-medium text-muted-foreground">Additional Permissions</p>
+                    {[
+                      { key: "caseAdvocate" as const, label: "Case Advocate", description: "Access to case advocacy tools and workflows" },
+                      { key: "trainingLibrary" as const, label: "Training Library", description: "Manage and publish training content" },
+                      { key: "templateLibrary" as const, label: "Template Library", description: "Create and manage document templates" },
+                    ].map(({ key, label, description }) => (
+                      <div key={key} className="flex items-center justify-between rounded-lg border px-4 py-3 opacity-80">
+                        <div>
+                          <p className="text-sm font-medium">{label}</p>
+                          <p className="text-xs text-muted-foreground">{description}</p>
+                        </div>
+                        <Switch
+                          checked={!!(user?.consultantPermissions as any)?.[key]}
+                          disabled
+                          aria-label={label}
+                        />
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground pt-1">Contact your administrator to change these permissions.</p>
+                  </div>
+                )}
+
+                {user?.role !== "consultant" && (
+                  <p className="text-sm text-muted-foreground">
+                    Contact your administrator if you need different permissions.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Role Permissions Reference</CardTitle>
                 <CardDescription>
                   Overview of what each role can do in the system
@@ -954,29 +1005,6 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Permissions</CardTitle>
-                <CardDescription>
-                  Based on your current role
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Badge variant="outline" className="text-base px-3 py-1 capitalize">
-                    {user?.role || "client"}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    {user?.role === "admin" && "Full system access"}
-                    {user?.role === "consultant" && "Can manage clients and documents"}
-                    {user?.role === "client" && "Access to your organization's content"}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Contact your administrator if you need different permissions.
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
