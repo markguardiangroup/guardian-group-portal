@@ -1821,7 +1821,7 @@ export default function CompanyDetail() {
                             }}
                             disabled={setGroupOwnerMutation.isPending}
                           >
-                            <SelectTrigger className="h-9 text-sm" data-testid="select-group-owner">
+                            <SelectTrigger className="h-9 text-sm w-72" data-testid="select-group-owner">
                               <SelectValue placeholder="None (standalone)" />
                             </SelectTrigger>
                             <SelectContent>
