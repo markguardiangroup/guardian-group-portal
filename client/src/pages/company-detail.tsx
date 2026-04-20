@@ -115,6 +115,9 @@ interface CompanyModuleAccess {
 
 type CompanyWithSites = Company & {
   sites: SiteWithDetails[];
+  isGroupOwner?: boolean;
+  groupOwnerName?: string | null;
+  groupMembers?: Company[];
 };
 
 interface SiteAssignment {
@@ -814,6 +817,29 @@ export default function CompanyDetail() {
     enabled: !!companyId,
   });
 
+  // All companies list (for GO admin picker – admin only)
+  const { data: allCompanies = [] } = useQuery<CompanyWithSites[]>({
+    queryKey: ["/api/companies"],
+    enabled: isAdmin,
+  });
+
+  // Mutation to set/unset a group owner
+  const setGroupOwnerMutation = useMutation({
+    mutationFn: async (groupOwnerId: string | null) => {
+      return await apiRequest("PATCH", `/api/companies/${companyId}/group-owner`, { groupOwnerId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({ title: "Group Owner updated" });
+    },
+    onError: async (err: any) => {
+      let msg = "Failed to update Group Owner";
+      try { const d = await err.response?.json(); if (d?.error) msg = d.error; } catch {}
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
   type Source = { id: string; code: string; label: string; isActive: boolean };
   const { data: availableSources = [] } = useQuery<Source[]>({
     queryKey: ["/api/sources"],
@@ -1482,6 +1508,44 @@ export default function CompanyDetail() {
                     </div>
                   </div>
                 )}
+                {/* Group Owner field — admin picker or read-only */}
+                {isAdmin ? (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Group Owner: </span>
+                      <Select
+                        value={company.groupOwnerId ?? "none"}
+                        onValueChange={(val) => {
+                          const goId = val === "none" ? null : val;
+                          setGroupOwnerMutation.mutate(goId);
+                        }}
+                        disabled={setGroupOwnerMutation.isPending}
+                      >
+                        <SelectTrigger className="mt-1 h-8 text-sm" data-testid="select-group-owner">
+                          <SelectValue placeholder="None (standalone)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None (standalone)</SelectItem>
+                          {allCompanies
+                            .filter(c => c.id !== companyId && !c.groupOwnerId)
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(c => (
+                              <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ) : company.groupOwnerName ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span><span className="text-muted-foreground">Group Owner:</span> {company.groupOwnerName}</span>
+                  </div>
+                ) : null}
+
                 {(company.addressLine1 || company.city || company.postalCode) && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Address</p>
@@ -1547,6 +1611,50 @@ export default function CompanyDetail() {
             </Card>
 
           </div>
+
+          {/* Linked Companies panel — shown when this company is a Group Owner */}
+          {company.isGroupOwner && company.groupMembers && company.groupMembers.length > 0 && (
+            <Card className="mt-6" data-testid="card-group-members">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  Linked Companies
+                  <Badge variant="secondary" className="ml-1">{company.groupMembers.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="divide-y">
+                  {company.groupMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between py-2 cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
+                      onClick={() => navigate(`/companies/${member.id}`)}
+                      data-testid={`group-member-${member.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{member.name}</p>
+                          {member.companyNumber && (
+                            <p className="text-xs text-muted-foreground">No: {member.companyNumber}</p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge
+                        variant={member.status === "active" ? "default" : "secondary"}
+                        className="text-xs"
+                        data-testid={`badge-member-status-${member.id}`}
+                      >
+                        {member.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Module Document Summary */}
           {companyStats && (

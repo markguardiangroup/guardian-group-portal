@@ -484,6 +484,10 @@ export interface IStorage {
   getSource(id: string): Promise<Source | undefined>;
   createSource(source: InsertSource): Promise<Source>;
   updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
+
+  // Group Owner
+  getGroupMembers(groupOwnerId: string): Promise<Company[]>;
+  setGroupOwner(companyId: string, groupOwnerId: string | null): Promise<Company | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -926,10 +930,22 @@ export class MemStorage implements IStorage {
     for (const site of sites) {
       siteCountByCompany.set(site.companyId, (siteCountByCompany.get(site.companyId) || 0) + 1);
     }
+
+    // Determine which companies are Group Owners (have at least one member) and build name lookup
+    const goMemberCounts = new Map<string, number>();
+    const companyNameById = new Map<string, string>();
+    for (const c of companies) {
+      companyNameById.set(c.id, c.name);
+      if (c.groupOwnerId) {
+        goMemberCounts.set(c.groupOwnerId, (goMemberCounts.get(c.groupOwnerId) || 0) + 1);
+      }
+    }
     
     return companies.map(company => ({
       ...company,
-      siteCount: siteCountByCompany.get(company.id) || 0
+      siteCount: siteCountByCompany.get(company.id) || 0,
+      isGroupOwner: (goMemberCounts.get(company.id) || 0) > 0,
+      groupOwnerName: company.groupOwnerId ? (companyNameById.get(company.groupOwnerId) ?? null) : null,
     }));
   }
 
@@ -4521,6 +4537,19 @@ export class MemStorage implements IStorage {
   async updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined> {
     const [row] = await db.update(sourcesTable).set(updates).where(eq(sourcesTable.id, id)).returning();
     return row;
+  }
+
+  // Group Owner
+  async getGroupMembers(groupOwnerId: string): Promise<Company[]> {
+    return await db.select().from(companiesTable).where(eq(companiesTable.groupOwnerId, groupOwnerId));
+  }
+
+  async setGroupOwner(companyId: string, groupOwnerId: string | null): Promise<Company | undefined> {
+    const [updated] = await db.update(companiesTable)
+      .set({ groupOwnerId: groupOwnerId === null ? sql`NULL` : groupOwnerId } as any)
+      .where(eq(companiesTable.id, companyId))
+      .returning();
+    return updated;
   }
 
 }

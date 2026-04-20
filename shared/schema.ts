@@ -75,6 +75,8 @@ export const companies = pgTable("companies", {
   supportAccess: boolean("support_access").notNull().default(false),
   reportsAccess: boolean("reports_access").notNull().default(false),
   sources: text("sources").array(),
+  // Group Owner linkage: if set, this company belongs to the specified Group Owner company
+  groupOwnerId: varchar("group_owner_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -85,6 +87,8 @@ export type Company = typeof companies.$inferSelect;
 // Extended company type with site count for listings
 export type CompanyWithSiteCount = Company & {
   siteCount: number;
+  isGroupOwner?: boolean;      // true when other companies reference this as their GO
+  groupOwnerName?: string | null; // name of the GO this company belongs to (if any)
 };
 
 // Paginated response for companies

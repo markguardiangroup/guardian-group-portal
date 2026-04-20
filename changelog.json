@@ -61,7 +61,14 @@
         "g5c48h17d034",
         "h6d59i28e145",
         "i7e60j39f256",
-        "j8f71k40g367"
+        "j8f71k40g367",
+        "k9g82l51h478",
+        "l0h93m62i589",
+        "m1i04n73j690",
+        "n2j15o84k701",
+        "o3k26p95l812",
+        "p4l37q06m923",
+        "q5m48r17n034"
       ],
       "entries": [
         {
@@ -502,6 +509,30 @@
           "message": "Settings: Your Permissions card moved to top with read-only permission toggles",
           "category": "enhancement",
           "createdAt": "2026-04-20T11:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "o3k26p95l812",
+          "patch": 5,
+          "message": "Companies can now be linked to a Group Owner company",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "p4l37q06m923",
+          "patch": 5,
+          "message": "Group Owner companies show a Linked Companies panel with all member companies",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "q5m48r17n034",
+          "patch": 5,
+          "message": "Company list shows Group Owner and Member Of badges",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:10:00.000Z",
           "createdBy": "agent"
         }
       ]

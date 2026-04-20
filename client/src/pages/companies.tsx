@@ -105,6 +105,16 @@ function CompanyCard({
                       {company.referenceNumber}
                     </Badge>
                   )}
+                  {(company as any).isGroupOwner && (
+                    <Badge className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700" data-testid={`badge-go-${company.id}`}>
+                      Group Owner
+                    </Badge>
+                  )}
+                  {(company as any).groupOwnerName && (
+                    <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700" data-testid={`badge-member-${company.id}`}>
+                      Member of {(company as any).groupOwnerName}
+                    </Badge>
+                  )}
                 </div>
                 {company.companyNumber && (
                   <p className="mt-0.5 text-sm text-muted-foreground">
@@ -884,6 +894,16 @@ export default function Companies() {
                           {company.referenceNumber && (
                             <Badge variant="outline" className="font-mono text-xs" data-testid={`badge-company-ref-${company.id}`}>
                               {company.referenceNumber}
+                            </Badge>
+                          )}
+                          {(company as any).isGroupOwner && (
+                            <Badge className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700" data-testid={`badge-go-table-${company.id}`}>
+                              Group Owner
+                            </Badge>
+                          )}
+                          {(company as any).groupOwnerName && (
+                            <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700" data-testid={`badge-member-table-${company.id}`}>
+                              Member of {(company as any).groupOwnerName}
                             </Badge>
                           )}
                         </div>

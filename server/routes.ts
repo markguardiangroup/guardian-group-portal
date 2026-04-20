@@ -5217,7 +5217,15 @@ export async function registerRoutes(
           );
         }
       } else if (user.role === "client" && user.companyId) {
-        filteredCompanies = allCompanies.filter(c => c.id === user.companyId);
+        const effectiveIds = new Set([user.companyId]);
+        // If the user belongs to a GO company, also show all member companies
+        const userCompanyInList = allCompanies.find(c => c.id === user.companyId);
+        if (userCompanyInList?.isGroupOwner) {
+          for (const c of allCompanies) {
+            if (c.groupOwnerId === user.companyId) effectiveIds.add(c.id);
+          }
+        }
+        filteredCompanies = allCompanies.filter(c => effectiveIds.has(c.id));
       } else if (user.role !== "admin") {
         filteredCompanies = [];
       }
@@ -5295,7 +5303,9 @@ export async function registerRoutes(
           }
         }
       } else if (user.role === "client") {
-        if (user.companyId !== company.id) {
+        const isOwnCompany = user.companyId === company.id;
+        const isGoMember = company.groupOwnerId != null && user.companyId === company.groupOwnerId;
+        if (!isOwnCompany && !isGoMember) {
           return res.status(403).json({ error: "Access denied" });
         }
       } else if (user.role !== "admin") {
@@ -5304,10 +5314,19 @@ export async function registerRoutes(
       
       // Get sites for this company (optimized - only fetches this company's sites)
       const companySites = await storage.getSitesWithDetailsByCompanyId(company.id);
+
+      // Fetch GO metadata
+      const [groupMembers, groupOwner] = await Promise.all([
+        storage.getGroupMembers(company.id),
+        company.groupOwnerId ? storage.getCompany(company.groupOwnerId) : Promise.resolve(null),
+      ]);
       
       res.json({
         ...company,
-        sites: companySites
+        sites: companySites,
+        isGroupOwner: groupMembers.length > 0,
+        groupOwnerName: groupOwner?.name ?? null,
+        groupMembers,
       });
     } catch (error) {
       console.error("Company detail error:", error);
@@ -5376,6 +5395,59 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Company stats error:", error);
       res.status(500).json({ error: "Failed to fetch company stats" });
+    }
+  });
+
+  // ── Group Owner routes ──────────────────────────────────────────────────────
+
+  // GET /api/companies/:companyId/group-members — list companies that belong to this GO
+  app.get("/api/companies/:companyId/group-members", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Admins only" });
+
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+
+      const members = await storage.getGroupMembers(req.params.companyId);
+      res.json(members);
+    } catch (error) {
+      console.error("Group members error:", error);
+      res.status(500).json({ error: "Failed to fetch group members" });
+    }
+  });
+
+  // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin only)
+  app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Admins only" });
+
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+
+      const { groupOwnerId } = req.body as { groupOwnerId: string | null };
+
+      // Validate: cannot link a GO to another GO (no nesting)
+      if (groupOwnerId) {
+        const proposedGO = await storage.getCompany(groupOwnerId);
+        if (!proposedGO) return res.status(400).json({ error: "Proposed Group Owner not found" });
+        if (proposedGO.groupOwnerId) return res.status(400).json({ error: "A Group Owner cannot itself belong to another Group Owner" });
+        // Prevent self-linking
+        if (groupOwnerId === req.params.companyId) return res.status(400).json({ error: "A company cannot be its own Group Owner" });
+        // Prevent the target GO from being a member company (i.e., it must not have a groupOwnerId set)
+        const targetMembers = await storage.getGroupMembers(req.params.companyId);
+        if (targetMembers.length > 0) return res.status(400).json({ error: "A Group Owner cannot be linked to another Group Owner" });
+      }
+
+      const updated = await storage.setGroupOwner(req.params.companyId, groupOwnerId ?? null);
+      if (!updated) return res.status(500).json({ error: "Failed to update" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Set group owner error:", error);
+      res.status(500).json({ error: "Failed to set group owner" });
     }
   });
 

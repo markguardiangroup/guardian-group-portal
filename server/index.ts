@@ -160,6 +160,7 @@ process.on("uncaughtException", (err) => {
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_notes text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_reference text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS inv_amendments text`);
+    await pool.query(`ALTER TABLE companies ADD COLUMN IF NOT EXISTS group_owner_id varchar`);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }
