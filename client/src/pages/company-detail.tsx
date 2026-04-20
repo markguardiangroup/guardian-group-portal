@@ -1809,7 +1809,7 @@ export default function CompanyDetail() {
                   {/* State 1: This company has a Group Owner (it's a member) */}
                   {hasGroupOwner ? (
                     <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">This company is a member of a Group Owner.</p>
+                      <p className="text-xs text-muted-foreground">This company is a member of a group.</p>
                       {isAdmin ? (
                         <div className="space-y-1.5">
                           <label className="text-sm font-medium">Group Owner</label>
