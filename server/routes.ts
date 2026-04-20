@@ -3695,8 +3695,23 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as ModuleType | undefined;
       const folderTemplateId = req.query.folderTemplateId as string | undefined;
-      // Admins see all templates; others only see source-matched templates
-      const userSources = user.role === "admin" ? undefined : (user.sources ?? []);
+      // Admins see all templates unless they explicitly request a source filter;
+      // others only see source-matched templates (pre-filtered by their own sources).
+      let userSources: string[] | undefined =
+        user.role === "admin" ? undefined : (user.sources ?? []);
+      // Allow an optional ?source=<code> param for UI-driven source filtering
+      const sourceParam = req.query.source as string | undefined;
+      if (sourceParam) {
+        // For admins requesting a specific source: filter to templates that have this source
+        // For others: their userSources already restrict the set; further intersect
+        if (user.role === "admin") {
+          userSources = [sourceParam];
+        } else {
+          // Only apply if the user actually has this source
+          const validatedSource = (user.sources ?? []).includes(sourceParam) ? sourceParam : null;
+          if (validatedSource) userSources = [validatedSource];
+        }
+      }
       const templates = await storage.getDocumentTemplates(module, folderTemplateId, userSources);
       res.json(templates);
     } catch (error) {
@@ -3737,11 +3752,14 @@ export async function registerRoutes(
   // Get templates for a specific folder template
   app.get("/api/folder-templates/:id/templates", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
       const folderTemplate = await storage.getFolderTemplate(req.params.id);
       if (!folderTemplate) {
         return res.status(404).json({ error: "Folder template not found" });
       }
-      const templates = await storage.getDocumentTemplates(undefined, req.params.id);
+      const userSources = user.role === "admin" ? undefined : (user.sources ?? []);
+      const templates = await storage.getDocumentTemplates(undefined, req.params.id, userSources);
       res.json(templates);
     } catch (error) {
       console.error("Get folder templates error:", error);

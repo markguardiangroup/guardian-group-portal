@@ -2758,7 +2758,7 @@ export class MemStorage implements IStorage {
   
   async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[]): Promise<DocumentTemplate[]> {
     let query = db.select().from(documentTemplatesTable);
-    const conditions: any[] = [];
+    const conditions: ReturnType<typeof eq>[] = [];
     if (module) {
       conditions.push(eq(documentTemplatesTable.module, module));
     }

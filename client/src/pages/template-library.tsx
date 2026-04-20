@@ -472,16 +472,6 @@ export default function TemplateLibraryPage() {
   // Doc type delete confirmation  
   const [docTypeToDelete, setDocTypeToDelete] = useState<DocumentTypeRecord | null>(null);
   
-  // Queries
-  const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
-    queryKey: ["/api/document-templates"],
-  });
-  
-  // Archived templates query
-  const { data: archivedTemplates = [], isLoading: archivedLoading } = useQuery<DocumentTemplate[]>({
-    queryKey: ["/api/document-templates-archived"],
-  });
-  
   // Show archived toggle
   const [showArchived, setShowArchived] = useState(false);
   
@@ -496,6 +486,24 @@ export default function TemplateLibraryPage() {
 
   // Folder expansion state - starts collapsed by default
   const [openFolders, setOpenFolders] = useState<string[]>([]);
+
+  // Queries
+  const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates", sourceFilter],
+    queryFn: async () => {
+      const url = sourceFilter !== "all"
+        ? `/api/document-templates?source=${encodeURIComponent(sourceFilter)}`
+        : "/api/document-templates";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch templates");
+      return res.json();
+    },
+  });
+  
+  // Archived templates query
+  const { data: archivedTemplates = [], isLoading: archivedLoading } = useQuery<DocumentTemplate[]>({
+    queryKey: ["/api/document-templates-archived"],
+  });
   
   const { data: folderTemplates = [], isLoading: foldersLoading } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
@@ -1918,19 +1926,24 @@ export default function TemplateLibraryPage() {
                 </SelectContent>
               </Select>
               
-              {isAdmin && allSources.filter(s => s.isActive).length > 0 && (
-                <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger className="w-44" data-testid="select-source-filter">
-                    <SelectValue placeholder="All Sources" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sources</SelectItem>
-                    {allSources.filter(s => s.isActive).map(s => (
-                      <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              {(() => {
+                const visibleSources = isAdmin
+                  ? allSources.filter(s => s.isActive)
+                  : allSources.filter(s => s.isActive && (user?.sources ?? []).includes(s.code));
+                return visibleSources.length > 0 ? (
+                  <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                    <SelectTrigger className="w-44" data-testid="select-source-filter">
+                      <SelectValue placeholder="All Sources" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sources</SelectItem>
+                      {visibleSources.map(s => (
+                        <SelectItem key={s.code} value={s.code}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null;
+              })()}
 
               {isAdmin && (
                 <Button
