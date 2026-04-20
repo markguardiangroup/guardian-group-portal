@@ -350,7 +350,8 @@ export interface IStorage {
   deleteFolderDocumentTypeRule(id: string): Promise<boolean>;
   
   // Document Templates (The "Document Bible")
-  getDocumentTemplates(module?: ModuleType, folderTemplateId?: string): Promise<DocumentTemplate[]>;
+  getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[]): Promise<DocumentTemplate[]>;
+  bulkUpdateTemplateSources(templateIds: string[], sources: string[], mode: "merge" | "clear"): Promise<void>;
   getDocumentTemplatesByIds(ids: string[]): Promise<DocumentTemplate[]>;
   getArchivedDocumentTemplates(): Promise<DocumentTemplate[]>;
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;

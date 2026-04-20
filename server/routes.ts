@@ -3695,25 +3695,24 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as ModuleType | undefined;
       const folderTemplateId = req.query.folderTemplateId as string | undefined;
-      // Admins see all templates unless they explicitly request a source filter;
-      // others only see source-matched templates (pre-filtered by their own sources).
-      let userSources: string[] | undefined =
+      // Admins see all templates; others only see source-matched templates
+      const userSources: string[] | undefined =
         user.role === "admin" ? undefined : (user.sources ?? []);
-      // Allow an optional ?source=<code> param for UI-driven source filtering
+      let result = await storage.getDocumentTemplates(module, folderTemplateId, userSources);
+      // Allow an optional ?source=<code> param for UI-driven strict source filtering
       const sourceParam = req.query.source as string | undefined;
       if (sourceParam) {
-        // For admins requesting a specific source: filter to templates that have this source
-        // For others: their userSources already restrict the set; further intersect
         if (user.role === "admin") {
-          userSources = [sourceParam];
+          // Admin strict filter: only templates explicitly tagged with this source
+          result = result.filter(t => (t.sources ?? []).includes(sourceParam));
         } else {
-          // Only apply if the user actually has this source
-          const validatedSource = (user.sources ?? []).includes(sourceParam) ? sourceParam : null;
-          if (validatedSource) userSources = [validatedSource];
+          // Non-admin: further narrow to templates matching this specific own source
+          if ((user.sources ?? []).includes(sourceParam)) {
+            result = result.filter(t => (t.sources ?? []).includes(sourceParam));
+          }
         }
       }
-      const templates = await storage.getDocumentTemplates(module, folderTemplateId, userSources);
-      res.json(templates);
+      res.json(result);
     } catch (error) {
       console.error("Get document templates error:", error);
       res.status(500).json({ error: "Failed to fetch document templates" });
