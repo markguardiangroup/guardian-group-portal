@@ -1411,7 +1411,9 @@ export default function UserManagement() {
                           )}
                         </div>
                       );
-                    })() : <span className="text-sm text-muted-foreground">—</span>}
+                    })() : u.role === "admin" ? (
+                      <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600" data-testid={`badge-perm-all-${u.id}`}>All</Badge>
+                    ) : <span className="text-sm text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell>
                     <Badge 
