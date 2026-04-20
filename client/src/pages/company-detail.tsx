@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -117,7 +117,9 @@ type CompanyWithSites = Company & {
   sites: SiteWithDetails[];
   isGroupOwner?: boolean;
   groupOwnerName?: string | null;
+  groupOwnerId?: string | null;
   groupMembers?: Company[];
+  computedSources?: string[] | null;
 };
 
 interface SiteAssignment {
@@ -1524,21 +1526,28 @@ export default function CompanyDetail() {
                     <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
                   </div>
                 )}
-                {(isAdmin || user?.role === "consultant") && company.sources && company.sources.length > 0 && (
-                  <div className="flex items-start gap-2 text-sm">
-                    <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                    <div>
-                      <span className="text-muted-foreground">Sources: </span>
-                      <span className="inline-flex flex-wrap gap-1 ml-1">
-                        {company.sources.map((code: string) => (
-                          <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-detail-source-${code}`}>
-                            {code}
-                          </Badge>
-                        ))}
-                      </span>
+                {(isAdmin || user?.role === "consultant") && (() => {
+                  const displaySources = company.isGroupOwner && company.computedSources
+                    ? company.computedSources
+                    : company.sources;
+                  return displaySources && displaySources.length > 0 ? (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Shield className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-muted-foreground">
+                          {company.isGroupOwner ? "Sources (computed from members): " : "Sources: "}
+                        </span>
+                        <span className="inline-flex flex-wrap gap-1 ml-1">
+                          {displaySources.map((code: string) => (
+                            <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-detail-source-${code}`}>
+                              {code}
+                            </Badge>
+                          ))}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
                 {/* Group Owner field — admin picker or read-only */}
                 {isAdmin ? (
                   <div className="flex items-start gap-2 text-sm">
@@ -1573,7 +1582,20 @@ export default function CompanyDetail() {
                 ) : company.groupOwnerName ? (
                   <div className="flex items-center gap-2 text-sm">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span><span className="text-muted-foreground">Group Owner:</span> {company.groupOwnerName}</span>
+                    <span>
+                      <span className="text-muted-foreground">Group Owner: </span>
+                      {company.groupOwnerId ? (
+                        <Link
+                          href={`/companies/${company.groupOwnerId}`}
+                          className="text-primary underline-offset-4 hover:underline"
+                          data-testid="link-group-owner"
+                        >
+                          {company.groupOwnerName}
+                        </Link>
+                      ) : (
+                        company.groupOwnerName
+                      )}
+                    </span>
                   </div>
                 ) : null}
 
@@ -2267,7 +2289,7 @@ export default function CompanyDetail() {
               </div>
             </div>
 
-            {availableSources.length > 0 && (
+            {availableSources.length > 0 && !company?.isGroupOwner && (
               <div className="border-t pt-4">
                 <h4 className="text-sm font-medium mb-1">Sources <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brand sources are associated with this company. At least one source is required.</p>
