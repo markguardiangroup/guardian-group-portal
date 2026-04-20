@@ -3635,6 +3635,7 @@ function IncidentsListView() {
   const [registerType, setRegisterType] = useState<RegisterType>("incident");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [riddorFilter, setRiddorFilter] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [metricDialog, setMetricDialog] = useState<null | "active" | "riddor" | "open_actions">(null);
   const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
@@ -3723,9 +3724,10 @@ function IncidentsListView() {
       const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
       const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
       const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
-      return matchesSearch && matchesStatus && matchesSite && matchesCompany;
+      const matchesRiddor = !riddorFilter || incident.riddorReportable === true;
+      return matchesSearch && matchesStatus && matchesSite && matchesCompany && matchesRiddor;
     });
-  }, [incidents, sites, searchQuery, statusFilter, selectedSiteId, selectedCompany, registerType]);
+  }, [incidents, sites, searchQuery, statusFilter, selectedSiteId, selectedCompany, registerType, riddorFilter]);
 
   const { data: overdueActionsData } = useQuery<{ count: number }>({
     queryKey: ["/api/incidents/overdue-actions-count"],
@@ -3846,6 +3848,7 @@ function IncidentsListView() {
                   setRegisterType(type);
                   setSearchQuery("");
                   setStatusFilter("all");
+                  setRiddorFilter(false);
                   setMetricDialog(null);
                   setView("register");
                 }}
@@ -4192,6 +4195,18 @@ function IncidentsListView() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant={riddorFilter ? "default" : "outline"}
+                  size="sm"
+                  className={`h-9 gap-1.5 ${riddorFilter ? "bg-red-600 hover:bg-red-700 text-white border-red-600" : "text-muted-foreground"}`}
+                  onClick={() => setRiddorFilter(!riddorFilter)}
+                  data-testid="toggle-riddor-filter"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  RIDDOR
+                  {riddorFilter && <X className="h-3.5 w-3.5 ml-0.5" />}
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -4295,7 +4310,7 @@ function IncidentsListView() {
               <div className="flex flex-col items-center justify-center py-16">
                 {(() => {
                   const EmptyIcon = activeConfig.icon;
-                  const isFiltered = registerType === "incident" && (searchQuery || statusFilter !== "all" || (selectedSiteId && selectedSiteId !== "all"));
+                  const isFiltered = registerType === "incident" && (searchQuery || statusFilter !== "all" || (selectedSiteId && selectedSiteId !== "all") || riddorFilter);
                   if (registerType === "near_miss") {
                     return (
                       <>
@@ -4337,7 +4352,7 @@ function IncidentsListView() {
                       </div>
                       <h3 className="mt-4 text-lg font-medium">No incidents found</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {isFiltered ? "Try adjusting your filters" : "No incidents have been reported yet"}
+                        {riddorFilter ? "No RIDDOR-reportable incidents match the current filters" : isFiltered ? "Try adjusting your filters" : "No incidents have been reported yet"}
                       </p>
                       {!isFiltered && canReport && (
                         <Button
