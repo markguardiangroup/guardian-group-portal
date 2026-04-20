@@ -1922,50 +1922,71 @@ export default function CompanyDetail() {
                       )}
                     </>
                   ) : (
-                    /* State 3: Standalone company — admin can assign a Group Owner */
+                    /* State 3: Standalone company — admin can assign a Group Owner OR make this company one */
                     isAdmin ? (
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Group Owner</label>
-                        <Select
-                          value="none"
-                          onValueChange={(val) => {
-                            if (val !== "none") setGroupOwnerMutation.mutate(val);
-                          }}
-                          disabled={setGroupOwnerMutation.isPending}
-                        >
-                          <SelectTrigger className="h-9 text-sm" data-testid="select-group-owner">
-                            <SelectValue placeholder="None (standalone)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None (standalone)</SelectItem>
-                            {allCompanies
-                              .filter(c => c.id !== companyId && !c.groupOwnerId)
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(c => (
-                                <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Assign this company to a Group Owner, or link other companies here to make this company a Group Owner.
-                        </p>
-                        {eligibleToAdd.length > 0 && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-2 h-8 text-sm gap-1"
-                            onClick={() => {
-                              setAddMembersSelected(new Set());
-                              setAddMembersSearch("");
-                              setAddMembersDialogOpen(true);
+                      <div className="space-y-4">
+                        {/* Option A: Join an existing group */}
+                        <div className="rounded-lg border p-4 space-y-2.5">
+                          <div>
+                            <p className="text-sm font-medium">Join a group</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Assign this company as a member under an existing Group Owner.
+                            </p>
+                          </div>
+                          <Select
+                            value="none"
+                            onValueChange={(val) => {
+                              if (val !== "none") setGroupOwnerMutation.mutate(val);
                             }}
-                            data-testid="button-add-group-members"
+                            disabled={setGroupOwnerMutation.isPending}
                           >
-                            <Plus className="h-3.5 w-3.5" />
-                            Add Members
-                          </Button>
+                            <SelectTrigger className="h-9 text-sm" data-testid="select-group-owner">
+                              <SelectValue placeholder="Select a Group Owner…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allCompanies
+                                .filter(c => c.id !== companyId && !c.groupOwnerId)
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map(c => (
+                                  <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <div className="flex-1 border-t" />
+                          <span>or</span>
+                          <div className="flex-1 border-t" />
+                        </div>
+
+                        {/* Option B: Become a Group Owner */}
+                        {eligibleToAdd.length > 0 && (
+                          <div className="rounded-lg border p-4 space-y-2.5">
+                            <div>
+                              <p className="text-sm font-medium">Become a Group Owner</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Link other companies under this one to make it a Group Owner.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-sm gap-1"
+                              onClick={() => {
+                                setAddMembersSelected(new Set());
+                                setAddMembersSearch("");
+                                setAddMembersDialogOpen(true);
+                              }}
+                              data-testid="button-add-group-members"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add Members
+                            </Button>
+                          </div>
                         )}
                       </div>
                     ) : null
