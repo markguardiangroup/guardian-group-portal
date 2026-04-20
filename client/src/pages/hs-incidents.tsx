@@ -758,7 +758,7 @@ function ReportIncidentDialog({
     const autoTitle = `${causeLabel} – ${dateStr}`;
     const filledWitnesses = witnessEntries.filter(w => w.name.trim() || w.jobRole.trim() || w.company.trim());
     const witnessesJson = filledWitnesses.length > 0 ? JSON.stringify(filledWitnesses) : "";
-    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson });
+    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson, riddorReportable: false });
   };
 
   return (

@@ -155,6 +155,14 @@ process.on("uncaughtException", (err) => {
 });
 
 (async () => {
+  // Idempotent schema migrations for columns added after initial schema creation.
+  try {
+    await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_notes text`);
+    await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_reference text`);
+  } catch (err) {
+    console.error("Startup migration warning (non-fatal):", err);
+  }
+
   // Seed locked root Toolkit folder templates for all modules (idempotent).
   // Awaited before route registration so templates exist before any request is served.
   // If seeding fails the process exits to prevent serving requests in an invalid state.
