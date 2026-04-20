@@ -1064,7 +1064,10 @@ export async function registerRoutes(
     if (user.role === "client" && user.id) {
       if (!user.companyId) return false;
       const site = await storage.getSite(folder.siteId);
-      if (!site || site.companyId !== user.companyId) return false;
+      if (!site) return false;
+      // Use effective company set (own company + any GO member companies)
+      const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+      if (!effectiveIds.has(site.companyId)) return false;
       if (folder.allocatedClientId === user.id) return true;
       const grants = await storage.getClientUploadFolderAccess(folder.id);
       return grants.some((g) => g.userId === user.id);
@@ -5487,14 +5490,42 @@ export async function registerRoutes(
   // ── Group Owner routes ──────────────────────────────────────────────────────
 
   // GET /api/companies/:companyId/group — list companies that belong to this GO
+  // Admin: unrestricted. Consultant/client: must have access to the GO company itself.
   app.get("/api/companies/:companyId/group", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "admin") return res.status(403).json({ error: "Admins only" });
 
       const company = await storage.getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
+
+      // Access check (mirrors company detail rules)
+      if (user.role !== "admin") {
+        const mySources = user.sources ?? [];
+        if (user.role === "consultant") {
+          if (isProConsultant(user)) {
+            if (!sourcesOverlap(mySources, company.sources ?? [])) {
+              return res.status(403).json({ error: "Access denied" });
+            }
+          } else {
+            const assignments = await storage.getConsultantSites(user.id);
+            const siteCompanyIds = new Set<string>();
+            for (const a of assignments) {
+              const site = await storage.getSite(a.siteId);
+              if (site) siteCompanyIds.add(site.companyId);
+            }
+            if (!siteCompanyIds.has(company.id) || !sourcesOverlap(mySources, company.sources ?? [])) {
+              return res.status(403).json({ error: "Access denied" });
+            }
+          }
+        } else if (user.role === "client") {
+          if (!user.companyId) return res.status(403).json({ error: "Access denied" });
+          const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+          if (!effectiveIds.has(company.id)) return res.status(403).json({ error: "Access denied" });
+        } else {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
 
       const members = await storage.getGroupMembers(req.params.companyId);
       res.json(members);
