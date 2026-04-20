@@ -1765,7 +1765,11 @@ export default function CompanyDetail() {
                     )}
                     <div className="max-h-60 overflow-y-auto divide-y border rounded-md" data-testid="list-eligible-companies">
                       {filteredEligible.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-3">No companies found.</p>
+                        <p className="text-sm text-muted-foreground p-3" data-testid="text-no-eligible-companies">
+                          {eligibleToAdd.length === 0
+                            ? "All eligible companies have already been added to a group."
+                            : "No companies found."}
+                        </p>
                       ) : (
                         filteredEligible.map((c) => {
                           const selected = addMembersSelected.has(c.id);
