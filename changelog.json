@@ -471,6 +471,38 @@
           "category": "feature",
           "createdAt": "2026-04-20T07:57:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "k9g82l51h478",
+          "patch": 5,
+          "message": "User list: new Permissions column shows colour-coded badges per consultant",
+          "category": "feature",
+          "createdAt": "2026-04-20T10:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "l0h93m62i589",
+          "patch": 5,
+          "message": "User list: admin rows show an All badge in the Permissions column",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T10:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "m1i04n73j690",
+          "patch": 5,
+          "message": "User list: Case Advocate badge removed from Role cell; shown only in Permissions column",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T10:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "n2j15o84k701",
+          "patch": 5,
+          "message": "Settings: Your Permissions card moved to top with read-only permission toggles",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T11:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
