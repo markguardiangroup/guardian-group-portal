@@ -986,23 +986,52 @@ export async function registerRoutes(
     // Admins have unrestricted access to all sites
     if (user.role === "admin") return true;
     
-    // Pro consultants can access sites whose parent company shares at least one source
+    // Pro consultants can access sites whose parent company shares at least one source,
+    // OR sites in member companies of a GO they can directly see
     if (isProConsultant(user)) {
       const site = await storage.getSite(siteId);
       if (!site) return false;
       const company = await storage.getCompany(site.companyId);
-      return sourcesOverlap(user.sources ?? [], company?.sources ?? []);
+      if (!company) return false;
+      // Direct access via source overlap
+      if (sourcesOverlap(user.sources ?? [], company.sources ?? [])) return true;
+      // GO member access: if the site's company is a member of a GO that the consultant can see
+      if (company.groupOwnerId) {
+        const goCompany = await storage.getCompany(company.groupOwnerId);
+        if (goCompany && sourcesOverlap(user.sources ?? [], goCompany.sources ?? [])) return true;
+      }
+      return false;
     }
     
     // Standard consultants can only access sites they are assigned to
-    // that also share at least one source via the parent company
+    // (or in GO member companies of a GO they're assigned to)
+    // that also share at least one source via the parent company (or GO)
     if (user.role === "consultant" && user.id) {
-      const assignments = await storage.getConsultantSites(user.id);
-      if (!assignments.some(a => a.siteId === siteId)) return false;
       const site = await storage.getSite(siteId);
       if (!site) return false;
       const company = await storage.getCompany(site.companyId);
-      return sourcesOverlap(user.sources ?? [], company?.sources ?? []);
+      if (!company) return false;
+      const assignments = await storage.getConsultantSites(user.id);
+      const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+      
+      // Case 1: Direct assignment
+      if (assignedSiteIds.has(siteId)) {
+        return sourcesOverlap(user.sources ?? [], company.sources ?? []);
+      }
+      
+      // Case 2: GO member site — consultant is assigned to a site in the GO company
+      if (company.groupOwnerId) {
+        const goCompany = await storage.getCompany(company.groupOwnerId);
+        if (goCompany) {
+          const allSites = await storage.getSitesWithDetails();
+          const goSiteIds = new Set(allSites.filter(s => s.companyId === goCompany.id).map(s => s.id));
+          if ([...assignedSiteIds].some(id => goSiteIds.has(id))) {
+            // Consultant is assigned to the GO — allow access to member site if sources overlap with GO
+            return sourcesOverlap(user.sources ?? [], goCompany.sources ?? []);
+          }
+        }
+      }
+      return false;
     }
     
     // Clients access depends on whether they have site assignments
@@ -9285,6 +9314,7 @@ export async function registerRoutes(
 
       // Standard (non-pro) consultants: only see clients for companies they are assigned to
       // that also share at least one source. They never see other consultants or admins.
+      // GO expansion: also includes clients from member companies of any GO they're assigned to.
       const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
       let allowedClientIds: Set<string> | null = null;
       if (isStandardConsultant) {
@@ -9310,11 +9340,21 @@ export async function registerRoutes(
         allUsers
           .filter(u => u.role === "client" && u.companyId && mySourceCompanyIds.has(u.companyId))
           .forEach(u => allowedClientIds!.add(u.id));
+        // GO expansion: for each source-overlapping company that is a GO, also see clients in member companies
+        for (const cId of mySourceCompanyIds) {
+          const members = await storage.getGroupMembers(cId);
+          for (const m of members) {
+            allUsers
+              .filter(u => u.role === "client" && u.companyId === m.id)
+              .forEach(u => allowedClientIds!.add(u.id));
+          }
+        }
       }
 
       // Apply filters:
       // - Standard consultant: only their assigned clients from source-overlapping companies (no admins, no other consultants)
       // - Pro consultant:     consultants + clients that share at least one source (no admins)
+      //                       + GO expansion: clients from member companies of any GO they can see
       // - Admin:              everyone
       let visibleUsers: typeof allUsers;
       if (isStandardConsultant) {
@@ -9330,7 +9370,13 @@ export async function registerRoutes(
             // See clients whose company shares at least one source
             if (!u.companyId) return false;
             const clientCompany = allCompanies.find(c => c.id === u.companyId);
-            return sourcesOverlap(mySources, clientCompany?.sources ?? []);
+            if (sourcesOverlap(mySources, clientCompany?.sources ?? [])) return true;
+            // GO expansion: if client's company is a GO member of a company the consultant can see
+            if (clientCompany?.groupOwnerId) {
+              const goCompany = allCompanies.find(c => c.id === clientCompany.groupOwnerId);
+              return sourcesOverlap(mySources, goCompany?.sources ?? []);
+            }
+            return false;
           }
           return false;
         });
