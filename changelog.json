@@ -72,7 +72,8 @@
         "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
         "60b6ecca-714c-4dfc-958b-948cec848e75",
         "2997224e-c260-4080-8433-d028faa0bd29",
-        "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e"
+        "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e",
+        "d4d951da-c8a0-4d72-b127-0aa37efeb4ba"
       ],
       "entries": [
         {
@@ -569,6 +570,14 @@
           "message": "Patch version auto-increments on every production deployment",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:26:39.129Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "d4d951da-c8a0-4d72-b127-0aa37efeb4ba",
+          "patch": 5,
+          "message": "Removed Published button; patch bump moved to New Version menu",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:31:22.893Z",
           "createdBy": "user-admin"
         }
       ]

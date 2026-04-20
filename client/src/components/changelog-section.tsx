@@ -33,7 +33,6 @@ import {
   GitBranch,
   FileDown,
   History,
-  Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -97,7 +96,7 @@ export default function ChangelogSection() {
   const [editMessage, setEditMessage] = useState("");
   const [editCategory, setEditCategory] = useState<ChangelogCategory>("bug");
   const [newVersionOpen, setNewVersionOpen] = useState(false);
-  const [newVersionBump, setNewVersionBump] = useState<"minor" | "major">("minor");
+  const [newVersionBump, setNewVersionBump] = useState<"patch" | "minor" | "major">("minor");
   const [newVersionLabel, setNewVersionLabel] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedVersionIds, setSelectedVersionIds] = useState<string[]>([]);
@@ -145,11 +144,9 @@ export default function ChangelogSection() {
     onSuccess: invalidate,
   });
 
-  const [confirmPublishOpen, setConfirmPublishOpen] = useState(false);
-
   const bumpAfterPublishMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/changelog/bump-after-publish"),
-    onSuccess: () => { invalidate(); setConfirmPublishOpen(false); },
+    onSuccess: () => { invalidate(); setNewVersionOpen(false); },
   });
 
   const toggleCard = (id: string) =>
@@ -287,17 +284,6 @@ export default function ChangelogSection() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{version.entries.length} entr{version.entries.length !== 1 ? "ies" : "y"}</span>
                       <span>{format(new Date(version.createdAt), "d MMM yyyy")}</span>
-                      {version.isActive && (
-                        <button
-                          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setConfirmPublishOpen(true); }}
-                          data-testid="button-mark-published"
-                          title="Mark current patch as published to production"
-                        >
-                          <Upload className="h-3.5 w-3.5" />
-                          <span>Published</span>
-                        </button>
-                      )}
                       {!version.isActive && (
                         <button
                           className="text-destructive hover:text-destructive/80 transition-colors"
@@ -524,86 +510,72 @@ export default function ChangelogSection() {
             {changelog && (() => {
               const active = changelog.versions.find((v) => v.id === changelog.activeVersionId);
               if (!active) return null;
+              const patchNext = `v${active.major}.${active.minor}.${String(active.patch + 1).padStart(2, "0")}`;
               const minorNext = `v${active.major}.${active.minor + 1}`;
               const majorNext = `v${active.major + 1}.0`;
               return (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
-                    className={`rounded-lg border-2 p-4 text-left transition-colors ${newVersionBump === "minor" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"}`}
+                    className={`rounded-lg border-2 p-3 text-left transition-colors ${newVersionBump === "patch" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"}`}
+                    onClick={() => setNewVersionBump("patch")}
+                    data-testid="button-bump-patch"
+                  >
+                    <div className="font-mono font-semibold text-base">{patchNext}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Patch bump</div>
+                  </button>
+                  <button
+                    className={`rounded-lg border-2 p-3 text-left transition-colors ${newVersionBump === "minor" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"}`}
                     onClick={() => setNewVersionBump("minor")}
                     data-testid="button-bump-minor"
                   >
-                    <div className="font-mono font-semibold text-lg">{minorNext}</div>
+                    <div className="font-mono font-semibold text-base">{minorNext}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">Minor release</div>
                   </button>
                   <button
-                    className={`rounded-lg border-2 p-4 text-left transition-colors ${newVersionBump === "major" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"}`}
+                    className={`rounded-lg border-2 p-3 text-left transition-colors ${newVersionBump === "major" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"}`}
                     onClick={() => setNewVersionBump("major")}
                     data-testid="button-bump-major"
                   >
-                    <div className="font-mono font-semibold text-lg">{majorNext}</div>
+                    <div className="font-mono font-semibold text-base">{majorNext}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">Major release</div>
                   </button>
                 </div>
               );
             })()}
-            <div className="space-y-1.5">
-              <Label className="text-sm">Label (optional)</Label>
-              <Input
-                placeholder="e.g. Bug fixes & improvements"
-                value={newVersionLabel}
-                onChange={(e) => setNewVersionLabel(e.target.value)}
-                data-testid="input-version-label"
-              />
-            </div>
+            {newVersionBump !== "patch" && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Label (optional)</Label>
+                <Input
+                  placeholder="e.g. Bug fixes & improvements"
+                  value={newVersionLabel}
+                  onChange={(e) => setNewVersionLabel(e.target.value)}
+                  data-testid="input-version-label"
+                />
+              </div>
+            )}
+            {newVersionBump === "patch" && (
+              <p className="text-xs text-muted-foreground">
+                Records the current patch as live and advances the dev counter — same as what happens automatically on deployment.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewVersionOpen(false)}>Cancel</Button>
             <Button
-              onClick={() =>
-                createVersionMutation.mutate({
-                  bump: newVersionBump,
-                  label: newVersionLabel.trim() || undefined,
-                })
-              }
-              disabled={createVersionMutation.isPending}
+              onClick={() => {
+                if (newVersionBump === "patch") {
+                  bumpAfterPublishMutation.mutate();
+                } else {
+                  createVersionMutation.mutate({
+                    bump: newVersionBump,
+                    label: newVersionLabel.trim() || undefined,
+                  });
+                }
+              }}
+              disabled={createVersionMutation.isPending || bumpAfterPublishMutation.isPending}
               data-testid="button-confirm-new-version"
             >
-              Create Version
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Mark as Published Confirmation Dialog */}
-      <Dialog open={confirmPublishOpen} onOpenChange={setConfirmPublishOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              Mark as Published
-            </DialogTitle>
-            <DialogDescription>
-              {changelog && (() => {
-                const active = changelog.versions.find((v) => v.id === changelog.activeVersionId);
-                if (!active) return null;
-                return (
-                  <>
-                    This records that <span className="font-mono font-medium">{formatPatch(active, active.patch)}</span> is now live on production,
-                    then advances the dev version to <span className="font-mono font-medium">{formatPatch(active, active.patch + 1)}</span> so future changes land on the next patch.
-                  </>
-                );
-              })()}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmPublishOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => bumpAfterPublishMutation.mutate()}
-              disabled={bumpAfterPublishMutation.isPending}
-              data-testid="button-confirm-mark-published"
-            >
-              {bumpAfterPublishMutation.isPending ? "Marking…" : "Confirm"}
+              {newVersionBump === "patch" ? "Bump Patch" : "Create Version"}
             </Button>
           </DialogFooter>
         </DialogContent>
