@@ -11177,8 +11177,6 @@ export async function registerRoutes(
       "l-knee-b":"L Knee (Back)","r-knee-b":"R Knee (Back)","l-calf":"L Calf","r-calf":"R Calf","l-foot-b":"L Foot (Back)","r-foot-b":"R Foot (Back)",
     };
 
-    const severityColour: Record<string, string> = { minor: "#22c55e", moderate: "#f59e0b", major: "#ef4444", critical: "#7f1d1d" };
-    const colour = severityColour[incident.severity] || "#374151";
 
     let bodyZones: string[] = [];
     try { if (incident.bodyDiagramMarkers) bodyZones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
@@ -11206,7 +11204,6 @@ export async function registerRoutes(
   .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
   .header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.6}
   .ref-badge{display:inline-block;background:#fff;color:#1e293b;font-weight:700;font-size:13px;padding:4px 12px;border-radius:4px;margin-top:6px}
-  .severity-banner{padding:10px 32px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${colour}}
   .body{padding:24px 32px}
   section{margin-bottom:24px}
   section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px}
@@ -11240,7 +11237,7 @@ export async function registerRoutes(
       <div>Site: <strong>${siteName}</strong></div>
     </div>
   </div>
-  <div class="severity-banner">Severity: ${incident.severity}&nbsp;&nbsp;|&nbsp;&nbsp;Status: ${incident.status.replace(/_/g, " ")}</div>
+  <div style="padding:10px 32px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#475569">Status: ${incident.status.replace(/_/g, " ")}</div>
   <div class="body">
 
     <section>
@@ -11249,7 +11246,6 @@ export async function registerRoutes(
         ${field("Reference", incident.incidentReference)}
         ${field("Incident Date", `${fmt(incident.incidentDate)}${incident.incidentTime ? " at " + incident.incidentTime : ""}`)}
         ${field("Incident Type", incident.incidentType?.replace(/_/g, " "))}
-        ${field("Severity", incident.severity)}
         ${field("Location", incident.locationDetails)}
         ${field("Machinery / Equipment Involved", incident.machineryInvolved)}
       </table>

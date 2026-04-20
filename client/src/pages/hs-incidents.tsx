@@ -782,39 +782,20 @@ function ReportIncidentDialog({
 
             {/* ── Section 1: Incident Overview ── */}
             <FormSection title="Incident Overview">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="incidentType" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Incident Type *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-incident-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {INCIDENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="severity" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Severity *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-severity"><SelectValue placeholder="Select severity" /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="minor">Minor</SelectItem>
-                        <SelectItem value="moderate">Moderate</SelectItem>
-                        <SelectItem value="major">Major</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
+              <FormField control={form.control} name="incidentType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Incident Type *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-incident-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {INCIDENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <div className={`grid gap-4 ${userRole !== "client" ? "grid-cols-2" : "grid-cols-1"}`}>
                 {userRole !== "client" && (
                   <FormField control={form.control} name="entityId" render={({ field }) => (
