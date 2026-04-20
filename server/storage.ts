@@ -465,7 +465,7 @@ export interface IStorage {
   cleanupExpiredFolders(): Promise<number>;
 
   // Testing Task Lists
-  getTestingTaskLists(): Promise<TestingTaskList[]>;
+  getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
   getTestingTaskList(id: string): Promise<TestingTaskList | undefined>;
   createTestingTaskList(list: InsertTestingTaskList): Promise<TestingTaskList>;
   updateTestingTaskList(id: string, updates: Partial<TestingTaskList>): Promise<TestingTaskList | undefined>;
@@ -4289,8 +4289,13 @@ export class MemStorage implements IStorage {
 
   // ─── Testing Task Lists ──────────────────────────────────────────────────────
 
-  async getTestingTaskLists(): Promise<TestingTaskList[]> {
-    return db.select().from(testingTaskListsTable).orderBy(asc(testingTaskListsTable.createdAt));
+  async getTestingTaskLists(includeArchived = false): Promise<TestingTaskList[]> {
+    if (includeArchived) {
+      return db.select().from(testingTaskListsTable).orderBy(asc(testingTaskListsTable.createdAt));
+    }
+    return db.select().from(testingTaskListsTable)
+      .where(eq(testingTaskListsTable.isArchived, false))
+      .orderBy(asc(testingTaskListsTable.createdAt));
   }
 
   async getTestingTaskList(id: string): Promise<TestingTaskList | undefined> {

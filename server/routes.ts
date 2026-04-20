@@ -12859,6 +12859,7 @@ export async function registerRoutes(
       label: z.string().min(1),
       description: z.string().optional(),
     })).optional(),
+    isArchived: z.boolean().optional(),
   });
 
   app.get("/api/testing-task-lists", requireAuth, async (req, res) => {
@@ -12867,7 +12868,8 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const lists = await storage.getTestingTaskLists();
+      const includeArchived = req.query.includeArchived === "true";
+      const lists = await storage.getTestingTaskLists(includeArchived);
       res.json(lists);
     } catch (error) {
       console.error("Error fetching testing task lists:", error);
@@ -12901,12 +12903,13 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const parsed = taskListSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const { title, description, module, tasks } = parsed.data;
+      const { title, description, module, tasks, isArchived } = parsed.data;
       const updatePayload: Record<string, unknown> = {};
       if (title !== undefined) updatePayload.title = title;
       if (description !== undefined) updatePayload.description = description;
       if (module !== undefined) updatePayload.module = module;
       if (tasks !== undefined) updatePayload.tasks = tasks;
+      if (isArchived !== undefined) updatePayload.isArchived = isArchived;
       const list = await storage.updateTestingTaskList(req.params.id, updatePayload as Partial<import("@shared/schema").TestingTaskList>);
       if (!list) return res.status(404).json({ error: "Task list not found" });
       res.json(list);

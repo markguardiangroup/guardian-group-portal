@@ -63,6 +63,8 @@ import {
   UserPlus,
   CheckCircle2,
   Printer,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -1303,9 +1305,20 @@ function TestingTab() {
   const [confirmRemoveAssignmentId, setConfirmRemoveAssignmentId] = useState<string | null>(null);
   const [confirmDeleteListId, setConfirmDeleteListId] = useState<string | null>(null);
   const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivingListId, setArchivingListId] = useState<string | null>(null);
 
   const { data: taskLists = [], refetch: refetchLists } = useQuery<TestingTaskList[]>({
-    queryKey: ["/api/testing-task-lists"],
+    queryKey: ["/api/testing-task-lists", showArchived ? "archived" : "active"],
+    queryFn: async () => {
+      const url = showArchived
+        ? "/api/testing-task-lists?includeArchived=true"
+        : "/api/testing-task-lists";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load task lists");
+      const all: TestingTaskList[] = await res.json();
+      return showArchived ? all.filter(l => l.isArchived) : all;
+    },
   });
 
   const { data: myAssignments = [], refetch: refetchMyAssignments } = useQuery<TestingAssignment[]>({
@@ -1373,6 +1386,20 @@ function TestingTab() {
     }
   };
 
+  const handleArchiveList = async (id: string, archive: boolean) => {
+    setArchivingListId(id);
+    try {
+      await apiRequest("PATCH", `/api/testing-task-lists/${id}`, { isArchived: archive });
+      toast({ title: archive ? "Task list archived" : "Task list restored" });
+      setSelectedListId(null);
+      await refetchLists();
+    } catch {
+      toast({ title: "Error", description: archive ? "Failed to archive task list" : "Failed to restore task list", variant: "destructive" });
+    } finally {
+      setArchivingListId(null);
+    }
+  };
+
   const handleAssign = async () => {
     if (!selectedListId || assignConsultantIds.size === 0) return;
     setAssigningList(true);
@@ -1437,12 +1464,23 @@ function TestingTab() {
         <>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="font-semibold text-foreground">Task Lists</h3>
-              <p className="text-sm text-muted-foreground">Create and manage testing checklists for consultants and admins</p>
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                Task Lists
+                {showArchived && (
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                    <Archive className="h-3 w-3" /> Archived
+                  </span>
+                )}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {showArchived ? "Archived task lists — restore to make them active again" : "Create and manage testing checklists for consultants and admins"}
+              </p>
             </div>
-            <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
-              <Plus className="h-4 w-4 mr-2" /> New Task List
-            </Button>
+            {!showArchived && (
+              <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
+                <Plus className="h-4 w-4 mr-2" /> New Task List
+              </Button>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-[280px_1fr] gap-4 items-start">
@@ -1450,7 +1488,9 @@ function TestingTab() {
             <Card className="overflow-hidden">
               <CardContent className="p-2">
                 {taskLists.length === 0 ? (
-                  <p className="text-sm text-muted-foreground p-4 text-center">No task lists yet.</p>
+                  <p className="text-sm text-muted-foreground p-4 text-center">
+                    {showArchived ? "No archived task lists." : "No task lists yet."}
+                  </p>
                 ) : (
                   <div className="space-y-3 p-1">
                     {(() => {
@@ -1486,6 +1526,19 @@ function TestingTab() {
                   </div>
                 )}
               </CardContent>
+              <div className="border-t px-3 py-2">
+                <button
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                  onClick={() => { setShowArchived(v => !v); setSelectedListId(null); }}
+                  data-testid="button-toggle-archived"
+                >
+                  {showArchived ? (
+                    <><ArchiveRestore className="h-3.5 w-3.5" /> Show active lists</>
+                  ) : (
+                    <><Archive className="h-3.5 w-3.5" /> View archived lists</>
+                  )}
+                </button>
+              </div>
             </Card>
 
             {/* Right: Selected list detail */}
@@ -1508,6 +1561,11 @@ function TestingTab() {
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${MODULE_COLORS[selectedList.module] ?? MODULE_COLORS.general}`}>
                             {MODULE_LABELS[selectedList.module] ?? selectedList.module}
                           </span>
+                          {selectedList.isArchived && (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                              <Archive className="h-3 w-3" /> Archived
+                            </span>
+                          )}
                           <span className="text-xs text-muted-foreground">{selectedList.tasks.length} task{selectedList.tasks.length !== 1 ? "s" : ""}</span>
                         </div>
                         {selectedList.description && (
@@ -1518,8 +1576,24 @@ function TestingTab() {
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => printTaskList(selectedList)} data-testid={`button-print-tasklist-${selectedList.id}`} title="Print">
                           <Printer className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingList(selectedList); setShowListForm(false); }} data-testid={`button-edit-tasklist-${selectedList.id}`} title="Edit">
-                          <Pencil className="h-4 w-4" />
+                        {!selectedList.isArchived && (
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingList(selectedList); setShowListForm(false); }} data-testid={`button-edit-tasklist-${selectedList.id}`} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          size="icon" variant="ghost" className="h-8 w-8"
+                          disabled={archivingListId === selectedList.id}
+                          onClick={() => handleArchiveList(selectedList.id, !selectedList.isArchived)}
+                          data-testid={`button-archive-tasklist-${selectedList.id}`}
+                          title={selectedList.isArchived ? "Restore" : "Archive"}
+                        >
+                          {archivingListId === selectedList.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : selectedList.isArchived
+                              ? <ArchiveRestore className="h-4 w-4" />
+                              : <Archive className="h-4 w-4" />
+                          }
                         </Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" disabled={deletingListId === selectedList.id}
                           onClick={() => setConfirmDeleteListId(selectedList.id)} data-testid={`button-delete-tasklist-${selectedList.id}`} title="Delete">
@@ -1540,7 +1614,7 @@ function TestingTab() {
                           {listAssignments.length === 0 ? "No one assigned yet" : `${listAssignments.length} user${listAssignments.length !== 1 ? "s" : ""} assigned`}
                         </CardDescription>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0} data-testid="button-assign-consultant">
+                      <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0 || selectedList.isArchived} data-testid="button-assign-consultant">
                         <UserPlus className="h-4 w-4 mr-2" /> Assign User
                       </Button>
                     </div>

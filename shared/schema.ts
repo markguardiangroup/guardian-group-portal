@@ -1625,6 +1625,7 @@ export const testingTaskLists = pgTable("testing_task_lists", {
   description: text("description"),
   module: text("module").$type<TestingModule>().notNull().default("general"),
   tasks: jsonb("tasks").notNull().$type<TaskItem[]>().default(sql`'[]'::jsonb`),
+  isArchived: boolean("is_archived").notNull().default(false),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

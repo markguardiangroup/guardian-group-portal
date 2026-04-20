@@ -46,7 +46,8 @@
         "c9e04bf72d13",
         "d2f15e84a701",
         "e3a26f95b812",
-        "f4b37g06c923"
+        "f4b37g06c923",
+        "g5c48h17d034"
       ],
       "entries": [
         {
@@ -423,6 +424,14 @@
           "message": "Improved: Testing page redesigned with side-by-side panel layout for easier use",
           "category": "enhancement",
           "createdAt": "2026-04-20T07:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "g5c48h17d034",
+          "patch": 4,
+          "message": "Testing: task lists can now be archived; archived view accessible from left panel",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:45:00.000Z",
           "createdBy": "agent"
         }
       ]
