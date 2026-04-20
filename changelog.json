@@ -575,27 +575,11 @@
           "createdBy": "user-admin"
         },
         {
-          "id": "d4d951da-c8a0-4d72-b127-0aa37efeb4ba",
-          "patch": 5,
-          "message": "Removed Published button; patch bump moved to New Version menu",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:31:22.893Z",
-          "createdBy": "user-admin"
-        },
-        {
           "id": "3a3a8c29-aa97-49eb-a04c-6193b383ca5d",
           "patch": 5,
           "message": "Patch headings now show the date of the latest entry in that patch",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:35:35.857Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "60062e3c-d0c5-4c84-b19e-fde12146a63b",
-          "patch": 5,
-          "message": "Patch date hidden on current unpublished patch",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:38:52.854Z",
           "createdBy": "user-admin"
         }
       ]
