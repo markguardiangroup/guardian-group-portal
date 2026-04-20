@@ -1011,8 +1011,17 @@ export async function registerRoutes(
       const site = await storage.getSite(siteId);
       if (!site) return false;
       
-      // First check: site must be in the client's company
-      if (site.companyId !== user.companyId) return false;
+      // Determine the effective company set for this client.
+      // If the client belongs to a GO company, they can see all member companies' sites.
+      const effectiveCompanyIds = new Set<string>([user.companyId]);
+      const siteCompany = await storage.getCompany(site.companyId);
+      // Check if the site's company is a member of the client's company (i.e., client is a GO user)
+      if (siteCompany && siteCompany.groupOwnerId === user.companyId) {
+        effectiveCompanyIds.add(site.companyId);
+      }
+
+      // Site must be in the client's effective company set
+      if (!effectiveCompanyIds.has(site.companyId)) return false;
       
       // Client can only access sites they are explicitly assigned to
       const clientSites = await storage.getClientSites(user.id);
@@ -5400,8 +5409,8 @@ export async function registerRoutes(
 
   // ── Group Owner routes ──────────────────────────────────────────────────────
 
-  // GET /api/companies/:companyId/group-members — list companies that belong to this GO
-  app.get("/api/companies/:companyId/group-members", requireAuth, async (req, res) => {
+  // GET /api/companies/:companyId/group — list companies that belong to this GO
+  app.get("/api/companies/:companyId/group", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });

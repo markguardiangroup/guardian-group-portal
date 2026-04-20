@@ -4545,8 +4545,15 @@ export class MemStorage implements IStorage {
   }
 
   async setGroupOwner(companyId: string, groupOwnerId: string | null): Promise<Company | undefined> {
+    if (groupOwnerId === null) {
+      const [updated] = await db.update(companiesTable)
+        .set({ groupOwnerId: sql`NULL` })
+        .where(eq(companiesTable.id, companyId))
+        .returning();
+      return updated;
+    }
     const [updated] = await db.update(companiesTable)
-      .set({ groupOwnerId: groupOwnerId === null ? sql`NULL` : groupOwnerId } as any)
+      .set({ groupOwnerId })
       .where(eq(companiesTable.id, companyId))
       .returning();
     return updated;

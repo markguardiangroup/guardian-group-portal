@@ -823,7 +823,7 @@ export default function CompanyDetail() {
     enabled: isAdmin,
   });
 
-  // Mutation to set/unset a group owner
+  // Mutation to set/unset the group owner of the current company
   const setGroupOwnerMutation = useMutation({
     mutationFn: async (groupOwnerId: string | null) => {
       return await apiRequest("PATCH", `/api/companies/${companyId}/group-owner`, { groupOwnerId });
@@ -835,6 +835,23 @@ export default function CompanyDetail() {
     },
     onError: async (err: any) => {
       let msg = "Failed to update Group Owner";
+      try { const d = await err.response?.json(); if (d?.error) msg = d.error; } catch {}
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  // Mutation to add a company as a member of the current GO (sets the member's groupOwnerId to this company)
+  const addGroupMemberMutation = useMutation({
+    mutationFn: async (memberCompanyId: string) => {
+      return await apiRequest("PATCH", `/api/companies/${memberCompanyId}/group-owner`, { groupOwnerId: companyId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({ title: "Company added to group" });
+    },
+    onError: async (err: any) => {
+      let msg = "Failed to add company to group";
       try { const d = await err.response?.json(); if (d?.error) msg = d.error; } catch {}
       toast({ title: msg, variant: "destructive" });
     },
@@ -1613,48 +1630,136 @@ export default function CompanyDetail() {
           </div>
 
           {/* Linked Companies panel — shown when this company is a Group Owner */}
-          {company.isGroupOwner && company.groupMembers && company.groupMembers.length > 0 && (
-            <Card className="mt-6" data-testid="card-group-members">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  Linked Companies
-                  <Badge variant="secondary" className="ml-1">{company.groupMembers.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="divide-y">
-                  {company.groupMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between py-2 cursor-pointer hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
-                      onClick={() => navigate(`/companies/${member.id}`)}
-                      data-testid={`group-member-${member.id}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-                          <Building2 className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{member.name}</p>
-                          {member.companyNumber && (
-                            <p className="text-xs text-muted-foreground">No: {member.companyNumber}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Badge
-                        variant={member.status === "active" ? "default" : "secondary"}
-                        className="text-xs"
-                        data-testid={`badge-member-status-${member.id}`}
+          {(company.isGroupOwner || (company.groupMembers && company.groupMembers.length > 0) || isAdmin) && (() => {
+            const members = company.groupMembers ?? [];
+
+            // Companies eligible to be added: those with no groupOwnerId and not already a member and not self
+            const eligibleToAdd = allCompanies.filter(
+              (c) => c.id !== companyId && !c.groupOwnerId && !members.some((m) => m.id === c.id) && !c.isGroupOwner
+            );
+
+            // Inherited sources: union of all member company sources
+            const inheritedSources = Array.from(
+              new Set(members.flatMap((m) => m.sources ?? []))
+            ).sort();
+
+            // Only show panel if this is a GO or admin (so admin can start building a GO)
+            if (!isAdmin && members.length === 0) return null;
+
+            return (
+              <Card className="mt-6" data-testid="card-group-members">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      Linked Companies
+                      {members.length > 0 && (
+                        <Badge variant="secondary" className="ml-1">{members.length}</Badge>
+                      )}
+                    </CardTitle>
+                    {isAdmin && eligibleToAdd.length > 0 && (
+                      <Select
+                        onValueChange={(val) => {
+                          if (val) addGroupMemberMutation.mutate(val);
+                        }}
+                        value=""
+                        disabled={addGroupMemberMutation.isPending}
                       >
-                        {member.status}
-                      </Badge>
+                        <SelectTrigger className="h-8 w-44 text-sm" data-testid="select-add-group-member">
+                          <Plus className="h-3 w-3 mr-1" />
+                          <SelectValue placeholder="Add Company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligibleToAdd.sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+                            <SelectItem key={c.id} value={c.id} data-testid={`add-member-option-${c.id}`}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {members.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No companies linked yet. Use "Add Company" to link a company to this Group Owner.</p>
+                  ) : (
+                    <div className="divide-y">
+                      {members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between py-2"
+                          data-testid={`group-member-${member.id}`}
+                        >
+                          <div
+                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
+                            onClick={() => navigate(`/companies/${member.id}`)}
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                              <Building2 className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{member.name}</p>
+                              {member.referenceNumber && (
+                                <p className="text-xs text-muted-foreground font-mono">{member.referenceNumber}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge
+                              variant={member.status === "active" ? "default" : "secondary"}
+                              className="text-xs"
+                              data-testid={`badge-member-status-${member.id}`}
+                            >
+                              {member.status}
+                            </Badge>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  // Unlink: navigate to member company and set its GO to null
+                                  apiRequest("PATCH", `/api/companies/${member.id}/group-owner`, { groupOwnerId: null })
+                                    .then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+                                      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+                                      toast({ title: `${member.name} unlinked from Group Owner` });
+                                    })
+                                    .catch(() => toast({ title: "Failed to unlink company", variant: "destructive" }));
+                                }}
+                                disabled={setGroupOwnerMutation.isPending}
+                                data-testid={`button-remove-member-${member.id}`}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  )}
+
+                  {/* Inherited sources: computed union of all member sources */}
+                  {inheritedSources.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                        <Shield className="h-3.5 w-3.5" />
+                        Sources (inherited — union of all linked companies)
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {inheritedSources.map((code) => (
+                          <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-inherited-source-${code}`}>
+                            {code}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Module Document Summary */}
           {companyStats && (

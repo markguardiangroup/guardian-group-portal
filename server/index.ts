@@ -161,6 +161,16 @@ process.on("uncaughtException", (err) => {
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_reference text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS inv_amendments text`);
     await pool.query(`ALTER TABLE companies ADD COLUMN IF NOT EXISTS group_owner_id varchar`);
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'companies_group_owner_id_fk'
+        ) THEN
+          ALTER TABLE companies ADD CONSTRAINT companies_group_owner_id_fk
+            FOREIGN KEY (group_owner_id) REFERENCES companies(id) ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }
