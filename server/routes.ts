@@ -11837,6 +11837,15 @@ export async function registerRoutes(
       </table>
     </section>
 
+    ${incident.invAmendments ? `
+    <section>
+      <h2>Amendments / Corrections to Initial Report</h2>
+      <table>
+        ${field("Amendments / Corrections", textVal(incident.invAmendments))}
+      </table>
+    </section>
+    ` : ""}
+
   </div>
   <div class="footer">
     <span>Follow-up investigation report. Generated ${new Date().toLocaleString("en-GB")}.</span>

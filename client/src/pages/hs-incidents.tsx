@@ -1356,6 +1356,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   const [primaryCause, setPrimaryCause] = useState("");
   const [invRootCause, setInvRootCause] = useState("");
   const [conclusion, setConclusion] = useState("");
+  const [invAmendments, setInvAmendments] = useState("");
   const [invRiddorReportable, setInvRiddorReportable] = useState(false);
   const [invRiddorResponsiblePerson, setInvRiddorResponsiblePerson] = useState("");
   const [invRiddorNotes, setInvRiddorNotes] = useState("");
@@ -1411,6 +1412,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setPrimaryCause(incident.invPrimaryCause ?? "");
     setInvRootCause(incident.invRootCause ?? "");
     setConclusion(incident.invConclusion ?? "");
+    setInvAmendments(incident.invAmendments ?? "");
     setInvRiddorReportable(incident.riddorReportable ?? false);
     setInvRiddorResponsiblePerson(incident.riddorResponsiblePerson ?? "");
     setInvRiddorNotes(incident.riddorNotes ?? "");
@@ -1445,6 +1447,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
       invPrimaryCause: primaryCause,
       invRootCause: invRootCause,
       invConclusion: conclusion,
+      invAmendments: invAmendments,
       invCompletedAt: new Date().toISOString(),
       riddorReportable: invRiddorReportable,
       riddorResponsiblePerson: invRiddorResponsiblePerson,
@@ -1636,6 +1639,20 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
             <p className="text-sm font-medium">Conclusion from investigation, recommendations and actions</p>
             <p className="text-xs text-muted-foreground">(Actions should be listed in the actions register)</p>
             <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" data-testid="textarea-inv-conclusion" />
+          </div>
+
+          {/* ── Amendments / Corrections ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Amendments / Corrections to Initial Report</h3>
+            <p className="text-sm text-muted-foreground">Record any corrections or additional information relating to the original incident report (e.g. a field was completed in error). The original report is preserved as submitted.</p>
+            <Textarea
+              value={invAmendments}
+              onChange={e => setInvAmendments(e.target.value)}
+              rows={4}
+              className="resize-none"
+              placeholder="e.g. The 'plant & equipment' field was completed in error — no equipment was involved."
+              data-testid="textarea-inv-amendments"
+            />
           </div>
 
           {/* ── RIDDOR ── */}
@@ -2638,6 +2655,14 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>
+
+                  {/* ─ Amendments / Corrections ─ */}
+                  {incident.invAmendments && (
+                    <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
+                      <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" data-testid="text-inv-amendments">{incident.invAmendments}</p>
+                    </div>
+                  )}
 
                 </CardContent>
               )}
