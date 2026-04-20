@@ -45,7 +45,8 @@
         "b7f91d03c852",
         "c9e04bf72d13",
         "d2f15e84a701",
-        "e3a26f95b812"
+        "e3a26f95b812",
+        "f4b37g06c923"
       ],
       "entries": [
         {
@@ -414,6 +415,14 @@
           "message": "Case Number can be edited from the case detail view; duplicates are blocked",
           "category": "feature",
           "createdAt": "2026-04-19T17:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f4b37g06c923",
+          "patch": 4,
+          "message": "Improved: Testing page redesigned with side-by-side panel layout for easier use",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T07:15:00.000Z",
           "createdBy": "agent"
         }
       ]

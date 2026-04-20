@@ -1292,7 +1292,6 @@ function TestingTab() {
 
   const [showListForm, setShowListForm] = useState(false);
   const [editingList, setEditingList] = useState<TestingTaskList | null>(null);
-  const [viewingList, setViewingList] = useState<TestingTaskList | null>(null);
   const [savingList, setSavingList] = useState(false);
   const [deletingListId, setDeletingListId] = useState<string | null>(null);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
@@ -1433,139 +1432,186 @@ function TestingTab() {
 
   return (
     <div className="space-y-6">
-      {/* Admin: Task List Management */}
+      {/* Admin: Two-panel layout */}
       {isAdmin && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <CardTitle>Task Lists</CardTitle>
-                <CardDescription>Create and manage testing checklists for consultants and admins</CardDescription>
-              </div>
-              {!showListForm && (
-                <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
-                  <Plus className="h-4 w-4 mr-2" /> New Task List
-                </Button>
-              )}
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-foreground">Task Lists</h3>
+              <p className="text-sm text-muted-foreground">Create and manage testing checklists for consultants and admins</p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(showListForm || editingList) && (
-              <div className="rounded-lg border p-4 bg-muted/20">
-                <h3 className="text-sm font-semibold mb-4">{editingList ? "Edit Task List" : "New Task List"}</h3>
-                <TaskListForm
-                  initial={editingList ?? undefined}
-                  onSave={handleSaveList}
-                  onCancel={() => { setShowListForm(false); setEditingList(null); }}
-                  saving={savingList}
-                />
-              </div>
-            )}
+            <Button size="sm" onClick={() => { setEditingList(null); setShowListForm(true); }} data-testid="button-new-tasklist">
+              <Plus className="h-4 w-4 mr-2" /> New Task List
+            </Button>
+          </div>
 
-            {taskLists.length === 0 && !showListForm && (
-              <p className="text-sm text-muted-foreground py-4 text-center">No task lists yet. Create one above.</p>
-            )}
-            {(() => {
-              const grouped = MODULE_ORDER.reduce<Record<string, TestingTaskList[]>>((acc, mod) => {
-                acc[mod] = taskLists.filter(l => l.module === mod);
-                return acc;
-              }, {} as Record<string, TestingTaskList[]>);
-              return MODULE_ORDER.filter(mod => grouped[mod].length > 0).map(mod => (
-                <div key={mod} className="space-y-2">
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${MODULE_COLORS[mod] ?? MODULE_COLORS.general}`}>
-                      {MODULE_LABELS[mod]}
-                    </span>
-                    <span className="text-sm font-semibold text-foreground">{MODULE_FULL_LABELS[mod] ?? mod}</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  {grouped[mod].map(list => (
-                    <div
-                      key={list.id}
-                      className={`rounded-lg border p-4 cursor-pointer transition-colors ${selectedListId === list.id ? "border-primary bg-primary/5" : "hover:bg-muted/30"}`}
-                      onClick={() => setSelectedListId(selectedListId === list.id ? null : list.id)}
-                      data-testid={`tasklist-card-${list.id}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <ClipboardList className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium">{list.title}</span>
-                            <span className="text-xs text-muted-foreground">{list.tasks.length} task{list.tasks.length !== 1 ? "s" : ""}</span>
+          <div className="grid lg:grid-cols-[280px_1fr] gap-4 items-start">
+            {/* Left: Task list browser */}
+            <Card className="overflow-hidden">
+              <CardContent className="p-2">
+                {taskLists.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No task lists yet.</p>
+                ) : (
+                  <div className="space-y-3 p-1">
+                    {(() => {
+                      const grouped = MODULE_ORDER.reduce<Record<string, TestingTaskList[]>>((acc, mod) => {
+                        acc[mod] = taskLists.filter(l => l.module === mod);
+                        return acc;
+                      }, {} as Record<string, TestingTaskList[]>);
+                      return MODULE_ORDER.filter(mod => grouped[mod].length > 0).map(mod => (
+                        <div key={mod} className="space-y-0.5">
+                          <div className="flex items-center gap-2 px-2 py-1">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${MODULE_COLORS[mod] ?? MODULE_COLORS.general}`}>
+                              {MODULE_LABELS[mod]}
+                            </span>
+                            <div className="flex-1 h-px bg-border" />
                           </div>
-                          {list.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{list.description}</p>}
+                          {grouped[mod].map(list => (
+                            <button
+                              key={list.id}
+                              className={`w-full text-left rounded-md px-3 py-2.5 transition-colors ${selectedListId === list.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50 border border-transparent"}`}
+                              onClick={() => setSelectedListId(selectedListId === list.id ? null : list.id)}
+                              data-testid={`tasklist-card-${list.id}`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-sm leading-snug truncate">{list.title}</span>
+                                <span className="text-xs text-muted-foreground shrink-0">{list.tasks.length}</span>
+                              </div>
+                              {list.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{list.description}</p>}
+                            </button>
+                          ))}
                         </div>
-                        <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => printTaskList(list)} data-testid={`button-print-tasklist-${list.id}`} title="Print task list">
-                            <Printer className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setViewingList(list)} data-testid={`button-view-tasklist-${list.id}`}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingList(list); setShowListForm(false); }} data-testid={`button-edit-tasklist-${list.id}`}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" disabled={deletingListId === list.id}
-                            onClick={() => setConfirmDeleteListId(list.id)} data-testid={`button-delete-tasklist-${list.id}`}>
-                            {deletingListId === list.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ));
-            })()}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Admin: Assignment Management (shown when a list is selected) */}
-      {isAdmin && selectedList && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <CardTitle>Assignments — {selectedList.title}</CardTitle>
-                <CardDescription>Assign this checklist to one or more users</CardDescription>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0} data-testid="button-assign-consultant">
-                <UserPlus className="h-4 w-4 mr-2" /> Assign User
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {listAssignments.length === 0 && (
-              <p className="text-sm text-muted-foreground py-2">No users assigned yet.</p>
-            )}
-            <div className="space-y-2">
-              {listAssignments.map((a: TestingAssignment) => {
-                const total = selectedList.tasks.length;
-                const done = (a.completedTaskIds ?? []).length;
-                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                return (
-                  <div key={a.id} className="flex items-center gap-3 rounded-md border p-3" data-testid={`assignment-row-${a.id}`}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{a.assignedToUser?.fullName ?? a.assignedTo}</p>
-                      <p className="text-xs text-muted-foreground">{a.assignedToUser?.email}</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-                      <span>{done} / {total}</span>
-                      <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span>{pct}%</span>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" disabled={deletingAssignmentId === a.id}
-                      onClick={() => setConfirmRemoveAssignmentId(a.id)} data-testid={`button-remove-assignment-${a.id}`}>
-                      {deletingAssignmentId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
-                    </Button>
+                      ));
+                    })()}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right: Selected list detail */}
+            {!selectedList ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <ClipboardList className="h-8 w-8 mb-3 opacity-40" />
+                  <p className="text-sm">Select a task list on the left to manage assignments</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Header card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-base">{selectedList.title}</CardTitle>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${MODULE_COLORS[selectedList.module] ?? MODULE_COLORS.general}`}>
+                            {MODULE_LABELS[selectedList.module] ?? selectedList.module}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{selectedList.tasks.length} task{selectedList.tasks.length !== 1 ? "s" : ""}</span>
+                        </div>
+                        {selectedList.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{selectedList.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => printTaskList(selectedList)} data-testid={`button-print-tasklist-${selectedList.id}`} title="Print">
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingList(selectedList); setShowListForm(false); }} data-testid={`button-edit-tasklist-${selectedList.id}`} title="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" disabled={deletingListId === selectedList.id}
+                          onClick={() => setConfirmDeleteListId(selectedList.id)} data-testid={`button-delete-tasklist-${selectedList.id}`} title="Delete">
+                          {deletingListId === selectedList.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Assignments card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-base">Assigned Users</CardTitle>
+                        <CardDescription className="text-xs mt-0.5">
+                          {listAssignments.length === 0 ? "No one assigned yet" : `${listAssignments.length} user${listAssignments.length !== 1 ? "s" : ""} assigned`}
+                        </CardDescription>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => setShowAssignDialog(true)} disabled={availableToAssign.length === 0} data-testid="button-assign-consultant">
+                        <UserPlus className="h-4 w-4 mr-2" /> Assign User
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {listAssignments.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">Click "Assign User" above to add someone to this checklist.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {listAssignments.map((a: TestingAssignment) => {
+                          const total = selectedList.tasks.length;
+                          const done = (a.completedTaskIds ?? []).length;
+                          const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                          const isComplete = total > 0 && done === total;
+                          return (
+                            <div key={a.id} className="flex items-center gap-3 rounded-md border p-3" data-testid={`assignment-row-${a.id}`}>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-medium">{a.assignedToUser?.fullName ?? a.assignedTo}</p>
+                                  {isComplete && (
+                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                      <CheckCircle2 className="h-3 w-3" /> Complete
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <Progress value={pct} className="flex-1 h-1.5" />
+                                  <span className="text-xs text-muted-foreground shrink-0">{done}/{total}</span>
+                                </div>
+                              </div>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" disabled={deletingAssignmentId === a.id}
+                                onClick={() => setConfirmRemoveAssignmentId(a.id)} data-testid={`button-remove-assignment-${a.id}`}>
+                                {deletingAssignmentId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Tasks preview card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Tasks <span className="font-normal text-muted-foreground text-sm">({selectedList.tasks.length})</span></CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedList.tasks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No tasks in this list yet.</p>
+                    ) : (
+                      <ol className="space-y-2">
+                        {selectedList.tasks.map((task, idx) => (
+                          <li key={task.id} className="flex items-start gap-3 rounded-md border p-3 bg-muted/20" data-testid={`sheet-task-item-${task.id}`}>
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground mt-0.5">
+                              {idx + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium leading-snug">{task.label}</p>
+                              {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                            </div>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Consultant: My Assigned Task Lists */}
@@ -1672,92 +1718,23 @@ function TestingTab() {
         </Card>
       )}
 
-      {/* View Task List Sheet */}
-      <Sheet open={!!viewingList} onOpenChange={(open) => !open && setViewingList(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-testid="sheet-view-tasklist">
-          {viewingList && (
-            <>
-              <SheetHeader className="mb-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <SheetTitle className="text-xl">{viewingList.title}</SheetTitle>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${MODULE_COLORS[viewingList.module] ?? MODULE_COLORS.general}`}>
-                    {MODULE_LABELS[viewingList.module] ?? viewingList.module}
-                  </span>
-                </div>
-                {viewingList.description && (
-                  <SheetDescription className="text-sm mt-1">{viewingList.description}</SheetDescription>
-                )}
-              </SheetHeader>
-
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mb-5"
-                  data-testid="button-sheet-edit-tasklist"
-                  onClick={() => {
-                    const list = viewingList;
-                    setViewingList(null);
-                    setEditingList(list);
-                    setShowListForm(false);
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Task List
-                </Button>
-              )}
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Tasks <span className="ml-1 text-muted-foreground font-normal">({viewingList.tasks.length})</span>
-                  </h3>
-                </div>
-
-                {viewingList.tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No tasks in this list yet.</p>
-                ) : (
-                  <ol className="space-y-2">
-                    {viewingList.tasks.map((task, idx) => (
-                      <li key={task.id} className="flex items-start gap-3 rounded-lg border p-3 bg-muted/20" data-testid={`sheet-task-item-${task.id}`}>
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                          {idx + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-snug">{task.label}</p>
-                          {task.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-
-                {/* Assignment progress summary — shown when there are assignments for this list */}
-                {selectedListId === viewingList.id && listAssignments.length > 0 && (
-                  <div className="pt-4 border-t space-y-3">
-                    <h3 className="text-sm font-semibold text-foreground">User Progress</h3>
-                    {listAssignments.map((a: TestingAssignment) => {
-                      const total = viewingList.tasks.length;
-                      const done = (a.completedTaskIds ?? []).length;
-                      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                      return (
-                        <div key={a.id} className="space-y-1" data-testid={`sheet-assignment-progress-${a.id}`}>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{a.assignedToUser?.fullName ?? a.assignedTo}</span>
-                            <span className="text-muted-foreground text-xs">{done} / {total}</span>
-                          </div>
-                          <Progress value={pct} className="h-1.5" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      {/* Task List Form Dialog */}
+      <Dialog open={showListForm || !!editingList} onOpenChange={(open) => { if (!open) { setShowListForm(false); setEditingList(null); } }}>
+        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto" data-testid="dialog-tasklist-form">
+          <DialogHeader>
+            <DialogTitle>{editingList ? "Edit Task List" : "New Task List"}</DialogTitle>
+            <DialogDescription>
+              {editingList ? "Update the details and tasks for this checklist." : "Create a new testing checklist to assign to consultants and admins."}
+            </DialogDescription>
+          </DialogHeader>
+          <TaskListForm
+            initial={editingList ?? undefined}
+            onSave={handleSaveList}
+            onCancel={() => { setShowListForm(false); setEditingList(null); }}
+            saving={savingList}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Delete Task List Dialog */}
       <AlertDialog open={!!confirmDeleteListId} onOpenChange={(open) => !open && setConfirmDeleteListId(null)}>
