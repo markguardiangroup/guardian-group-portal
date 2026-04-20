@@ -10486,6 +10486,8 @@ export async function registerRoutes(
       }
       const permissionsSchema = z.object({
         caseAdvocate: z.boolean(),
+        trainingLibrary: z.boolean().optional(),
+        templateLibrary: z.boolean().optional(),
       });
       const parsed = permissionsSchema.safeParse(req.body);
       if (!parsed.success) {
