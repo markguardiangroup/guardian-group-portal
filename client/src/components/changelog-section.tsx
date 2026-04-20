@@ -310,11 +310,17 @@ export default function ChangelogSection() {
                   {patchNums.length === 0 && (
                     <p className="text-sm text-muted-foreground italic py-2">No entries yet.</p>
                   )}
-                  {patchNums.map((patchNum) => (
+                  {patchNums.map((patchNum) => {
+                    const patchEntries = patchMap.get(patchNum)!;
+                    const latestDate = new Date(Math.max(...patchEntries.map((e) => new Date(e.createdAt).getTime())));
+                    return (
                     <div key={patchNum}>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs font-mono font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
                           {formatPatch(version, patchNum)}
+                        </span>
+                        <span className="text-xs text-muted-foreground/60">
+                          {format(latestDate, "d MMM yyyy")}
                         </span>
                         <div className="flex-1 border-t border-muted" />
                       </div>
@@ -402,7 +408,7 @@ export default function ChangelogSection() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  ); })}
 
                   {/* Add entry form */}
                   {addEntryVersionId === version.id ? (
