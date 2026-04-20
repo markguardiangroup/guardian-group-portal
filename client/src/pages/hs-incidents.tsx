@@ -2435,6 +2435,11 @@ function IncidentDetailView({ id }: { id: string }) {
                     <CardDescription>Record findings from the post-incident investigation</CardDescription>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {incident.riddorReportable && (
+                      <Badge variant="destructive" className="text-xs" data-testid="badge-riddor-inv-header">
+                        RIDDOR
+                      </Badge>
+                    )}
                     {/* No data yet: show Complete button */}
                     {isPrivileged && !incident.invCompletedAt && incident.invFirstAidGiven === null && !incident.invContributingFactors && !incident.invConclusion && (
                       <Button size="sm" onClick={() => setShowFollowUpDialog(true)} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-open-follow-up">
@@ -3538,10 +3543,16 @@ function IncidentCard({ incident, sites }: { incident: Incident; sites: any[] })
           </div>
         </div>
 
-        {(incident.injuriesReported || incident.riddorReportable) && (
+        {(incident.injuriesReported || incident.riddorReportable || incident.invCompletedAt) && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {incident.injuriesReported && <Badge variant="destructive" className="text-xs">Injuries Reported</Badge>}
-            {incident.riddorReportable && <Badge variant="destructive" className="text-xs">RIDDOR Reportable</Badge>}
+            {incident.injuriesReported && <Badge variant="destructive" className="text-xs" data-testid={`badge-injuries-${incident.id}`}>Injuries Reported</Badge>}
+            {incident.invCompletedAt && (
+              <Badge variant="outline" className="text-xs text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40" data-testid={`badge-inv-complete-${incident.id}`}>
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Investigation Complete
+              </Badge>
+            )}
+            {incident.riddorReportable && <Badge variant="destructive" className="text-xs" data-testid={`badge-riddor-${incident.id}`}>RIDDOR</Badge>}
           </div>
         )}
 
