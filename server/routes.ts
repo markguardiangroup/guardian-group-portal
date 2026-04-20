@@ -11333,13 +11333,15 @@ export async function registerRoutes(
       </div>
     </section>
 
-    ${incident.riddorReportable ? `
+    ${(incident.riddorReportable || incident.riddorNotes) ? `
     <section>
       <h2>RIDDOR</h2>
-      <div style="margin-bottom:8px"><span class="flag">⚠ RIDDOR Reportable</span></div>
+      ${incident.riddorReportable ? `<div style="margin-bottom:8px"><span class="flag">⚠ RIDDOR Reportable</span></div>` : ""}
       <table>
-        ${field("Reportable under RIDDOR", "Yes")}
-        ${field("Responsible Person", incident.riddorResponsiblePerson)}
+        ${field("Reportable under RIDDOR", incident.riddorReportable ? "Yes" : "No")}
+        ${incident.riddorReportable ? field("Responsible Person", incident.riddorResponsiblePerson) : ""}
+        ${incident.riddorReportable ? field("RIDDOR Reference", incident.riddorReference) : ""}
+        ${field("RIDDOR Notes", incident.riddorNotes)}
       </table>
     </section>` : ""}
 

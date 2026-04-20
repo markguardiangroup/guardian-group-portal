@@ -47,7 +47,10 @@
         "d2f15e84a701",
         "e3a26f95b812",
         "f4b37g06c923",
-        "g5c48h17d034"
+        "g5c48h17d034",
+        "h6d59i28e145",
+        "i7e60j39f256",
+        "j8f71k40g367"
       ],
       "entries": [
         {
@@ -432,6 +435,30 @@
           "message": "Testing: task lists can now be archived; archived view accessible from left panel",
           "category": "feature",
           "createdAt": "2026-04-20T07:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "h6d59i28e145",
+          "patch": 4,
+          "message": "RIDDOR section moved from Report Incident form to Follow Up Investigation",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T07:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "i7e60j39f256",
+          "patch": 4,
+          "message": "Follow Up Investigation adds RIDDOR reference and notes fields",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:56:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "j8f71k40g367",
+          "patch": 4,
+          "message": "Incident detail view and PDF now display RIDDOR reference and notes",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:57:00.000Z",
           "createdBy": "agent"
         }
       ]

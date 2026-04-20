@@ -502,8 +502,6 @@ const reportSchema = z.object({
   injuryDetails: z.string().optional(),
   immediateActions: z.string().optional(),
   recommendations: z.string().optional(),
-  riddorReportable: z.boolean().default(false),
-  riddorResponsiblePerson: z.string().optional(),
   declarationName: z.string().optional(),
   declarationSignature: z.string().optional(),
   declarationDate: z.string().optional(),
@@ -645,8 +643,6 @@ function ReportIncidentDialog({
       injuryDetails: "",
       immediateActions: "",
       recommendations: "",
-      riddorReportable: false,
-      riddorResponsiblePerson: "",
       declarationName: "",
       declarationSignature: "",
       declarationDate: today,
@@ -661,7 +657,6 @@ function ReportIncidentDialog({
 
   const watchEntityId = form.watch("entityId");
   const watchInjuries = form.watch("injuriesReported");
-  const watchRiddor = form.watch("riddorReportable");
   const watchAffectedIsPublic = form.watch("affectedPersonIsPublic");
   const watchReportingName = form.watch("reportingPersonName");
   const declarationNameTouched = useRef(false);
@@ -1076,28 +1071,6 @@ function ReportIncidentDialog({
               </div>
             </FormSection>
 
-            {/* ── Section 9: RIDDOR ── */}
-            <FormSection title="RIDDOR">
-              <FormField control={form.control} name="riddorReportable" render={({ field }) => (
-                <FormItem className="flex items-center gap-2 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-riddor" /></FormControl>
-                  <div>
-                    <FormLabel className="font-medium cursor-pointer">This incident is RIDDOR reportable</FormLabel>
-                    <p className="text-xs text-muted-foreground">Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013</p>
-                  </div>
-                </FormItem>
-              )} />
-              {watchRiddor && (
-                <FormField control={form.control} name="riddorResponsiblePerson" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsible Person for RIDDOR Report</FormLabel>
-                    <FormControl><Input placeholder="Name and job title of person responsible for submitting the RIDDOR report" {...field} data-testid="input-riddor-responsible" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              )}
-            </FormSection>
-
             {/* ── Section 10: Supporting Evidence ── */}
             <FormSection title="Supporting Evidence">
               {/* Photos */}
@@ -1367,6 +1340,10 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   const [primaryCause, setPrimaryCause] = useState("");
   const [invRootCause, setInvRootCause] = useState("");
   const [conclusion, setConclusion] = useState("");
+  const [invRiddorReportable, setInvRiddorReportable] = useState(false);
+  const [invRiddorResponsiblePerson, setInvRiddorResponsiblePerson] = useState("");
+  const [invRiddorNotes, setInvRiddorNotes] = useState("");
+  const [invRiddorReference, setInvRiddorReference] = useState("");
 
   useEffect(() => {
     if (!open || !incident) return;
@@ -1420,6 +1397,10 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setPrimaryCause(incident.invPrimaryCause ?? "");
     setInvRootCause(incident.invRootCause ?? "");
     setConclusion(incident.invConclusion ?? "");
+    setInvRiddorReportable(incident.riddorReportable ?? false);
+    setInvRiddorResponsiblePerson(incident.riddorResponsiblePerson ?? "");
+    setInvRiddorNotes(incident.riddorNotes ?? "");
+    setInvRiddorReference(incident.riddorReference ?? "");
   }, [open, incident]);
 
   const saveMutation = useMutation({
@@ -1453,6 +1434,10 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
       invRootCause: invRootCause,
       invConclusion: conclusion,
       invCompletedAt: new Date().toISOString(),
+      riddorReportable: invRiddorReportable,
+      riddorResponsiblePerson: invRiddorResponsiblePerson,
+      riddorNotes: invRiddorNotes,
+      riddorReference: invRiddorReference,
     });
   };
 
@@ -1647,6 +1632,56 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
             <p className="text-sm font-medium">Conclusion from investigation, recommendations and actions</p>
             <p className="text-xs text-muted-foreground">(Actions should be listed in the actions register)</p>
             <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" data-testid="textarea-inv-conclusion" />
+          </div>
+
+          {/* ── RIDDOR ── */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">RIDDOR</h3>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="inv-riddor-checkbox"
+                checked={invRiddorReportable}
+                onCheckedChange={(v) => setInvRiddorReportable(Boolean(v))}
+                data-testid="checkbox-inv-riddor"
+              />
+              <div>
+                <label htmlFor="inv-riddor-checkbox" className="text-sm font-medium cursor-pointer">This incident is RIDDOR reportable</label>
+                <p className="text-xs text-muted-foreground">Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013</p>
+              </div>
+            </div>
+            {invRiddorReportable && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium mb-1">Responsible Person for RIDDOR Report</p>
+                  <Input
+                    value={invRiddorResponsiblePerson}
+                    onChange={e => setInvRiddorResponsiblePerson(e.target.value)}
+                    placeholder="Name and job title of person responsible"
+                    data-testid="input-inv-riddor-responsible"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">RIDDOR Reference</p>
+                  <Input
+                    value={invRiddorReference}
+                    onChange={e => setInvRiddorReference(e.target.value)}
+                    placeholder="HSE reference number (if applicable)"
+                    data-testid="input-inv-riddor-reference"
+                  />
+                </div>
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-medium mb-1">RIDDOR Notes</p>
+              <Textarea
+                value={invRiddorNotes}
+                onChange={e => setInvRiddorNotes(e.target.value)}
+                rows={3}
+                className="resize-none"
+                placeholder="Any additional notes regarding RIDDOR reportability or submission…"
+                data-testid="textarea-inv-riddor-notes"
+              />
+            </div>
           </div>
 
         </div>
@@ -2252,7 +2287,19 @@ function IncidentDetailView({ id }: { id: string }) {
                         ? <p className="text-sm">{incident.riddorResponsiblePerson}</p>
                         : <p className="text-sm text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</p>}
                     </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>
+                      {incident.riddorReference
+                        ? <p className="text-sm">{incident.riddorReference}</p>
+                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                    </div>
                   </div>
+                  {incident.riddorNotes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Notes</p>
+                      <p className="text-sm whitespace-pre-wrap">{incident.riddorNotes}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Section 8: Witnesses ── */}

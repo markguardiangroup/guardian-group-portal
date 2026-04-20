@@ -479,6 +479,8 @@ export const incidents = pgTable("incidents", {
   injuriesReported: boolean("injuries_reported").notNull().default(false),
   riddorReportable: boolean("riddor_reportable").notNull().default(false),
   riddorResponsiblePerson: text("riddor_responsible_person"),
+  riddorNotes: text("riddor_notes"),
+  riddorReference: text("riddor_reference"),
   injuryDetails: text("injury_details"),
   bodyDiagramMarkers: text("body_diagram_markers"),
   immediateActions: text("immediate_actions"),
