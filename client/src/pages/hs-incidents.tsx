@@ -4116,7 +4116,13 @@ function IncidentsListView() {
                           <div className="ml-4 shrink-0 flex items-center gap-2">
                             {metricDialog === "active"
                               ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inc.status === "reported" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"}`}>{inc.status === "reported" ? "Reported" : "Under Review"}</span>
-                              : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">{inc.severity}</span>
+                              : <>
+                                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">{inc.severity}</span>
+                                  {inc.invCompletedAt
+                                    ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" data-testid={`badge-investigation-status-${inc.id}`}>Investigation Complete</span>
+                                    : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" data-testid={`badge-investigation-status-${inc.id}`}>Pending</span>
+                                  }
+                                </>
                             }
                             <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-module-accent transition-colors" />
                           </div>
