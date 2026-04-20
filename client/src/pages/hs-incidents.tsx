@@ -3577,7 +3577,6 @@ function IncidentsListView() {
   const [registerType, setRegisterType] = useState<RegisterType>("incident");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [severityFilter, setSeverityFilter] = useState<string>("all");
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [metricDialog, setMetricDialog] = useState<null | "active" | "riddor" | "open_actions">(null);
   const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
@@ -3663,12 +3662,11 @@ function IncidentsListView() {
         incident.incidentReference.toLowerCase().includes(searchQuery.toLowerCase()) ||
         incident.incidentType.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === "all" || incident.status === statusFilter;
-      const matchesSeverity = severityFilter === "all" || incident.severity === severityFilter;
       const matchesSite = !selectedSiteId || selectedSiteId === "all" || incident.siteId === selectedSiteId;
       const matchesCompany = !selectedCompany || selectedCompany === "all" || incidentSite?.companyName === selectedCompany;
-      return matchesSearch && matchesStatus && matchesSeverity && matchesSite && matchesCompany;
+      return matchesSearch && matchesStatus && matchesSite && matchesCompany;
     });
-  }, [incidents, sites, searchQuery, statusFilter, severityFilter, selectedSiteId, selectedCompany, registerType]);
+  }, [incidents, sites, searchQuery, statusFilter, selectedSiteId, selectedCompany, registerType]);
 
   const { data: overdueActionsData } = useQuery<{ count: number }>({
     queryKey: ["/api/incidents/overdue-actions-count"],
@@ -3787,7 +3785,6 @@ function IncidentsListView() {
                   setRegisterType(type);
                   setSearchQuery("");
                   setStatusFilter("all");
-                  setSeverityFilter("all");
                   setMetricDialog(null);
                   setView("register");
                 }}
@@ -4120,18 +4117,6 @@ function IncidentsListView() {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                  <SelectTrigger className="w-[140px]" data-testid="select-severity-filter">
-                    <SelectValue placeholder="All Severity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Severity</SelectItem>
-                    <SelectItem value="minor">Minor</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="major">Major</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select
                   value={selectedSiteId ?? "all"}
                   onValueChange={(v) => handleSiteChange(v === "all" ? null : v)}
@@ -4162,7 +4147,6 @@ function IncidentsListView() {
                     <TableHead>Title</TableHead>
                     <TableHead>Site</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Severity</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Updated</TableHead>
@@ -4172,8 +4156,7 @@ function IncidentsListView() {
                 <TableBody>
                   {filteredIncidents.map((incident) => {
                     const site = sites.find((s: any) => s.id === incident.siteId);
-                    const sev = severityConfig[incident.severity as IncidentSeverity] ?? severityConfig.minor;
-                    const sta = statusConfig[incident.status as IncidentStatus] ?? statusConfig.reported;
+                      const sta = statusConfig[incident.status as IncidentStatus] ?? statusConfig.reported;
                     return (
                       <TableRow
                         key={incident.id}
@@ -4199,11 +4182,6 @@ function IncidentsListView() {
                         <TableCell>
                           <Badge variant="outline" className="text-xs whitespace-nowrap">
                             {incident.incidentType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`text-xs ${sev.className}`}>
-                            {sev.label}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -4256,7 +4234,7 @@ function IncidentsListView() {
               <div className="flex flex-col items-center justify-center py-16">
                 {(() => {
                   const EmptyIcon = activeConfig.icon;
-                  const isFiltered = registerType === "incident" && (searchQuery || statusFilter !== "all" || severityFilter !== "all" || (selectedSiteId && selectedSiteId !== "all"));
+                  const isFiltered = registerType === "incident" && (searchQuery || statusFilter !== "all" || (selectedSiteId && selectedSiteId !== "all"));
                   if (registerType === "near_miss") {
                     return (
                       <>
