@@ -606,6 +606,8 @@ function ReportIncidentDialog({
   const [selectedEffects, setSelectedEffects] = useState<string[]>([]);
   const [bodyZones, setBodyZones] = useState<string[]>([]);
   const [witnessEntries, setWitnessEntries] = useState<{ name: string; jobRole: string; company: string }[]>([]);
+  const [firstAidGiven, setFirstAidGiven] = useState<boolean | null>(null);
+  const [hospitalVisit, setHospitalVisit] = useState<boolean | null>(null);
 
   const addWitness = () => setWitnessEntries(prev => [...prev, { name: "", jobRole: "", company: "" }]);
   const removeWitness = (i: number) => setWitnessEntries(prev => prev.filter((_, idx) => idx !== i));
@@ -740,6 +742,8 @@ function ReportIncidentDialog({
       setSelectedCauses([]);
       setSelectedEffects([]);
       setBodyZones([]);
+      setFirstAidGiven(null);
+      setHospitalVisit(null);
       onClose();
       if (incident?.id) navigate(`/health-safety/incidents/${incident.id}`);
     },
@@ -758,7 +762,7 @@ function ReportIncidentDialog({
     const autoTitle = `${causeLabel} – ${dateStr}`;
     const filledWitnesses = witnessEntries.filter(w => w.name.trim() || w.jobRole.trim() || w.company.trim());
     const witnessesJson = filledWitnesses.length > 0 ? JSON.stringify(filledWitnesses) : "";
-    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson, riddorReportable: false });
+    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson, riddorReportable: false, invFirstAidGiven: firstAidGiven, invHospitalVisit: hospitalVisit });
   };
 
   return (
@@ -1037,7 +1041,21 @@ function ReportIncidentDialog({
               </div>
             </FormSection>
 
-            {/* ── Section 8: Actions & Recommendations ── */}
+            {/* ── Section 8b: Initial Medical Response ── */}
+            <FormSection title="Initial Medical Response">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm font-medium mb-2">Was first aid treatment given?</p>
+                  <YesNo value={firstAidGiven} onChange={setFirstAidGiven} testPrefix="firstaid" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Did the accident/incident result in the injured person visiting hospital?</p>
+                  <YesNo value={hospitalVisit} onChange={setHospitalVisit} testPrefix="hospital" />
+                </div>
+              </div>
+            </FormSection>
+
+            {/* ── Section 8c: Actions & Recommendations ── */}
             <FormSection title="Actions Taken & Recommendations">
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="immediateActions" render={({ field }) => (
@@ -1323,8 +1341,6 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
 }) {
   const { toast } = useToast();
 
-  const [firstAidGiven, setFirstAidGiven] = useState<boolean | null>(null);
-  const [hospitalVisit, setHospitalVisit] = useState<boolean | null>(null);
   const [absentFromWork, setAbsentFromWork] = useState<boolean | null>(null);
   const [absentTimeframe, setAbsentTimeframe] = useState("");
   const [witnessesPresent, setWitnessesPresent] = useState<boolean | null>(null);
@@ -1348,8 +1364,6 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   useEffect(() => {
     if (!open || !incident) return;
 
-    setFirstAidGiven(incident.invFirstAidGiven ?? null);
-    setHospitalVisit(incident.invHospitalVisit ?? null);
     setAbsentFromWork(incident.invAbsentFromWork ?? null);
     setAbsentTimeframe(incident.invAbsentTimeframe ?? "");
 
@@ -1416,8 +1430,6 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   const handleSave = () => {
     const filledEquipment = invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
     saveMutation.mutate({
-      invFirstAidGiven: firstAidGiven,
-      invHospitalVisit: hospitalVisit,
       invAbsentFromWork: absentFromWork,
       invAbsentTimeframe: absentTimeframe,
       invWitnessesPresent: witnessesPresent,
@@ -1468,14 +1480,6 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">About the injured person</h3>
             <div className="space-y-5">
-              <div>
-                <p className="text-sm font-medium mb-2">Was first aid treatment given</p>
-                <YesNo value={firstAidGiven} onChange={setFirstAidGiven} testPrefix="inv-firstaid" />
-              </div>
-              <div>
-                <p className="text-sm mb-2">Did the accident/incident result in the injured person visiting hospital?**</p>
-                <YesNo value={hospitalVisit} onChange={setHospitalVisit} testPrefix="inv-hospital" />
-              </div>
               <div>
                 <p className="text-sm font-medium mb-2">Has the injured person been absent from work following the accident/incident?</p>
                 <YesNo value={absentFromWork} onChange={setAbsentFromWork} testPrefix="inv-absent" />
