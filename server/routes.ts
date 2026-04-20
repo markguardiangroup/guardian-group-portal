@@ -5263,15 +5263,20 @@ export async function registerRoutes(
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          // GO expansion
-          const goExpandedIds = new Set<string>(siteCompanyIds);
-          for (const cId of siteCompanyIds) {
+          // Source-overlapping assigned companies
+          const sourceOverlapCompanyIds = new Set(
+            [...siteCompanyIds].filter(cId => {
+              const co = allCompanies.find(c => c.id === cId);
+              return co && sourcesOverlap(mySources, co.sources ?? []);
+            })
+          );
+          // GO expansion: member companies of any source-overlapping GO (no member source check)
+          const goExpandedIds = new Set<string>(sourceOverlapCompanyIds);
+          for (const cId of sourceOverlapCompanyIds) {
             const members = await storage.getGroupMembers(cId);
             for (const m of members) goExpandedIds.add(m.id);
           }
-          filteredCompanies = allCompanies.filter(c =>
-            goExpandedIds.has(c.id) && sourcesOverlap(mySources, c.sources ?? [])
-          );
+          filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
         }
       } else if (user.role === "client" && user.companyId) {
         const effectiveIds = await getEffectiveCompanyIds(user.companyId);
@@ -5348,20 +5353,22 @@ export async function registerRoutes(
             }
           }
         } else {
-          // Standard consultants: must be assigned to a site in this company (or its GO)
-          // AND source must overlap
-          if (!sourcesOverlap(mySources, company.sources ?? [])) {
-            return res.status(403).json({ error: "Access denied" });
-          }
+          // Standard consultants: must be assigned to a site in this company (with source overlap)
+          // OR this company is a GO member of an assigned company (GO-level access, no member source check)
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          // Allow if directly assigned OR if this company is a GO member of an assigned company
-          const isDirectlyAssigned = siteCompanyIds.has(company.id);
-          const isGoMemberOfAssigned = company.groupOwnerId != null && siteCompanyIds.has(company.groupOwnerId);
+          // Direct access: assigned to a site here AND sources overlap
+          const isDirectlyAssigned = siteCompanyIds.has(company.id) && sourcesOverlap(mySources, company.sources ?? []);
+          // GO member access: this is a member of a GO company the consultant is assigned to
+          let isGoMemberOfAssigned = false;
+          if (company.groupOwnerId) {
+            const goCompany = await storage.getCompany(company.groupOwnerId);
+            isGoMemberOfAssigned = siteCompanyIds.has(company.groupOwnerId) && !!goCompany && sourcesOverlap(mySources, goCompany.sources ?? []);
+          }
           if (!isDirectlyAssigned && !isGoMemberOfAssigned) {
             return res.status(403).json({ error: "Access denied" });
           }
@@ -5424,18 +5431,20 @@ export async function registerRoutes(
             }
           }
         } else {
-          // Standard consultants: must share a source AND be assigned to a site in this company or its GO
-          if (!sourcesOverlap(mySources, company.sources ?? [])) {
-            return res.status(403).json({ error: "Access denied" });
-          }
+          // Standard consultants: must be assigned to a site in this company (with source overlap)
+          // OR this company is a GO member of an assigned company (GO-level, no member source check)
           const assignments = await storage.getConsultantSites(user.id);
           const siteCompanyIds = new Set<string>();
           for (const a of assignments) {
             const site = await storage.getSite(a.siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          const isDirectlyAssigned = siteCompanyIds.has(company.id);
-          const isGoMemberOfAssigned = company.groupOwnerId != null && siteCompanyIds.has(company.groupOwnerId);
+          const isDirectlyAssigned = siteCompanyIds.has(company.id) && sourcesOverlap(mySources, company.sources ?? []);
+          let isGoMemberOfAssigned = false;
+          if (company.groupOwnerId) {
+            const goCompany = await storage.getCompany(company.groupOwnerId);
+            isGoMemberOfAssigned = siteCompanyIds.has(company.groupOwnerId) && !!goCompany && sourcesOverlap(mySources, goCompany.sources ?? []);
+          }
           if (!isDirectlyAssigned && !isGoMemberOfAssigned) return res.status(403).json({ error: "Access denied" });
         }
       } else if (user.role === "client") {
@@ -5963,21 +5972,30 @@ export async function registerRoutes(
         }
         // Standard consultants (or pro with myAssigned=true) see only their assigned sites
         // that also share at least one source via the parent company,
-        // PLUS all sites in member companies of any GO company they're assigned to
+        // PLUS all sites in member companies of any GO they're directly assigned to
         const assignments = await storage.getConsultantSites(user.id);
         const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        // Build effective company set: assigned company + their GO members
+        // Directly assigned companies that have source overlap
         const assignedCompanyIds = new Set(
           allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId)
         );
-        const goExpandedCompanyIds = new Set<string>(assignedCompanyIds);
-        for (const cId of assignedCompanyIds) {
+        const sourceOverlapCompanyIds = new Set(
+          [...assignedCompanyIds].filter(cId => {
+            const companySources = allSites.find(s => s.companyId === cId)?.companySources ?? [];
+            return sourcesOverlap(mySources, companySources);
+          })
+        );
+        // GO expansion: member companies of source-overlapping GOs (no member source check)
+        const goMemberCompanyIds = new Set<string>();
+        for (const cId of sourceOverlapCompanyIds) {
           const members = await storage.getGroupMembers(cId);
-          for (const m of members) goExpandedCompanyIds.add(m.id);
+          for (const m of members) goMemberCompanyIds.add(m.id);
         }
         const filteredSites = allSites.filter(site =>
-          (assignedSiteIds.has(site.id) || goExpandedCompanyIds.has(site.companyId)) &&
-          sourcesOverlap(mySources, site.companySources ?? [])
+          // Directly assigned site in a source-overlapping company
+          (assignedSiteIds.has(site.id) && sourceOverlapCompanyIds.has(site.companyId)) ||
+          // Any site in a GO member company
+          goMemberCompanyIds.has(site.companyId)
         );
         res.json(filteredSites);
         return;

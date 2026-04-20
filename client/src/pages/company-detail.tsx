@@ -817,11 +817,17 @@ export default function CompanyDetail() {
     enabled: !!companyId,
   });
 
-  // All companies list (for GO admin picker – admin only)
-  const { data: allCompanies = [] } = useQuery<CompanyWithSites[]>({
-    queryKey: ["/api/companies"],
+  // All companies list (for GO admin picker – admin only); uses a large limit to get all
+  const { data: allCompaniesData } = useQuery<{ companies: CompanyWithSites[]; total: number }>({
+    queryKey: ["/api/companies", { limit: 1000, page: 1 }],
+    queryFn: async () => {
+      const res = await fetch("/api/companies?limit=1000&page=1", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch companies");
+      return res.json();
+    },
     enabled: isAdmin,
   });
+  const allCompanies: CompanyWithSites[] = allCompaniesData?.companies ?? [];
 
   // Mutation to set/unset the group owner of the current company
   const setGroupOwnerMutation = useMutation({
@@ -833,9 +839,13 @@ export default function CompanyDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Group Owner updated" });
     },
-    onError: async (err: any) => {
+    onError: async (err: unknown) => {
       let msg = "Failed to update Group Owner";
-      try { const d = await err.response?.json(); if (d?.error) msg = d.error; } catch {}
+      try {
+        const e = err as { response?: { json?: () => Promise<{ error?: string }> } };
+        const d = await e.response?.json?.();
+        if (d?.error) msg = d.error;
+      } catch {}
       toast({ title: msg, variant: "destructive" });
     },
   });
@@ -850,9 +860,13 @@ export default function CompanyDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       toast({ title: "Company added to group" });
     },
-    onError: async (err: any) => {
+    onError: async (err: unknown) => {
       let msg = "Failed to add company to group";
-      try { const d = await err.response?.json(); if (d?.error) msg = d.error; } catch {}
+      try {
+        const e = err as { response?: { json?: () => Promise<{ error?: string }> } };
+        const d = await e.response?.json?.();
+        if (d?.error) msg = d.error;
+      } catch {}
       toast({ title: msg, variant: "destructive" });
     },
   });
