@@ -11560,6 +11560,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields" });
       }
 
+      if (user.role === "consultant") return res.status(403).json({ error: "Consultants cannot report incidents" });
+
       const canAccess = await canUserAccessSite(user, body.siteId);
       if (!canAccess) return res.status(403).json({ error: "You do not have access to report incidents for this site" });
 

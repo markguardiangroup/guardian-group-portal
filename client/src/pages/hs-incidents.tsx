@@ -3634,6 +3634,7 @@ function IncidentsListView() {
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
   const isAdmin = user?.role === "admin";
+  const canReport = user?.role === "admin" || user?.role === "client";
   const { toast } = useToast();
 
   const deleteIncidentMutation = useMutation({
@@ -3802,16 +3803,18 @@ function IncidentsListView() {
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   View Dashboard
                 </Button>
-                <Button
-                  className={activeConfig.reportButtonClass}
-                  onClick={registerType === "incident" ? () => setShowReportDialog(true) : undefined}
-                  disabled={registerType !== "incident"}
-                  title={registerType !== "incident" ? "Coming soon — form not yet available" : undefined}
-                  data-testid={registerType === "incident" ? "button-report-incident" : `button-report-${registerType}`}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  {activeConfig.reportLabel}
-                </Button>
+                {canReport && (
+                  <Button
+                    className={activeConfig.reportButtonClass}
+                    onClick={registerType === "incident" ? () => setShowReportDialog(true) : undefined}
+                    disabled={registerType !== "incident"}
+                    title={registerType !== "incident" ? "Coming soon — form not yet available" : undefined}
+                    data-testid={registerType === "incident" ? "button-report-incident" : `button-report-${registerType}`}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    {activeConfig.reportLabel}
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -4325,7 +4328,7 @@ function IncidentsListView() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {isFiltered ? "Try adjusting your filters" : "No incidents have been reported yet"}
                       </p>
-                      {!isFiltered && (
+                      {!isFiltered && canReport && (
                         <Button
                           className="mt-4 bg-module-accent hover:bg-module-accent/90"
                           onClick={() => setShowReportDialog(true)}
