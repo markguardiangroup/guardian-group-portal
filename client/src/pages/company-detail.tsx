@@ -723,6 +723,9 @@ export default function CompanyDetail() {
     newUserId: string;
   } | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [addMembersDialogOpen, setAddMembersDialogOpen] = useState(false);
+  const [addMembersSearch, setAddMembersSearch] = useState("");
+  const [addMembersSelected, setAddMembersSelected] = useState<Set<string>>(new Set());
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
@@ -852,24 +855,43 @@ export default function CompanyDetail() {
     },
   });
 
-  // Mutation to add a company as a member of the current GO (sets the member's groupOwnerId to this company)
-  const addGroupMemberMutation = useMutation({
-    mutationFn: async (memberCompanyId: string) => {
-      return await apiRequest("PATCH", `/api/companies/${memberCompanyId}/group-owner`, { groupOwnerId: companyId });
+  // Mutation to bulk-add multiple companies as members of the current GO
+  const bulkAddGroupMembersMutation = useMutation({
+    mutationFn: async (memberCompanyIds: string[]) => {
+      const results = await Promise.allSettled(
+        memberCompanyIds.map((id) =>
+          apiRequest("PATCH", `/api/companies/${id}/group-owner`, { groupOwnerId: companyId })
+        )
+      );
+      const succeeded = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { succeeded, failed, total: memberCompanyIds.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      toast({ title: "Company added to group" });
+      if (data.failed === 0) {
+        toast({ title: `${data.succeeded} ${data.succeeded === 1 ? "company" : "companies"} linked to group` });
+      } else if (data.succeeded > 0) {
+        toast({
+          title: `${data.succeeded} linked, ${data.failed} failed`,
+          description: "Some companies could not be linked. They may have already been assigned to another group.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Failed to link companies", variant: "destructive" });
+      }
+      setAddMembersDialogOpen(false);
+      setAddMembersSelected(new Set());
+      setAddMembersSearch("");
     },
-    onError: async (err: unknown) => {
-      let msg = "Failed to add company to group";
-      try {
-        const e = err as { response?: { json?: () => Promise<{ error?: string }> } };
-        const d = await e.response?.json?.();
-        if (d?.error) msg = d.error;
-      } catch {}
-      toast({ title: msg, variant: "destructive" });
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({ title: "Failed to link companies", variant: "destructive" });
+      setAddMembersDialogOpen(false);
+      setAddMembersSelected(new Set());
+      setAddMembersSearch("");
     },
   });
 
@@ -1682,7 +1704,119 @@ export default function CompanyDetail() {
             // Only show panel if this is a GO or admin (so admin can start building a GO)
             if (!isAdmin && members.length === 0) return null;
 
+            const filteredEligible = eligibleToAdd
+              .filter((c) => c.name.toLowerCase().includes(addMembersSearch.toLowerCase()))
+              .sort((a, b) => a.name.localeCompare(b.name));
+
+            const allFilteredSelected =
+              filteredEligible.length > 0 && filteredEligible.every((c) => addMembersSelected.has(c.id));
+
             return (
+              <>
+              <Dialog open={addMembersDialogOpen} onOpenChange={(open) => {
+                setAddMembersDialogOpen(open);
+                if (!open) { setAddMembersSelected(new Set()); setAddMembersSearch(""); }
+              }}>
+                <DialogContent className="max-w-md" data-testid="dialog-add-group-members">
+                  <DialogHeader>
+                    <DialogTitle>Add Member Companies</DialogTitle>
+                    <DialogDescription>
+                      Select one or more companies to link to this Group Owner.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        className="pl-8"
+                        placeholder="Search companies..."
+                        value={addMembersSearch}
+                        onChange={(e) => setAddMembersSearch(e.target.value)}
+                        data-testid="input-add-members-search"
+                      />
+                    </div>
+                    {filteredEligible.length > 0 && (
+                      <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                        <span>{addMembersSelected.size} selected</span>
+                        <button
+                          type="button"
+                          className="underline underline-offset-2 hover:text-foreground transition-colors"
+                          onClick={() => {
+                            if (allFilteredSelected) {
+                              setAddMembersSelected((prev) => {
+                                const next = new Set(prev);
+                                filteredEligible.forEach((c) => next.delete(c.id));
+                                return next;
+                              });
+                            } else {
+                              setAddMembersSelected((prev) => {
+                                const next = new Set(prev);
+                                filteredEligible.forEach((c) => next.add(c.id));
+                                return next;
+                              });
+                            }
+                          }}
+                          data-testid="button-toggle-all-members"
+                        >
+                          {allFilteredSelected ? "Deselect all" : "Select all"}
+                        </button>
+                      </div>
+                    )}
+                    <div className="max-h-60 overflow-y-auto divide-y border rounded-md" data-testid="list-eligible-companies">
+                      {filteredEligible.length === 0 ? (
+                        <p className="text-sm text-muted-foreground p-3">No companies found.</p>
+                      ) : (
+                        filteredEligible.map((c) => {
+                          const selected = addMembersSelected.has(c.id);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors ${selected ? "bg-primary/5" : ""}`}
+                              onClick={() => {
+                                setAddMembersSelected((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                                  return next;
+                                });
+                              }}
+                              data-testid={`add-member-option-${c.id}`}
+                            >
+                              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                                {selected && <CheckCircle className="h-3 w-3" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{c.name}</p>
+                                {c.referenceNumber && (
+                                  <p className="text-xs text-muted-foreground font-mono">{c.referenceNumber}</p>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setAddMembersDialogOpen(false)}
+                      data-testid="button-cancel-add-members"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={addMembersSelected.size === 0 || bulkAddGroupMembersMutation.isPending}
+                      onClick={() => bulkAddGroupMembersMutation.mutate(Array.from(addMembersSelected))}
+                      data-testid="button-confirm-add-members"
+                    >
+                      {bulkAddGroupMembersMutation.isPending
+                        ? "Linking..."
+                        : `Link ${addMembersSelected.size > 0 ? addMembersSelected.size : ""} ${addMembersSelected.size === 1 ? "Company" : "Companies"}`}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Card className="mt-6" data-testid="card-group-members">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -1694,31 +1828,26 @@ export default function CompanyDetail() {
                       )}
                     </CardTitle>
                     {isAdmin && eligibleToAdd.length > 0 && (
-                      <Select
-                        onValueChange={(val) => {
-                          if (val) addGroupMemberMutation.mutate(val);
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-sm gap-1"
+                        onClick={() => {
+                          setAddMembersSelected(new Set());
+                          setAddMembersSearch("");
+                          setAddMembersDialogOpen(true);
                         }}
-                        value=""
-                        disabled={addGroupMemberMutation.isPending}
+                        data-testid="button-add-group-members"
                       >
-                        <SelectTrigger className="h-8 w-44 text-sm" data-testid="select-add-group-member">
-                          <Plus className="h-3 w-3 mr-1" />
-                          <SelectValue placeholder="Add Company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {eligibleToAdd.sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
-                            <SelectItem key={c.id} value={c.id} data-testid={`add-member-option-${c.id}`}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Members
+                      </Button>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
                   {members.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No companies linked yet. Use "Add Company" to link a company to this Group Owner.</p>
+                    <p className="text-sm text-muted-foreground">No companies linked yet. Use "Add Members" to link companies to this Group Owner.</p>
                   ) : (
                     <div className="divide-y">
                       {members.map((member) => (
@@ -1794,6 +1923,7 @@ export default function CompanyDetail() {
                   )}
                 </CardContent>
               </Card>
+              </>
             );
           })()}
 
