@@ -5307,6 +5307,14 @@ export async function registerRoutes(
         filteredCompanies = [];
       }
       
+      // Apply group filter — show the GO itself plus all its members
+      const groupFilter = req.query.groupFilter as string | undefined;
+      if (groupFilter && groupFilter !== "all") {
+        filteredCompanies = filteredCompanies.filter(
+          c => c.id === groupFilter || c.groupOwnerId === groupFilter
+        );
+      }
+
       // Apply status filter
       if (status && status !== "all") {
         filteredCompanies = filteredCompanies.filter(c => c.status === status);

@@ -221,6 +221,7 @@ export default function Companies() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -330,7 +331,7 @@ export default function Companies() {
   });
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly }],
+    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly, groupFilter }],
     staleTime: 60 * 1000,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -339,12 +340,26 @@ export default function Companies() {
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter !== "all" && { status: statusFilter }),
         ...(isProConsultant && myAssignedOnly && { myAssigned: "true" }),
+        ...(groupFilter !== "all" && { groupFilter }),
       });
       const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch companies");
       return response.json();
     },
   });
+
+  // Fetch all companies (large limit) to derive available group owners for the filter dropdown
+  const { data: allCompaniesData } = useQuery<PaginatedCompaniesResponse>({
+    queryKey: ["/api/companies", { limit: 1000 }],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const response = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch companies");
+      return response.json();
+    },
+  });
+
+  const groupOwners = (allCompaniesData?.companies ?? []).filter(c => c.isGroupOwner);
 
   const createCompanyWithSiteMutation = useMutation({
     mutationFn: async (payload: { companyData: typeof formData; siteData: typeof siteData }) => {
@@ -840,6 +855,21 @@ export default function Companies() {
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
+        {groupOwners.length > 0 && (
+          <Select value={groupFilter} onValueChange={(v) => { setGroupFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[200px]" data-testid="select-group-filter">
+              <SelectValue placeholder="All Groups" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Groups</SelectItem>
+              {groupOwners.sort((a, b) => a.name.localeCompare(b.name)).map(go => (
+                <SelectItem key={go.id} value={go.id} data-testid={`group-filter-option-${go.id}`}>
+                  {go.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           variant="outline"
           size="icon"
