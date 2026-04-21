@@ -709,13 +709,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
-    // Filter by site - site-scoped docs must match selected site; shared-link docs (siteId=null) are shown
-    // only in "all sites" view since the hierarchy view already renders them per-site context
+    // Filter by site - site-scoped docs must match selected site;
+    // shared-link docs (siteId=null) are shown when the selected site belongs to a destination
+    // company (companyId !== doc.entityId, which is the origin company).
     let matchesSite = true;
     if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.isSharedLink) {
-        // Shared docs are shown in "all sites" mode only; site-specific filtering defers to hierarchy view
-        matchesSite = false;
+        const selectedSiteInfo = (sites as SiteWithCompany[] | undefined)?.find(s => s.id === selectedSiteId);
+        // Include shared doc when the site's company is not the origin company (destination context)
+        matchesSite = selectedSiteInfo?.companyId !== undefined
+          ? selectedSiteInfo.companyId !== doc.entityId
+          : false;
       } else {
         matchesSite = doc.siteId === selectedSiteId;
       }
@@ -726,10 +730,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (selectedCompany && selectedCompany !== "all") {
       // Use document's companyName directly if available, otherwise look up from sites
       const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
-      // Shared docs (company/group scoped) are shown in "all companies" mode; company filter
-      // applies to site-scoped docs which have a determinable company via siteId lookup
       if (doc.isSharedLink) {
-        matchesCompany = false;
+        // Include shared doc when the selected company is not the origin company (destination context)
+        const originCompanyName = doc.sharedFromEntityName;
+        matchesCompany = originCompanyName !== selectedCompany;
       } else {
         matchesCompany = docCompanyName === selectedCompany;
       }
