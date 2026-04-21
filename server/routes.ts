@@ -2150,7 +2150,7 @@ export async function registerRoutes(
           return {
             ...doc,
             isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
-            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+            renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
           };
         })
       );
@@ -2174,7 +2174,7 @@ export async function registerRoutes(
             return {
               ...doc,
               isRequired: doc.isRequired || docTemplate?.isRequired || false,
-              renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+              renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               isSharedLink,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
               sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
@@ -9851,7 +9851,7 @@ export async function registerRoutes(
                   updatedAt: d.updatedAt,
                   isArchived: d.isArchived,
                   isRequired: getEffectiveIsRequired(d, docTemplate),
-                  renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+                  renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
                 };
               }),
               stats: {
@@ -9907,7 +9907,7 @@ export async function registerRoutes(
                     updatedAt: d.updatedAt,
                     isArchived: d.isArchived,
                     isRequired: getEffectiveIsRequired(d, docTemplate),
-                    renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+                    renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
                   };
                 }),
                 stats: {
@@ -9956,7 +9956,7 @@ export async function registerRoutes(
                 updatedAt: d.updatedAt,
                 isArchived: d.isArchived,
                 isRequired: getEffectiveIsRequired(d, docTemplate),
-                renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+                renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               };
             }),
             childFolders,
@@ -10015,7 +10015,7 @@ export async function registerRoutes(
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
             isRequired: effectiveIsRequired,
-            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+            renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
             sharedScope: d.sharedScope,
             sharedFromEntityName: d.sharedFromEntityName,
           };
@@ -10058,7 +10058,7 @@ export async function registerRoutes(
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
             isRequired: docTemplate ? getEffectiveIsRequired(d, docTemplate) : false,
-            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+            renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
           };
         }),
         sharedDocuments,

@@ -29,6 +29,13 @@
       "when": 1774200000000,
       "tag": "0003_add_testing_task_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1745262000000,
+      "tag": "0004_add_document_scope_and_shares",
+      "breakpoints": true
     }
   ]
 }
