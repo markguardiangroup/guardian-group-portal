@@ -43,6 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/schema";
+import { TablePagination, type PageSize } from "@/components/table-pagination";
 import { Users } from "lucide-react";
 
 function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
@@ -88,6 +89,8 @@ export default function Sites() {
   const companyFilter = localSelectedCompany || "all";
   const setCompanyFilter = (val: string) => setLocalSelectedCompany(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(20);
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
   const [myAssignedOnly, setMyAssignedOnly] = useState(false);
   const [, navigate] = useLocation();
@@ -316,6 +319,16 @@ export default function Sites() {
     return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
   });
 
+  const totalSites = filteredSites?.length || 0;
+  const totalPages = Math.max(1, Math.ceil(totalSites / pageSize));
+  useEffect(() => {
+    if (page > totalPages) setPage(1);
+  }, [page, totalPages]);
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, companyFilter, complianceFilter, myAssignedOnly, pageSize]);
+  const paginatedSites = filteredSites?.slice((page - 1) * pageSize, page * pageSize);
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [alreadyShown] = useState(() => _sitesShown);
   useEffect(() => {
@@ -423,8 +436,8 @@ export default function Sites() {
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && filteredSites && filteredSites.length > 0 ? "table-rows-animate" : ""}>
-            {isLoading ? null : !filteredSites || filteredSites.length === 0 ? (
+          <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && paginatedSites && paginatedSites.length > 0 ? "table-rows-animate" : ""}>
+            {isLoading ? null : !paginatedSites || paginatedSites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   {searchQuery || companyFilter !== "all" || complianceFilter !== "all"
@@ -433,7 +446,7 @@ export default function Sites() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredSites.map((site) => (
+              paginatedSites.map((site) => (
                 <TableRow 
                   key={site.id} 
                   className="cursor-pointer hover-elevate"
@@ -498,6 +511,18 @@ export default function Sites() {
           </TableBody>
         </Table>
       </Card>
+
+      {!isLoading && (
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalSites}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          itemLabel="sites"
+        />
+      )}
 
       <Dialog open={isAddSiteOpen} onOpenChange={setIsAddSiteOpen}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>

@@ -93,6 +93,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole, ClientPermissionRole, ConsultantTier } from "@shared/schema";
+import { TablePagination, type PageSize } from "@/components/table-pagination";
 
 interface SiteAssignment {
   siteId: string;
@@ -135,7 +136,7 @@ interface SiteBasic {
   companyId: string;
 }
 
-const ITEMS_PER_PAGE = 15;
+const DEFAULT_PAGE_SIZE = 20;
 
 const roleColors: Record<UserRole, string> = {
   admin: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
@@ -176,6 +177,7 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -417,10 +419,10 @@ export default function UserManagement() {
     return a.fullName.toLowerCase().localeCompare(b.fullName.toLowerCase());
   });
 
-  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
   const paginatedUsers = filteredUsers.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
+    (page - 1) * pageSize,
+    page * pageSize
   );
 
   const openEditDialog = (u: UserWithAssignments) => {
@@ -1599,38 +1601,18 @@ export default function UserManagement() {
         </Table>
       </Card>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {(page - 1) * ITEMS_PER_PAGE + 1} to {Math.min(page * ITEMS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              data-testid="button-prev-page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              data-testid="button-next-page"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={filteredUsers.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        itemLabel="users"
+      />
 
       <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) { setEditingUser(null); setEditFormData(null); } }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">

@@ -70,6 +70,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Info, Copy } from "lucide-react";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User } from "@shared/schema";
+import { TablePagination, type PageSize } from "@/components/table-pagination";
 
 function CompanyCard({ 
   company, 
@@ -307,7 +308,7 @@ export default function Companies() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-  const limit = 20;
+  const [limit, setLimit] = useState<PageSize>(20);
 
   // Debounce search
   useEffect(() => {
@@ -1029,37 +1030,19 @@ export default function Companies() {
         </Table>
       </Card>
 
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-muted-foreground">
-            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              data-testid="button-prev-page"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground px-2">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              data-testid="button-next-page"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </div>
+      {!isLoading && (
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          totalItems={total}
+          pageSize={limit}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setLimit(size);
+            setPage(1);
+          }}
+          itemLabel="companies"
+        />
       )}
 
       <Dialog open={isAddOpen || !!editingCompany} onOpenChange={(open) => {
