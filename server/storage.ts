@@ -1214,17 +1214,6 @@ export class MemStorage implements IStorage {
     // Determine which group owner IDs apply to this company (either it's a member or it IS the owner)
     const relevantGroupOwnerIds: string[] = [];
     if (company.groupOwnerId) relevantGroupOwnerIds.push(company.groupOwnerId);
-    // Also handle: if this company is itself a group owner, it sees its own group docs
-    const ownGroupDocs = await db.select().from(documentsTable).where(
-      and(
-        eq(documentsTable.scope, "group"),
-        eq(documentsTable.entityId, site.companyId),
-        isNull(documentsTable.siteId),
-        ...(module ? [eq(documentsTable.module, module as any)] : []),
-        ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
-      )
-    );
-
     // For each group owner, check explicit shares to this company
     for (const goId of relevantGroupOwnerIds) {
       const groupOwner = await this.getCompany(goId);
@@ -1248,14 +1237,6 @@ export class MemStorage implements IStorage {
           seenIds.add(row.doc.id);
           results.push({ ...row.doc, sharedScope: "group", sharedFromEntityName: groupOwner?.name ?? null });
         }
-      }
-    }
-
-    // Group owner's own group-scope docs visible to itself (via own group docs)
-    for (const d of ownGroupDocs) {
-      if (!seenIds.has(d.id)) {
-        seenIds.add(d.id);
-        results.push({ ...d, sharedScope: "group", sharedFromEntityName: company.name });
       }
     }
 

@@ -1083,7 +1083,7 @@ export async function registerRoutes(
    */
   const canUserAccessDocument = async (
     user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
-    doc: { siteId: string | null; scope?: string | null; entityId?: string | null }
+    doc: { id?: string; siteId: string | null; scope?: string | null; entityId?: string | null }
   ): Promise<boolean> => {
     // Site-scoped: use existing site-level check
     if (doc.siteId) {
@@ -1123,18 +1123,21 @@ export async function registerRoutes(
         : (company.sources ?? []);
       return sourcesOverlap(user.sources ?? [], effectiveSources);
     }
-    // Client: can access if their company matches entityId, or their company is a member of the group
-    if (user.role === "client" && user.companyId) {
-      if (user.companyId === entityId) return true;
-      if (doc.scope === "group") {
-        // Check if user's company belongs to this group
-        const userCompany = await storage.getCompany(user.companyId);
-        return userCompany?.groupOwnerId === entityId;
+    // Client: must have an explicit share record targeting their company/site
+    if (user.role === "client" && user.companyId && doc.id) {
+      const shares = await storage.getDocumentShares(doc.id);
+      if (doc.scope === "company") {
+        // Must be a share targeting their company directly, OR a share targeting one of their sites
+        const companyShare = shares.some(s => s.entityType === "company" && s.entityId === user.companyId);
+        if (companyShare) return true;
+        const userSites = await storage.getSitesByCompanyId(user.companyId);
+        const userSiteIds = new Set(userSites.map(s => s.id));
+        return shares.some(s => s.entityType === "site" && userSiteIds.has(s.entityId));
       }
-      // For company-scope: check if user is in the GO that owns the company
-      const company = await storage.getCompany(entityId);
-      if (company?.groupOwnerId && user.companyId === company.groupOwnerId) return true;
-      return false;
+      if (doc.scope === "group") {
+        // Must be a share targeting their company
+        return shares.some(s => s.entityType === "company" && s.entityId === user.companyId);
+      }
     }
     return false;
   };
@@ -1556,10 +1559,40 @@ export async function registerRoutes(
           
           // Apply additional site filter if specified
           if (requestedSiteId && requestedSiteId !== "all") {
-            if (doc.siteId !== requestedSiteId) return null;
+            if (doc.siteId !== requestedSiteId) {
+              // For scoped docs (null siteId), check if shared to the requested site
+              if (!doc.siteId && (doc.scope === "company" || doc.scope === "group")) {
+                const site = await storage.getSite(requestedSiteId);
+                if (!site) return null;
+                const shares = await storage.getDocumentShares(doc.id);
+                const isSharedToSite = shares.some(s =>
+                  (s.entityType === "site" && s.entityId === requestedSiteId) ||
+                  (s.entityType === "company" && s.entityId === site.companyId)
+                );
+                if (!isSharedToSite) return null;
+              } else {
+                return null;
+              }
+            }
           } else if (requestedSiteIds) {
             const siteIdList = requestedSiteIds.split(",");
-            if (!siteIdList.includes(doc.siteId)) return null;
+            if (!doc.siteId) {
+              // For scoped docs, check if shared to any of the requested sites
+              if (doc.scope === "company" || doc.scope === "group") {
+                const shares = await storage.getDocumentShares(doc.id);
+                const matchedSite = await Promise.all(siteIdList.map(sid => storage.getSite(sid)));
+                const matchedCompanyIds = new Set(matchedSite.filter(Boolean).map(s => s!.companyId));
+                const isShared = shares.some(s =>
+                  (s.entityType === "site" && siteIdList.includes(s.entityId)) ||
+                  (s.entityType === "company" && matchedCompanyIds.has(s.entityId))
+                );
+                if (!isShared) return null;
+              } else {
+                return null;
+              }
+            } else if (!siteIdList.includes(doc.siteId)) {
+              return null;
+            }
           }
           
           return doc;
@@ -2105,11 +2138,38 @@ export async function registerRoutes(
       let filteredDocuments = accessibleDocuments.filter((d): d is NonNullable<typeof d> => d !== null);
       
       // Apply additional siteId/siteIds filter if provided
+      // For scoped docs (siteId null), include them only if explicitly shared to the requested site
       if (siteId) {
-        filteredDocuments = filteredDocuments.filter(d => d.siteId === siteId);
+        const siteForFilter = await storage.getSite(siteId);
+        filteredDocuments = (await Promise.all(filteredDocuments.map(async d => {
+          if (d.siteId === siteId) return d;
+          if (!d.siteId && (d.scope === "company" || d.scope === "group") && siteForFilter) {
+            const shares = await storage.getDocumentShares(d.id);
+            const isShared = shares.some(s =>
+              (s.entityType === "site" && s.entityId === siteId) ||
+              (s.entityType === "company" && s.entityId === siteForFilter.companyId)
+            );
+            return isShared ? d : null;
+          }
+          return null;
+        }))).filter((d): d is NonNullable<typeof d> => d !== null);
       } else if (siteIds) {
         const siteIdArray = siteIds.split(",");
-        filteredDocuments = filteredDocuments.filter(d => siteIdArray.includes(d.siteId));
+        const rawSitesForFilter = await Promise.all(siteIdArray.map(sid => storage.getSite(sid)));
+        const sitesForFilter = rawSitesForFilter.filter((s): s is NonNullable<typeof s> => s != null);
+        const filterCompanyIds = new Set(sitesForFilter.map(s => s!.companyId));
+        filteredDocuments = (await Promise.all(filteredDocuments.map(async d => {
+          if (d.siteId && siteIdArray.includes(d.siteId)) return d;
+          if (!d.siteId && (d.scope === "company" || d.scope === "group")) {
+            const shares = await storage.getDocumentShares(d.id);
+            const isShared = shares.some(s =>
+              (s.entityType === "site" && siteIdArray.includes(s.entityId)) ||
+              (s.entityType === "company" && filterCompanyIds.has(s.entityId))
+            );
+            return isShared ? d : null;
+          }
+          return null;
+        }))).filter((d): d is NonNullable<typeof d> => d !== null);
       }
       
       res.json(filteredDocuments);
@@ -2774,6 +2834,13 @@ export async function registerRoutes(
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      // For company/group scope, block deleting the last share (doc would become invisible)
+      if (doc.scope === "company" || doc.scope === "group") {
+        const currentShares = await storage.getDocumentShares(req.params.id);
+        if (currentShares.length <= 1) {
+          return res.status(400).json({ error: "Cannot remove the last share destination. A company or group-scoped document must be shared to at least one destination. Delete the document or change its scope instead." });
+        }
+      }
       const { entityType } = req.query;
       await storage.deleteDocumentShare(req.params.id, entityType as string, req.params.entityId);
       res.json({ success: true });
