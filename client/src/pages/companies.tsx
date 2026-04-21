@@ -885,8 +885,8 @@ export default function Companies() {
       </div>
 
       <Card>
-        <Table>
-          <TableHeader>
+        <Table wrapperClassName="overflow-visible">
+          <TableHeader className="[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-20 [&>tr>th]:bg-card [&>tr>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
             <TableRow>
               <TableHead>Company</TableHead>
               <TableHead>Location</TableHead>

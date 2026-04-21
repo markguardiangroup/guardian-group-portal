@@ -59,7 +59,7 @@ export function TablePagination({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-10 -mx-8 px-8 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t flex flex-wrap items-center justify-between gap-3",
+        "sticky bottom-0 z-10 -mx-8 px-8 py-3 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/50 border-t flex flex-wrap items-center justify-between gap-3",
         className,
       )}
       data-testid="table-pagination"
