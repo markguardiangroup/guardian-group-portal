@@ -425,8 +425,8 @@ export default function Sites() {
       </div>
 
       <Card>
-        <Table wrapperClassName="overflow-visible">
-          <TableHeader className="[&>tr>th]:sticky [&>tr>th]:top-0 [&>tr>th]:z-20 [&>tr>th]:bg-card [&>tr>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
+        <Table wrapperClassName="overflow-visible" className="sticky-table-header">
+          <TableHeader>
             <TableRow>
               <TableHead>Site Name</TableHead>
               <TableHead>Company</TableHead>

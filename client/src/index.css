@@ -546,6 +546,20 @@
 .module-card-stagger > *:nth-child(3) { animation-delay: 240ms; }
 .module-card-stagger > *:nth-child(4) { animation-delay: 340ms; }
 
+/* ── Sticky table header (used by paginated list pages) ───────────────── */
+/* The page-content scroll container has pt-6 (24px) padding-top, which
+   offsets sticky elements by 24px. Use a negative top to pin to the very
+   top edge of the scroll viewport. */
+.sticky-table-header thead {
+  position: sticky;
+  top: -1.5rem;
+  z-index: 20;
+}
+.sticky-table-header thead th {
+  background-color: hsl(var(--card));
+  box-shadow: inset 0 -1px 0 hsl(var(--border));
+}
+
 /* ── Login progress bar ── */
 /* ── Table rows entrance animation ─────────────────────────────────────── */
 @keyframes tableRowIn {
