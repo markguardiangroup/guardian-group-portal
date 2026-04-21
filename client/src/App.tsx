@@ -221,7 +221,15 @@ function Router() {
   );
 }
 
-function RoutePrefetcher({ userId, role }: { userId: string; role: string }) {
+function RoutePrefetcher({
+  userId,
+  role,
+  consultantPermissions,
+}: {
+  userId: string;
+  role: string;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
+}) {
   const startedRef = useRef(false);
   const { isLoading, hasVisibleAccess } = useModuleAccess();
 
@@ -230,8 +238,14 @@ function RoutePrefetcher({ userId, role }: { userId: string; role: string }) {
     if (isLoading) return; // wait until we know which modules to prefetch
     startedRef.current = true;
 
-    const isPrivileged = role === "admin" || role === "consultant";
+    const isAdmin = role === "admin";
+    const isConsultant = role === "consultant";
+    const isPrivileged = isAdmin || isConsultant;
     const canAccess = (m: ModuleType) => hasVisibleAccess(m);
+    const hasConsultantPerm = (key: "caseAdvocate" | "trainingLibrary" | "templateLibrary") =>
+      consultantPermissions?.[key] === true;
+    const canSeeTemplateLibrary = isAdmin || (isConsultant && hasConsultantPerm("templateLibrary"));
+    const canSeeTrainingLibrary = isAdmin || (isConsultant && hasConsultantPerm("trainingLibrary"));
 
     // Wait until the browser is idle so prefetches don't compete with the dashboard's first paint.
     const schedule = (cb: () => void) => {
@@ -291,21 +305,21 @@ function RoutePrefetcher({ userId, role }: { userId: string; role: string }) {
         Companies.preload();
         CompanyDetail.preload();
         UserManagement.preload();
-        TemplateLibrary.preload();
-        TrainingLibrary.preload();
         AdminReports.preload();
         AdminFeedback.preload();
         DevelopmentRoadmap.preload();
         CreateFromTemplate.preload();
       }
-      if (role === "admin") {
+      // Library pages — admins always; consultants only with the matching permission.
+      if (canSeeTemplateLibrary) TemplateLibrary.preload();
+      if (canSeeTrainingLibrary) TrainingLibrary.preload();
+      if (isAdmin) {
         AdminPathways.preload();
         AdminSources.preload();
       }
 
-      void isClient;
     });
-  }, [userId, role, hasModuleAccess]);
+  }, [userId, role, isLoading, hasVisibleAccess, consultantPermissions]);
 
   return null;
 }
@@ -588,6 +602,11 @@ function AuthenticatedApp() {
         ) : (
           <SiteFilterProvider>
             <DataPrefetcher userId={user!.id} isClientUser={user!.role === "client"} />
+            <RoutePrefetcher
+              userId={user!.id}
+              role={user!.role}
+              consultantPermissions={user!.consultantPermissions}
+            />
             <SidebarProvider style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <AppSidebar user={user} />
