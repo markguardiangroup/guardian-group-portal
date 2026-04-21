@@ -2694,30 +2694,26 @@ export async function registerRoutes(
             return res.status(400).json({ error: "Target company/group not found" });
           }
           if (isProConsultant(user)) {
-            const effectiveSources = docScope === "group"
-              ? await getEffectiveGoSources(body.entityId)
+            // For group-scope upload, pro-consultants must have DIRECT source overlap with the
+            // group-owner company itself (not via effective/member sources). Origin-side only.
+            const requiredSources = docScope === "group"
+              ? (targetCompany.sources ?? [])
               : (targetCompany.sources ?? []);
-            if (!sourcesOverlap(user.sources ?? [], effectiveSources)) {
+            if (!sourcesOverlap(user.sources ?? [], requiredSources)) {
               return res.status(403).json({ error: "Your service scope does not cover this company or group" });
             }
           } else {
-            // Standard consultant: must be assigned to at least one site in the company/group
+            // Standard consultant: must be assigned to at least one site in the OWNING company
+            // (for group-scope: group owner only, NOT member companies — origin-side only)
             const assignments = await storage.getConsultantSites(user.id!);
-            const allSites = await storage.getSites();
-            const targetCompanyIds = new Set([body.entityId]);
-            if (docScope === "group") {
-              const members = await storage.getGroupMembers(body.entityId);
-              members.forEach(m => targetCompanyIds.add(m.id));
+            const ownerSites = await storage.getSitesByCompanyId(body.entityId);
+            const ownerSiteIds = new Set(ownerSites.map(s => s.id));
+            const assignedToOwner = assignments.some(a => ownerSiteIds.has(a.siteId));
+            if (!assignedToOwner) {
+              return res.status(403).json({ error: "You are not assigned to the owning company for this document" });
             }
-            const targetSiteIds = new Set(allSites.filter(s => targetCompanyIds.has(s.companyId)).map(s => s.id));
-            const assignedToTarget = assignments.some(a => targetSiteIds.has(a.siteId));
-            if (!assignedToTarget) {
-              return res.status(403).json({ error: "You are not assigned to this company or group" });
-            }
-            const effectiveSources = docScope === "group"
-              ? await getEffectiveGoSources(body.entityId)
-              : (targetCompany.sources ?? []);
-            if (!sourcesOverlap(user.sources ?? [], effectiveSources)) {
+            // Must also have direct source overlap with the owning company (not via effective GO sources)
+            if (!sourcesOverlap(user.sources ?? [], targetCompany.sources ?? [])) {
               return res.status(403).json({ error: "Your service scope does not cover this company or group" });
             }
           }
