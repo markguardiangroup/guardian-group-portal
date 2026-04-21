@@ -1172,6 +1172,9 @@ function DocumentDetailView({ id }: { id: string }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  // Full-permission clients whose company IS the document entity can also manage shares (origin-side)
+  const isFullPermClientOrigin = (doc?: { scope?: string | null; entityId?: string | null }) =>
+    user?.role === "client" && user?.clientPermissionRole === "full" && !!doc?.entityId && user?.companyId === doc.entityId;
   const [feedback, setFeedback] = useState("");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
@@ -1236,7 +1239,7 @@ function DocumentDetailView({ id }: { id: string }) {
       const data = await res.json();
       return Array.isArray(data) ? data : (data.sites ?? []);
     },
-    enabled: !!(document && !document.isSharedLink && document.scope === "company" && document.entityId && isPrivilegedUser),
+    enabled: !!(document && !document.isSharedLink && document.scope === "company" && document.entityId && (isPrivilegedUser || isFullPermClientOrigin(document))),
   });
 
   // Available member companies for group-scoped docs (companies with matching groupOwnerId)
@@ -1248,7 +1251,7 @@ function DocumentDetailView({ id }: { id: string }) {
       if (!res.ok) return { companies: [] };
       return res.json();
     },
-    enabled: !!(document && !document.isSharedLink && document.scope === "group" && document.entityId && isPrivilegedUser),
+    enabled: !!(document && !document.isSharedLink && document.scope === "group" && document.entityId && (isPrivilegedUser || isFullPermClientOrigin(document))),
   });
 
   // Destinations not yet shared
@@ -1905,7 +1908,7 @@ function DocumentDetailView({ id }: { id: string }) {
                           <span className="text-sm font-medium">{share.entityName ?? share.entityId}</span>
                           <Badge variant="outline" className="text-xs capitalize">{share.entityType}</Badge>
                         </div>
-                        {isPrivilegedUser && (
+                        {(isPrivilegedUser || isFullPermClientOrigin(document)) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1926,8 +1929,8 @@ function DocumentDetailView({ id }: { id: string }) {
                     No destinations found.
                   </p>
                 )}
-                {/* Add destination control — shown to privileged users when unshared destinations exist */}
-                {isPrivilegedUser && availableAddDestinations.length > 0 && (
+                {/* Add destination control — shown to origin-side users when unshared destinations exist */}
+                {(isPrivilegedUser || isFullPermClientOrigin(document)) && availableAddDestinations.length > 0 && (
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t">
                     <Select value={selectedAddDestId} onValueChange={setSelectedAddDestId}>
                       <SelectTrigger className="flex-1 h-8 text-sm" data-testid="select-add-share-destination">
