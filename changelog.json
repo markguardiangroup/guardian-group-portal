@@ -78,7 +78,8 @@
         "60062e3c-d0c5-4c84-b19e-fde12146a63b",
         "d87c774e-195d-452b-b8fe-19bea4a36965",
         "9025fb43-87f2-4ce1-8e38-399cf8ede4c1",
-        "da5af77c-e3c4-4d64-9698-7d4142cf5237"
+        "da5af77c-e3c4-4d64-9698-7d4142cf5237",
+        "3ae46c03-64a0-4098-a748-257a1f9e0404"
       ],
       "entries": [
         {
@@ -607,6 +608,14 @@
           "message": "Sidebar permission-gated items now appear instantly on login (no refresh)",
           "category": "bug",
           "createdAt": "2026-04-21T11:26:07.127Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "3ae46c03-64a0-4098-a748-257a1f9e0404",
+          "patch": 5,
+          "message": "Dashboard now shows skeleton placeholders during initial load instead of flashing an empty state.",
+          "category": "bug",
+          "createdAt": "2026-04-21T12:07:43.474Z",
           "createdBy": "user-admin"
         }
       ]

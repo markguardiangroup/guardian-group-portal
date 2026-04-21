@@ -1243,7 +1243,16 @@ export default function Dashboard() {
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
 
-  const showContentSkeleton = isLoading || isAuthLoading || sitesLoading;
+  // Show skeleton until the core data the page renders is actually present.
+  // We can't rely on isLoading alone because `placeholderData: keepPreviousData`
+  // and the `= []` defaults on supporting queries hide the loading state, which
+  // caused the dashboard to flash a blank/empty layout for ~2s after login.
+  const showContentSkeleton =
+    isAuthLoading ||
+    sitesLoading ||
+    isLoading ||
+    !sites ||
+    !moduleSummaries;
 
   return (
     <div className="theme-dashboard flex flex-col h-full">
