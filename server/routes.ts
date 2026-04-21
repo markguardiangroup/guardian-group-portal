@@ -3096,12 +3096,20 @@ export async function registerRoutes(
       let isConsultantApprovalOfClientDoc = false; // Consultant approving client-uploaded doc
       
       if (user.role === "client") {
-        // Clients can only sign off on documents uploaded by consultants/admins
-        if (uploaderRole === "client") {
-          return res.status(403).json({ error: "Client-uploaded documents must be approved by a consultant or admin" });
+        // For company/group scoped docs: full-permission origin-entity clients can directly approve
+        // (regardless of who uploaded, since origin-entity sign-off is the authoritative action)
+        const isScopedOriginClient = (existingDoc.scope === "company" || existingDoc.scope === "group")
+          && user.companyId === existingDoc.entityId
+          && user.clientPermissionRole === "full";
+        
+        if (!isScopedOriginClient) {
+          // Legacy behavior: clients can only sign off on documents uploaded by consultants/admins
+          if (uploaderRole === "client") {
+            return res.status(403).json({ error: "Client-uploaded documents must be approved by a consultant or admin" });
+          }
         }
         
-        // Document must be pending for client sign-off
+        // Document must be pending for client sign-off or direct approval
         if (currentApprovalStatus !== "pending") {
           return res.status(400).json({ error: "This document is not awaiting your sign-off" });
         }
@@ -3115,7 +3123,12 @@ export async function registerRoutes(
           return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
         }
         
-        isClientSignOff = true;
+        // Scoped-doc origin client approval is a direct approval (no consultant countersign needed)
+        if (isScopedOriginClient) {
+          isConsultantApprovalOfClientDoc = true; // reuse "direct approval" path to set status to "approved"
+        } else {
+          isClientSignOff = true;
+        }
       } else {
         // Consultants/admins
         if (uploaderRole === "client") {
