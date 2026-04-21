@@ -1123,8 +1123,12 @@ export async function registerRoutes(
         : (company.sources ?? []);
       return sourcesOverlap(user.sources ?? [], effectiveSources);
     }
-    // Client: must have an explicit share record targeting their company/site
-    if (user.role === "client" && user.companyId && doc.id) {
+    // Client: origin company always has access; destination clients need an explicit share record
+    if (user.role === "client" && user.companyId) {
+      // Origin company client: user's company is the document's owning entity — always allowed
+      if (user.companyId === entityId) return true;
+      // Destination clients: must have an explicit share record
+      if (!doc.id) return false;
       const shares = await storage.getDocumentShares(doc.id);
       if (doc.scope === "company") {
         // Must be a share targeting their company directly, OR a share targeting one of their sites
@@ -1375,6 +1379,9 @@ export async function registerRoutes(
       }
       const siteExcluded = siteExcludedCache.get(site.id)!;
       const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId);
+      // Include company/group-scoped documents shared to this site in compliance scoring
+      const sharedToSite = await storage.getSharedDocumentsForSite(site.id, module, false);
+      const allSiteDocs = [...siteDocs, ...sharedToSite.filter(sd => !sd.isArchived && !sd.caseId && !sd.incidentId)];
 
       for (const rt of required) {
         if (siteExcluded.has(rt.templateId)) continue;
@@ -1384,7 +1391,7 @@ export async function registerRoutes(
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
 
         slotTotal++;
-        const matchingDocs = siteDocs.filter(d => d.templateId === rt.templateId);
+        const matchingDocs = allSiteDocs.filter(d => d.templateId === rt.templateId);
         matchingDocs.forEach(d => consumedDocIds.add(d.id));
 
         if (matchingDocs.length === 0) {
@@ -2642,6 +2649,14 @@ export async function registerRoutes(
         }
       }
 
+      // For group-scope: entityId must be a group owner company
+      if (docScope === "group" && body.entityId) {
+        const groupOwnerCompany = await storage.getCompany(body.entityId);
+        if (!groupOwnerCompany || !groupOwnerCompany.isGroupOwner) {
+          return res.status(400).json({ error: "entityId must be a group owner company for group-scoped documents" });
+        }
+      }
+
       // For company/group scope: at least 1 share destination is required and must be within hierarchy bounds
       if (docScope !== "site") {
         if (!Array.isArray(body.shareDestinations) || body.shareDestinations.length === 0) {
@@ -2820,15 +2835,29 @@ export async function registerRoutes(
   app.get("/api/documents/:id/shares", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Access denied" });
-      }
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      // Only origin users (admin, consultant, or owning-company client) can view shares
+      if (!isDocumentOriginUser(user, doc)) {
+        return res.status(403).json({ error: "Only origin users can view share details" });
+      }
       const shares = await storage.getDocumentShares(req.params.id);
-      res.json(shares);
+      // Enrich with entity names
+      const enriched = await Promise.all(shares.map(async (s) => {
+        let name: string | null = null;
+        if (s.entityType === "site") {
+          const site = await storage.getSite(s.entityId);
+          name = site?.name ?? null;
+        } else if (s.entityType === "company") {
+          const company = await storage.getCompany(s.entityId);
+          name = company?.name ?? null;
+        }
+        return { ...s, entityName: name };
+      }));
+      res.json(enriched);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch document shares" });
     }
@@ -2837,13 +2866,14 @@ export async function registerRoutes(
   app.post("/api/documents/:id/shares", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Access denied" });
-      }
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      if (!isDocumentOriginUser(user, doc)) {
+        return res.status(403).json({ error: "Only origin users can manage shares" });
+      }
       const { entityType, entityId } = req.body;
       if (!entityType || !entityId) {
         return res.status(400).json({ error: "entityType and entityId are required" });
@@ -2872,13 +2902,14 @@ export async function registerRoutes(
   app.delete("/api/documents/:id/shares/:entityId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Access denied" });
-      }
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      if (!isDocumentOriginUser(user, doc)) {
+        return res.status(403).json({ error: "Only origin users can manage shares" });
+      }
       // For company/group scope, block deleting the last share (doc would become invisible)
       if (doc.scope === "company" || doc.scope === "group") {
         const currentShares = await storage.getDocumentShares(req.params.id);

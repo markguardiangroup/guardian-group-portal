@@ -399,17 +399,13 @@ export default function DocumentUpload() {
   }, [allUsers, selectedSiteIds]);
 
   // Client approver options for company/group scope
+  // For both company and group scope, the approver must be from the ORIGIN (entity) company —
+  // only those users have write/approval access. Member-company clients are destination-only.
   const entityClientUsers = useMemo(() => {
-    if (!allUsers) return [];
-    if (docScope === "company" && selectedEntityId) {
-      return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
-    }
-    if (docScope === "group" && groupMemberCompanies && groupMemberCompanies.length > 0) {
-      const memberIds = new Set(groupMemberCompanies.map(c => c.id));
-      return allUsers.filter(u => u.role === "client" && u.companyId && memberIds.has(u.companyId));
-    }
-    return [];
-  }, [allUsers, docScope, selectedEntityId, groupMemberCompanies]);
+    if (!allUsers || !selectedEntityId) return [];
+    // Both company-scope and group-scope: entity (owner) company clients are the eligible approvers
+    return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
+  }, [allUsers, docScope, selectedEntityId]);
 
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({
@@ -1399,8 +1395,8 @@ export default function DocumentUpload() {
                         </label>
                         <p className="text-xs text-muted-foreground mb-2">
                           {docScope === "company"
-                            ? "Select the client user at the company who will review and approve this document"
-                            : "Select the client user within the group who will review and approve this document"}
+                            ? "Select the client user at the owning company who will review and approve this document"
+                            : "Select the client user at the group owner company who will review and approve this document"}
                         </p>
                         {entityClientUsers.length > 0 ? (
                           <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
@@ -1420,11 +1416,6 @@ export default function DocumentUpload() {
                                 >
                                   <span className="flex items-center gap-2">
                                     {u.fullName}
-                                    {u.companyId && (
-                                      <span className="text-xs text-muted-foreground">
-                                        ({(groupMemberCompanies ?? []).find(c => c.id === u.companyId)?.name ?? "Company"})
-                                      </span>
-                                    )}
                                     {u.status !== "active" && (
                                       <span className="text-xs text-muted-foreground">(not active)</span>
                                     )}
@@ -1438,7 +1429,7 @@ export default function DocumentUpload() {
                             <Users className="h-4 w-4 shrink-0" />
                             {docScope === "company"
                               ? "No client users found for this company. Assign users in User Management first."
-                              : "No client users found in this group's member companies."}
+                              : "No client users found for the group owner company. Assign users in User Management first."}
                           </div>
                         )}
                       </div>

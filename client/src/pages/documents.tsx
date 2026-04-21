@@ -88,6 +88,8 @@ import {
   ShieldCheck,
   Calendar,
   Save,
+  Share2,
+  MapPin,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
@@ -1190,6 +1192,36 @@ function DocumentDetailView({ id }: { id: string }) {
     queryKey: ["/api/documents", id, "audit"],
   });
 
+  const { data: documentShares, refetch: refetchShares } = useQuery<{ id: string; entityType: string; entityId: string; entityName: string | null }[]>({
+    queryKey: ["/api/documents", id, "shares"],
+    queryFn: async () => {
+      const res = await fetch(`/api/documents/${id}/shares`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(id && document && !document.isSharedLink && (document.scope === "company" || document.scope === "group")),
+  });
+
+  const removeShareMutation = useMutation({
+    mutationFn: async ({ entityId, entityType }: { entityId: string; entityType: string }) => {
+      const res = await fetch(`/api/documents/${id}/shares/${entityId}?entityType=${entityType}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to remove share");
+      }
+    },
+    onSuccess: () => {
+      refetchShares();
+      toast({ title: "Share removed" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Cannot remove share", description: err.message, variant: "destructive" });
+    },
+  });
+
   const { data: templates } = useQuery<any[]>({
     queryKey: ["/api/document-templates"],
     enabled: !!document?.templateId,
@@ -1766,6 +1798,55 @@ function DocumentDetailView({ id }: { id: string }) {
                     </Button>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Shared with section — only for origin users on company/group-scope docs */}
+          {document && !document.isSharedLink && (document.scope === "company" || document.scope === "group") && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Share2 className="h-4 w-4" />
+                  Shared with
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {document.scope === "company"
+                    ? "Sites within this company that have access to this document as a shared link."
+                    : "Member companies that have access to this document as a shared link."}
+                </p>
+              </CardHeader>
+              <CardContent>
+                {documentShares && documentShares.length > 0 ? (
+                  <ul className="divide-y">
+                    {documentShares.map((share) => (
+                      <li key={share.id} className="flex items-center justify-between py-2.5">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium">{share.entityName ?? share.entityId}</span>
+                          <Badge variant="outline" className="text-xs capitalize">{share.entityType}</Badge>
+                        </div>
+                        {isPrivilegedUser && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-destructive hover:text-destructive"
+                            disabled={documentShares.length <= 1 || removeShareMutation.isPending}
+                            title={documentShares.length <= 1 ? "Cannot remove the last share destination" : "Remove this share"}
+                            onClick={() => removeShareMutation.mutate({ entityId: share.entityId, entityType: share.entityType })}
+                            data-testid={`button-remove-share-${share.entityId}`}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No destinations found.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
