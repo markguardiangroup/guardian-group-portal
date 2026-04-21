@@ -709,32 +709,28 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
-    // Filter by site - site-scoped docs must match selected site;
-    // shared-link docs (siteId=null) are shown when the selected site belongs to a destination
-    // company (companyId !== doc.entityId, which is the origin company).
+    // Filter by site - site-scoped docs must match selected site.
+    // Shared-link docs (siteId=null) have no deterministic site affinity client-side:
+    // show them only in "all sites" mode; per-site shared doc display is handled by the
+    // hierarchy/folder view which explicitly renders a "Shared Documents" section per site.
     let matchesSite = true;
     if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.isSharedLink) {
-        const selectedSiteInfo = (sites as SiteWithCompany[] | undefined)?.find(s => s.id === selectedSiteId);
-        // Include shared doc when the site's company is not the origin company (destination context)
-        matchesSite = selectedSiteInfo?.companyId !== undefined
-          ? selectedSiteInfo.companyId !== doc.entityId
-          : false;
+        matchesSite = false;
       } else {
         matchesSite = doc.siteId === selectedSiteId;
       }
     }
     
-    // Filter by company - only show documents for sites in the selected company
+    // Filter by company - only show documents for sites in the selected company.
+    // Shared-link docs are excluded from company-filtered views for the same reason:
+    // the hierarchy view handles scoped doc display per company context.
     let matchesCompany = true;
     if (selectedCompany && selectedCompany !== "all") {
-      // Use document's companyName directly if available, otherwise look up from sites
-      const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
       if (doc.isSharedLink) {
-        // Include shared doc when the selected company is not the origin company (destination context)
-        const originCompanyName = doc.sharedFromEntityName;
-        matchesCompany = originCompanyName !== selectedCompany;
+        matchesCompany = false;
       } else {
+        const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
         matchesCompany = docCompanyName === selectedCompany;
       }
     }
