@@ -1093,56 +1093,110 @@ export async function registerRoutes(
     if (user.role === "admin") return true;
     const entityId = doc.entityId;
     if (!entityId) return false;
-    // Consultant: must have source overlap with the target company (or GO)
-    if (isProConsultant(user)) {
-      const company = await storage.getCompany(entityId);
-      if (!company) return false;
-      if (sourcesOverlap(user.sources ?? [], company.sources ?? [])) return true;
-      // For group-scope docs, entityId is the group owner; check effective sources
-      const goEffectiveSources = await getEffectiveGoSources(entityId);
-      return sourcesOverlap(user.sources ?? [], goEffectiveSources);
-    }
-    if (user.role === "consultant" && user.id) {
-      const company = await storage.getCompany(entityId);
-      if (!company) return false;
-      const assignments = await storage.getConsultantSites(user.id);
-      const allSites = await storage.getSites();
-      // Check if consultant is assigned to any site in the target company (or in the GO for group docs)
-      const targetCompanyIds = new Set([entityId]);
-      // For group-scope, also include member companies
-      if (doc.scope === "group") {
-        const members = await storage.getGroupMembers(entityId);
-        members.forEach(m => targetCompanyIds.add(m.id));
+    // Fetch shares once; needed for destination-aware access checks
+    const shares = doc.id ? await storage.getDocumentShares(doc.id) : [];
+
+    // Origin check helper: user is on the owning side of this document
+    const isOriginConsultant = async () => {
+      // Pro consultants: direct source overlap with entity company
+      if (isProConsultant(user)) {
+        const company = await storage.getCompany(entityId);
+        return !!company && sourcesOverlap(user.sources ?? [], company.sources ?? []);
       }
-      const targetSiteIds = new Set(allSites.filter(s => targetCompanyIds.has(s.companyId)).map(s => s.id));
-      const assignedToTarget = assignments.some(a => targetSiteIds.has(a.siteId));
-      if (!assignedToTarget) return false;
-      // Must also have source overlap
-      const effectiveSources = doc.scope === "group"
-        ? await getEffectiveGoSources(entityId)
-        : (company.sources ?? []);
-      return sourcesOverlap(user.sources ?? [], effectiveSources);
-    }
-    // Client: origin company always has access; destination clients need an explicit share record
-    if (user.role === "client" && user.companyId) {
-      // Origin company client: user's company is the document's owning entity — always allowed
-      if (user.companyId === entityId) return true;
-      // Destination clients: must have an explicit share record
-      if (!doc.id) return false;
-      const shares = await storage.getDocumentShares(doc.id);
-      if (doc.scope === "company") {
-        // Must be a share targeting their company directly, OR a share targeting one of their sites
-        const companyShare = shares.some(s => s.entityType === "company" && s.entityId === user.companyId);
-        if (companyShare) return true;
-        const userSites = await storage.getSitesByCompanyId(user.companyId);
-        const userSiteIds = new Set(userSites.map(s => s.id));
-        return shares.some(s => s.entityType === "site" && userSiteIds.has(s.entityId));
+      // Standard consultants: direct assignment to entity company sites + source overlap
+      if (user.role === "consultant" && user.id) {
+        const company = await storage.getCompany(entityId);
+        if (!company) return false;
+        const assignments = await storage.getConsultantSites(user.id);
+        const entitySites = await storage.getSitesByCompanyId(entityId);
+        const entitySiteIds = new Set(entitySites.map(s => s.id));
+        const assignedToEntity = assignments.some(a => entitySiteIds.has(a.siteId));
+        return assignedToEntity && sourcesOverlap(user.sources ?? [], company.sources ?? []);
       }
-      if (doc.scope === "group") {
-        // Must be a share targeting their company
+      return false;
+    };
+
+    // For company-scope: doc is owned by entityId, shared to specific sites
+    if (doc.scope === "company") {
+      // Origin client (owns the company that uploaded the doc)
+      if (user.role === "client" && user.companyId === entityId) return true;
+      // Origin consultant: has direct source overlap with the entity company
+      const originConsultant = await isOriginConsultant();
+      if (originConsultant) return true;
+      // Destination access: must have an explicit share to a site the user can access
+      // For clients: share must target a site they can actually access via canUserAccessSite
+      if (user.role === "client" && user.companyId) {
+        const siteShares = shares.filter(s => s.entityType === "site");
+        for (const share of siteShares) {
+          if (await canUserAccessSite(user, share.entityId)) return true;
+        }
+        return false;
+      }
+      // For consultants: must be assigned to one of the share-destination sites + source overlap
+      if (user.role === "consultant" && user.id) {
+        const company = await storage.getCompany(entityId);
+        if (!company) return false;
+        if (!sourcesOverlap(user.sources ?? [], company.sources ?? [])) return false;
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        const siteShares = shares.filter(s => s.entityType === "site");
+        return siteShares.some(s => assignedSiteIds.has(s.entityId));
+      }
+      // Pro consultants: source overlap with entity company + must be in a share-destination site
+      if (isProConsultant(user)) {
+        const company = await storage.getCompany(entityId);
+        if (!company) return false;
+        if (!sourcesOverlap(user.sources ?? [], company.sources ?? [])) return false;
+        // Pro consultants access all sites in their sources — allow if any share-destination site
+        // belongs to a company with matching sources
+        const allSites = await storage.getSites();
+        const shareDestSiteIds = new Set(shares.filter(s => s.entityType === "site").map(s => s.entityId));
+        const shareDestSites = allSites.filter(s => shareDestSiteIds.has(s.id));
+        for (const site of shareDestSites) {
+          if (await canUserAccessSite(user, site.id)) return true;
+        }
+        return false;
+      }
+    }
+
+    // For group-scope: doc is owned by entityId (group owner), shared to specific member companies
+    if (doc.scope === "group") {
+      // Origin client (owns the group-owner company)
+      if (user.role === "client" && user.companyId === entityId) return true;
+      // Origin consultant: has direct source overlap with the group-owner company
+      const originConsultant = await isOriginConsultant();
+      if (originConsultant) return true;
+      // Destination access: must have an explicit share to the user's company (client)
+      // or to a company the consultant is assigned to (consultant)
+      if (user.role === "client" && user.companyId) {
         return shares.some(s => s.entityType === "company" && s.entityId === user.companyId);
       }
+      // For standard consultants: must be assigned to a site in one of the share-destination companies + source overlap
+      if (user.role === "consultant" && user.id) {
+        const goEffectiveSources = await getEffectiveGoSources(entityId);
+        if (!sourcesOverlap(user.sources ?? [], goEffectiveSources)) return false;
+        const assignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+        const companyShares = shares.filter(s => s.entityType === "company");
+        for (const share of companyShares) {
+          const shareSites = await storage.getSitesByCompanyId(share.entityId);
+          if (shareSites.some(s => assignedSiteIds.has(s.id))) return true;
+        }
+        return false;
+      }
+      // Pro consultants: source overlap with GO effective sources + assignment to share destination
+      if (isProConsultant(user)) {
+        const goEffectiveSources = await getEffectiveGoSources(entityId);
+        if (!sourcesOverlap(user.sources ?? [], goEffectiveSources)) return false;
+        const companyShares = shares.filter(s => s.entityType === "company");
+        for (const share of companyShares) {
+          const company = await storage.getCompany(share.entityId);
+          if (company && sourcesOverlap(user.sources ?? [], company.sources ?? [])) return true;
+        }
+        return false;
+      }
     }
+
     return false;
   };
 
@@ -2334,6 +2388,11 @@ export async function registerRoutes(
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
+
+      // For company/group scoped docs: only origin users can upload new versions
+      if ((document.scope === "company" || document.scope === "group") && !(await isDocumentOriginUser(user, document))) {
+        return res.status(403).json({ error: "Only origin users can upload new versions of company or group scoped documents" });
+      }
       
       const { fileName, fileUrl, fileSize, mimeType, changeNote } = req.body;
       
@@ -3332,6 +3391,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
 
+      // For company/group scoped docs: only origin-level users can mutate
+      if ((doc.scope === "company" || doc.scope === "group") && !(await isDocumentOriginUser(user, doc))) {
+        return res.status(403).json({ error: "Only origin users can edit company or group scoped documents" });
+      }
+
       const body = { ...req.body };
       if ("expiryDate" in body) {
         body.expiryDate = body.expiryDate ? new Date(body.expiryDate) : null;
@@ -3418,6 +3482,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot archive documents" });
       }
 
+      // For company/group scoped docs: only origin users can archive
+      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && !(await isDocumentOriginUser(user, existingDoc))) {
+        return res.status(403).json({ error: "Only origin users can archive company or group scoped documents" });
+      }
+
       const document = await storage.updateDocument(documentId, {
         isArchived: true,
       });
@@ -3471,6 +3540,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot restore documents" });
       }
 
+      // For company/group scoped docs: only origin users can restore
+      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && !(await isDocumentOriginUser(user, existingDoc))) {
+        return res.status(403).json({ error: "Only origin users can restore company or group scoped documents" });
+      }
+
       const document = await storage.updateDocument(documentId, {
         isArchived: false,
       });
@@ -3515,6 +3589,11 @@ export async function registerRoutes(
       if (isProConsultant(user)) {
         const canAccess = await canUserAccessDocument(user, existingDoc);
         if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
+      }
+
+      // For company/group scoped docs: only origin users can delete
+      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && user.role !== "admin" && !(await isDocumentOriginUser(user, existingDoc))) {
+        return res.status(403).json({ error: "Only origin users can delete company or group scoped documents" });
       }
 
       const success = await storage.deleteDocument(documentId);
