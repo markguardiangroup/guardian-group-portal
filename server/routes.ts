@@ -6710,6 +6710,14 @@ export async function registerRoutes(
       
       // Client sees only their explicitly assigned sites (across their company + any GO member companies)
       if (user.role === "client" && user.companyId) {
+        // Full-permission clients querying sites for their OWN company (as share destination owner)
+        // should see ALL sites in that company, not just their assigned ones.
+        // This allows them to select any site as a share destination when uploading company/group scope docs.
+        if (user.clientPermissionRole === "full" && companyIdFilter && companyIdFilter === user.companyId) {
+          const ownCompanySites = allSites.filter(s => s.companyId === companyIdFilter);
+          res.json(ownCompanySites);
+          return;
+        }
         const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
         const clientSiteAssignments = await storage.getClientSites(user.id);
         const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
