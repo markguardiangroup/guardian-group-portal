@@ -84,6 +84,7 @@ import {
   X,
   LayoutDashboard,
   Building2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Accordion,
@@ -1553,6 +1554,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               View Details
                             </Link>
                           </DropdownMenuItem>
+                          {doc.isSharedLink && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/documents/${doc.id}`} data-testid={`link-view-source-${doc.id}`}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View Source Document
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => {
                             if (!doc.fileUrl) {
                               toast({ title: "File not available", description: "This document needs to be re-uploaded.", variant: "destructive" });
