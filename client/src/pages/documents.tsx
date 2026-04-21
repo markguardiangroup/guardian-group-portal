@@ -1073,19 +1073,11 @@ function DocumentsListView() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/documents/${doc.id}`}>
+                            <Link href={`/documents/${doc.id}`} data-testid={`link-view-details-${doc.id}`}>
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {doc.isSharedLink ? "View Source Document" : "View Details"}
                             </Link>
                           </DropdownMenuItem>
-                          {doc.isSharedLink && (
-                            <DropdownMenuItem asChild>
-                              <Link href={`/documents/${doc.id}`} data-testid={`link-view-source-doc-${doc.id}`}>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View Source Document
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
                           <DropdownMenuItem>
                             <Download className="mr-2 h-4 w-4" />
                             Download
