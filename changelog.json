@@ -76,7 +76,8 @@
         "d4d951da-c8a0-4d72-b127-0aa37efeb4ba",
         "3a3a8c29-aa97-49eb-a04c-6193b383ca5d",
         "60062e3c-d0c5-4c84-b19e-fde12146a63b",
-        "d87c774e-195d-452b-b8fe-19bea4a36965"
+        "d87c774e-195d-452b-b8fe-19bea4a36965",
+        "9025fb43-87f2-4ce1-8e38-399cf8ede4c1"
       ],
       "entries": [
         {
@@ -589,6 +590,14 @@
           "message": "Template source filtering: restrict template visibility by source",
           "category": "feature",
           "createdAt": "2026-04-20T15:59:29.769Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "9025fb43-87f2-4ce1-8e38-399cf8ede4c1",
+          "patch": 5,
+          "message": "Older invite links now show a clear \"replaced by newer email\" message",
+          "category": "bug",
+          "createdAt": "2026-04-21T11:22:21.180Z",
           "createdBy": "user-admin"
         }
       ]

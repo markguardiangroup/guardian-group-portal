@@ -3823,11 +3823,27 @@ export class MemStorage implements IStorage {
   }
 
   async invalidateUserInvitations(userId: string, purpose?: InvitationPurpose): Promise<void> {
+    // Soft-invalidate: mark superseded invites with invalidated_at instead of deleting.
+    // This lets the validation endpoint return a clearer message when a user clicks
+    // a link from an older email that has since been replaced.
+    const now = new Date();
     if (purpose) {
-      await db.delete(userInvitationsTable)
-        .where(and(eq(userInvitationsTable.userId, userId), eq(userInvitationsTable.purpose, purpose)));
+      await db.update(userInvitationsTable)
+        .set({ invalidatedAt: now })
+        .where(and(
+          eq(userInvitationsTable.userId, userId),
+          eq(userInvitationsTable.purpose, purpose),
+          isNull(userInvitationsTable.invalidatedAt),
+          isNull(userInvitationsTable.usedAt),
+        ));
     } else {
-      await db.delete(userInvitationsTable).where(eq(userInvitationsTable.userId, userId));
+      await db.update(userInvitationsTable)
+        .set({ invalidatedAt: now })
+        .where(and(
+          eq(userInvitationsTable.userId, userId),
+          isNull(userInvitationsTable.invalidatedAt),
+          isNull(userInvitationsTable.usedAt),
+        ));
     }
   }
 

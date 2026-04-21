@@ -153,6 +153,7 @@ export const userInvitations = pgTable("user_invitations", {
   purpose: text("purpose").$type<InvitationPurpose>().notNull().default("invite"),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"), // null if not yet used
+  invalidatedAt: timestamp("invalidated_at"), // set when superseded by a newer invite/reset
   createdBy: varchar("created_by"), // Admin/consultant who created the invite
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

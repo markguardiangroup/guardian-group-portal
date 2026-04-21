@@ -201,7 +201,7 @@ export default function SetPassword() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
                 <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
-              <CardTitle>Invalid or Expired Link</CardTitle>
+              <CardTitle>Link No Longer Valid</CardTitle>
               <CardDescription>{errorMessage}</CardDescription>
             </CardHeader>
             <CardFooter className="flex-col gap-3">

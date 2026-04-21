@@ -708,6 +708,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "This invitation has already been used" });
       }
       
+      // Check if superseded by a newer invite/reset email
+      if (invitation.invalidatedAt) {
+        return res.status(400).json({ error: "This invitation link has been replaced by a newer email. Please use the most recent invitation we sent you." });
+      }
+      
       // Check if expired
       if (new Date() > new Date(invitation.expiresAt)) {
         return res.status(400).json({ error: "This invitation has expired. Please request a new one." });
@@ -756,6 +761,10 @@ export async function registerRoutes(
       
       if (invitation.usedAt) {
         return res.status(400).json({ error: "This invitation has already been used" });
+      }
+      
+      if (invitation.invalidatedAt) {
+        return res.status(400).json({ error: "This invitation link has been replaced by a newer email. Please use the most recent invitation we sent you." });
       }
       
       if (new Date() > new Date(invitation.expiresAt)) {
@@ -1183,7 +1192,7 @@ export async function registerRoutes(
       }
       
       const invitations = await storage.getUserInvitationsByUser(req.params.userId);
-      const activeInvitation = invitations.find(inv => !inv.usedAt && new Date(inv.expiresAt) > new Date());
+      const activeInvitation = invitations.find(inv => !inv.usedAt && !inv.invalidatedAt && new Date(inv.expiresAt) > new Date());
       
       if (!activeInvitation) {
         return res.json({ hasActiveInvitation: false });
