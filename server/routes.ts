@@ -1219,21 +1219,34 @@ export async function registerRoutes(
    * from gaining approve/manage-shares access on group-scope source documents.
    */
   const isDocumentOriginUser = async (
-    user: { role: string; companyId: string | null; sources?: string[] | null },
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     doc: { scope?: string | null; entityId?: string | null; siteId?: string | null }
   ): Promise<boolean> => {
     if (user.role === "admin") return true;
     // Site-scoped: origin access = site access (handled by canUserAccessSite already)
     if (doc.siteId) return true;
-    // For company/group scope, consultants are origin only if they have direct source overlap
-    // with the owning entity company (NOT via group-effective/member-company sources)
-    if (user.role === "consultant" && doc.entityId) {
+    if (!doc.entityId) return false;
+    // For company/group scope: consultants are origin only if they are on the owning entity's side.
+    // This mirrors the isOriginConsultant logic in canUserAccessDocument:
+    //   - Pro consultants: direct source overlap with the entity company (access via sources only)
+    //   - Standard consultants: MUST be assigned to entity company's own sites AND have source overlap
+    //     (not just source overlap — destination consultants can also have source overlap)
+    if (isProConsultant(user)) {
       const entityCompany = await storage.getCompany(doc.entityId);
       if (!entityCompany) return false;
-      // Direct source overlap with the entity company's own sources
       return sourcesOverlap(user.sources ?? [], entityCompany.sources ?? []);
     }
-    if (user.role === "consultant") return false; // no entityId → no origin access
+    if (user.role === "consultant" && user.id) {
+      const entityCompany = await storage.getCompany(doc.entityId);
+      if (!entityCompany) return false;
+      // Must have source overlap AND be assigned to one of the entity company's own sites
+      if (!sourcesOverlap(user.sources ?? [], entityCompany.sources ?? [])) return false;
+      const assignments = await storage.getConsultantSites(user.id);
+      const entitySites = await storage.getSitesByCompanyId(doc.entityId);
+      const entitySiteIds = new Set(entitySites.map(s => s.id));
+      return assignments.some(a => entitySiteIds.has(a.siteId));
+    }
+    if (user.role === "consultant") return false; // no id or entityId → no origin access
     // Client: origin only if their company IS the entity
     if (user.role === "client" && user.companyId) {
       return user.companyId === doc.entityId;
