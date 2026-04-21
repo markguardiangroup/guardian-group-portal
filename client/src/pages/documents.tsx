@@ -1929,6 +1929,12 @@ function DocumentDetailView({ id }: { id: string }) {
                     No destinations found.
                   </p>
                 )}
+                {/* Informational note when at last share — scope-change back to site-only is deferred */}
+                {(isPrivilegedUser || isFullPermClientOrigin(document)) && documentShares && documentShares.length <= 1 && (
+                  <p className="mt-2 text-xs text-muted-foreground" data-testid="text-last-share-note">
+                    At least one share destination is required for {document.scope}-scoped documents. To restrict this document to a single site, archive it and re-upload as a site-scoped document.
+                  </p>
+                )}
                 {/* Add destination control — shown to origin-side users when unshared destinations exist */}
                 {(isPrivilegedUser || isFullPermClientOrigin(document)) && availableAddDestinations.length > 0 && (
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t">
