@@ -1132,8 +1132,8 @@ export async function registerRoutes(
         }
         return false;
       }
-      // For consultants: must be assigned to one of the share-destination sites + source overlap
-      if (user.role === "consultant" && user.id) {
+      // For standard consultants (non-pro): must be assigned to one of the share-destination sites + source overlap
+      if (user.role === "consultant" && user.id && !isProConsultant(user)) {
         const company = await storage.getCompany(entityId);
         if (!company) return false;
         if (!sourcesOverlap(user.sources ?? [], company.sources ?? [])) return false;
@@ -1178,8 +1178,8 @@ export async function registerRoutes(
         }
         return false;
       }
-      // For standard consultants: must be assigned to a site in one of the share-destination companies + source overlap
-      if (user.role === "consultant" && user.id) {
+      // For standard consultants (non-pro): must be assigned to a site in one of the share-destination companies + source overlap
+      if (user.role === "consultant" && user.id && !isProConsultant(user)) {
         const goEffectiveSources = await getEffectiveGoSources(entityId);
         if (!sourcesOverlap(user.sources ?? [], goEffectiveSources)) return false;
         const assignments = await storage.getConsultantSites(user.id);

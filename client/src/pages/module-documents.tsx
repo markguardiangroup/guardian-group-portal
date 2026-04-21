@@ -708,19 +708,30 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
-    // Filter by site - only show documents for the selected site (shared/scoped docs with siteId=null are always included)
+    // Filter by site - site-scoped docs must match selected site; shared-link docs (siteId=null) are shown
+    // only in "all sites" view since the hierarchy view already renders them per-site context
     let matchesSite = true;
     if (selectedSiteId && selectedSiteId !== "all") {
-      matchesSite = doc.siteId === selectedSiteId || !!(doc as any).isSharedLink;
+      if (doc.isSharedLink) {
+        // Shared docs are shown in "all sites" mode only; site-specific filtering defers to hierarchy view
+        matchesSite = false;
+      } else {
+        matchesSite = doc.siteId === selectedSiteId;
+      }
     }
     
     // Filter by company - only show documents for sites in the selected company
     let matchesCompany = true;
     if (selectedCompany && selectedCompany !== "all") {
       // Use document's companyName directly if available, otherwise look up from sites
-      // Shared docs (siteId=null) are always included in company filter
       const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
-      matchesCompany = (doc as any).isSharedLink || docCompanyName === selectedCompany;
+      // Shared docs (company/group scoped) are shown in "all companies" mode; company filter
+      // applies to site-scoped docs which have a determinable company via siteId lookup
+      if (doc.isSharedLink) {
+        matchesCompany = false;
+      } else {
+        matchesCompany = docCompanyName === selectedCompany;
+      }
     }
     
     // Filter by folder - match documents whose document type is assigned to the selected folder
