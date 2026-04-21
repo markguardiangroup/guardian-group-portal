@@ -1142,6 +1142,28 @@ export async function registerRoutes(
     return false;
   };
 
+  /**
+   * Returns true if the user has ORIGIN-level write access to the document.
+   * For site-scoped: equivalent to canUserAccessSite (any authorized user can write).
+   * For company/group-scoped: only admin, consultants, or the entity's own company clients.
+   * Destination clients (their company has a share record but is not the entity) get false.
+   */
+  const isDocumentOriginUser = (
+    user: { role: string; companyId: string | null },
+    doc: { scope?: string | null; entityId?: string | null; siteId?: string | null }
+  ): boolean => {
+    if (user.role === "admin") return true;
+    // Site-scoped: origin access = site access (handled by canUserAccessSite already)
+    if (doc.siteId) return true;
+    // Consultants: always have origin-level write for scoped docs (they manage the source)
+    if (user.role === "consultant") return true;
+    // Client: origin only if their company IS the entity
+    if (user.role === "client" && user.companyId) {
+      return user.companyId === doc.entityId;
+    }
+    return false;
+  };
+
   const canUserAccessFolder = async (
     user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     folder: { id: string; siteId: string; allocatedClientId: string | null }
@@ -2128,9 +2150,19 @@ export async function registerRoutes(
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
             ? (companyReqCacheDocs.get(companyId)?.has(doc.templateId) ?? false)
             : false;
+          // Compute shared-link metadata for destination users
+          const isSharedLink = !doc.siteId && (doc.scope === "company" || doc.scope === "group") && !isDocumentOriginUser(user, doc);
+          let sharedFromEntityName: string | null = null;
+          if (isSharedLink && doc.entityId) {
+            const entityCompany = await storage.getCompany(doc.entityId);
+            sharedFromEntityName = entityCompany?.name ?? null;
+          }
           return {
             ...doc,
             isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
+            isSharedLink,
+            sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
+            sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
           };
         })
       );
@@ -2202,15 +2234,28 @@ export async function registerRoutes(
         action: "document_viewed",
         userId: user.id,
         userName: user.fullName,
-        entityId: document.siteId,
+        entityId: document.siteId || document.entityId,
         documentId: document.id,
         supportRequestId: null,
         module: document.module,
         details: `Viewed ${document.title}`,
         metadata: null,
       });
+
+      // Add shared-link metadata for destination users
+      const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !isDocumentOriginUser(user, document);
+      let sharedFromEntityName: string | null = null;
+      if (isSharedLink && document.entityId) {
+        const entityCompany = await storage.getCompany(document.entityId);
+        sharedFromEntityName = entityCompany?.name ?? null;
+      }
       
-      res.json(document);
+      res.json({
+        ...document,
+        isSharedLink,
+        sharedScope: isSharedLink ? document.scope : undefined,
+        sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
+      });
     } catch (error) {
       console.error("Document error:", error);
       res.status(500).json({ error: "Failed to fetch document" });
@@ -2873,6 +2918,12 @@ export async function registerRoutes(
       const canAccess = await canUserAccessDocument(user, existingDoc);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
+      }
+
+      // For company/group scoped docs: only origin-level users can approve
+      // Destination clients (share recipients, not the owning company) cannot approve
+      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && !isDocumentOriginUser(user, existingDoc)) {
+        return res.status(403).json({ error: "Approval must be performed at the source document level. Shared-link recipients cannot approve." });
       }
       
       // Three-stage approval workflow for consultant-uploaded documents:

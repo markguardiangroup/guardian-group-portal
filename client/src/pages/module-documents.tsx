@@ -108,6 +108,13 @@ import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleTy
 import { moduleConfig } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
+// Enriched document with server-computed shared-link metadata
+type EnrichedDocument = Document & {
+  isSharedLink?: boolean;
+  sharedScope?: "company" | "group";
+  sharedFromEntityName?: string | null;
+};
+
 const downloadDocument = async (documentId: string, fileName: string, version?: number) => {
   try {
     const url = version 
@@ -218,6 +225,9 @@ interface HierarchyDocument {
   renewalPeriodMonths?: number | null;
   lastApprovedAt?: string | null;
   renewalDate?: string | null;
+  isSharedLink?: boolean;
+  sharedScope?: "company" | "group";
+  sharedFromEntityName?: string | null;
 }
 
 interface HierarchyFolder {
@@ -465,7 +475,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return "All Sites";
   }, [selectedSiteId, selectedCompany, sites]);
 
-  const { data: documents, isLoading } = useQuery<Document[]>({
+  const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],
   });
 
@@ -1473,6 +1483,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               {docMetaLine(doc)}
                             </p>
                           </div>
+                          {doc.isSharedLink && doc.sharedFromEntityName ? (
+                            <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={`Source: ${doc.sharedFromEntityName}`}>
+                              Shared from {doc.sharedScope === "group" ? "Group" : "Company"}
+                            </Badge>
+                          ) : null}
                           {doc.isArchived && (
                             <Badge variant="secondary" className="gap-1 bg-muted">
                               <Archive className="h-3 w-3" />
@@ -1536,7 +1551,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
-                          {isPrivilegedUser && (
+                          {isPrivilegedUser && !doc.isSharedLink && (
                             <>
                               <DropdownMenuSeparator />
                               {doc.isArchived ? (

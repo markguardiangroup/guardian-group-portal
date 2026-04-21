@@ -398,6 +398,19 @@ export default function DocumentUpload() {
     );
   }, [allUsers, selectedSiteIds]);
 
+  // Client approver options for company/group scope
+  const entityClientUsers = useMemo(() => {
+    if (!allUsers) return [];
+    if (docScope === "company" && selectedEntityId) {
+      return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
+    }
+    if (docScope === "group" && groupMemberCompanies && groupMemberCompanies.length > 0) {
+      const memberIds = new Set(groupMemberCompanies.map(c => c.id));
+      return allUsers.filter(u => u.role === "client" && u.companyId && memberIds.has(u.companyId));
+    }
+    return [];
+  }, [allUsers, docScope, selectedEntityId, groupMemberCompanies]);
+
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({
     mutationFn: async ({ siteId, module }: { siteId: string; module: string }) => {
@@ -515,7 +528,7 @@ export default function DocumentUpload() {
           fileUrl,
           fileSize: selectedFile.size,
           mimeType: selectedFile.type || "application/pdf",
-          notifyUserIds: [],
+          notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
         };
         const result = await apiRequest("POST", "/api/documents", formData);
         return [result];
@@ -1373,6 +1386,59 @@ export default function DocumentUpload() {
                             {selectedSiteIds.length > 1
                               ? "No client users have access to all selected sites. Assign users in User Management first."
                               : "No client users are assigned to this site. Assign users in User Management first."}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {requiresApproval && (docScope === "company" || docScope === "group") && selectedEntityId && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium flex items-center gap-1">
+                          {docScope === "company" ? "Company Approver" : "Group Approver"}
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {docScope === "company"
+                            ? "Select the client user at the company who will review and approve this document"
+                            : "Select the client user within the group who will review and approve this document"}
+                        </p>
+                        {entityClientUsers.length > 0 ? (
+                          <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                            <SelectTrigger
+                              className={!selectedApproverId ? "border-destructive" : ""}
+                              data-testid="select-entity-approver"
+                            >
+                              <SelectValue placeholder="Select an approver…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {entityClientUsers.map((u) => (
+                                <SelectItem
+                                  key={u.id}
+                                  value={u.id}
+                                  disabled={u.status !== "active"}
+                                  data-testid={`option-approver-${u.id}`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    {u.fullName}
+                                    {u.companyId && (
+                                      <span className="text-xs text-muted-foreground">
+                                        ({(groupMemberCompanies ?? []).find(c => c.id === u.companyId)?.name ?? "Company"})
+                                      </span>
+                                    )}
+                                    {u.status !== "active" && (
+                                      <span className="text-xs text-muted-foreground">(not active)</span>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 shrink-0" />
+                            {docScope === "company"
+                              ? "No client users found for this company. Assign users in User Management first."
+                              : "No client users found in this group's member companies."}
                           </div>
                         )}
                       </div>

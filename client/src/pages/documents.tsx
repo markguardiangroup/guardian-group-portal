@@ -92,6 +92,13 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
 
+// Enriched document type with server-computed shared-link metadata
+type EnrichedDocument = Document & {
+  isSharedLink?: boolean;
+  sharedScope?: "company" | "group";
+  sharedFromEntityName?: string | null;
+};
+
 // Type for the documents hierarchy API response
 interface DocumentHierarchyDocument {
   id: string;
@@ -248,7 +255,7 @@ function DocumentsListView() {
 
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: documents, isLoading } = useQuery<Document[]>({
+  const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents", "includeArchived"],
     queryFn: async () => {
       const res = await fetch("/api/documents?includeArchived=true", { credentials: "include" });
@@ -1028,11 +1035,19 @@ function DocumentsListView() {
                         <Badge variant="secondary" className="font-normal">
                           {documentTypeLabels[doc.type]}
                         </Badge>
-                        {doc.scope === "company" && (
-                          <Badge variant="outline" className="text-xs border-blue-400 text-blue-600 dark:text-blue-400">Company</Badge>
-                        )}
-                        {doc.scope === "group" && (
-                          <Badge variant="outline" className="text-xs border-purple-400 text-purple-600 dark:text-purple-400">Group</Badge>
+                        {doc.isSharedLink && doc.sharedFromEntityName ? (
+                          <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={`Source: ${doc.sharedFromEntityName}`}>
+                            Shared from {doc.sharedScope === "group" ? "Group" : "Company"}
+                          </Badge>
+                        ) : (
+                          <>
+                            {doc.scope === "company" && (
+                              <Badge variant="outline" className="text-xs border-blue-400 text-blue-600 dark:text-blue-400">Company</Badge>
+                            )}
+                            {doc.scope === "group" && (
+                              <Badge variant="outline" className="text-xs border-purple-400 text-purple-600 dark:text-purple-400">Group</Badge>
+                            )}
+                          </>
                         )}
                       </div>
                     </TableCell>
@@ -1090,7 +1105,7 @@ function DocumentsListView() {
                               </DropdownMenuSubContent>
                             </DropdownMenuSub>
                           )}
-                          {isPrivilegedUser && (
+                          {isPrivilegedUser && !doc.isSharedLink && (
                             <>
                               <DropdownMenuSeparator />
                               {doc.isArchived ? (
@@ -1163,7 +1178,7 @@ function DocumentDetailView({ id }: { id: string }) {
   const [editIsRequired, setEditIsRequired] = useState(false);
   const [complianceDirty, setComplianceDirty] = useState(false);
 
-  const { data: document, isLoading } = useQuery<Document>({
+  const { data: document, isLoading } = useQuery<EnrichedDocument>({
     queryKey: ["/api/documents", id],
   });
 
@@ -1368,12 +1383,18 @@ function DocumentDetailView({ id }: { id: string }) {
             </div>
           </div>
         </div>
+        {document.isSharedLink && (
+          <div className="w-full rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-4 py-2.5 text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2 mt-2">
+            <span className="font-medium">Shared from {document.sharedFromEntityName ?? (document.sharedScope === "group" ? "Group" : "Company")}.</span>
+            <span>This is a read-only shared link. To edit or approve, visit the source document.</span>
+          </div>
+        )}
         <div className="flex gap-3">
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Download
           </Button>
-          {document.approvalStatus === "pending" && (
+          {document.approvalStatus === "pending" && !document.isSharedLink && (
             <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
               <DialogTrigger asChild>
                 <Button data-testid="button-review">
