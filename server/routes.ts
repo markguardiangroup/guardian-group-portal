@@ -1075,6 +1075,69 @@ export async function registerRoutes(
     return false;
   };
 
+  /**
+   * Unified document access check that handles site-scoped, company-scoped, and group-scoped docs.
+   * For site-scoped (siteId != null): delegates to canUserAccessSite.
+   * For company/group-scoped (siteId == null): checks role and source/assignment against entityId.
+   */
+  const canUserAccessDocument = async (
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
+    doc: { siteId: string | null; scope?: string | null; entityId?: string | null }
+  ): Promise<boolean> => {
+    // Site-scoped: use existing site-level check
+    if (doc.siteId) {
+      return canUserAccessSite(user, doc.siteId);
+    }
+    // Company/group scoped (siteId is null)
+    if (user.role === "admin") return true;
+    const entityId = doc.entityId;
+    if (!entityId) return false;
+    // Consultant: must have source overlap with the target company (or GO)
+    if (isProConsultant(user)) {
+      const company = await storage.getCompany(entityId);
+      if (!company) return false;
+      if (sourcesOverlap(user.sources ?? [], company.sources ?? [])) return true;
+      // For group-scope docs, entityId is the group owner; check effective sources
+      const goEffectiveSources = await getEffectiveGoSources(entityId);
+      return sourcesOverlap(user.sources ?? [], goEffectiveSources);
+    }
+    if (user.role === "consultant" && user.id) {
+      const company = await storage.getCompany(entityId);
+      if (!company) return false;
+      const assignments = await storage.getConsultantSites(user.id);
+      const allSites = await storage.getSites();
+      // Check if consultant is assigned to any site in the target company (or in the GO for group docs)
+      const targetCompanyIds = new Set([entityId]);
+      // For group-scope, also include member companies
+      if (doc.scope === "group") {
+        const members = await storage.getGroupMembers(entityId);
+        members.forEach(m => targetCompanyIds.add(m.id));
+      }
+      const targetSiteIds = new Set(allSites.filter(s => targetCompanyIds.has(s.companyId)).map(s => s.id));
+      const assignedToTarget = assignments.some(a => targetSiteIds.has(a.siteId));
+      if (!assignedToTarget) return false;
+      // Must also have source overlap
+      const effectiveSources = doc.scope === "group"
+        ? await getEffectiveGoSources(entityId)
+        : (company.sources ?? []);
+      return sourcesOverlap(user.sources ?? [], effectiveSources);
+    }
+    // Client: can access if their company matches entityId, or their company is a member of the group
+    if (user.role === "client" && user.companyId) {
+      if (user.companyId === entityId) return true;
+      if (doc.scope === "group") {
+        // Check if user's company belongs to this group
+        const userCompany = await storage.getCompany(user.companyId);
+        return userCompany?.groupOwnerId === entityId;
+      }
+      // For company-scope: check if user is in the GO that owns the company
+      const company = await storage.getCompany(entityId);
+      if (company?.groupOwnerId && user.companyId === company.groupOwnerId) return true;
+      return false;
+    }
+    return false;
+  };
+
   const canUserAccessFolder = async (
     user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     folder: { id: string; siteId: string; allocatedClientId: string | null }
@@ -1487,7 +1550,7 @@ export async function registerRoutes(
       // Filter documents by sites the user can access AND by requested filters
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
-          const canAccess = await canUserAccessSite(user, doc.siteId);
+          const canAccess = await canUserAccessDocument(user, doc);
           if (!canAccess) return null;
           
           // Apply additional site filter if specified
@@ -1661,7 +1724,7 @@ export async function registerRoutes(
       // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
-          const canAccess = await canUserAccessSite(user, doc.siteId);
+          const canAccess = await canUserAccessDocument(user, doc);
           return canAccess ? doc : null;
         })
       );
@@ -1959,18 +2022,17 @@ export async function registerRoutes(
 
       // Include company/group scoped docs (siteId=null) that the user can access
       const scopedDocs = allDocuments.filter(d => d.siteId == null && (d.scope === "company" || d.scope === "group"));
-      const accessibleScopedDocs = scopedDocs.filter(doc => {
-        if (user.role === "admin" || user.role === "consultant") return true;
-        // Client: only see docs for their own company
-        return user.companyId === doc.entityId;
-      }).map(doc => {
-        const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
-        return {
-          ...doc,
-          isRequired: doc.isRequired || docTemplate?.isRequired || false,
-          renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
-        };
-      });
+      const scopedAccessChecks = await Promise.all(scopedDocs.map(doc => canUserAccessDocument(user, doc)));
+      const accessibleScopedDocs = scopedDocs
+        .filter((_, idx) => scopedAccessChecks[idx])
+        .map(doc => {
+          const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
+          return {
+            ...doc,
+            isRequired: doc.isRequired || docTemplate?.isRequired || false,
+            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+          };
+        });
       
       // Exclude case documents (EL), incident-linked documents (H&S), and cloud share uploads
       // These are managed in their own dedicated sections, not the module document folder
@@ -2017,10 +2079,18 @@ export async function registerRoutes(
       // Filter documents by sites the user can access
       const accessibleDocuments = await Promise.all(
         allDocuments.map(async (doc) => {
-          const canAccess = await canUserAccessSite(user, doc.siteId);
+          const canAccess = await canUserAccessDocument(user, doc);
           if (!canAccess) return null;
           const docTemplate = doc.templateId ? docTemplateMap.get(doc.templateId) : undefined;
-          const companyId = siteToCompanyDocs.get(doc.siteId);
+          // For site-scoped docs use site→company map; for company/group scoped docs use entityId directly
+          const companyId = doc.siteId
+            ? siteToCompanyDocs.get(doc.siteId)
+            : (doc.entityId || undefined);
+          // Ensure company required templates are loaded for this company
+          if (companyId && !companyReqCacheDocs.has(companyId)) {
+            const reqs = await storage.getCompanyRequiredTemplates(companyId);
+            companyReqCacheDocs.set(companyId, new Set(reqs.map(r => r.templateId)));
+          }
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
             ? (companyReqCacheDocs.get(companyId)?.has(doc.templateId) ?? false)
             : false;
@@ -2061,7 +2131,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2099,7 +2169,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2131,7 +2201,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2217,7 +2287,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2252,7 +2322,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2327,7 +2397,7 @@ export async function registerRoutes(
         });
       }
       
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2410,6 +2480,41 @@ export async function registerRoutes(
         }
         if (!body.entityId) {
           return res.status(400).json({ error: "entityId (company ID) is required for company/group scoped documents" });
+        }
+        // Validate consultant has source overlap with the target company/group (not blanket access)
+        if (user.role === "consultant") {
+          const targetCompany = await storage.getCompany(body.entityId);
+          if (!targetCompany) {
+            return res.status(400).json({ error: "Target company/group not found" });
+          }
+          if (isProConsultant(user)) {
+            const effectiveSources = docScope === "group"
+              ? await getEffectiveGoSources(body.entityId)
+              : (targetCompany.sources ?? []);
+            if (!sourcesOverlap(user.sources ?? [], effectiveSources)) {
+              return res.status(403).json({ error: "Your service scope does not cover this company or group" });
+            }
+          } else {
+            // Standard consultant: must be assigned to at least one site in the company/group
+            const assignments = await storage.getConsultantSites(user.id!);
+            const allSites = await storage.getSites();
+            const targetCompanyIds = new Set([body.entityId]);
+            if (docScope === "group") {
+              const members = await storage.getGroupMembers(body.entityId);
+              members.forEach(m => targetCompanyIds.add(m.id));
+            }
+            const targetSiteIds = new Set(allSites.filter(s => targetCompanyIds.has(s.companyId)).map(s => s.id));
+            const assignedToTarget = assignments.some(a => targetSiteIds.has(a.siteId));
+            if (!assignedToTarget) {
+              return res.status(403).json({ error: "You are not assigned to this company or group" });
+            }
+            const effectiveSources = docScope === "group"
+              ? await getEffectiveGoSources(body.entityId)
+              : (targetCompany.sources ?? []);
+            if (!sourcesOverlap(user.sources ?? [], effectiveSources)) {
+              return res.status(403).json({ error: "Your service scope does not cover this company or group" });
+            }
+          }
         }
       }
 
@@ -3494,7 +3599,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
       
-      const canAccess = await canUserAccessSite(user, document.siteId);
+      const canAccess = await canUserAccessDocument(user, document);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -9515,12 +9620,21 @@ export async function registerRoutes(
         });
       }
 
-      // Summary stats: only count required, non-archived documents (consistent with dashboard compliance)
+      // Summary stats: count required, non-archived docs from BOTH site-scoped and shared (company/group) docs
       const requiredNonArchivedDocs = siteDocuments.filter(d => {
         if (d.isArchived) return false;
         const docTmpl = moduleDocTemplates.find(dt => dt.id === d.templateId);
         return getEffectiveIsRequired(d, docTmpl);
       });
+      // Required shared docs that are not already counted via a matching site-scoped doc (avoid double-counting)
+      const siteDocTemplateIds = new Set(requiredNonArchivedDocs.map(d => d.templateId).filter(Boolean));
+      const requiredSharedDocs = sharedDocuments.filter(d => {
+        if (!d.isRequired) return false;
+        // De-duplicate: if a required slot is already satisfied by a site doc, don't count twice
+        if (d.templateId && siteDocTemplateIds.has(d.templateId)) return false;
+        return true;
+      });
+      const allRequiredDocs = [...requiredNonArchivedDocs, ...requiredSharedDocs];
       
       res.json({
         siteId,
@@ -9548,10 +9662,10 @@ export async function registerRoutes(
         sharedDocuments,
         summary: {
           totalFolders: hierarchy.length,
-          totalDocuments: siteDocuments.filter(d => !d.isArchived).length,
-          compliant: requiredNonArchivedDocs.filter(d => d.status === "compliant").length,
-          reviewRequired: requiredNonArchivedDocs.filter(d => d.status === "review_required").length,
-          overdue: requiredNonArchivedDocs.filter(d => d.status === "overdue").length,
+          totalDocuments: siteDocuments.filter(d => !d.isArchived).length + sharedDocuments.length,
+          compliant: allRequiredDocs.filter(d => d.status === "compliant").length,
+          reviewRequired: allRequiredDocs.filter(d => d.status === "review_required").length,
+          overdue: allRequiredDocs.filter(d => d.status === "overdue").length,
         },
       });
     } catch (error) {

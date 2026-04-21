@@ -1028,10 +1028,10 @@ function DocumentsListView() {
                         <Badge variant="secondary" className="font-normal">
                           {documentTypeLabels[doc.type]}
                         </Badge>
-                        {(doc as any).scope === "company" && (
+                        {doc.scope === "company" && (
                           <Badge variant="outline" className="text-xs border-blue-400 text-blue-600 dark:text-blue-400">Company</Badge>
                         )}
-                        {(doc as any).scope === "group" && (
+                        {doc.scope === "group" && (
                           <Badge variant="outline" className="text-xs border-purple-400 text-purple-600 dark:text-purple-400">Group</Badge>
                         )}
                       </div>
