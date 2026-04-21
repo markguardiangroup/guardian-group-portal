@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, type ComponentType } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
@@ -9,6 +9,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useModuleAccess } from "@/hooks/use-module-access";
+import type { ModuleType } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -22,43 +24,55 @@ import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
+
+// Eager pages — loaded in the initial bundle so login + dashboard appear instantly.
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
-import ModuleDashboard from "@/pages/module-dashboard";
-import ModuleDocuments from "@/pages/module-documents";
-import ModuleSites from "@/pages/module-sites";
-import EmploymentLawPage from "@/pages/employment-law";
-import Documents from "@/pages/documents";
-import DocumentUpload from "@/pages/document-upload";
-import Sites from "@/pages/sites";
-import SiteDetail from "@/pages/site-detail";
-import Companies from "@/pages/companies";
-import CompanyDetail from "@/pages/company-detail";
-import Reports from "@/pages/reports";
-import AdminReports from "@/pages/admin-reports";
-import Support from "@/pages/support";
-import Settings from "@/pages/settings";
-import UserManagement from "@/pages/user-management";
-import TemplateLibrary from "@/pages/template-library";
-import TrainingLibrary from "@/pages/training-library";
-import Training from "@/pages/training";
-import TrainingDashboard from "@/pages/training-dashboard";
-import TrainingCertificateUpload from "@/pages/training-certificate-upload";
-import TrainingCertificates from "@/pages/training-certificates";
-import MyTraining from "@/pages/my-training";
-import CreateFromTemplate from "@/pages/create-from-template";
-import DevelopmentRoadmap from "@/pages/development-roadmap";
-import AdminFeedback from "@/pages/admin-feedback";
-import SetPassword from "@/pages/set-password";
-import HelpGuide from "@/pages/help-guide";
-import HSIncidents from "@/pages/hs-incidents";
-import CalendarPage from "@/pages/calendar";
-import ClientUploads from "@/pages/client-uploads";
-import ToolkitDashboard from "@/pages/toolkit-dashboard";
-import ToolkitBrowse from "@/pages/toolkit-browse";
-import AdminPathways from "@/pages/admin-pathways";
-import AdminSources from "@/pages/admin-sources";
 import NotFound from "@/pages/not-found";
+import SetPassword from "@/pages/set-password";
+
+// Lazy pages — downloaded on-demand or via permission-aware background prefetch.
+type Loader<T extends ComponentType<any>> = () => Promise<{ default: T }>;
+type LazyPage<T extends ComponentType<any>> = ReturnType<typeof lazy<T>> & { preload: Loader<T> };
+function lazyPage<T extends ComponentType<any>>(loader: Loader<T>): LazyPage<T> {
+  const Component = lazy(loader) as LazyPage<T>;
+  Component.preload = loader;
+  return Component;
+}
+
+const ModuleDashboard = lazyPage(() => import("@/pages/module-dashboard"));
+const ModuleDocuments = lazyPage(() => import("@/pages/module-documents"));
+const ModuleSites = lazyPage(() => import("@/pages/module-sites"));
+const EmploymentLawPage = lazyPage(() => import("@/pages/employment-law"));
+const Documents = lazyPage(() => import("@/pages/documents"));
+const DocumentUpload = lazyPage(() => import("@/pages/document-upload"));
+const Sites = lazyPage(() => import("@/pages/sites"));
+const SiteDetail = lazyPage(() => import("@/pages/site-detail"));
+const Companies = lazyPage(() => import("@/pages/companies"));
+const CompanyDetail = lazyPage(() => import("@/pages/company-detail"));
+const Reports = lazyPage(() => import("@/pages/reports"));
+const AdminReports = lazyPage(() => import("@/pages/admin-reports"));
+const Support = lazyPage(() => import("@/pages/support"));
+const Settings = lazyPage(() => import("@/pages/settings"));
+const UserManagement = lazyPage(() => import("@/pages/user-management"));
+const TemplateLibrary = lazyPage(() => import("@/pages/template-library"));
+const TrainingLibrary = lazyPage(() => import("@/pages/training-library"));
+const Training = lazyPage(() => import("@/pages/training"));
+const TrainingDashboard = lazyPage(() => import("@/pages/training-dashboard"));
+const TrainingCertificateUpload = lazyPage(() => import("@/pages/training-certificate-upload"));
+const TrainingCertificates = lazyPage(() => import("@/pages/training-certificates"));
+const MyTraining = lazyPage(() => import("@/pages/my-training"));
+const CreateFromTemplate = lazyPage(() => import("@/pages/create-from-template"));
+const DevelopmentRoadmap = lazyPage(() => import("@/pages/development-roadmap"));
+const AdminFeedback = lazyPage(() => import("@/pages/admin-feedback"));
+const HelpGuide = lazyPage(() => import("@/pages/help-guide"));
+const HSIncidents = lazyPage(() => import("@/pages/hs-incidents"));
+const CalendarPage = lazyPage(() => import("@/pages/calendar"));
+const ClientUploads = lazyPage(() => import("@/pages/client-uploads"));
+const ToolkitDashboard = lazyPage(() => import("@/pages/toolkit-dashboard"));
+const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
+const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
+const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -129,11 +143,20 @@ function ELClientUploads() {
 }
 
 
+function RouteFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center p-8">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 function Router() {
   return (
     <>
     <ScrollToTop />
     <CanonicalTag />
+    <Suspense fallback={<RouteFallback />}>
     <Switch>
       <Route path="/" component={Dashboard} />
       
@@ -193,8 +216,98 @@ function Router() {
       <Route path="/admin/sources" component={AdminSources} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
     </>
   );
+}
+
+function RoutePrefetcher({ userId, role }: { userId: string; role: string }) {
+  const startedRef = useRef(false);
+  const { isLoading, hasVisibleAccess } = useModuleAccess();
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    if (isLoading) return; // wait until we know which modules to prefetch
+    startedRef.current = true;
+
+    const isPrivileged = role === "admin" || role === "consultant";
+    const canAccess = (m: ModuleType) => hasVisibleAccess(m);
+
+    // Wait until the browser is idle so prefetches don't compete with the dashboard's first paint.
+    const schedule = (cb: () => void) => {
+      const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+      if (typeof w.requestIdleCallback === "function") w.requestIdleCallback(cb);
+      else setTimeout(cb, 800);
+    };
+
+    schedule(() => {
+      // Pages everyone with an account can reach.
+      Settings.preload();
+      HelpGuide.preload();
+      Documents.preload();
+      DocumentUpload.preload();
+      Support.preload();
+      CalendarPage.preload();
+
+      // Module-gated pages — only fetch chunks for modules the user can access.
+      if (canAccess("health_safety")) {
+        ModuleDashboard.preload();
+        ModuleDocuments.preload();
+        ModuleSites.preload();
+        HSIncidents.preload();
+        ClientUploads.preload();
+      }
+      if (canAccess("human_resources")) {
+        ModuleDashboard.preload();
+        ModuleDocuments.preload();
+        ModuleSites.preload();
+        ClientUploads.preload();
+      }
+      if (canAccess("employment_law")) {
+        EmploymentLawPage.preload();
+        ModuleDocuments.preload();
+        ModuleSites.preload();
+        ClientUploads.preload();
+      }
+      if (canAccess("training")) {
+        Training.preload();
+        TrainingDashboard.preload();
+        MyTraining.preload();
+        TrainingCertificates.preload();
+        TrainingCertificateUpload.preload();
+      }
+      if (canAccess("toolkit")) {
+        ToolkitDashboard.preload();
+        ToolkitBrowse.preload();
+      }
+      if (canAccess("reports")) {
+        Reports.preload();
+      }
+
+      // Admin / consultant only — never download these for client users.
+      if (isPrivileged) {
+        Sites.preload();
+        SiteDetail.preload();
+        Companies.preload();
+        CompanyDetail.preload();
+        UserManagement.preload();
+        TemplateLibrary.preload();
+        TrainingLibrary.preload();
+        AdminReports.preload();
+        AdminFeedback.preload();
+        DevelopmentRoadmap.preload();
+        CreateFromTemplate.preload();
+      }
+      if (role === "admin") {
+        AdminPathways.preload();
+        AdminSources.preload();
+      }
+
+      void isClient;
+    });
+  }, [userId, role, hasModuleAccess]);
+
+  return null;
 }
 
 function LegalAcceptanceScreen() {
