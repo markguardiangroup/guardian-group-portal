@@ -725,6 +725,14 @@ export default function DocumentUpload() {
       });
       return;
     }
+    if ((docScope === "company" || docScope === "group") && data.requiresApproval && entityClientUsers.length > 0 && !selectedApproverId) {
+      toast({
+        title: "Client Approver Required",
+        description: "Please select a client approver for this document.",
+        variant: "destructive",
+      });
+      return;
+    }
     mutation.mutate(data);
   };
 

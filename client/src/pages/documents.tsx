@@ -90,6 +90,7 @@ import {
   Save,
   Share2,
   MapPin,
+  Plus,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
@@ -1222,6 +1223,63 @@ function DocumentDetailView({ id }: { id: string }) {
     },
   });
 
+  // State for add-destination picker
+  const [selectedAddDestId, setSelectedAddDestId] = useState<string>("");
+
+  // Available sites for company-scoped docs (all sites of the owning entity company)
+  const { data: entitySites } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/sites", { companyId: document?.entityId }],
+    queryFn: async () => {
+      if (!document?.entityId) return [];
+      const res = await fetch(`/api/sites?companyId=${document.entityId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.sites ?? []);
+    },
+    enabled: !!(document && !document.isSharedLink && document.scope === "company" && document.entityId && isPrivilegedUser),
+  });
+
+  // Available member companies for group-scoped docs (companies with matching groupOwnerId)
+  const { data: memberCompaniesData } = useQuery<{ companies: { id: string; name: string }[] }>({
+    queryKey: ["/api/companies", { groupOwnerId: document?.entityId }],
+    queryFn: async () => {
+      if (!document?.entityId) return { companies: [] };
+      const res = await fetch(`/api/companies?groupOwnerId=${document.entityId}&limit=1000`, { credentials: "include" });
+      if (!res.ok) return { companies: [] };
+      return res.json();
+    },
+    enabled: !!(document && !document.isSharedLink && document.scope === "group" && document.entityId && isPrivilegedUser),
+  });
+
+  // Destinations not yet shared
+  const sharedEntityIds = new Set((documentShares ?? []).map(s => s.entityId));
+  const availableAddDestinations = document?.scope === "company"
+    ? (entitySites ?? []).filter(s => !sharedEntityIds.has(s.id))
+    : (memberCompaniesData?.companies ?? []).filter(c => !sharedEntityIds.has(c.id));
+
+  const addShareMutation = useMutation({
+    mutationFn: async ({ entityId, entityType }: { entityId: string; entityType: string }) => {
+      const res = await fetch(`/api/documents/${id}/shares`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ entityId, entityType }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to add share");
+      }
+    },
+    onSuccess: () => {
+      setSelectedAddDestId("");
+      refetchShares();
+      toast({ title: "Destination added" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Cannot add destination", description: err.message, variant: "destructive" });
+    },
+  });
+
   const { data: templates } = useQuery<any[]>({
     queryKey: ["/api/document-templates"],
     enabled: !!document?.templateId,
@@ -1846,6 +1904,35 @@ function DocumentDetailView({ id }: { id: string }) {
                   <p className="py-4 text-center text-sm text-muted-foreground">
                     No destinations found.
                   </p>
+                )}
+                {/* Add destination control — shown to privileged users when unshared destinations exist */}
+                {isPrivilegedUser && availableAddDestinations.length > 0 && (
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    <Select value={selectedAddDestId} onValueChange={setSelectedAddDestId}>
+                      <SelectTrigger className="flex-1 h-8 text-sm" data-testid="select-add-share-destination">
+                        <SelectValue placeholder={document?.scope === "company" ? "Add a site…" : "Add a company…"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableAddDestinations.map((dest) => (
+                          <SelectItem key={dest.id} value={dest.id}>{dest.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      className="h-8"
+                      disabled={!selectedAddDestId || addShareMutation.isPending}
+                      onClick={() => {
+                        if (!selectedAddDestId) return;
+                        const entityType = document?.scope === "company" ? "site" : "company";
+                        addShareMutation.mutate({ entityId: selectedAddDestId, entityType });
+                      }}
+                      data-testid="button-add-share-destination"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

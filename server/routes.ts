@@ -1497,6 +1497,9 @@ export async function registerRoutes(
       }
       const siteExcluded = siteExcludedCache.get(site.id)!;
       const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      // Also include shared docs (company/group scope) that target this site
+      const sharedDocs = await storage.getSharedDocumentsForSite(site.id, module, false);
+      const allSiteDocs = [...siteDocs, ...sharedDocs.filter(d => !d.isArchived && !d.caseId)];
       const company = companyMap.get(site.companyId);
       for (const rt of required) {
         if (siteExcluded.has(rt.templateId)) continue;
@@ -1506,7 +1509,7 @@ export async function registerRoutes(
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
         // Only count as "missing" when no document has been uploaded at all for this slot
         // (docs that exist but are overdue/review-required are counted in those other stats)
-        const matchingDocs = siteDocs.filter(d => d.templateId === rt.templateId);
+        const matchingDocs = allSiteDocs.filter(d => d.templateId === rt.templateId);
         if (matchingDocs.length === 0) {
           results.push({
             templateId: rt.templateId,
@@ -9843,8 +9846,14 @@ export async function registerRoutes(
       let sharedDocuments: any[] = [];
       if (!isAllSites && targetSiteIds.length === 1) {
         const sharedForSite = await storage.getSharedDocumentsForSite(targetSiteIds[0], module as any, includeArchived);
+        // Use the target site's company required templates for isRequired calculation
+        const targetSiteCompanyId = siteToCompanyHierarchy.get(targetSiteIds[0]);
+        const targetCompanyReqSet = targetSiteCompanyId ? (companyReqCacheHierarchy.get(targetSiteCompanyId) ?? new Set<string>()) : new Set<string>();
         sharedDocuments = sharedForSite.map(d => {
           const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+          // Compute effective isRequired: source doc flag OR template flag OR company-required template
+          const isRequiredViaCompanyTemplate = d.templateId ? targetCompanyReqSet.has(d.templateId) : false;
+          const effectiveIsRequired = d.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate;
           return {
             id: d.id,
             title: d.title,
@@ -9860,7 +9869,7 @@ export async function registerRoutes(
             templateId: d.templateId,
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
-            isRequired: docTemplate?.isRequired || false,
+            isRequired: effectiveIsRequired,
             renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
             sharedScope: d.sharedScope,
             sharedFromEntityName: d.sharedFromEntityName,
