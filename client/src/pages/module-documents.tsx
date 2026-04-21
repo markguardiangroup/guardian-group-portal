@@ -1483,9 +1483,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               {docMetaLine(doc)}
                             </p>
                           </div>
-                          {doc.isSharedLink && doc.sharedFromEntityName ? (
-                            <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={`Source: ${doc.sharedFromEntityName}`}>
-                              Shared from {doc.sharedScope === "group" ? "Group" : "Company"}
+                          {doc.isSharedLink ? (
+                            <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined}>
+                              Shared from {doc.sharedScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                             </Badge>
                           ) : null}
                           {doc.isArchived && (

@@ -1038,9 +1038,9 @@ function DocumentsListView() {
                         <Badge variant="secondary" className="font-normal">
                           {documentTypeLabels[doc.type]}
                         </Badge>
-                        {doc.isSharedLink && doc.sharedFromEntityName ? (
-                          <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={`Source: ${doc.sharedFromEntityName}`}>
-                            Shared from {doc.sharedScope === "group" ? "Group" : "Company"}
+                        {doc.isSharedLink ? (
+                          <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined}>
+                            Shared from {doc.sharedScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                           </Badge>
                         ) : (
                           <>
@@ -1081,7 +1081,7 @@ function DocumentsListView() {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
-                          {canManageFolders && folders && folders.length > 0 && (
+                          {canManageFolders && !doc.isSharedLink && folders && folders.length > 0 && (
                             <DropdownMenuSub>
                               <DropdownMenuSubTrigger>
                                 <MoveRight className="mr-2 h-4 w-4" />
