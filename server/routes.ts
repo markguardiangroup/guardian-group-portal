@@ -16,7 +16,8 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 
 const execAsync = promisify(exec);
@@ -14303,6 +14304,123 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Changelog bump-after-publish error:", err);
       res.status(500).json({ error: "Failed to bump patch" });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Email Delivery Log (admin only)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * GET /api/admin/email-logs
+   * Returns a paginated, filtered list of emails sent via Resend.
+   * Query params: page, pageSize, dateRange (24h|7d|15d|30d), status, search
+   */
+  app.get("/api/admin/email-logs", requireAuth, async (req: any, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
+      const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query.pageSize ?? "20"), 10)));
+      const dateRange = String(req.query.dateRange ?? "7d");
+      const statusFilter = String(req.query.status ?? "all");
+      const search = String(req.query.search ?? "").toLowerCase().trim();
+
+      // Compute cutoff date
+      const now = Date.now();
+      const rangeMs: Record<string, number> = {
+        "24h": 24 * 60 * 60 * 1000,
+        "7d": 7 * 24 * 60 * 60 * 1000,
+        "15d": 15 * 24 * 60 * 60 * 1000,
+        "30d": 30 * 24 * 60 * 60 * 1000,
+      };
+      const cutoffMs = now - (rangeMs[dateRange] ?? rangeMs["7d"]);
+
+      // Fetch emails from Resend up to a hard cap of 500 (5 batches of 100).
+      // Resend does not support native date/status/text filtering, so we pull
+      // chronologically-ordered batches, stop early once we leave the date range,
+      // and filter server-side.  When we hit the cap without exhausting the date
+      // range we set `truncated = true` so the UI can warn the admin.
+      const FETCH_CAP = 500;
+      const allEmails: ResendEmailSummary[] = [];
+      let exhausted = false;
+      let truncated = false;
+      for (let offset = 0; offset < FETCH_CAP && !exhausted; offset += 100) {
+        const { data, error } = await listResendEmails({ limit: 100, offset });
+        if (error) {
+          return res.status(502).json({ error: `Resend API error: ${error}` });
+        }
+        if (data.length === 0) { exhausted = true; break; }
+        // Stop fetching when emails fall outside the requested date range
+        for (const email of data) {
+          const ts = email.sentAt ? new Date(email.sentAt).getTime() : 0;
+          if (ts < cutoffMs) { exhausted = true; break; }
+          allEmails.push(email);
+        }
+        if (data.length < 100) exhausted = true;
+      }
+      // If the loop ended because we reached the fetch cap (not because we ran
+      // out of data or left the date range), signal truncation to the client.
+      if (!exhausted && allEmails.length >= FETCH_CAP) truncated = true;
+
+      // Apply status and text search filters to the fetched window
+      const filtered = allEmails.filter((e) => {
+        if (statusFilter !== "all" && e.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
+        if (search) {
+          const toStr = e.to.join(" ").toLowerCase();
+          const subj = e.subject.toLowerCase();
+          if (!toStr.includes(search) && !subj.includes(search)) return false;
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      const start = (page - 1) * pageSize;
+      const paginated = filtered.slice(start, start + pageSize);
+
+      return res.json({
+        emails: paginated,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        environment: getResendEnvironment(),
+        truncated,
+      });
+    } catch (err) {
+      console.error("Email logs error:", err);
+      res.status(500).json({ error: "Failed to fetch email logs" });
+    }
+  });
+
+  /**
+   * GET /api/admin/email-logs/:id
+   * Returns full detail + event timeline for a single email.
+   */
+  app.get("/api/admin/email-logs/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { data, error } = await getResendEmail(req.params.id);
+      if (error) {
+        const isNotFound = error === "Email not found" || error.toLowerCase().includes("not_found") || error.toLowerCase().includes("not found");
+        return isNotFound
+          ? res.status(404).json({ error: "Email not found" })
+          : res.status(502).json({ error: `Resend API error: ${error}` });
+      }
+      if (!data) return res.status(404).json({ error: "Email not found" });
+
+      return res.json({ email: data, environment: getResendEnvironment() });
+    } catch (err) {
+      console.error("Email detail error:", err);
+      res.status(500).json({ error: "Failed to fetch email detail" });
     }
   });
 

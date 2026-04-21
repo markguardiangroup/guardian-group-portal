@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { GetEmailResponseSuccess, ListEmail } from "resend";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
@@ -484,6 +485,169 @@ export async function sendClientSignOffEmail({
 
   console.log(`Client sign-off email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// Resend Email Log helpers (used by Admin Reports)
+// ---------------------------------------------------------------------------
+
+export interface ResendEmailSummary {
+  id: string;
+  to: string[];
+  fromAddress: string;
+  subject: string;
+  status: string;
+  sentAt: string;
+  lastEventAt: string | null;
+}
+
+export interface ResendEmailDetail extends ResendEmailSummary {
+  replyTo: string[] | null;
+  bcc: string[] | null;
+  cc: string[] | null;
+  events: { name: string; createdAt: string; reason?: string }[];
+  errorReason?: string | null;
+}
+
+// Type guard helpers for safely accessing undocumented Resend API fields
+function getString(v: unknown): string | null {
+  return typeof v === "string" ? v : null;
+}
+
+function getStringOrFallback(v: unknown, fallback: string): string {
+  return typeof v === "string" && v.length > 0 ? v : fallback;
+}
+
+function getStringArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.filter((i): i is string => typeof i === "string");
+  return typeof v === "string" && v.length > 0 ? [v] : [];
+}
+
+function isRecordLike(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Read an undocumented field from a Resend API object.
+ * We use `as unknown as Record<string, unknown>` specifically to access fields
+ * that Resend returns but does not declare in their TypeScript definitions
+ * (e.g. `last_event_at`, `events`). All values are accessed as `unknown`
+ * and narrowed with type guards before use.
+ */
+function undoc(obj: GetEmailResponseSuccess | ListEmail, key: string): unknown {
+  return (obj as unknown as Record<string, unknown>)[key];
+}
+
+/** Extract event reason from a Resend event data payload (undocumented, varies). */
+function extractEventReason(rawEvent: Record<string, unknown>): string | null {
+  const data = rawEvent["data"];
+  if (isRecordLike(data)) {
+    const bounce = data["bounce"];
+    if (isRecordLike(bounce)) {
+      const msg = getString(bounce["message"]);
+      if (msg) return msg;
+    }
+    const reasonInData = getString(data["reason"]);
+    if (reasonInData) return reasonInData;
+    const errObj = data["error"];
+    if (isRecordLike(errObj)) {
+      const errMsg = getString(errObj["message"]);
+      if (errMsg) return errMsg;
+    }
+  }
+  const topReason = getString(rawEvent["reason"]);
+  if (topReason) return topReason;
+  const topError = rawEvent["error"];
+  if (typeof topError === "string") return topError;
+  return null;
+}
+
+export function getResendEnvironment(): "production" | "development" {
+  return IS_PRODUCTION ? "production" : "development";
+}
+
+export async function listResendEmails({
+  limit = 100,
+  offset = 0,
+}: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ data: ResendEmailSummary[]; error: string | null }> {
+  try {
+    const result = await resend.emails.list({ limit, offset });
+    if (result.error) {
+      return { data: [], error: result.error.message };
+    }
+    const emails: ListEmail[] = result.data?.data ?? [];
+    const mapped: ResendEmailSummary[] = emails.map((e) => {
+      const lastEventAt = undoc(e, "last_event_at");
+      return {
+        id: e.id,
+        to: getStringArray(e.to),
+        fromAddress: getStringOrFallback(e.from, ""),
+        subject: getStringOrFallback(e.subject, "(no subject)"),
+        status: getStringOrFallback(e.last_event, "unknown"),
+        sentAt: getStringOrFallback(e.created_at, ""),
+        lastEventAt: getString(lastEventAt) ?? getString(e.created_at),
+      };
+    });
+    return { data: mapped, error: null };
+  } catch (err: unknown) {
+    return { data: [], error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function getResendEmail(id: string): Promise<{ data: ResendEmailDetail | null; error: string | null }> {
+  try {
+    const result = await resend.emails.get(id);
+    if (result.error) {
+      return { data: null, error: result.error.message };
+    }
+    const e = result.data;
+    if (!e) return { data: null, error: "Email not found" };
+
+    // `events` is returned by the Resend API but not in its official TS types
+    const rawEvents = undoc(e, "events");
+    const eventsInput = Array.isArray(rawEvents) ? rawEvents : [];
+
+    const events: { name: string; createdAt: string; reason?: string }[] = eventsInput
+      .filter(isRecordLike)
+      .map((ev) => {
+        const name = getStringOrFallback(ev["name"] ?? ev["type"], "unknown");
+        const createdAt = getStringOrFallback(ev["created_at"] ?? ev["timestamp"], "");
+        const reason = extractEventReason(ev);
+        const eventEntry: { name: string; createdAt: string; reason?: string } = { name, createdAt };
+        if (reason) eventEntry.reason = reason;
+        return eventEntry;
+      });
+
+    // Surface the first bounce/complaint reason at the top level for easy display
+    const failedEvent = events.find((ev) => {
+      const n = ev.name.toLowerCase().replace(/^email_/, "");
+      return (n === "bounced" || n === "complained") && ev.reason;
+    });
+
+    // `last_event_at` is undocumented — access via the same helper
+    const lastEventAt = getString(undoc(e, "last_event_at")) ?? getString(e.created_at);
+
+    const detail: ResendEmailDetail = {
+      id: e.id,
+      to: getStringArray(e.to),
+      fromAddress: getStringOrFallback(e.from, ""),
+      subject: getStringOrFallback(e.subject, "(no subject)"),
+      status: getStringOrFallback(e.last_event, "unknown"),
+      sentAt: getStringOrFallback(e.created_at, ""),
+      lastEventAt,
+      replyTo: Array.isArray(e.reply_to) ? e.reply_to : null,
+      bcc: Array.isArray(e.bcc) ? e.bcc : null,
+      cc: Array.isArray(e.cc) ? e.cc : null,
+      events,
+      errorReason: failedEvent?.reason ?? null,
+    };
+    return { data: detail, error: null };
+  } catch (err: unknown) {
+    return { data: null, error: err instanceof Error ? err.message : "Unknown error" };
+  }
 }
 
 export async function sendBookingEnquiryEmail({

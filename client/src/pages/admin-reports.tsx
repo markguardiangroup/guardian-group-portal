@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -28,11 +43,23 @@ import {
   Building2,
   ClipboardList,
   History,
+  Mail,
+  Search,
+  Copy,
+  Check,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import type { UserRole, Company } from "@shared/schema";
 import ChangelogSection from "@/components/changelog-section";
+import { TablePagination, type PageSize } from "@/components/table-pagination";
+
+// ── Types ───────────────────────────────────────────────────────────────────
 
 interface UserReportData {
   id: string;
@@ -47,9 +74,491 @@ interface UserReportData {
   siteAssignments?: { siteId: string; siteName: string }[];
 }
 
+interface EmailSummary {
+  id: string;
+  to: string[];
+  fromAddress: string;
+  subject: string;
+  status: string;
+  sentAt: string;
+  lastEventAt: string | null;
+}
+
+interface EmailDetail extends EmailSummary {
+  replyTo: string[] | null;
+  bcc: string[] | null;
+  cc: string[] | null;
+  events: { name: string; createdAt: string; reason?: string }[];
+  errorReason?: string | null;
+}
+
+interface EmailLogsResponse {
+  emails: EmailSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  environment: "production" | "development";
+  truncated?: boolean;
+}
+
+interface EmailDetailResponse {
+  email: EmailDetail;
+  environment: "production" | "development";
+}
+
+// ── Status helpers ───────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  delivered:  { label: "Delivered",  className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" },
+  opened:     { label: "Opened",     className: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
+  bounced:    { label: "Bounced",    className: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800" },
+  complained: { label: "Complained", className: "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800" },
+  sent:       { label: "Sent",       className: "bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-800" },
+  clicked:    { label: "Clicked",    className: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800" },
+  unsubscribed: { label: "Unsubscribed", className: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status?.toLowerCase()] ?? { label: status ?? "Unknown", className: "bg-muted text-muted-foreground" };
+  return (
+    <Badge variant="outline" className={cfg.className}>
+      {cfg.label}
+    </Badge>
+  );
+}
+
+function safeFormatDate(iso: string | null | undefined, fmt = "dd MMM yyyy, HH:mm") {
+  if (!iso) return "—";
+  try { return format(parseISO(iso), fmt); } catch { return iso; }
+}
+
+// ── Email Detail Sheet ───────────────────────────────────────────────────────
+
+function EmailDetailSheet({
+  emailId,
+  open,
+  onOpenChange,
+}: {
+  emailId: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const { data, isLoading, isError, error, refetch } = useQuery<EmailDetailResponse>({
+    queryKey: ["/api/admin/email-logs", emailId],
+    enabled: open && !!emailId,
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+
+  // Always fetch fresh data when the sheet opens for a new email
+  useEffect(() => {
+    if (open && emailId) refetch();
+  }, [open, emailId]);
+
+  const email = data?.email;
+
+  function copyId() {
+    if (!email?.id) return;
+    navigator.clipboard.writeText(email.id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const EVENT_ORDER: Record<string, number> = {
+    email_sent: 0, sent: 0,
+    email_delivered: 1, delivered: 1,
+    email_opened: 2, opened: 2,
+    email_clicked: 3, clicked: 3,
+    email_bounced: 4, bounced: 4,
+    email_complained: 5, complained: 5,
+    email_unsubscribed: 6, unsubscribed: 6,
+  };
+
+  const sortedEvents = email?.events
+    ? [...email.events].sort((a, b) => {
+        const oa = EVENT_ORDER[a.name?.toLowerCase()] ?? 99;
+        const ob = EVENT_ORDER[b.name?.toLowerCase()] ?? 99;
+        if (oa !== ob) return oa - ob;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      })
+    : [];
+
+  function normaliseEventName(name: string) {
+    return name.replace(/^email_/, "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-testid="sheet-email-detail">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Email Details
+          </SheetTitle>
+          <SheetDescription>Full metadata and event timeline for this email.</SheetDescription>
+        </SheetHeader>
+
+        {isLoading && (
+          <div className="mt-6 space-y-3">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 w-full" />)}
+          </div>
+        )}
+
+        {isError && (
+          <div className="mt-6 flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm">{(error as Error)?.message ?? "Failed to load email details."}</p>
+          </div>
+        )}
+
+        {email && (
+          <div className="mt-6 space-y-6">
+            {/* Metadata */}
+            <div className="rounded-md border divide-y text-sm">
+              {[
+                { label: "Subject", value: email.subject },
+                { label: "To", value: email.to.join(", ") },
+                { label: "From", value: email.fromAddress },
+                ...(email.replyTo?.length ? [{ label: "Reply-To", value: email.replyTo.join(", ") }] : []),
+                ...(email.cc?.length ? [{ label: "CC", value: email.cc.join(", ") }] : []),
+                ...(email.bcc?.length ? [{ label: "BCC", value: email.bcc.join(", ") }] : []),
+                { label: "Status", value: <StatusBadge status={email.status} /> },
+                { label: "Sent", value: safeFormatDate(email.sentAt) },
+                ...(email.lastEventAt ? [{ label: "Last Event", value: safeFormatDate(email.lastEventAt) }] : []),
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-start gap-2 px-3 py-2">
+                  <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
+                  <span className="break-all font-medium">{value}</span>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="w-24 shrink-0 text-muted-foreground">Message ID</span>
+                <span className="flex-1 truncate font-mono text-xs text-muted-foreground">{email.id}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
+                  onClick={copyId}
+                  data-testid="button-copy-message-id"
+                  title="Copy message ID"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* Bounce / complaint error reason */}
+            {email.errorReason && (
+              <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 flex items-start gap-2" data-testid="text-error-reason">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+                <div>
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300">Delivery Error</p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">{email.errorReason}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Event Timeline */}
+            <div>
+              <h4 className="mb-3 font-semibold text-sm flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                Event Timeline
+              </h4>
+              {sortedEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No events recorded yet.</p>
+              ) : (
+                <ol className="relative border-l border-muted ml-2 space-y-4" data-testid="email-event-timeline">
+                  {sortedEvents.map((ev, idx) => {
+                    const statusCfg = STATUS_CONFIG[ev.name?.toLowerCase().replace(/^email_/, "")] ?? null;
+                    return (
+                      <li key={idx} className="ml-4" data-testid={`event-item-${idx}`}>
+                        <span className="absolute -left-[5px] mt-1.5 flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full border border-muted-foreground bg-background" />
+                        <div className="flex items-center gap-2">
+                          {statusCfg ? (
+                            <Badge variant="outline" className={`text-xs ${statusCfg.className}`}>
+                              {normaliseEventName(ev.name)}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm font-medium capitalize">{normaliseEventName(ev.name)}</span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{safeFormatDate(ev.createdAt)}</p>
+                        {ev.reason && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400 italic" data-testid={`event-reason-${idx}`}>
+                            {ev.reason}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+              )}
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ── Email Delivery Log Dialog ────────────────────────────────────────────────
+
+function EmailDeliveryLogDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(20);
+  const [dateRange, setDateRange] = useState("7d");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [dateRange, statusFilter, debouncedSearch, pageSize]);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const queryKey = open
+    ? [`/api/admin/email-logs?page=${page}&pageSize=${pageSize}&dateRange=${dateRange}&status=${statusFilter}&search=${encodeURIComponent(debouncedSearch)}`]
+    : null;
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<EmailLogsResponse>({
+    queryKey: queryKey ?? ["/api/admin/email-logs-disabled"],
+    enabled: open,
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+
+  // Fetch live data whenever the dialog is opened (even if cache exists)
+  useEffect(() => {
+    if (open) refetch();
+  }, [open]);
+
+  const emails = data?.emails ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+  const environment = data?.environment;
+  const truncated = data?.truncated ?? false;
+
+  function openDetail(id: string) {
+    setSelectedEmailId(id);
+    setDetailOpen(true);
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <DialogTitle className="flex items-center gap-2 text-lg">
+                  <Mail className="h-5 w-5" />
+                  Email Delivery Log
+                </DialogTitle>
+                {environment && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      environment === "production"
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                        : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                    }
+                    data-testid="badge-environment"
+                  >
+                    {environment === "production" ? "Production" : "Development"}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                data-testid="button-refresh-email-logs"
+                className="gap-1.5"
+              >
+                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </div>
+            <DialogDescription>
+              Transactional emails sent via Resend. Data is fetched live — no email metadata is stored in this app.
+            </DialogDescription>
+
+            {/* Filters */}
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search recipient or subject…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-8 h-9"
+                  data-testid="input-email-search"
+                />
+              </div>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="h-9 w-[130px]" data-testid="select-date-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="24h">Last 24h</SelectItem>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="15d">Last 15 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-[140px]" data-testid="select-status-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="opened">Opened</SelectItem>
+                  <SelectItem value="bounced">Bounced</SelectItem>
+                  <SelectItem value="complained">Complained</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </DialogHeader>
+
+          {/* Table area */}
+          <div className="flex-1 overflow-auto relative">
+            {isLoading && (
+              <div className="p-6 space-y-2">
+                {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                  <Skeleton key={i} className="h-11 w-full" />
+                ))}
+              </div>
+            )}
+
+            {isError && (
+              <div className="m-6 flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Failed to load email logs</p>
+                  <p className="text-sm mt-1 opacity-80">
+                    {(error as Error)?.message?.includes("Resend API")
+                      ? "The Resend API key may be missing or invalid. Check that RESEND_API_KEY (dev) or RESEND_API_KEY_PROD (production) is set."
+                      : (error as Error)?.message ?? "An unexpected error occurred."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && !isError && truncated && (
+              <div className="mx-6 mt-4 flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3" data-testid="banner-truncated">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Results are limited to the most recent 500 emails fetched from Resend.
+                  To see older emails, narrow the date range or check the Resend dashboard directly.
+                </p>
+              </div>
+            )}
+
+            {!isLoading && !isError && (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-6">Sent</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="pr-6 text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {emails.map((email) => (
+                      <TableRow key={email.id} data-testid={`row-email-${email.id}`}>
+                        <TableCell className="pl-6 whitespace-nowrap text-sm text-muted-foreground">
+                          {safeFormatDate(email.sentAt, "dd MMM yy, HH:mm")}
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          <span className="block truncate text-sm" title={email.to.join(", ")}>
+                            {email.to.join(", ")}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[280px]">
+                          <span className="block truncate text-sm" title={email.subject}>
+                            {email.subject}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={email.status} />
+                        </TableCell>
+                        <TableCell className="pr-6 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDetail(email.id)}
+                            data-testid={`button-email-details-${email.id}`}
+                          >
+                            Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {emails.length === 0 && !isFetching && (
+                  <div className="py-12 text-center text-muted-foreground" data-testid="text-email-empty">
+                    <Mail className="mx-auto mb-3 h-8 w-8 opacity-30" />
+                    <p className="text-sm">No emails found matching the current filters.</p>
+                  </div>
+                )}
+
+                <TablePagination
+                  page={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+                  itemLabel="emails"
+                  alwaysShow={total > 0}
+                  className="-mx-0 px-6"
+                />
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <EmailDetailSheet
+        emailId={selectedEmailId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+    </>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
+
 export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
+  const [showEmailLog, setShowEmailLog] = useState(false);
 
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: ["/api/companies?limit=1000"],
@@ -83,26 +592,26 @@ export default function AdminReports() {
 
   const downloadUsersCSV = () => {
     const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites"];
-    const rows = usersData.map(user => {
-      const company = companies.find(c => c.id === user.companyId);
-      const sites = user.siteAssignments?.map(s => s.siteName).join("; ") || "";
+    const rows = usersData.map(u => {
+      const company = companies.find(c => c.id === u.companyId);
+      const sites = u.siteAssignments?.map(s => s.siteName).join("; ") || "";
       return [
-        user.referenceNumber || "",
-        user.fullName,
-        user.email,
-        getUserRoleLabel(user),
-        user.status,
+        u.referenceNumber || "",
+        u.fullName,
+        u.email,
+        getUserRoleLabel(u),
+        u.status,
         company?.name || "",
-        user.jobTitle || "",
+        u.jobTitle || "",
         sites,
       ];
     });
-    
+
     const csvContent = [
       headers.join(","),
       ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
     ].join("\n");
-    
+
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -132,6 +641,8 @@ export default function AdminReports() {
     );
   }
 
+  const isAdmin = user.role === "admin";
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
@@ -155,7 +666,7 @@ export default function AdminReports() {
             <div>
               <p className="font-medium text-amber-800 dark:text-amber-200">Confidential Information</p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Reports in this section contain sensitive data and are only visible to administrators and consultants. 
+                Reports in this section contain sensitive data and are only visible to administrators and consultants.
                 Do not share this information with unauthorised personnel.
               </p>
             </div>
@@ -173,6 +684,7 @@ export default function AdminReports() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Users Report — visible to admins and consultants */}
             <div
               className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
               onClick={() => setShowUsersReport(true)}
@@ -189,6 +701,27 @@ export default function AdminReports() {
               </div>
               <Badge variant="secondary">View</Badge>
             </div>
+
+            {/* Email Delivery Log — admin only */}
+            {isAdmin && (
+              <div
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                onClick={() => setShowEmailLog(true)}
+                data-testid="report-email-delivery-log"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-violet-500/10">
+                    <Mail className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Email Delivery Log</p>
+                    <p className="text-sm text-muted-foreground">Live delivery status from Resend</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">View</Badge>
+              </div>
+            )}
+
             {[
               { title: "Audit Trail Export", description: "Full audit log of all user actions", format: "CSV", icon: ClipboardList },
               { title: "Access Permissions", description: "User access levels across all sites", format: "Excel", icon: ShieldAlert },
@@ -240,7 +773,7 @@ export default function AdminReports() {
               Complete list of all users with their roles and site assignments. Generated on {format(new Date(), "MMMM d, yyyy 'at' h:mm a")}.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="mt-4">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-4 text-sm">
@@ -277,49 +810,49 @@ export default function AdminReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersData.map((user) => (
-                      <TableRow key={user.id} data-testid={`report-row-user-${user.id}`}>
+                    {usersData.map((u) => (
+                      <TableRow key={u.id} data-testid={`report-row-user-${u.id}`}>
                         <TableCell>
-                          <span className="font-mono text-sm">{user.referenceNumber || "-"}</span>
+                          <span className="font-mono text-sm">{u.referenceNumber || "-"}</span>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">{user.fullName}</div>
-                          {user.jobTitle && (
-                            <div className="text-xs text-muted-foreground">{user.jobTitle}</div>
+                          <div className="font-medium">{u.fullName}</div>
+                          {u.jobTitle && (
+                            <div className="text-xs text-muted-foreground">{u.jobTitle}</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">{user.email}</TableCell>
+                        <TableCell className="text-sm">{u.email}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getUserRoleColor(user)}>
-                            {getUserRoleLabel(user)}
+                          <Badge variant="outline" className={getUserRoleColor(u)}>
+                            {getUserRoleLabel(u)}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.companyId ? (
+                          {u.companyId ? (
                             <span className="text-sm">
-                              {companies.find(c => c.id === user.companyId)?.name || "-"}
+                              {companies.find(c => c.id === u.companyId)?.name || "-"}
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.status === "active" ? "default" : "secondary"}>
-                            {user.status}
+                          <Badge variant={u.status === "active" ? "default" : "secondary"}>
+                            {u.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.siteAssignments && user.siteAssignments.length > 0 ? (
+                          {u.siteAssignments && u.siteAssignments.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {user.siteAssignments.slice(0, 3).map((site) => (
+                              {u.siteAssignments.slice(0, 3).map((site) => (
                                 <Badge key={site.siteId} variant="outline" className="text-xs">
                                   <MapPin className="h-3 w-3 mr-1" />
                                   {site.siteName}
                                 </Badge>
                               ))}
-                              {user.siteAssignments.length > 3 && (
+                              {u.siteAssignments.length > 3 && (
                                 <Badge variant="secondary" className="text-xs">
-                                  +{user.siteAssignments.length - 3} more
+                                  +{u.siteAssignments.length - 3} more
                                 </Badge>
                               )}
                             </div>
@@ -378,6 +911,14 @@ export default function AdminReports() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Email Delivery Log Dialog — admin only */}
+      {isAdmin && (
+        <EmailDeliveryLogDialog
+          open={showEmailLog}
+          onOpenChange={setShowEmailLog}
+        />
+      )}
       </div>
     </div>
   );
