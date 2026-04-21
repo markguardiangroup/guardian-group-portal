@@ -159,6 +159,11 @@ export default function Login() {
       // "10-second hang then back to login" issue.
       queryClient.setQueryData(["/api/auth/me"], userData);
 
+      // Also trigger a background refetch of /api/auth/me so any computed fields
+      // not returned by the login endpoint (e.g. companyName, legalAcceptanceRequired)
+      // are populated without requiring a manual page refresh.
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
       // Navigate straight away — the DataPrefetcher in AuthenticatedApp handles
       // background loading of all other data once the user lands on the dashboard.
       setIsSubmitting(false);
