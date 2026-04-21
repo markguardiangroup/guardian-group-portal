@@ -2670,6 +2670,10 @@ export async function registerRoutes(
 
       // Authorization: for site-scope docs check site access; for company/group scope check admin/consultant
       if (docScope === "site") {
+        // Site-scope uploads are restricted to admin and consultant roles only (preserves pre-existing behavior)
+        if (user.role === "client") {
+          return res.status(403).json({ error: "Client users cannot upload site-scoped documents. Use company or group scope instead." });
+        }
         if (!body.siteId) {
           return res.status(400).json({ error: "siteId is required for site-scoped documents" });
         }

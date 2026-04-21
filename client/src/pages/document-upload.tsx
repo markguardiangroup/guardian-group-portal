@@ -135,6 +135,7 @@ interface DocumentUploadPayload {
   expiryDate?: string | null;
   renewalPeriodMonths?: number | null;
   notifyUserIds: string[];
+  templateId?: string | null;
   // Site-scoped fields
   siteId?: string;
   folderId?: string;
@@ -161,8 +162,9 @@ export default function DocumentUpload() {
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
-  // Scope for company/group-level uploads (admin/consultant only)
-  const [docScope, setDocScope] = useState<"site" | "company" | "group">("site");
+  // Full-permission clients can only upload company/group scope docs, not site-scope
+  const [docScope, setDocScope] = useState<"site" | "company" | "group">(isFullPermissionClient ? "company" : "site");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [entitySearch, setEntitySearch] = useState("");
   // Share destinations: site IDs (company scope) or company IDs (group scope) — require at least one
@@ -563,6 +565,7 @@ export default function DocumentUpload() {
           fileSize: selectedFile.size,
           mimeType: selectedFile.type || "application/pdf",
           notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          templateId: selectedTemplateId || undefined,
         };
         const result = await apiRequest("POST", "/api/documents", formData);
         return [result];
@@ -844,7 +847,9 @@ export default function DocumentUpload() {
               <div className="mb-2">
                 <p className="text-sm font-medium mb-2">Document scope</p>
                 <div className="flex gap-2">
-                  {(["site", "company", "group"] as const).filter(scope => scope !== "group" || canUseGroupScope).map(scope => (
+                  {(["site", "company", "group"] as const).filter(scope =>
+                  (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
+                ).map(scope => (
                     <button
                       key={scope}
                       type="button"
@@ -1240,6 +1245,24 @@ export default function DocumentUpload() {
                         </FormItem>
                       )}
                     />
+
+                    {(docScope === "company" || docScope === "group") && moduleTemplates && moduleTemplates.length > 0 && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Compliance Template (optional)</label>
+                        <select
+                          value={selectedTemplateId}
+                          onChange={e => setSelectedTemplateId(e.target.value)}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          data-testid="select-template-id"
+                        >
+                          <option value="">— No template —</option>
+                          {moduleTemplates.map((t: any) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground">Linking a template allows this document to satisfy required-document compliance checks at shared destinations.</p>
+                      </div>
+                    )}
 
                     {!isModulePreselected && (
                       <FormField
