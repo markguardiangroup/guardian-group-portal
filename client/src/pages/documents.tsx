@@ -91,6 +91,7 @@ import {
   Share2,
   MapPin,
   Plus,
+  ExternalLink,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
@@ -1077,6 +1078,14 @@ function DocumentsListView() {
                               View Details
                             </Link>
                           </DropdownMenuItem>
+                          {doc.isSharedLink && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/documents/${doc.id}`} data-testid={`link-view-source-doc-${doc.id}`}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View Source Document
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem>
                             <Download className="mr-2 h-4 w-4" />
                             Download
