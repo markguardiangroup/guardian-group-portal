@@ -863,8 +863,8 @@ export default function DocumentUpload() {
                 {docScope !== "site" && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {docScope === "company"
-                      ? "This document will be visible to all sites within the selected company."
-                      : "This document will be visible to all companies and sites within the selected group."}
+                      ? "This document will be shared to specific sites within the selected company. You can manage share destinations after upload."
+                      : "This document will be shared to specific member companies within the selected group. You can manage share destinations after upload."}
                   </p>
                 )}
               </div>

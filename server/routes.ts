@@ -1169,7 +1169,14 @@ export async function registerRoutes(
       // Destination access: must have an explicit share to the user's company (client)
       // or to a company the consultant is assigned to (consultant)
       if (user.role === "client" && user.companyId) {
-        return shares.some(s => s.entityType === "company" && s.entityId === user.companyId);
+        // Must be in a shared destination company AND have site-level access within it
+        const companyShare = shares.find(s => s.entityType === "company" && s.entityId === user.companyId);
+        if (!companyShare) return false;
+        const companySites = await storage.getSitesByCompanyId(user.companyId);
+        for (const site of companySites) {
+          if (await canUserAccessSite(user, site.id)) return true;
+        }
+        return false;
       }
       // For standard consultants: must be assigned to a site in one of the share-destination companies + source overlap
       if (user.role === "consultant" && user.id) {
@@ -2155,16 +2162,29 @@ export async function registerRoutes(
       // Include company/group scoped docs (siteId=null) that the user can access
       const scopedDocs = allDocuments.filter(d => d.siteId == null && (d.scope === "company" || d.scope === "group"));
       const scopedAccessChecks = await Promise.all(scopedDocs.map(doc => canUserAccessDocument(user, doc)));
-      const accessibleScopedDocs = scopedDocs
-        .filter((_, idx) => scopedAccessChecks[idx])
-        .map(doc => {
-          const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
-          return {
-            ...doc,
-            isRequired: doc.isRequired || docTemplate?.isRequired || false,
-            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
-          };
-        });
+      const accessibleScopedDocs = await Promise.all(
+        scopedDocs
+          .filter((_, idx) => scopedAccessChecks[idx])
+          .map(async (doc) => {
+            const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
+            // Compute shared-link metadata for destination users (mirror /api/documents logic)
+            const isOrigin = await isDocumentOriginUser(user, doc);
+            const isSharedLink = !isOrigin;
+            let sharedFromEntityName: string | null = null;
+            if (isSharedLink && doc.entityId) {
+              const entityCompany = await storage.getCompany(doc.entityId);
+              sharedFromEntityName = entityCompany?.name ?? null;
+            }
+            return {
+              ...doc,
+              isRequired: doc.isRequired || docTemplate?.isRequired || false,
+              renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+              isSharedLink,
+              sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
+              sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
+            };
+          })
+      );
       
       // Exclude case documents (EL), incident-linked documents (H&S), and cloud share uploads
       // These are managed in their own dedicated sections, not the module document folder
