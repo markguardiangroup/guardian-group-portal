@@ -231,7 +231,12 @@ const createDocumentSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   type: z.string().min(1),
   documentTypeId: z.string().nullable().optional(),
-  siteId: z.string().min(1),
+  // siteId is required for site-scope docs; optional for company/group scope
+  siteId: z.string().optional().nullable(),
+  // scope: 'site' (default), 'company', or 'group'
+  scope: z.enum(["site", "company", "group"]).optional().default("site"),
+  // entityId: company ID — required for company/group scope; inferred from siteId for site scope
+  entityId: z.string().optional().nullable(),
   folderId: z.string().nullable().optional(),
   caseId: z.string().nullable().optional(),
   fileName: z.string().min(1),
@@ -251,6 +256,7 @@ const createDocumentSchema = z.object({
   requiresApproval: z.boolean().optional(),
   isRequired: z.boolean().optional(),
   notifyUserIds: z.array(z.string()).optional(),
+  renewalPeriodMonths: z.number().nullable().optional(),
 });
 
 const createCaseSchema = z.object({
@@ -1931,16 +1937,15 @@ export async function registerRoutes(
         companyReqCacheModule.set(companyId, new Set(reqs.map(r => r.templateId)));
       }));
       
-      // Filter documents by sites the user can access
+      // Filter documents by sites the user can access (site-scoped docs)
       const accessibleDocuments = await Promise.all(
-        allDocuments.map(async (doc) => {
-          
-          const canAccess = await canUserAccessSite(user, doc.siteId);
+        allDocuments.filter(d => d.siteId != null).map(async (doc) => {
+          const canAccess = await canUserAccessSite(user, doc.siteId!);
           if (!canAccess) return null;
           
           // Enrich document with template properties + company required-template check
           const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
-          const companyId = siteToCompanyModule.get(doc.siteId);
+          const companyId = siteToCompanyModule.get(doc.siteId!);
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
             ? (companyReqCacheModule.get(companyId)?.has(doc.templateId) ?? false)
             : false;
@@ -1951,12 +1956,30 @@ export async function registerRoutes(
           };
         })
       );
+
+      // Include company/group scoped docs (siteId=null) that the user can access
+      const scopedDocs = allDocuments.filter(d => d.siteId == null && (d.scope === "company" || d.scope === "group"));
+      const accessibleScopedDocs = scopedDocs.filter(doc => {
+        if (user.role === "admin" || user.role === "consultant") return true;
+        // Client: only see docs for their own company
+        return user.companyId === doc.entityId;
+      }).map(doc => {
+        const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
+        return {
+          ...doc,
+          isRequired: doc.isRequired || docTemplate?.isRequired || false,
+          renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+        };
+      });
       
       // Exclude case documents (EL), incident-linked documents (H&S), and cloud share uploads
       // These are managed in their own dedicated sections, not the module document folder
-      const regularDocs = accessibleDocuments.filter((d): d is NonNullable<typeof d> =>
-        d !== null && !d.caseId && !d.incidentId && d.source !== "external"
-      );
+      const regularDocs = [
+        ...accessibleDocuments.filter((d): d is NonNullable<typeof d> =>
+          d !== null && !d.caseId && !d.incidentId && d.source !== "external"
+        ),
+        ...accessibleScopedDocs.filter(d => !d.caseId && !d.incidentId && d.source !== "external"),
+      ];
       res.json(regularDocs);
     } catch (error) {
       console.error("Module documents error:", error);
@@ -2369,11 +2392,35 @@ export async function registerRoutes(
       }
       
       const body = parseResult.data;
-      
-      // Authorization: check if user can access this site
-      const canAccess = await canUserAccessSite(user, body.siteId);
-      if (!canAccess) {
-        return res.status(403).json({ error: "Access denied to upload documents to this site" });
+      const docScope = body.scope ?? "site";
+
+      // Authorization: for site-scope docs check site access; for company/group scope check admin/consultant
+      if (docScope === "site") {
+        if (!body.siteId) {
+          return res.status(400).json({ error: "siteId is required for site-scoped documents" });
+        }
+        const canAccess = await canUserAccessSite(user, body.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied to upload documents to this site" });
+        }
+      } else {
+        // Company/group scope — only admins and consultants can upload
+        if (user.role !== "admin" && user.role !== "consultant") {
+          return res.status(403).json({ error: "Only admins and consultants can upload company or group level documents" });
+        }
+        if (!body.entityId) {
+          return res.status(400).json({ error: "entityId (company ID) is required for company/group scoped documents" });
+        }
+      }
+
+      // Resolve entityId
+      let resolvedEntityId = body.entityId || null;
+      if (!resolvedEntityId && body.siteId) {
+        const siteForEntity = await storage.getSite(body.siteId);
+        resolvedEntityId = siteForEntity?.companyId ?? null;
+      }
+      if (!resolvedEntityId) {
+        return res.status(400).json({ error: "Could not resolve company (entityId) for this document" });
       }
       
       // Check if approval is required
@@ -2418,7 +2465,9 @@ export async function registerRoutes(
         module: body.module,
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,
-        siteId: body.siteId,
+        entityId: resolvedEntityId,
+        siteId: docScope === "site" ? (body.siteId ?? null) : null,
+        scope: docScope,
         folderId: body.folderId || null,
         caseId: body.caseId || null,
         fileName: body.fileName,
@@ -2450,17 +2499,17 @@ export async function registerRoutes(
         action: "document_uploaded",
         userId: user.id,
         userName: user.fullName,
-        entityId: body.siteId,
+        entityId: document.siteId || document.entityId,
         documentId: document.id,
         supportRequestId: null,
         module: body.module,
-        details: `Uploaded ${body.title}`,
-        metadata: null,
+        details: `Uploaded ${body.title}${docScope !== "site" ? ` (${docScope}-level document)` : ""}`,
+        metadata: docScope !== "site" ? JSON.stringify({ scope: docScope, entityId: resolvedEntityId }) : null,
       });
 
       // Send approval notification emails if document requires approval
       if (documentStatus === "review_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
-        const site = await storage.getSite(body.siteId);
+        const site = body.siteId ? await storage.getSite(body.siteId) : null;
         const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
         
         for (const notifyUserId of body.notifyUserIds) {
@@ -2486,7 +2535,7 @@ export async function registerRoutes(
                 action: "email_sent",
                 userId: user.id,
                 userName: user.fullName,
-                entityId: body.siteId,
+                entityId: document.siteId || document.entityId,
                 documentId: document.id,
                 supportRequestId: null,
                 module: body.module,
@@ -2504,6 +2553,51 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create document error:", error);
       res.status(500).json({ error: "Failed to create document" });
+    }
+  });
+
+  // Document shares endpoints
+  app.get("/api/documents/:id/shares", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const shares = await storage.getDocumentShares(req.params.id);
+      res.json(shares);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch document shares" });
+    }
+  });
+
+  app.post("/api/documents/:id/shares", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { entityType, entityId } = req.body;
+      if (!entityType || !entityId) {
+        return res.status(400).json({ error: "entityType and entityId are required" });
+      }
+      const share = await storage.createDocumentShare({ documentId: req.params.id, entityType, entityId });
+      res.status(201).json(share);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create document share" });
+    }
+  });
+
+  app.delete("/api/documents/:id/shares/:entityId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { entityType } = req.query;
+      await storage.deleteDocumentShare(req.params.id, entityType as string, req.params.entityId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete document share" });
     }
   });
 
@@ -9392,6 +9486,35 @@ export async function registerRoutes(
       const allKnownFolderIds = new Set(siteFolders.map(sf => sf.id));
       const unfiledDocuments = siteDocuments.filter(d => !d.folderId || !allKnownFolderIds.has(d.folderId));
 
+      // Fetch company/group scoped documents visible to target sites (only for single-site view)
+      let sharedDocuments: any[] = [];
+      if (!isAllSites && targetSiteIds.length === 1) {
+        const sharedForSite = await storage.getSharedDocumentsForSite(targetSiteIds[0], module as any, includeArchived);
+        sharedDocuments = sharedForSite.map(d => {
+          const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
+          return {
+            id: d.id,
+            title: d.title,
+            fileName: d.fileName,
+            version: d.version ?? 1,
+            fileSize: d.fileSize ?? null,
+            siteId: d.siteId ?? null,
+            entityId: d.entityId,
+            scope: d.scope,
+            status: d.status,
+            approvalStatus: d.approvalStatus,
+            source: d.source,
+            templateId: d.templateId,
+            expiryDate: d.expiryDate,
+            updatedAt: d.updatedAt,
+            isRequired: docTemplate?.isRequired || false,
+            renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
+            sharedScope: d.sharedScope,
+            sharedFromEntityName: d.sharedFromEntityName,
+          };
+        });
+      }
+
       // Summary stats: only count required, non-archived documents (consistent with dashboard compliance)
       const requiredNonArchivedDocs = siteDocuments.filter(d => {
         if (d.isArchived) return false;
@@ -9422,6 +9545,7 @@ export async function registerRoutes(
             renewalPeriodMonths: docTemplate?.renewalPeriodMonths || null,
           };
         }),
+        sharedDocuments,
         summary: {
           totalFolders: hierarchy.length,
           totalDocuments: siteDocuments.filter(d => !d.isArchived).length,

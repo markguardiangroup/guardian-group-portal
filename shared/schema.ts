@@ -735,6 +735,9 @@ export type DocumentFolder = typeof documentFolders.$inferSelect;
 // Document source type
 export type DocumentSource = "template" | "external";
 
+// Document scope type — site (default), company-level, or group-level
+export type DocumentScope = "site" | "company" | "group";
+
 // Documents
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -772,6 +775,10 @@ export const documents = pgTable("documents", {
   trainingCourseTitle: text("training_course_title"), // Course title for training certificates
   trainingCourseCode: text("training_course_code"), // Course code for training certificates
   trainingDate: timestamp("training_date"), // Date of training/certification
+  // Scope: 'site' = traditional site-level document; 'company' = company-level (visible to all sites in company);
+  // 'group' = group-level (visible to all companies in the group).
+  // Company/group scoped docs have siteId = null.
+  scope: text("scope").$type<DocumentScope>().notNull().default("site"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -783,6 +790,30 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 });
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Document = typeof documents.$inferSelect;
+
+// Extended document type including the shared scope context (for API responses)
+export type DocumentWithScope = Document & {
+  sharedScope?: "company" | "group";
+  sharedFromEntityName?: string | null;
+};
+
+// Document shares — explicit cross-entity sharing records.
+// Used when a company-scope document is explicitly shared to specific sites,
+// or when a group-scope document is explicitly shared to specific companies.
+// Implicit sharing (all sites in a company, all companies in a group) is derived
+// from the document's scope + entityId and does NOT need a row here.
+export const documentShares = pgTable("document_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  // entityType: 'site' = shared to a specific site; 'company' = shared to a specific company
+  entityType: text("entity_type").$type<"site" | "company">().notNull(),
+  entityId: varchar("entity_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertDocumentShareSchema = createInsertSchema(documentShares).omit({ id: true, createdAt: true });
+export type InsertDocumentShare = z.infer<typeof insertDocumentShareSchema>;
+export type DocumentShare = typeof documentShares.$inferSelect;
 
 // Document versions (for version history)
 export const documentVersions = pgTable("document_versions", {

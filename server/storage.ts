@@ -67,6 +67,9 @@ import {
   type TestingTaskAssignment, type InsertTestingTaskAssignment,
   testingTaskLists as testingTaskListsTable,
   testingTaskAssignments as testingTaskAssignmentsTable,
+  type DocumentShare, type InsertDocumentShare,
+  documentShares as documentSharesTable,
+  type DocumentScope,
   type Source, type InsertSource,
   sources as sourcesTable,
   type CaseBundle, type InsertCaseBundle,
@@ -176,6 +179,12 @@ export interface IStorage {
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
   deleteDocument(id: string): Promise<boolean>;
+  // Shared/scoped documents
+  getSharedDocumentsForSite(siteId: string, module?: ModuleType, includeArchived?: boolean): Promise<(Document & { sharedScope: "company" | "group"; sharedFromEntityName: string | null })[]>;
+  getDocumentShares(documentId: string): Promise<DocumentShare[]>;
+  createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
+  deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
+  getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   
   // Document Versions
   getDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
@@ -1163,6 +1172,101 @@ export class MemStorage implements IStorage {
     await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
     const result = await db.delete(documentsTable).where(eq(documentsTable.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Shared/scoped documents
+  async getSharedDocumentsForSite(siteId: string, module?: ModuleType, includeArchived = false): Promise<(Document & { sharedScope: "company" | "group"; sharedFromEntityName: string | null })[]> {
+    const site = await this.getSite(siteId);
+    if (!site) return [];
+    const company = await this.getCompany(site.companyId);
+    if (!company) return [];
+
+    const results: (Document & { sharedScope: "company" | "group"; sharedFromEntityName: string | null })[] = [];
+
+    // Company-level docs (scope='company', entityId=companyId, siteId=null)
+    const companyDocs = await db.select().from(documentsTable).where(
+      and(
+        eq(documentsTable.scope, "company"),
+        eq(documentsTable.entityId, site.companyId),
+        isNull(documentsTable.siteId),
+        ...(module ? [eq(documentsTable.module, module as any)] : []),
+        ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
+      )
+    );
+    for (const d of companyDocs) {
+      results.push({ ...d, sharedScope: "company", sharedFromEntityName: company.name });
+    }
+
+    // Group-level docs (scope='group', entityId=groupOwnerId, siteId=null)
+    if (company.groupOwnerId) {
+      const groupOwner = await this.getCompany(company.groupOwnerId);
+      const groupDocs = await db.select().from(documentsTable).where(
+        and(
+          eq(documentsTable.scope, "group"),
+          eq(documentsTable.entityId, company.groupOwnerId),
+          isNull(documentsTable.siteId),
+          ...(module ? [eq(documentsTable.module, module as any)] : []),
+          ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
+        )
+      );
+      for (const d of groupDocs) {
+        results.push({ ...d, sharedScope: "group", sharedFromEntityName: groupOwner?.name ?? null });
+      }
+    }
+
+    // Also check if this company IS the group owner — then fetch its own group-scope docs
+    // (a group owner company's sites also see the group docs)
+    const ownGroupDocs = await db.select().from(documentsTable).where(
+      and(
+        eq(documentsTable.scope, "group"),
+        eq(documentsTable.entityId, site.companyId),
+        isNull(documentsTable.siteId),
+        ...(module ? [eq(documentsTable.module, module as any)] : []),
+        ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
+      )
+    );
+    for (const d of ownGroupDocs) {
+      if (!results.find(r => r.id === d.id)) {
+        results.push({ ...d, sharedScope: "group", sharedFromEntityName: company.name });
+      }
+    }
+
+    return results;
+  }
+
+  async getDocumentShares(documentId: string): Promise<DocumentShare[]> {
+    return db.select().from(documentSharesTable).where(eq(documentSharesTable.documentId, documentId));
+  }
+
+  async createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare> {
+    const result = await db.insert(documentSharesTable).values({
+      ...share,
+      id: randomUUID(),
+    }).returning();
+    return result[0];
+  }
+
+  async deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean> {
+    const result = await db.delete(documentSharesTable).where(
+      and(
+        eq(documentSharesTable.documentId, documentId),
+        eq(documentSharesTable.entityType, entityType as any),
+        eq(documentSharesTable.entityId, entityId),
+      )
+    ).returning();
+    return result.length > 0;
+  }
+
+  async getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived = false): Promise<Document[]> {
+    const docs = await db.select().from(documentsTable).where(
+      and(
+        eq(documentsTable.entityId, companyId),
+        isNull(documentsTable.siteId),
+        ...(module ? [eq(documentsTable.module, module as any)] : []),
+        ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
+      )
+    );
+    return docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   // Document Versions

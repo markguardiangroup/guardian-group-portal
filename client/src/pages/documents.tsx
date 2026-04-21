@@ -1024,9 +1024,17 @@ function DocumentsListView() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="font-normal">
-                        {documentTypeLabels[doc.type]}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="secondary" className="font-normal">
+                          {documentTypeLabels[doc.type]}
+                        </Badge>
+                        {(doc as any).scope === "company" && (
+                          <Badge variant="outline" className="text-xs border-blue-400 text-blue-600 dark:text-blue-400">Company</Badge>
+                        )}
+                        {(doc as any).scope === "group" && (
+                          <Badge variant="outline" className="text-xs border-purple-400 text-purple-600 dark:text-purple-400">Group</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />

@@ -83,6 +83,7 @@ import {
   GripVertical,
   X,
   LayoutDashboard,
+  Building2,
 } from "lucide-react";
 import {
   Accordion,
@@ -237,6 +238,7 @@ interface HierarchyFolder {
 interface DocumentHierarchy {
   folders: HierarchyFolder[];
   unfiledDocuments: HierarchyDocument[];
+  sharedDocuments?: (HierarchyDocument & { sharedScope?: "company" | "group"; sharedFromEntityName?: string | null })[];
   summary: {
     totalDocuments: number;
     compliant: number;
@@ -1262,6 +1264,48 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </CardContent>
             </Card>
             </DroppableFolderZone>
+          )}
+
+          {/* Shared Documents (company or group scope) */}
+          {hierarchySiteId && hierarchy?.sharedDocuments && hierarchy.sharedDocuments.length > 0 && (
+            <Card className={`border ${moduleBorderColors[module]}`}>
+              <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
+                <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
+                  <Building2 className="h-4 w-4" />
+                  Shared Documents
+                  <Badge variant="secondary">{hierarchy.sharedDocuments.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-4">
+                {hierarchy.sharedDocuments.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`${basePath}/documents/${doc.id}`}
+                    className={`flex items-center justify-between p-3 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
+                    data-testid={`link-shared-document-${doc.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
+                      <div>
+                        <p className="font-medium text-sm">{doc.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.sharedFromEntityName
+                            ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                            : `Shared ${doc.sharedScope ?? "document"}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {doc.sharedScope === "group" ? "Group" : "Company"}
+                      </Badge>
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
           )}
         </div>
         <DragOverlay dropAnimation={null}>

@@ -65,7 +65,7 @@ const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   comments: z.string().optional(),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
-  folderId: z.string().min(1, "Please select a folder"),
+  folderId: z.string().optional(),
   requiresApproval: z.boolean().default(true),
   isRequired: z.boolean().default(false),
   reviewDate: z.string().optional(),
@@ -135,6 +135,10 @@ export default function DocumentUpload() {
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
+  // Scope for company/group-level uploads (admin/consultant only)
+  const [docScope, setDocScope] = useState<"site" | "company" | "group">("site");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [entitySearch, setEntitySearch] = useState("");
 
   // Read pre-fill params from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -163,6 +167,17 @@ export default function DocumentUpload() {
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
+
+  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean }[] }>({
+    queryKey: ["/api/companies", { limit: 1000 }],
+    queryFn: async () => {
+      const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      if (!res.ok) return { companies: [] };
+      return res.json();
+    },
+    enabled: isAdminOrConsultant,
+  });
+  const allCompanies = allCompaniesData?.companies ?? [];
 
   const { data: folderTemplates = [] } = useQuery<{ id: string }[]>({
     queryKey: ["/api/folder-templates"],
@@ -442,6 +457,31 @@ export default function DocumentUpload() {
       const uploadResult = await uploadResponse.json();
       const fileUrl = uploadResult.objectPath;
 
+      // Company or Group scoped upload — single document, no site association
+      if (docScope === "company" || docScope === "group") {
+        if (!selectedEntityId) throw new Error("Please select a target company or group");
+        const formData: Record<string, any> = {
+          title: data.title,
+          comments: data.comments,
+          module: data.module,
+          scope: docScope,
+          entityId: selectedEntityId,
+          requiresApproval: data.requiresApproval,
+          isRequired: data.isRequired,
+          reviewDate: data.reviewDate,
+          expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
+          renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
+          type: "supporting_document",
+          fileName: selectedFile.name,
+          fileUrl,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type || "application/pdf",
+          notifyUserIds: [],
+        };
+        const result = await apiRequest("POST", "/api/documents", formData);
+        return [result];
+      }
+
       const selectedFolderName = moduleFolders.find(f => f.id === data.folderId)?.name || "";
       const results = [];
 
@@ -554,15 +594,34 @@ export default function DocumentUpload() {
       });
       return;
     }
-    if (selectedSiteIds.length === 0) {
-      toast({
-        title: "No Site Selected",
-        description: "Please go back and select at least one site.",
-        variant: "destructive",
-      });
-      return;
+    if (docScope === "site") {
+      if (selectedSiteIds.length === 0) {
+        toast({
+          title: "No Site Selected",
+          description: "Please go back and select at least one site.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!data.folderId) {
+        toast({
+          title: "No Folder Selected",
+          description: "Please select a folder to organise this document.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (!selectedEntityId) {
+        toast({
+          title: "No Entity Selected",
+          description: `Please go back and select a ${docScope === "company" ? "company" : "group"}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
-    if (data.requiresApproval && siteClientUsers.length > 0 && !selectedApproverId) {
+    if (docScope === "site" && data.requiresApproval && siteClientUsers.length > 0 && !selectedApproverId) {
       toast({
         title: "Client Approver Required",
         description: "Please select a client approver for this document.",
@@ -574,7 +633,7 @@ export default function DocumentUpload() {
   };
 
   const steps = [
-    { key: "site", label: "Select Site(s)" },
+    { key: "site", label: docScope === "site" ? "Select Site(s)" : docScope === "company" ? "Select Company" : "Select Group" },
     { key: "upload", label: "Upload & Details" },
   ] as const;
 
@@ -677,11 +736,98 @@ export default function DocumentUpload() {
         <div className="flex gap-6 items-start">
         <Card className="flex-1 max-w-2xl">
           <CardHeader>
-            <CardTitle>Select Site(s)</CardTitle>
-            <CardDescription>Choose one or more sites this document will be uploaded to</CardDescription>
+            {isAdminOrConsultant && (
+              <div className="mb-2">
+                <p className="text-sm font-medium mb-2">Document scope</p>
+                <div className="flex gap-2">
+                  {(["site", "company", "group"] as const).map(scope => (
+                    <button
+                      key={scope}
+                      type="button"
+                      onClick={() => { setDocScope(scope); setSelectedEntityId(""); setEntitySearch(""); }}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                        docScope === scope
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background hover:bg-muted border-border"
+                      }`}
+                      data-testid={`button-scope-${scope}`}
+                    >
+                      {scope === "site" ? "Site" : scope === "company" ? "Company" : "Group"}
+                    </button>
+                  ))}
+                </div>
+                {docScope !== "site" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {docScope === "company"
+                      ? "This document will be visible to all sites within the selected company."
+                      : "This document will be visible to all companies and sites within the selected group."}
+                  </p>
+                )}
+              </div>
+            )}
+            <CardTitle>
+              {docScope === "site" ? "Select Site(s)" : docScope === "company" ? "Select Company" : "Select Group Owner"}
+            </CardTitle>
+            <CardDescription>
+              {docScope === "site"
+                ? "Choose one or more sites this document will be uploaded to"
+                : docScope === "company"
+                ? "Choose the company this document belongs to"
+                : "Choose the group owner company for this document"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {selectedSiteIds.length > 0 && (
+            {/* Company or Group entity picker */}
+            {(docScope === "company" || docScope === "group") && (
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={entitySearch}
+                    onChange={(e) => setEntitySearch(e.target.value)}
+                    placeholder={docScope === "company" ? "Search companies…" : "Search group owners…"}
+                    className="pl-8 h-8 text-sm"
+                    data-testid="input-entity-search"
+                  />
+                </div>
+                <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="entity-picker-list">
+                  {(allCompanies ?? [])
+                    .filter(c => docScope === "group" ? c.isGroupOwner : true)
+                    .filter(c => !entitySearch.trim() || c.name.toLowerCase().includes(entitySearch.toLowerCase()))
+                    .map(company => (
+                      <button
+                        key={company.id}
+                        type="button"
+                        onClick={() => setSelectedEntityId(company.id)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
+                          selectedEntityId === company.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                        }`}
+                        data-testid={`button-entity-select-${company.id}`}
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        {company.name}
+                        {selectedEntityId === company.id && <Check className="h-3.5 w-3.5 ml-auto" />}
+                      </button>
+                    ))
+                  }
+                </div>
+                {selectedEntityId && (
+                  <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm w-fit" data-testid="badge-selected-entity">
+                    <Building2 className="h-3 w-3 text-primary shrink-0" />
+                    <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEntityId("")}
+                      className="text-muted-foreground hover:text-foreground ml-0.5"
+                      data-testid="button-clear-entity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {docScope === "site" && selectedSiteIds.length > 0 && (
               <div className="space-y-1.5">
                 {(() => {
                   const companyName = sites?.find(s => s.id === selectedSiteIds[0])?.companyName;
@@ -715,7 +861,7 @@ export default function DocumentUpload() {
               </div>
             )}
 
-            <div className="relative">
+            {docScope === "site" && <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={sitePickerSearch}
@@ -724,9 +870,10 @@ export default function DocumentUpload() {
                 className="pl-8 h-8 text-sm"
                 data-testid="input-site-picker-search"
               />
-            </div>
+            </div>}
 
-            {!sites ? (
+            {docScope === "site" && (
+            !sites ? (
               <p className="text-sm text-muted-foreground">Loading sites…</p>
             ) : filteredSiteGroups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matching sites found.</p>
@@ -802,15 +949,24 @@ export default function DocumentUpload() {
                 });
               })()}
             </div>
-            )}
+            ))}
           </CardContent>
           <div className="px-6 pb-6 flex justify-end">
             <Button
-              onClick={() => setShowSiteConfirmDialog(true)}
-              disabled={selectedSiteIds.length === 0}
+              onClick={() => {
+                if (docScope === "site") {
+                  setShowSiteConfirmDialog(true);
+                } else {
+                  if (!selectedEntityId) return;
+                  setUploadStep("upload");
+                }
+              }}
+              disabled={docScope === "site" ? selectedSiteIds.length === 0 : !selectedEntityId}
               data-testid="button-continue-to-upload"
             >
-              Continue{selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}
+              {docScope === "site"
+                ? `Continue${selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}`
+                : "Continue"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -842,7 +998,11 @@ export default function DocumentUpload() {
               <CardHeader>
                 <CardTitle>Document Details</CardTitle>
                 <CardDescription>
-                  {selectedSiteIds.length > 1
+                  {docScope === "company"
+                    ? `Uploading to company: ${allCompanies?.find(c => c.id === selectedEntityId)?.name ?? "selected company"}`
+                    : docScope === "group"
+                    ? `Uploading to group: ${allCompanies?.find(c => c.id === selectedEntityId)?.name ?? "selected group"}`
+                    : selectedSiteIds.length > 1
                     ? `Uploading to ${selectedSiteIds.length} sites`
                     : `Uploading to ${selectedSiteObjects[0]?.name ?? "selected site"}`}
                 </CardDescription>
@@ -934,6 +1094,7 @@ export default function DocumentUpload() {
                       </div>
                     )}
 
+                    {docScope === "site" && (
                     <FormField
                       control={form.control}
                       name="folderId"
@@ -975,6 +1136,7 @@ export default function DocumentUpload() {
                         </FormItem>
                       )}
                     />
+                    )}
 
                     <FormField
                       control={form.control}
