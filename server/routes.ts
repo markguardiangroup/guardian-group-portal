@@ -2995,6 +2995,12 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Destination company must be a member of the group owner" });
         }
       }
+      // Check for duplicate share
+      const existingShares = await storage.getDocumentShares(req.params.id);
+      const alreadyShared = existingShares.some(s => s.entityType === entityType && s.entityId === entityId);
+      if (alreadyShared) {
+        return res.status(409).json({ error: "This document is already shared to the specified destination" });
+      }
       const share = await storage.createDocumentShare({ documentId: req.params.id, entityType, entityId });
       res.status(201).json(share);
     } catch (error) {
