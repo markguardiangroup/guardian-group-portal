@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
-import type { Site, ModuleType } from "@shared/schema";
+import type { Site, ModuleType, DocumentTypeRecord } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
@@ -253,7 +253,7 @@ export default function DocumentUpload() {
     queryKey: ["/api/folder-templates"],
   });
 
-  const { data: moduleTemplates } = useQuery<any[]>({
+  const { data: moduleTemplates } = useQuery<DocumentTypeRecord[]>({
     queryKey: ["/api/document-templates", initialModule],
     queryFn: async () => {
       const res = await fetch(`/api/document-templates?module=${initialModule}`, { credentials: "include" });
@@ -1256,7 +1256,7 @@ export default function DocumentUpload() {
                           data-testid="select-template-id"
                         >
                           <option value="">— No template —</option>
-                          {moduleTemplates.map((t: any) => (
+                          {moduleTemplates.map((t) => (
                             <option key={t.id} value={t.id}>{t.name}</option>
                           ))}
                         </select>

@@ -1477,12 +1477,9 @@ function DocumentDetailView({ id }: { id: string }) {
           </div>
         </div>
         {document.isSharedLink && (
-          <div className="w-full rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-4 py-2.5 text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2 mt-2">
-            <span className="font-medium">Shared from {document.sharedFromEntityName ?? (document.sharedScope === "group" ? "Group" : "Company")}.</span>
-            <span>This is a read-only shared link.</span>
-            <Link href={`/documents/${document.id}`} className="underline font-medium hover:text-blue-900 dark:hover:text-blue-200 ml-1" data-testid="link-view-source-document">
-              View source document →
-            </Link>
+          <div className="w-full rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-4 py-2.5 text-sm text-blue-800 dark:text-blue-300 flex items-start gap-2 mt-2" data-testid="banner-shared-link">
+            <span className="font-medium shrink-0">Shared from {document.sharedFromEntityName ?? (document.sharedScope === "group" ? "Group" : "Company")}.</span>
+            <span>This is a read-only shared link. To edit, replace, or approve this document, sign in to the owning {document.sharedScope === "group" ? "group owner" : "company"} account{document.sharedFromEntityName ? ` (${document.sharedFromEntityName})` : ""}.</span>
           </div>
         )}
         <div className="flex gap-3">
