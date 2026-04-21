@@ -139,6 +139,9 @@ export default function DocumentUpload() {
   const [docScope, setDocScope] = useState<"site" | "company" | "group">("site");
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [entitySearch, setEntitySearch] = useState("");
+  // Share destinations: site IDs (company scope) or company IDs (group scope) — require at least one
+  const [shareDestinations, setShareDestinations] = useState<string[]>([]);
+  const [destSearch, setDestSearch] = useState("");
 
   // Read pre-fill params from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -178,6 +181,31 @@ export default function DocumentUpload() {
     enabled: isAdminOrConsultant,
   });
   const allCompanies = allCompaniesData?.companies ?? [];
+
+  // Sites within the selected company (for company-scope destination picker)
+  const { data: companySites } = useQuery<SiteWithCompany[]>({
+    queryKey: ["/api/sites", { companyId: selectedEntityId }],
+    queryFn: async () => {
+      if (!selectedEntityId) return [];
+      const res = await fetch(`/api/sites?companyId=${selectedEntityId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.sites ?? []);
+    },
+    enabled: docScope === "company" && !!selectedEntityId,
+  });
+  // Member companies within the selected group (for group-scope destination picker)
+  const { data: groupMemberCompanies } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies/group-members", selectedEntityId],
+    queryFn: async () => {
+      if (!selectedEntityId) return [];
+      const res = await fetch(`/api/companies?groupOwnerId=${selectedEntityId}&limit=1000`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.companies ?? [];
+    },
+    enabled: docScope === "group" && !!selectedEntityId,
+  });
 
   const { data: folderTemplates = [] } = useQuery<{ id: string }[]>({
     queryKey: ["/api/folder-templates"],
@@ -460,12 +488,14 @@ export default function DocumentUpload() {
       // Company or Group scoped upload — single document, no site association
       if (docScope === "company" || docScope === "group") {
         if (!selectedEntityId) throw new Error("Please select a target company or group");
+        if (shareDestinations.length === 0) throw new Error("Please select at least one destination");
         const formData: Record<string, any> = {
           title: data.title,
           comments: data.comments,
           module: data.module,
           scope: docScope,
           entityId: selectedEntityId,
+          shareDestinations,
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
           reviewDate: data.reviewDate,
@@ -616,6 +646,16 @@ export default function DocumentUpload() {
         toast({
           title: "No Entity Selected",
           description: `Please go back and select a ${docScope === "company" ? "company" : "group"}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (shareDestinations.length === 0) {
+        toast({
+          title: "No Destinations Selected",
+          description: docScope === "company"
+            ? "Please select at least one site to share this document to."
+            : "Please select at least one member company to share this document to.",
           variant: "destructive",
         });
         return;
@@ -798,7 +838,7 @@ export default function DocumentUpload() {
                       <button
                         key={company.id}
                         type="button"
-                        onClick={() => setSelectedEntityId(company.id)}
+                        onClick={() => { setSelectedEntityId(company.id); setShareDestinations([]); setDestSearch(""); }}
                         className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
                           selectedEntityId === company.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
                         }`}
@@ -817,12 +857,96 @@ export default function DocumentUpload() {
                     <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name}</span>
                     <button
                       type="button"
-                      onClick={() => setSelectedEntityId("")}
+                      onClick={() => { setSelectedEntityId(""); setShareDestinations([]); }}
                       className="text-muted-foreground hover:text-foreground ml-0.5"
                       data-testid="button-clear-entity"
                     >
                       <X className="h-3 w-3" />
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Destination picker — select specific sites (company scope) or member companies (group scope) */}
+            {(docScope === "company" || docScope === "group") && selectedEntityId && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {docScope === "company" ? "Share to sites (select at least one)" : "Share to member companies (select at least one)"}
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {docScope === "company"
+                    ? "The document will appear as a shared link in the selected sites."
+                    : "All sites within each chosen company will automatically receive the shared link."}
+                </p>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={destSearch}
+                    onChange={(e) => setDestSearch(e.target.value)}
+                    placeholder={docScope === "company" ? "Search sites…" : "Search companies…"}
+                    className="pl-8 h-8 text-sm"
+                    data-testid="input-dest-search"
+                  />
+                </div>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1 rounded-md border p-1" data-testid="dest-picker-list">
+                  {docScope === "company" && (companySites ?? [])
+                    .filter(s => !destSearch.trim() || s.name.toLowerCase().includes(destSearch.toLowerCase()))
+                    .map(site => (
+                      <button
+                        key={site.id}
+                        type="button"
+                        onClick={() => setShareDestinations(prev =>
+                          prev.includes(site.id) ? prev.filter(id => id !== site.id) : [...prev, site.id]
+                        )}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
+                          shareDestinations.includes(site.id) ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                        }`}
+                        data-testid={`button-dest-select-${site.id}`}
+                      >
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {site.name}
+                        {shareDestinations.includes(site.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
+                      </button>
+                    ))
+                  }
+                  {docScope === "group" && (groupMemberCompanies ?? [])
+                    .filter(c => !destSearch.trim() || c.name.toLowerCase().includes(destSearch.toLowerCase()))
+                    .map(company => (
+                      <button
+                        key={company.id}
+                        type="button"
+                        onClick={() => setShareDestinations(prev =>
+                          prev.includes(company.id) ? prev.filter(id => id !== company.id) : [...prev, company.id]
+                        )}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
+                          shareDestinations.includes(company.id) ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                        }`}
+                        data-testid={`button-dest-select-${company.id}`}
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        {company.name}
+                        {shareDestinations.includes(company.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
+                      </button>
+                    ))
+                  }
+                </div>
+                {shareDestinations.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {shareDestinations.map(destId => {
+                      const label = docScope === "company"
+                        ? (companySites ?? []).find(s => s.id === destId)?.name
+                        : (groupMemberCompanies ?? []).find(c => c.id === destId)?.name;
+                      if (!label) return null;
+                      return (
+                        <div key={destId} className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs" data-testid={`badge-dest-${destId}`}>
+                          {docScope === "company" ? <MapPin className="h-3 w-3 shrink-0" /> : <Building2 className="h-3 w-3 shrink-0" />}
+                          <span>{label}</span>
+                          <button type="button" onClick={() => setShareDestinations(prev => prev.filter(id => id !== destId))} className="text-muted-foreground hover:text-foreground ml-0.5">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -961,7 +1085,7 @@ export default function DocumentUpload() {
                   setUploadStep("upload");
                 }
               }}
-              disabled={docScope === "site" ? selectedSiteIds.length === 0 : !selectedEntityId}
+              disabled={docScope === "site" ? selectedSiteIds.length === 0 : (!selectedEntityId || shareDestinations.length === 0)}
               data-testid="button-continue-to-upload"
             >
               {docScope === "site"

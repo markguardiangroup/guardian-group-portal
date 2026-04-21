@@ -2474,12 +2474,34 @@ export async function registerRoutes(
           return res.status(403).json({ error: "Access denied to upload documents to this site" });
         }
       } else {
-        // Company/group scope — only admins and consultants can upload
-        if (user.role !== "admin" && user.role !== "consultant") {
-          return res.status(403).json({ error: "Only admins and consultants can upload company or group level documents" });
-        }
+        // Company/group scope upload:
+        //   - Company scope: admins, consultants (with source overlap), full-permission client users of that company
+        //   - Group scope: admins, consultants (with source overlap), group-owner company clients
         if (!body.entityId) {
           return res.status(400).json({ error: "entityId (company ID) is required for company/group scoped documents" });
+        }
+        if (user.role === "client") {
+          if (!user.companyId) return res.status(403).json({ error: "Access denied" });
+          if (user.clientPermissionRole !== "full") {
+            return res.status(403).json({ error: "Full permission required to upload company or group level documents" });
+          }
+          if (docScope === "group") {
+            // Client must belong to the group owner company (entityId is the group owner)
+            if (user.companyId !== body.entityId) {
+              // Check if user is in the group owner company
+              const userCompany = await storage.getCompany(user.companyId);
+              if (!userCompany || userCompany.groupOwnerId !== body.entityId) {
+                return res.status(403).json({ error: "Only group owner users can upload group-scope documents" });
+              }
+            }
+          } else {
+            // Company scope: client must belong to the target company
+            if (user.companyId !== body.entityId) {
+              return res.status(403).json({ error: "You can only upload company-scope documents for your own company" });
+            }
+          }
+        } else if (user.role !== "admin" && user.role !== "consultant") {
+          return res.status(403).json({ error: "Only admins, consultants, and full-permission company users can upload company or group level documents" });
         }
         // Validate consultant has source overlap with the target company/group (not blanket access)
         if (user.role === "consultant") {
@@ -2612,6 +2634,14 @@ export async function registerRoutes(
         metadata: docScope !== "site" ? JSON.stringify({ scope: docScope, entityId: resolvedEntityId }) : null,
       });
 
+      // Create explicit share records for company/group scoped documents
+      if (docScope !== "site" && Array.isArray(body.shareDestinations) && body.shareDestinations.length > 0) {
+        const entityType = docScope === "company" ? "site" : "company";
+        await Promise.all(body.shareDestinations.map((destId: string) =>
+          storage.createDocumentShare({ documentId: document.id, entityType: entityType as "site" | "company", entityId: destId })
+        ));
+      }
+
       // Send approval notification emails if document requires approval
       if (documentStatus === "review_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
         const site = body.siteId ? await storage.getSite(body.siteId) : null;
@@ -2668,6 +2698,10 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Access denied" });
       }
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+      const canAccess = await canUserAccessDocument(user, doc);
+      if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       const shares = await storage.getDocumentShares(req.params.id);
       res.json(shares);
     } catch (error) {
@@ -2681,6 +2715,10 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Access denied" });
       }
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+      const canAccess = await canUserAccessDocument(user, doc);
+      if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       const { entityType, entityId } = req.body;
       if (!entityType || !entityId) {
         return res.status(400).json({ error: "entityType and entityId are required" });
@@ -2698,6 +2736,10 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Access denied" });
       }
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+      const canAccess = await canUserAccessDocument(user, doc);
+      if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       const { entityType } = req.query;
       await storage.deleteDocumentShare(req.params.id, entityType as string, req.params.entityId);
       res.json({ success: true });
@@ -2727,7 +2769,7 @@ export async function registerRoutes(
       }
       
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      const canAccess = await canUserAccessDocument(user, existingDoc);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -2869,7 +2911,7 @@ export async function registerRoutes(
         action: auditAction,
         userId: user.id,
         userName: user.fullName,
-        entityId: document.siteId,
+        entityId: document.siteId || document.entityId,
         documentId: document.id,
         supportRequestId: null,
         module: existingDoc.module,
@@ -3167,7 +3209,7 @@ export async function registerRoutes(
       }
 
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      const canAccess = await canUserAccessDocument(user, existingDoc);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -3220,7 +3262,7 @@ export async function registerRoutes(
       }
 
       // Authorization: check if user can access this document's site
-      const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+      const canAccess = await canUserAccessDocument(user, existingDoc);
       if (!canAccess) {
         return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -3272,7 +3314,7 @@ export async function registerRoutes(
 
       // Pro consultants must have access to the document's site
       if (isProConsultant(user)) {
-        const canAccess = await canUserAccessSite(user, existingDoc.siteId);
+        const canAccess = await canUserAccessDocument(user, existingDoc);
         if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       }
 
@@ -5579,6 +5621,11 @@ export async function registerRoutes(
           c => c.id === groupFilter || c.groupOwnerId === groupFilter
         );
       }
+      // Apply groupOwnerId filter — show only member companies of a specific group owner
+      const groupOwnerIdFilter = req.query.groupOwnerId as string | undefined;
+      if (groupOwnerIdFilter) {
+        filteredCompanies = filteredCompanies.filter(c => c.groupOwnerId === groupOwnerIdFilter);
+      }
 
       // Apply status filter
       if (status && status !== "all") {
@@ -6266,9 +6313,11 @@ export async function registerRoutes(
       
       const allSites = await storage.getSitesWithDetails();
       
-      // Admin sees all sites
+      // Admin sees all sites, optionally filtered by companyId
+      const companyIdFilter = req.query.companyId as string | undefined;
       if (user.role === "admin") {
-        res.json(allSites);
+        const result = companyIdFilter ? allSites.filter(s => s.companyId === companyIdFilter) : allSites;
+        res.json(result);
         return;
       }
       
@@ -6290,9 +6339,10 @@ export async function registerRoutes(
             const members = await storage.getGroupMembers(cId);
             for (const m of members) goExpanded.add(m.id);
           }
-          const filteredSites = allSites.filter(site =>
+          let filteredSites = allSites.filter(site =>
             sourcesOverlap(mySources, site.companySources ?? []) || goExpanded.has(site.companyId)
           );
+          if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
           res.json(filteredSites);
           return;
         }
@@ -6317,12 +6367,13 @@ export async function registerRoutes(
           const members = await storage.getGroupMembers(cId);
           for (const m of members) goMemberCompanyIds.add(m.id);
         }
-        const filteredSites = allSites.filter(site =>
+        let filteredSites = allSites.filter(site =>
           // Directly assigned site in a source-overlapping company
           (assignedSiteIds.has(site.id) && sourceOverlapCompanyIds.has(site.companyId)) ||
           // Any site in a GO member company
           goMemberCompanyIds.has(site.companyId)
         );
+        if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
         res.json(filteredSites);
         return;
       }
@@ -6332,9 +6383,10 @@ export async function registerRoutes(
         const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
         const clientSiteAssignments = await storage.getClientSites(user.id);
         const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
-        const filteredSites = allSites.filter(site => 
+        let filteredSites = allSites.filter(site => 
           effectiveCompanyIds.has(site.companyId) && assignedSiteIds.has(site.id)
         );
+        if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
         res.json(filteredSites);
         return;
       }
