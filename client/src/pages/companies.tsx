@@ -832,7 +832,7 @@ export default function Companies() {
         </div>
       </div>
 
-      <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
+      <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
