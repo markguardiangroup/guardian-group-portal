@@ -257,6 +257,7 @@ const createDocumentSchema = z.object({
   isRequired: z.boolean().optional(),
   notifyUserIds: z.array(z.string()).optional(),
   renewalPeriodMonths: z.number().nullable().optional(),
+  shareDestinations: z.array(z.string()).optional(),
 });
 
 const createCaseSchema = z.object({
@@ -2486,13 +2487,9 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Full permission required to upload company or group level documents" });
           }
           if (docScope === "group") {
-            // Client must belong to the group owner company (entityId is the group owner)
+            // Client must belong to the group owner company itself (entityId IS the group owner company)
             if (user.companyId !== body.entityId) {
-              // Check if user is in the group owner company
-              const userCompany = await storage.getCompany(user.companyId);
-              if (!userCompany || userCompany.groupOwnerId !== body.entityId) {
-                return res.status(403).json({ error: "Only group owner users can upload group-scope documents" });
-              }
+              return res.status(403).json({ error: "Only users belonging to the group owner company can upload group-scope documents" });
             }
           } else {
             // Company scope: client must belong to the target company
@@ -2536,6 +2533,29 @@ export async function registerRoutes(
             if (!sourcesOverlap(user.sources ?? [], effectiveSources)) {
               return res.status(403).json({ error: "Your service scope does not cover this company or group" });
             }
+          }
+        }
+      }
+
+      // For company/group scope: at least 1 share destination is required and must be within hierarchy bounds
+      if (docScope !== "site") {
+        if (!Array.isArray(body.shareDestinations) || body.shareDestinations.length === 0) {
+          return res.status(400).json({ error: "At least one share destination is required for company or group scoped documents" });
+        }
+        // Validate destinations are within allowed hierarchy boundaries
+        if (docScope === "company" && body.entityId) {
+          const companySites = await storage.getSitesByCompanyId(body.entityId);
+          const validSiteIds = new Set(companySites.map(s => s.id));
+          const invalid = body.shareDestinations.filter((id: string) => !validSiteIds.has(id));
+          if (invalid.length > 0) {
+            return res.status(400).json({ error: `Invalid destination sites: must belong to the target company` });
+          }
+        } else if (docScope === "group" && body.entityId) {
+          const memberCompanies = await storage.getGroupMembers(body.entityId);
+          const validCompanyIds = new Set(memberCompanies.map(c => c.id));
+          const invalid = body.shareDestinations.filter((id: string) => !validCompanyIds.has(id));
+          if (invalid.length > 0) {
+            return res.status(400).json({ error: `Invalid destination companies: must be member companies of the group owner` });
           }
         }
       }
@@ -2722,6 +2742,20 @@ export async function registerRoutes(
       const { entityType, entityId } = req.body;
       if (!entityType || !entityId) {
         return res.status(400).json({ error: "entityType and entityId are required" });
+      }
+      // Validate destination is within allowed hierarchy boundary
+      if (doc.scope === "company" && doc.entityId) {
+        if (entityType !== "site") return res.status(400).json({ error: "Company-scope shares must target sites" });
+        const site = await storage.getSite(entityId);
+        if (!site || site.companyId !== doc.entityId) {
+          return res.status(400).json({ error: "Destination site must belong to the document's company" });
+        }
+      } else if (doc.scope === "group" && doc.entityId) {
+        if (entityType !== "company") return res.status(400).json({ error: "Group-scope shares must target companies" });
+        const targetCompany = await storage.getCompany(entityId);
+        if (!targetCompany || targetCompany.groupOwnerId !== doc.entityId) {
+          return res.status(400).json({ error: "Destination company must be a member of the group owner" });
+        }
       }
       const share = await storage.createDocumentShare({ documentId: req.params.id, entityType, entityId });
       res.status(201).json(share);

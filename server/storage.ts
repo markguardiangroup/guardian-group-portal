@@ -1209,28 +1209,6 @@ export class MemStorage implements IStorage {
         results.push({ ...row.doc, sharedScope: "company", sharedFromEntityName: company.name });
       }
     }
-    // Fallback: company-scope docs with NO share records yet (backwards compat / implicit sharing)
-    const allCompanyDocs = await db.select().from(documentsTable).where(
-      and(
-        eq(documentsTable.scope, "company"),
-        eq(documentsTable.entityId, site.companyId),
-        isNull(documentsTable.siteId),
-        ...(module ? [eq(documentsTable.module, module as any)] : []),
-        ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
-      )
-    );
-    for (const d of allCompanyDocs) {
-      if (seenIds.has(d.id)) continue;
-      // Check if this doc has ANY share records; if not, show it implicitly (backwards compat)
-      const hasShares = await db.select({ id: documentSharesTable.id })
-        .from(documentSharesTable)
-        .where(eq(documentSharesTable.documentId, d.id))
-        .limit(1);
-      if (hasShares.length === 0) {
-        seenIds.add(d.id);
-        results.push({ ...d, sharedScope: "company", sharedFromEntityName: company.name });
-      }
-    }
 
     // --- Group-scope docs ---
     // Determine which group owner IDs apply to this company (either it's a member or it IS the owner)
@@ -1269,27 +1247,6 @@ export class MemStorage implements IStorage {
         if (!seenIds.has(row.doc.id)) {
           seenIds.add(row.doc.id);
           results.push({ ...row.doc, sharedScope: "group", sharedFromEntityName: groupOwner?.name ?? null });
-        }
-      }
-      // Fallback: group-scope docs with no share records
-      const allGroupDocs = await db.select().from(documentsTable).where(
-        and(
-          eq(documentsTable.scope, "group"),
-          eq(documentsTable.entityId, goId),
-          isNull(documentsTable.siteId),
-          ...(module ? [eq(documentsTable.module, module as any)] : []),
-          ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
-        )
-      );
-      for (const d of allGroupDocs) {
-        if (seenIds.has(d.id)) continue;
-        const hasShares = await db.select({ id: documentSharesTable.id })
-          .from(documentSharesTable)
-          .where(eq(documentSharesTable.documentId, d.id))
-          .limit(1);
-        if (hasShares.length === 0) {
-          seenIds.add(d.id);
-          results.push({ ...d, sharedScope: "group", sharedFromEntityName: groupOwner?.name ?? null });
         }
       }
     }

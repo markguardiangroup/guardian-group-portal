@@ -130,6 +130,8 @@ export default function DocumentUpload() {
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
+  const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
   const [uploadStep, setUploadStep] = useState<"choice" | "site" | "upload" | "complete">("choice");
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
@@ -178,7 +180,7 @@ export default function DocumentUpload() {
       if (!res.ok) return { companies: [] };
       return res.json();
     },
-    enabled: isAdminOrConsultant,
+    enabled: canUploadCompanyGroupScope,
   });
   const allCompanies = allCompaniesData?.companies ?? [];
 
@@ -257,10 +259,17 @@ export default function DocumentUpload() {
   })();
 
   useEffect(() => {
-    if (user && !isAdminOrConsultant) {
+    if (user && !isAdminOrConsultant && !isFullPermissionClient) {
       navigate("/");
     }
-  }, [user, isAdminOrConsultant]);
+  }, [user, isAdminOrConsultant, isFullPermissionClient]);
+
+  // For full-permission clients doing company/group scope uploads, auto-set their company as the entity
+  useEffect(() => {
+    if (isFullPermissionClient && docScope !== "site" && user?.companyId && !selectedEntityId) {
+      setSelectedEntityId(user.companyId);
+    }
+  }, [isFullPermissionClient, docScope, user?.companyId, selectedEntityId]);
 
   useEffect(() => {
     setSelectedApproverId("");
@@ -776,7 +785,7 @@ export default function DocumentUpload() {
         <div className="flex gap-6 items-start">
         <Card className="flex-1 max-w-2xl">
           <CardHeader>
-            {isAdminOrConsultant && (
+            {canUploadCompanyGroupScope && (
               <div className="mb-2">
                 <p className="text-sm font-medium mb-2">Document scope</p>
                 <div className="flex gap-2">
@@ -820,50 +829,61 @@ export default function DocumentUpload() {
             {/* Company or Group entity picker */}
             {(docScope === "company" || docScope === "group") && (
               <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={entitySearch}
-                    onChange={(e) => setEntitySearch(e.target.value)}
-                    placeholder={docScope === "company" ? "Search companies…" : "Search group owners…"}
-                    className="pl-8 h-8 text-sm"
-                    data-testid="input-entity-search"
-                  />
-                </div>
-                <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="entity-picker-list">
-                  {(allCompanies ?? [])
-                    .filter(c => docScope === "group" ? c.isGroupOwner : true)
-                    .filter(c => !entitySearch.trim() || c.name.toLowerCase().includes(entitySearch.toLowerCase()))
-                    .map(company => (
-                      <button
-                        key={company.id}
-                        type="button"
-                        onClick={() => { setSelectedEntityId(company.id); setShareDestinations([]); setDestSearch(""); }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
-                          selectedEntityId === company.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                        }`}
-                        data-testid={`button-entity-select-${company.id}`}
-                      >
-                        <Building2 className="h-3.5 w-3.5 shrink-0" />
-                        {company.name}
-                        {selectedEntityId === company.id && <Check className="h-3.5 w-3.5 ml-auto" />}
-                      </button>
-                    ))
-                  }
-                </div>
-                {selectedEntityId && (
-                  <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm w-fit" data-testid="badge-selected-entity">
-                    <Building2 className="h-3 w-3 text-primary shrink-0" />
-                    <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => { setSelectedEntityId(""); setShareDestinations([]); }}
-                      className="text-muted-foreground hover:text-foreground ml-0.5"
-                      data-testid="button-clear-entity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                {isFullPermissionClient ? (
+                  /* Full-permission clients: entity is always their own company — show read-only */
+                  <div className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="badge-selected-entity">
+                    <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name ?? "Your company"}</span>
+                    <span className="ml-1 text-muted-foreground">(your company)</span>
                   </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        value={entitySearch}
+                        onChange={(e) => setEntitySearch(e.target.value)}
+                        placeholder={docScope === "company" ? "Search companies…" : "Search group owners…"}
+                        className="pl-8 h-8 text-sm"
+                        data-testid="input-entity-search"
+                      />
+                    </div>
+                    <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="entity-picker-list">
+                      {(allCompanies ?? [])
+                        .filter(c => docScope === "group" ? c.isGroupOwner : true)
+                        .filter(c => !entitySearch.trim() || c.name.toLowerCase().includes(entitySearch.toLowerCase()))
+                        .map(company => (
+                          <button
+                            key={company.id}
+                            type="button"
+                            onClick={() => { setSelectedEntityId(company.id); setShareDestinations([]); setDestSearch(""); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
+                              selectedEntityId === company.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
+                            }`}
+                            data-testid={`button-entity-select-${company.id}`}
+                          >
+                            <Building2 className="h-3.5 w-3.5 shrink-0" />
+                            {company.name}
+                            {selectedEntityId === company.id && <Check className="h-3.5 w-3.5 ml-auto" />}
+                          </button>
+                        ))
+                      }
+                    </div>
+                    {selectedEntityId && (
+                      <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm w-fit" data-testid="badge-selected-entity">
+                        <Building2 className="h-3 w-3 text-primary shrink-0" />
+                        <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedEntityId(""); setShareDestinations([]); }}
+                          className="text-muted-foreground hover:text-foreground ml-0.5"
+                          data-testid="button-clear-entity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
