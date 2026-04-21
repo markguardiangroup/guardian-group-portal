@@ -120,6 +120,30 @@ interface DocumentFolder {
   templateId?: string | null;
 }
 
+interface DocumentUploadPayload {
+  title: string;
+  comments?: string;
+  module: string;
+  type: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
+  requiresApproval: boolean;
+  isRequired: boolean;
+  reviewDate?: string | null;
+  expiryDate?: string | null;
+  renewalPeriodMonths?: number | null;
+  notifyUserIds: string[];
+  // Site-scoped fields
+  siteId?: string;
+  folderId?: string;
+  // Company/Group-scoped fields
+  scope?: "site" | "company" | "group";
+  entityId?: string;
+  shareDestinations?: string[];
+}
+
 export default function DocumentUpload() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
@@ -183,6 +207,20 @@ export default function DocumentUpload() {
     enabled: canUploadCompanyGroupScope,
   });
   const allCompanies = allCompaniesData?.companies ?? [];
+
+  // Fetch the current user's company to determine group-owner status for UI gating
+  const { data: userCompany } = useQuery<{ id: string; name: string; isGroupOwner?: boolean } | null>({
+    queryKey: ["/api/companies", user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return null;
+      const res = await fetch(`/api/companies/${user.companyId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: isFullPermissionClient && !!user?.companyId,
+  });
+  // Group scope is available to: admins, consultants, or full-perm clients at a group-owner company
+  const canUseGroupScope = isAdminOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
 
   // Sites within the selected company (for company-scope destination picker)
   const { data: companySites } = useQuery<SiteWithCompany[]>({
@@ -507,7 +545,7 @@ export default function DocumentUpload() {
       if (docScope === "company" || docScope === "group") {
         if (!selectedEntityId) throw new Error("Please select a target company or group");
         if (shareDestinations.length === 0) throw new Error("Please select at least one destination");
-        const formData: Record<string, any> = {
+        const formData: DocumentUploadPayload = {
           title: data.title,
           comments: data.comments,
           module: data.module,
@@ -560,7 +598,7 @@ export default function DocumentUpload() {
         }
 
         const isFirstSite = siteId === selectedSiteIds[0];
-        const formData: Record<string, any> = {
+        const formData: DocumentUploadPayload = {
           title: data.title,
           comments: data.comments,
           module: data.module,
@@ -798,7 +836,7 @@ export default function DocumentUpload() {
               <div className="mb-2">
                 <p className="text-sm font-medium mb-2">Document scope</p>
                 <div className="flex gap-2">
-                  {(["site", "company", "group"] as const).map(scope => (
+                  {(["site", "company", "group"] as const).filter(scope => scope !== "group" || canUseGroupScope).map(scope => (
                     <button
                       key={scope}
                       type="button"

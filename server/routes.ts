@@ -1149,18 +1149,30 @@ export async function registerRoutes(
   /**
    * Returns true if the user has ORIGIN-level write access to the document.
    * For site-scoped: equivalent to canUserAccessSite (any authorized user can write).
-   * For company/group-scoped: only admin, consultants, or the entity's own company clients.
-   * Destination clients (their company has a share record but is not the entity) get false.
+   * For company/group-scoped:
+   *   - admin: always origin
+   *   - consultant: only if they have direct source overlap with the owning entity company
+   *     (not just via group-effective sources of member companies)
+   *   - client: only if their company IS the entity (user.companyId === entityId)
+   * This prevents destination-side consultants (assigned only to member companies)
+   * from gaining approve/manage-shares access on group-scope source documents.
    */
-  const isDocumentOriginUser = (
-    user: { role: string; companyId: string | null },
+  const isDocumentOriginUser = async (
+    user: { role: string; companyId: string | null; sources?: string[] | null },
     doc: { scope?: string | null; entityId?: string | null; siteId?: string | null }
-  ): boolean => {
+  ): Promise<boolean> => {
     if (user.role === "admin") return true;
     // Site-scoped: origin access = site access (handled by canUserAccessSite already)
     if (doc.siteId) return true;
-    // Consultants: always have origin-level write for scoped docs (they manage the source)
-    if (user.role === "consultant") return true;
+    // For company/group scope, consultants are origin only if they have direct source overlap
+    // with the owning entity company (NOT via group-effective/member-company sources)
+    if (user.role === "consultant" && doc.entityId) {
+      const entityCompany = await storage.getCompany(doc.entityId);
+      if (!entityCompany) return false;
+      // Direct source overlap with the entity company's own sources
+      return sourcesOverlap(user.sources ?? [], entityCompany.sources ?? []);
+    }
+    if (user.role === "consultant") return false; // no entityId → no origin access
     // Client: origin only if their company IS the entity
     if (user.role === "client" && user.companyId) {
       return user.companyId === doc.entityId;
@@ -2158,7 +2170,8 @@ export async function registerRoutes(
             ? (companyReqCacheDocs.get(companyId)?.has(doc.templateId) ?? false)
             : false;
           // Compute shared-link metadata for destination users
-          const isSharedLink = !doc.siteId && (doc.scope === "company" || doc.scope === "group") && !isDocumentOriginUser(user, doc);
+          const isOrigin = await isDocumentOriginUser(user, doc);
+          const isSharedLink = !doc.siteId && (doc.scope === "company" || doc.scope === "group") && !isOrigin;
           let sharedFromEntityName: string | null = null;
           if (isSharedLink && doc.entityId) {
             const entityCompany = await storage.getCompany(doc.entityId);
@@ -2250,7 +2263,7 @@ export async function registerRoutes(
       });
 
       // Add shared-link metadata for destination users
-      const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !isDocumentOriginUser(user, document);
+      const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !(await isDocumentOriginUser(user, document));
       let sharedFromEntityName: string | null = null;
       if (isSharedLink && document.entityId) {
         const entityCompany = await storage.getCompany(document.entityId);
@@ -2841,7 +2854,7 @@ export async function registerRoutes(
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       // Only origin users (admin, consultant, or owning-company client) can view shares
-      if (!isDocumentOriginUser(user, doc)) {
+      if (!(await isDocumentOriginUser(user, doc))) {
         return res.status(403).json({ error: "Only origin users can view share details" });
       }
       const shares = await storage.getDocumentShares(req.params.id);
@@ -2871,7 +2884,7 @@ export async function registerRoutes(
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
-      if (!isDocumentOriginUser(user, doc)) {
+      if (!(await isDocumentOriginUser(user, doc))) {
         return res.status(403).json({ error: "Only origin users can manage shares" });
       }
       const { entityType, entityId } = req.body;
@@ -2907,7 +2920,7 @@ export async function registerRoutes(
       if (!doc) return res.status(404).json({ error: "Document not found" });
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
-      if (!isDocumentOriginUser(user, doc)) {
+      if (!(await isDocumentOriginUser(user, doc))) {
         return res.status(403).json({ error: "Only origin users can manage shares" });
       }
       // For company/group scope, block deleting the last share (doc would become invisible)
@@ -2953,7 +2966,7 @@ export async function registerRoutes(
 
       // For company/group scoped docs: only origin-level users can approve
       // Destination clients (share recipients, not the owning company) cannot approve
-      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && !isDocumentOriginUser(user, existingDoc)) {
+      if ((existingDoc.scope === "company" || existingDoc.scope === "group") && !(await isDocumentOriginUser(user, existingDoc))) {
         return res.status(403).json({ error: "Approval must be performed at the source document level. Shared-link recipients cannot approve." });
       }
       
