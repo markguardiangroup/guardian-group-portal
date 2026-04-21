@@ -2909,6 +2909,10 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
+      // Shares only exist for company/group scoped documents
+      if (doc.scope !== "company" && doc.scope !== "group") {
+        return res.status(400).json({ error: "Shares are only applicable to company or group scoped documents" });
+      }
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       // Only origin users (admin, consultant, or owning-company client) can view shares
@@ -2940,6 +2944,10 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
+      // Shares only exist for company/group scoped documents
+      if (doc.scope !== "company" && doc.scope !== "group") {
+        return res.status(400).json({ error: "Shares are only applicable to company or group scoped documents" });
+      }
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       if (!(await isDocumentOriginUser(user, doc))) {
@@ -2948,6 +2956,10 @@ export async function registerRoutes(
       const { entityType, entityId } = req.body;
       if (!entityType || !entityId) {
         return res.status(400).json({ error: "entityType and entityId are required" });
+      }
+      // Strict entityType validation
+      if (!["site", "company"].includes(entityType)) {
+        return res.status(400).json({ error: "entityType must be 'site' or 'company'" });
       }
       // Validate destination is within allowed hierarchy boundary
       if (doc.scope === "company" && doc.entityId) {
@@ -2976,19 +2988,30 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
+      // Shares only exist for company/group scoped documents
+      if (doc.scope !== "company" && doc.scope !== "group") {
+        return res.status(400).json({ error: "Shares are only applicable to company or group scoped documents" });
+      }
       const canAccess = await canUserAccessDocument(user, doc);
       if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       if (!(await isDocumentOriginUser(user, doc))) {
         return res.status(403).json({ error: "Only origin users can manage shares" });
       }
-      // For company/group scope, block deleting the last share (doc would become invisible)
-      if (doc.scope === "company" || doc.scope === "group") {
-        const currentShares = await storage.getDocumentShares(req.params.id);
-        if (currentShares.length <= 1) {
-          return res.status(400).json({ error: "Cannot remove the last share destination. A company or group-scoped document must be shared to at least one destination. Delete the document or change its scope instead." });
-        }
-      }
+      // Validate entityType query param
       const { entityType } = req.query;
+      if (!entityType || !["site", "company"].includes(entityType as string)) {
+        return res.status(400).json({ error: "entityType query param must be 'site' or 'company'" });
+      }
+      // Verify the share actually exists before deleting
+      const currentShares = await storage.getDocumentShares(req.params.id);
+      const shareExists = currentShares.some(s => s.entityId === req.params.entityId && s.entityType === entityType);
+      if (!shareExists) {
+        return res.status(404).json({ error: "Share not found" });
+      }
+      // Block deleting the last share (doc would become invisible)
+      if (currentShares.length <= 1) {
+        return res.status(400).json({ error: "Cannot remove the last share destination. A company or group-scoped document must be shared to at least one destination. Delete the document or change its scope instead." });
+      }
       await storage.deleteDocumentShare(req.params.id, entityType as string, req.params.entityId);
       res.json({ success: true });
     } catch (error) {
