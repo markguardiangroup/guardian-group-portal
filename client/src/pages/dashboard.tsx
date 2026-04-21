@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CountUp } from "@/components/ui/count-up";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -113,12 +114,14 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           </div>
           <div>
             <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
-            <CardDescription>{summary.totalDocuments} documents</CardDescription>
+            <CardDescription>
+              <CountUp value={summary.totalDocuments} /> documents
+            </CardDescription>
           </div>
         </div>
         <div className="text-right">
           <span className={`text-3xl font-bold ${getScoreColor(summary.complianceScore)}`}>
-            {summary.complianceScore}%
+            <CountUp value={summary.complianceScore} />%
           </span>
           <p className="text-xs text-muted-foreground">Compliance</p>
         </div>
@@ -136,21 +139,21 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           <div>
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.compliantDocuments}</span>
+              <span className="text-lg font-semibold"><CountUp value={summary.compliantDocuments} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Compliant</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <XCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.overdueDocuments + (summary.reviewRequired || 0)}</span>
+              <span className="text-lg font-semibold"><CountUp value={summary.overdueDocuments + (summary.reviewRequired || 0)} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Not Compliant</p>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
               <FileQuestion className="h-4 w-4" />
-              <span className="text-lg font-semibold">{summary.missingRequiredDocuments || 0}</span>
+              <span className="text-lg font-semibold"><CountUp value={summary.missingRequiredDocuments || 0} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Required Docs Missing</p>
           </div>
@@ -163,21 +166,21 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
             <div className="rounded-md border p-2.5">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <FileText className="h-3.5 w-3.5" />
-                <span className="text-xl font-semibold text-foreground">{summary.allDocuments ?? summary.totalDocuments}</span>
+                <span className="text-xl font-semibold text-foreground"><CountUp value={summary.allDocuments ?? summary.totalDocuments} /></span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Total</p>
             </div>
             <div className="rounded-md border p-2.5">
               <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                 <Clock className="h-3.5 w-3.5" />
-                <span className="text-xl font-semibold">{summary.allReviewRequired ?? summary.reviewRequired}</span>
+                <span className="text-xl font-semibold"><CountUp value={summary.allReviewRequired ?? summary.reviewRequired} /></span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Review</p>
             </div>
             <div className="rounded-md border p-2.5">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
                 <Clock className="h-3.5 w-3.5" />
-                <span className="text-xl font-semibold">{summary.pendingApprovals || 0}</span>
+                <span className="text-xl font-semibold"><CountUp value={summary.pendingApprovals || 0} /></span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Pending</p>
             </div>
@@ -232,21 +235,21 @@ function SupportCard({ siteId }: { siteId?: string | null }) {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400">
               <MessageCircle className="h-6 w-6" />
-              <span className="text-3xl font-bold">{openRequests}</span>
+              <span className="text-3xl font-bold"><CountUp value={openRequests} /></span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Open</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <CheckCheck className="h-6 w-6" />
-              <span className="text-3xl font-bold">{resolvedRequests}</span>
+              <span className="text-3xl font-bold"><CountUp value={resolvedRequests} /></span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Resolved</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-400">
               <FileText className="h-6 w-6" />
-              <span className="text-3xl font-bold">{totalRequests}</span>
+              <span className="text-3xl font-bold"><CountUp value={totalRequests} /></span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">Total</p>
           </div>
@@ -314,7 +317,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
         </div>
         <div className="text-right">
           <span className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-            {bookedCount}
+            <CountUp value={bookedCount} />
           </span>
           <p className="text-xs text-muted-foreground">Booked</p>
         </div>
@@ -384,7 +387,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
         </div>
         <div className="text-right">
           <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-            {activeCount}
+            <CountUp value={activeCount} />
           </span>
           <p className="text-xs text-muted-foreground">Active</p>
         </div>
@@ -464,7 +467,7 @@ function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
         </div>
         <div className="text-right">
           <span className="text-3xl font-bold text-pink-600 dark:text-pink-400">
-            {openCount}
+            <CountUp value={openCount} />
           </span>
           <p className="text-xs text-muted-foreground">Open</p>
         </div>
@@ -687,7 +690,7 @@ function OverallComplianceCard({
       <CardContent className="space-y-6">
         <div className="flex items-end gap-3">
           <span className={`text-6xl font-bold ${getScoreColor(overallScore)}`} data-testid="text-overall-score">
-            {overallScore}%
+            <CountUp value={Math.round(overallScore)} />%
           </span>
           <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
             <TrendingUp className="h-4 w-4 text-emerald-500" />
@@ -714,7 +717,7 @@ function OverallComplianceCard({
               >
                 <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                   <CheckCircle className="h-4 w-4" />
-                  <span className="text-2xl font-semibold">{compliantDocs}</span>
+                  <span className="text-2xl font-semibold"><CountUp value={compliantDocs} /></span>
                 </div>
                 <p className="text-xs text-muted-foreground">Compliant</p>
                 {compliantDocs > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
@@ -726,7 +729,7 @@ function OverallComplianceCard({
               >
                 <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                   <XCircle className="h-4 w-4" />
-                  <span className="text-2xl font-semibold">{nonCompliantDocs}</span>
+                  <span className="text-2xl font-semibold"><CountUp value={nonCompliantDocs} /></span>
                 </div>
                 <p className="text-xs text-muted-foreground">Not Compliant</p>
                 {nonCompliantDocs > 0 && <p className="text-xs text-red-500/70 mt-0.5">Click to view</p>}
@@ -738,7 +741,7 @@ function OverallComplianceCard({
               >
                 <div className="flex items-center justify-center gap-1 text-orange-600 dark:text-orange-400">
                   <FileQuestion className="h-4 w-4" />
-                  <span className="text-2xl font-semibold">{missingDocs}</span>
+                  <span className="text-2xl font-semibold"><CountUp value={missingDocs} /></span>
                 </div>
                 <p className="text-xs text-muted-foreground">Required Docs Missing</p>
                 {missingDocs > 0 && <p className="text-xs text-orange-500/70 mt-0.5">Click to view</p>}
@@ -902,7 +905,7 @@ function OverallComplianceCard({
           >
             <div className="flex items-center justify-center gap-1">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-2xl font-semibold">{allDocs}</span>
+              <span className="text-2xl font-semibold"><CountUp value={allDocs} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Total</p>
           </button>
@@ -913,7 +916,7 @@ function OverallComplianceCard({
           >
             <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{allCompliant}</span>
+              <span className="text-2xl font-semibold"><CountUp value={allCompliant} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Complete</p>
           </button>
@@ -924,7 +927,7 @@ function OverallComplianceCard({
           >
             <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
               <Clock className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{reviewDocs}</span>
+              <span className="text-2xl font-semibold"><CountUp value={reviewDocs} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Review Required</p>
           </button>
@@ -935,7 +938,7 @@ function OverallComplianceCard({
           >
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <AlertTriangle className="h-4 w-4" />
-              <span className="text-2xl font-semibold">{allOverdue}</span>
+              <span className="text-2xl font-semibold"><CountUp value={allOverdue} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Overdue</p>
           </button>
@@ -1235,24 +1238,47 @@ export default function Dashboard() {
 
   const summaries = moduleSummaries || [];
   // Filter to only compliance modules (exclude support)
-  const complianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
+  const realComplianceSummaries = summaries.filter(s => s.module !== "support" && hasActiveAccess(s.module));
   // Show all non-active modules as locked so clients can see what's available
   const lockedModules = complianceModules.filter(m => !hasActiveAccess(m.module));
-  
+
+  // While module summaries are loading, render placeholder cards with zeros for
+  // each compliance module the user has access to. CountUp then animates from
+  // 0 → real values when the data lands, instead of flashing an empty layout.
+  const placeholderComplianceSummaries: ModuleSummary[] = useMemo(() => {
+    if (moduleSummaries) return [];
+    return complianceModules
+      .filter(m => hasActiveAccess(m.module))
+      .map(m => ({
+        module: m.module,
+        moduleName: m.name,
+        totalDocuments: 0,
+        compliantDocuments: 0,
+        reviewRequired: 0,
+        overdueDocuments: 0,
+        missingRequiredDocuments: 0,
+        pendingApprovals: 0,
+        complianceScore: 0,
+        allDocuments: 0,
+        allCompliantDocuments: 0,
+        allReviewRequired: 0,
+        allOverdueDocuments: 0,
+        awaitingYourApproval: 0,
+        awaitingOthersApproval: 0,
+      } as ModuleSummary));
+  }, [moduleSummaries, hasActiveAccess]);
+
+  const complianceSummaries = moduleSummaries
+    ? realComplianceSummaries
+    : placeholderComplianceSummaries;
+
   // Check if user has access to support
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
 
-  // Show skeleton until the core data the page renders is actually present.
-  // We can't rely on isLoading alone because `placeholderData: keepPreviousData`
-  // and the `= []` defaults on supporting queries hide the loading state, which
-  // caused the dashboard to flash a blank/empty layout for ~2s after login.
-  const showContentSkeleton =
-    isAuthLoading ||
-    sitesLoading ||
-    isLoading ||
-    !sites ||
-    !moduleSummaries;
+  // Only block the layout while we don't yet know who the user is. Numeric
+  // values render as 0 until data lands and then animate up via CountUp.
+  const showContentSkeleton = isAuthLoading;
 
   return (
     <div className="theme-dashboard flex flex-col h-full">
@@ -1372,7 +1398,7 @@ export default function Dashboard() {
                 <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-overview-renewals-overdue">{renewalMetrics.overdue}</p>
+                <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-overview-renewals-overdue"><CountUp value={renewalMetrics.overdue} /></p>
                 <p className="text-sm text-muted-foreground">Overdue Renewals</p>
               </div>
             </button>
@@ -1381,7 +1407,7 @@ export default function Dashboard() {
                 <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-overview-renewals-30days">{renewalMetrics.due30Days}</p>
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-overview-renewals-30days"><CountUp value={renewalMetrics.due30Days} /></p>
                 <p className="text-sm text-muted-foreground">Due in 30 Days</p>
               </div>
             </button>
@@ -1390,7 +1416,7 @@ export default function Dashboard() {
                 <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-overview-renewals-60days">{renewalMetrics.due60Days}</p>
+                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-overview-renewals-60days"><CountUp value={renewalMetrics.due60Days} /></p>
                 <p className="text-sm text-muted-foreground">Due in 60 Days</p>
               </div>
             </button>
