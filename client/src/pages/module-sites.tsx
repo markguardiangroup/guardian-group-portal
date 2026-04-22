@@ -357,22 +357,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 />
               );
             })()}
-            {(selectedGroup !== "all" ||
-              (selectedCompany && selectedCompany !== "all")) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedGroup("all");
-                  handleCompanyChange(null);
-                }}
-                data-testid="button-clear-filters"
-                className="h-9"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Clear
-              </Button>
-            )}
           </div>
         </div>
       </div>
