@@ -300,12 +300,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 <SelectTrigger className="w-[240px]" data-testid="select-group-sites">
                   <div className="flex items-center gap-2 min-w-0">
                     <Layers className="h-4 w-4 shrink-0 opacity-60" />
-                    <SelectValue placeholder="All Groups" />
+                    <SelectValue placeholder="Group Owners" />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" data-testid="select-group-option-all">
-                    All Groups
+                    Group Owners
                   </SelectItem>
                   {groupOwners.map((g) => (
                     <SelectItem
