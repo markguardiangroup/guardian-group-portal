@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Building2,
   MapPin,
@@ -20,6 +27,7 @@ import {
   Users,
   Scale,
   LayoutDashboard,
+  Layers,
 } from "lucide-react";
 import type { ModuleType } from "@shared/schema";
 
@@ -27,18 +35,29 @@ interface SiteWithCompany {
   id: string;
   name: string;
   companyName?: string | null;
-  companyId?: string;
+  companyId: string;
 }
 
 interface Document {
   id: string;
-  siteId: string;
+  siteId: string | null;
   status: string;
   approvalStatus: string;
   isArchived: boolean;
   caseId?: string | null;
   incidentId?: string | null;
   source?: string;
+  scope?: "site" | "company" | "group" | null;
+  entityId?: string | null;
+  isRequired?: boolean;
+}
+
+interface CompanyListItem {
+  id: string;
+  name: string;
+  groupOwnerId?: string | null;
+  groupOwnerName?: string | null;
+  isGroupOwner?: boolean;
 }
 
 interface MissingRequired {
@@ -97,6 +116,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { selectedCompany, handleCompanyChange, setSelectedSiteId } = useSiteFilter();
+  const [selectedGroup, setSelectedGroup] = useState<string>("all");
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const basePath =
@@ -111,6 +131,49 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { data: sites, isLoading: isLoadingSites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
+
+  const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
+    queryKey: ["/api/companies"],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
+      return res.json();
+    },
+  });
+  const companies = companiesResp?.companies ?? [];
+
+  // Discover groups visible to the user. A group is identified by its
+  // group-owner companyId. Members reference it via groupOwnerId, and the
+  // owner itself appears with isGroupOwner=true (when visible).
+  const groupOwners = useMemo(() => {
+    const map = new Map<string, string>(); // ownerId -> ownerName
+    for (const c of companies) {
+      if (c.isGroupOwner) {
+        map.set(c.id, c.name);
+      }
+      if (c.groupOwnerId && c.groupOwnerName && !map.has(c.groupOwnerId)) {
+        map.set(c.groupOwnerId, c.groupOwnerName);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [companies]);
+
+  const groupOwnerNames = useMemo(
+    () => groupOwners.map((g) => g.name),
+    [groupOwners]
+  );
+
+  // Companies belonging to the selected group (members + owner if visible)
+  const selectedGroupCompanies = useMemo(() => {
+    if (selectedGroup === "all") return [] as CompanyListItem[];
+    return companies.filter(
+      (c) => c.id === selectedGroup || c.groupOwnerId === selectedGroup
+    );
+  }, [companies, selectedGroup]);
+
+  const selectedGroupOwnerName =
+    groupOwners.find((g) => g.id === selectedGroup)?.name ?? "";
 
   const { data: documents, isLoading: isLoadingDocs } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
@@ -132,9 +195,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const filteredSites = useMemo(() => {
     if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter((s) => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
+    let result = sites;
+    if (selectedGroup !== "all") {
+      const groupCompanyIds = new Set(selectedGroupCompanies.map((c) => c.id));
+      result = result.filter((s) => groupCompanyIds.has(s.companyId));
+    }
+    if (selectedCompany && selectedCompany !== "all") {
+      result = result.filter((s) => s.companyName === selectedCompany);
+    }
+    return result;
+  }, [sites, selectedCompany, selectedGroup, selectedGroupCompanies]);
 
   // Sort sites by compliance priority:
   // 1. Any issues (missing, overdue, review) — sorted by compliance % ascending (0% first)
@@ -218,6 +288,37 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            {groupOwners.length > 0 && (
+              <Select
+                value={selectedGroup}
+                onValueChange={(v) => {
+                  setSelectedGroup(v);
+                  // Clear any company filter when switching groups
+                  handleCompanyChange(null);
+                }}
+              >
+                <SelectTrigger className="w-[240px]" data-testid="select-group-sites">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Layers className="h-4 w-4 shrink-0 opacity-60" />
+                    <SelectValue placeholder="All Groups" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" data-testid="select-group-option-all">
+                    All Groups
+                  </SelectItem>
+                  {groupOwners.map((g) => (
+                    <SelectItem
+                      key={g.id}
+                      value={g.id}
+                      data-testid={`select-group-option-${g.id}`}
+                    >
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {isPrivilegedUser && (
               <CompanyCombobox
                 sites={sites}
@@ -225,6 +326,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 onValueChange={handleCompanyChange}
                 className="w-[260px]"
                 testId="select-company-sites"
+                excludeNames={groupOwnerNames}
               />
             )}
           </div>
@@ -251,6 +353,257 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Group + Company cards (only when a group is selected) */}
+            {selectedGroup !== "all" && (() => {
+              const groupDocs = (documents ?? []).filter(
+                (d) =>
+                  !d.isArchived &&
+                  !d.caseId &&
+                  !d.incidentId &&
+                  d.source !== "external" &&
+                  d.scope === "group" &&
+                  d.entityId === selectedGroup
+              );
+              const groupRequired = groupDocs.filter((d) => d.isRequired);
+              const groupCompliant = groupRequired.filter((d) => d.status === "compliant").length;
+              const groupOverdue = groupRequired.filter((d) => d.status === "overdue").length;
+              const groupReview = groupRequired.filter((d) => d.status === "review_required").length;
+              const groupDenom = groupCompliant + groupReview + groupOverdue;
+              const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
+              const groupHasIssues = groupOverdue > 0 || groupReview > 0;
+
+              return (
+                <>
+                  {/* Group card — group-scoped docs */}
+                  <Card
+                    className={`overflow-hidden transition-all hover:shadow-md border-2 ${moduleBorderDashedColors[module]} hover:border-solid`}
+                    data-testid={`card-group-${selectedGroup}`}
+                  >
+                    <CardContent className="p-5 pb-4">
+                      <div className="flex items-start justify-between gap-2 mb-4">
+                        <div className="flex items-start gap-2.5">
+                          <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
+                            <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p
+                              className="font-semibold text-sm leading-snug truncate"
+                              data-testid={`text-group-name-${selectedGroup}`}
+                            >
+                              {selectedGroupOwnerName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Group documents</p>
+                          </div>
+                        </div>
+                        {groupHasIssues ? (
+                          groupOverdue > 0 ? (
+                            <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                              <AlertTriangle className="h-3 w-3" />
+                            </Badge>
+                          ) : (
+                            <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs px-1.5">
+                              <Clock className="h-3 w-3" />
+                            </Badge>
+                          )
+                        ) : groupPct === 100 ? (
+                          <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs px-1.5">
+                            <CheckCircle className="h-3 w-3" />
+                          </Badge>
+                        ) : null}
+                      </div>
+
+                      {groupDenom > 0 ? (
+                        <div className="mb-4 min-h-[38px]">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3" />
+                              Compliance
+                            </span>
+                            <span className={`text-xs font-semibold ${
+                              groupPct === 100 ? "text-emerald-600 dark:text-emerald-400"
+                              : (groupPct ?? 0) >= 70 ? "text-amber-600 dark:text-amber-400"
+                              : "text-red-600 dark:text-red-400"
+                            }`}>
+                              {groupPct}%
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                groupPct === 100 ? "bg-emerald-500"
+                                : (groupPct ?? 0) >= 70 ? "bg-amber-500"
+                                : "bg-red-500"
+                              }`}
+                              style={{ width: `${groupPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                          <p className="text-xs text-muted-foreground">
+                            {groupDocs.length === 0 ? "No group documents yet" : `${groupDocs.length} document${groupDocs.length !== 1 ? "s" : ""}`}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
+                          <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{groupCompliant}</p>
+                          <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
+                        </div>
+                        <div className={`rounded-lg px-2 py-1.5 ${groupReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${groupReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupReview}</p>
+                          <p className={`text-xs ${groupReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                        </div>
+                        <div className={`rounded-lg px-2 py-1.5 ${groupOverdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${groupOverdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupOverdue}</p>
+                          <p className={`text-xs ${groupOverdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="border-t flex">
+                      <button
+                        onClick={() => {
+                          setSelectedSiteId("all");
+                          navigate(`${basePath}/documents`);
+                        }}
+                        className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
+                        data-testid={`link-view-group-${selectedGroup}`}
+                      >
+                        Documents
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </Card>
+
+                  {/* One card per company in the group — company-scoped docs */}
+                  {selectedGroupCompanies.map((company) => {
+                    const companyDocs = (documents ?? []).filter(
+                      (d) =>
+                        !d.isArchived &&
+                        !d.caseId &&
+                        !d.incidentId &&
+                        d.source !== "external" &&
+                        d.scope === "company" &&
+                        d.entityId === company.id
+                    );
+                    const cReq = companyDocs.filter((d) => d.isRequired);
+                    const cCompliant = cReq.filter((d) => d.status === "compliant").length;
+                    const cOverdue = cReq.filter((d) => d.status === "overdue").length;
+                    const cReview = cReq.filter((d) => d.status === "review_required").length;
+                    const cDenom = cCompliant + cReview + cOverdue;
+                    const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
+                    const cHasIssues = cOverdue > 0 || cReview > 0;
+
+                    return (
+                      <Card
+                        key={`company-${company.id}`}
+                        className={`overflow-hidden transition-all hover:shadow-md border-2 ${moduleBorderDashedColors[module]} hover:border-solid`}
+                        data-testid={`card-company-${company.id}`}
+                      >
+                        <CardContent className="p-5 pb-4">
+                          <div className="flex items-start justify-between gap-2 mb-4">
+                            <div className="flex items-start gap-2.5">
+                              <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
+                                <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <p
+                                  className="font-semibold text-sm leading-snug truncate"
+                                  data-testid={`text-company-name-${company.id}`}
+                                >
+                                  {company.name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Company documents</p>
+                              </div>
+                            </div>
+                            {cHasIssues ? (
+                              cOverdue > 0 ? (
+                                <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                                  <AlertTriangle className="h-3 w-3" />
+                                </Badge>
+                              ) : (
+                                <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs px-1.5">
+                                  <Clock className="h-3 w-3" />
+                                </Badge>
+                              )
+                            ) : cPct === 100 ? (
+                              <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 border text-xs px-1.5">
+                                <CheckCircle className="h-3 w-3" />
+                              </Badge>
+                            ) : null}
+                          </div>
+
+                          {cDenom > 0 ? (
+                            <div className="mb-4 min-h-[38px]">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <TrendingUp className="h-3 w-3" />
+                                  Compliance
+                                </span>
+                                <span className={`text-xs font-semibold ${
+                                  cPct === 100 ? "text-emerald-600 dark:text-emerald-400"
+                                  : (cPct ?? 0) >= 70 ? "text-amber-600 dark:text-amber-400"
+                                  : "text-red-600 dark:text-red-400"
+                                }`}>
+                                  {cPct}%
+                                </span>
+                              </div>
+                              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    cPct === 100 ? "bg-emerald-500"
+                                    : (cPct ?? 0) >= 70 ? "bg-amber-500"
+                                    : "bg-red-500"
+                                  }`}
+                                  style={{ width: `${cPct}%` }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                              <p className="text-xs text-muted-foreground">
+                                {companyDocs.length === 0 ? "No company documents yet" : `${companyDocs.length} document${companyDocs.length !== 1 ? "s" : ""}`}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
+                              <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{cCompliant}</p>
+                              <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
+                            </div>
+                            <div className={`rounded-lg px-2 py-1.5 ${cReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                              <p className={`text-base font-bold ${cReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{cReview}</p>
+                              <p className={`text-xs ${cReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                            </div>
+                            <div className={`rounded-lg px-2 py-1.5 ${cOverdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                              <p className={`text-base font-bold ${cOverdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cOverdue}</p>
+                              <p className={`text-xs ${cOverdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <div className="border-t flex">
+                          <button
+                            onClick={() => {
+                              handleCompanyChange(company.name);
+                              setSelectedSiteId("all");
+                              navigate(`${basePath}/documents`);
+                            }}
+                            className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
+                            data-testid={`link-view-company-${company.id}`}
+                          >
+                            Documents
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </>
+              );
+            })()}
+
             {/* All Sites aggregate tile — only shown when there are 2+ sites */}
             {(() => {
               if (filteredSites.length <= 1) return null;

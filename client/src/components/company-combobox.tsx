@@ -31,6 +31,7 @@ interface CompanyComboboxProps {
   className?: string;
   includeAllOption?: boolean;
   testId?: string;
+  excludeNames?: string[];
 }
 
 export function CompanyCombobox({
@@ -41,20 +42,22 @@ export function CompanyCombobox({
   className,
   includeAllOption = true,
   testId,
+  excludeNames,
 }: CompanyComboboxProps) {
   const [open, setOpen] = useState(false);
 
   const companies = useMemo(() => {
+    const excludeSet = new Set(excludeNames ?? []);
     const companyMap = new Map<string, string>();
     sites.forEach((site) => {
-      if (site.companyName && !companyMap.has(site.companyName)) {
+      if (site.companyName && !companyMap.has(site.companyName) && !excludeSet.has(site.companyName)) {
         companyMap.set(site.companyName, site.companySearchTag || "");
       }
     });
     return Array.from(companyMap.entries())
       .map(([name, searchTag]) => ({ name, searchTag }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [sites]);
+  }, [sites, excludeNames]);
 
   const displayValue = !value || value === "all"
     ? "All Companies"
