@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   ArrowLeft,
@@ -71,6 +72,7 @@ import {
   ChevronRight,
   Check,
   Info,
+  Layers,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
@@ -232,6 +234,18 @@ export default function CreateFromTemplate() {
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
 
+  const { user } = useAuth();
+  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
+  const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
+  const [docScope, setDocScope] = useState<"site" | "company" | "group">(
+    isFullPermissionClient ? "company" : "site"
+  );
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [shareDestinations, setShareDestinations] = useState<string[]>([]);
+  const [entitySearch, setEntitySearch] = useState("");
+  const [destSearch, setDestSearch] = useState("");
+
   const { data: templates = [], isLoading: templatesLoading } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
   });
@@ -253,6 +267,60 @@ export default function CreateFromTemplate() {
   const { data: documentTypes = [] } = useQuery<DocumentTypeRecord[]>({
     queryKey: ["/api/document-types"],
   });
+
+  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean }[] }>({
+    queryKey: ["/api/companies", { limit: 1000 }],
+    queryFn: async () => {
+      const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      if (!res.ok) return { companies: [] };
+      return res.json();
+    },
+    enabled: canUploadCompanyGroupScope,
+  });
+  const allCompanies = allCompaniesData?.companies ?? [];
+
+  const { data: userCompany } = useQuery<{ id: string; name: string; isGroupOwner?: boolean } | null>({
+    queryKey: ["/api/companies", user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return null;
+      const res = await fetch(`/api/companies/${user.companyId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: isFullPermissionClient && !!user?.companyId,
+  });
+  const canUseGroupScope = isAdminOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
+
+  const { data: companySites } = useQuery<SiteWithCompany[]>({
+    queryKey: ["/api/sites", { companyId: selectedEntityId }],
+    queryFn: async () => {
+      if (!selectedEntityId) return [];
+      const res = await fetch(`/api/sites?companyId=${selectedEntityId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.sites ?? []);
+    },
+    enabled: docScope === "company" && !!selectedEntityId,
+  });
+
+  const { data: groupMemberCompanies } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies/group-members", selectedEntityId],
+    queryFn: async () => {
+      if (!selectedEntityId) return [];
+      const res = await fetch(`/api/companies?groupOwnerId=${selectedEntityId}&limit=1000`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.companies ?? [];
+    },
+    enabled: docScope === "group" && !!selectedEntityId,
+  });
+
+  // Auto-set entity to user's company for full-permission clients
+  useEffect(() => {
+    if (isFullPermissionClient && docScope !== "site" && user?.companyId && !selectedEntityId) {
+      setSelectedEntityId(user.companyId);
+    }
+  }, [isFullPermissionClient, docScope, user?.companyId, selectedEntityId]);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
   const primarySiteId = selectedSiteIds[0] ?? "";
@@ -495,11 +563,15 @@ export default function CreateFromTemplate() {
 
   const createDocumentMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedTemplate || selectedSiteIds.length === 0 || !selectedFile) {
+      if (!selectedTemplate || !selectedFile) {
         throw new Error("Missing required data");
       }
-      if (!selectedFolderId) {
-        throw new Error("Please select a folder");
+      if (docScope === "site") {
+        if (selectedSiteIds.length === 0) throw new Error("Please select at least one site");
+        if (!selectedFolderId) throw new Error("Please select a folder");
+      } else {
+        if (!selectedEntityId) throw new Error("Please select a target company or group");
+        if (shareDestinations.length === 0) throw new Error("Please select at least one destination");
       }
       if (requiresApproval && !selectedApproverId) {
         throw new Error("Please select a client approver");
@@ -522,8 +594,40 @@ export default function CreateFromTemplate() {
       const uploadResult = await uploadResponse.json();
       const fileUrl = uploadResult.objectPath;
 
-      // Step 2: Create a document record for each selected site
       const docType = documentTypes.find(dt => dt.id === selectedTemplate.documentTypeId);
+
+      // Company or Group scoped upload — single document with shared destinations
+      if (docScope === "company" || docScope === "group") {
+        const formData = {
+          title: documentTitle || selectedTemplate.name,
+          comments: documentComments || null,
+          module: selectedTemplate.module,
+          documentTypeId: selectedTemplate.documentTypeId,
+          scope: docScope,
+          entityId: selectedEntityId,
+          shareDestinations,
+          type: docType?.code || "policy",
+          fileName: selectedFile.name,
+          fileUrl,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type,
+          source: "template" as const,
+          templateId: selectedTemplate.id,
+          templateVersion: selectedTemplate.version,
+          isRequired: isRequiredForCompliance,
+          requiresApproval,
+          notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          reviewDate: reviewDate || undefined,
+          expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
+          renewalDate: complianceMode === "renewal" && renewalPeriodMonths
+            ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
+            : undefined,
+        };
+        const result = await apiRequest("POST", "/api/documents", formData);
+        return [result];
+      }
+
+      // Step 2 (site scope): Create a document record for each selected site
       const selectedFolder = siteFolders.find(f => f.id === selectedFolderId);
       const selectedFolderName = selectedFolder?.name || "";
 
@@ -676,7 +780,7 @@ export default function CreateFromTemplate() {
       toast({ title: "Title Required", description: "Please enter a document title.", variant: "destructive" });
       return;
     }
-    if (moduleFolders.length > 0 && !selectedFolderId) {
+    if (docScope === "site" && moduleFolders.length > 0 && !selectedFolderId) {
       toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
       return;
     }
@@ -937,7 +1041,7 @@ export default function CreateFromTemplate() {
     <div className="flex gap-6 items-start">
     <Card className="flex-1 max-w-2xl">
       <CardHeader>
-        <CardTitle>Select Site(s)</CardTitle>
+        <CardTitle>{docScope === "site" ? "Select Site(s)" : docScope === "company" ? "Select Company & Destination Sites" : "Select Group & Destination Companies"}</CardTitle>
         <CardDescription>
           {selectedTemplate ? (
             <span className="flex items-center gap-2">
@@ -949,10 +1053,157 @@ export default function CreateFromTemplate() {
               <span className="text-muted-foreground">·</span>
               <span>{moduleLabels[selectedTemplate.module]}</span>
             </span>
-          ) : "Choose one or more sites to create this document for"}
+          ) : "Choose where to create this document"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Document scope picker */}
+        {canUploadCompanyGroupScope && (
+          <div>
+            <p className="text-sm font-medium mb-2">Document scope</p>
+            <div className="flex gap-2">
+              {(["site", "company", "group"] as const).filter(scope =>
+                (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
+              ).map(scope => (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => {
+                    setDocScope(scope);
+                    setSelectedEntityId(isFullPermissionClient && scope !== "site" && user?.companyId ? user.companyId : "");
+                    setShareDestinations([]);
+                    setEntitySearch("");
+                    setDestSearch("");
+                  }}
+                  className={`flex-1 px-3 py-2 text-sm rounded-md border transition-colors ${
+                    docScope === scope ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted/50"
+                  }`}
+                  data-testid={`button-scope-${scope}`}
+                >
+                  {scope === "site" ? "Site" : scope === "company" ? "Company" : "Group"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              {docScope === "site" && "Document is owned by a single site."}
+              {docScope === "company" && "Document is owned by the company and shared with selected sites — compliance is calculated per destination site."}
+              {docScope === "group" && "Document is owned by the group and shared with member companies — compliance is calculated for all sites under those companies."}
+            </p>
+          </div>
+        )}
+
+        {/* Entity picker — only for company/group scope (admins/consultants choose; full-perm clients are auto-set) */}
+        {docScope !== "site" && (
+          <div>
+            <p className="text-sm font-medium mb-2">
+              {docScope === "company" ? "Origin company" : "Origin group"}
+              <span className="text-destructive"> *</span>
+            </p>
+            {isFullPermissionClient && !isAdminOrConsultant ? (
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" data-testid="text-entity-locked">
+                <Building2 className="inline h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                {userCompany?.name || user?.companyId}
+              </div>
+            ) : (
+              <>
+                <div className="relative mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder={docScope === "company" ? "Search companies…" : "Search group-owner companies…"}
+                    value={entitySearch}
+                    onChange={(e) => setEntitySearch(e.target.value)}
+                    className="pl-8 h-8 text-sm"
+                    data-testid="input-entity-search"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-md border p-1 space-y-0.5" data-testid="entity-picker-list">
+                  {allCompanies
+                    .filter(c => docScope !== "group" || c.isGroupOwner)
+                    .filter(c => !entitySearch || c.name.toLowerCase().includes(entitySearch.toLowerCase()))
+                    .map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { setSelectedEntityId(c.id); setShareDestinations([]); }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md text-left transition-colors ${
+                          selectedEntityId === c.id ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                        }`}
+                        data-testid={`button-entity-${c.id}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          {docScope === "company" ? <Building2 className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
+                          {c.name}
+                        </span>
+                        {selectedEntityId === c.id && <Check className="h-4 w-4" />}
+                      </button>
+                    ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Destinations picker — sites (company scope) or member companies (group scope) */}
+        {docScope !== "site" && selectedEntityId && (
+          <div>
+            <p className="text-sm font-medium mb-2">
+              {docScope === "company" ? "Share with sites" : "Share with member companies"}
+              <span className="text-destructive"> *</span>
+            </p>
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder={docScope === "company" ? "Search sites…" : "Search companies…"}
+                value={destSearch}
+                onChange={(e) => setDestSearch(e.target.value)}
+                className="pl-8 h-8 text-sm"
+                data-testid="input-destination-search"
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto rounded-md border p-1 space-y-0.5" data-testid="destination-picker-list">
+              {(docScope === "company" ? (companySites ?? []) : (groupMemberCompanies ?? []))
+                .filter(d => !destSearch || d.name.toLowerCase().includes(destSearch.toLowerCase()))
+                .map(d => {
+                  const checked = shareDestinations.includes(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => {
+                        setShareDestinations(prev =>
+                          prev.includes(d.id) ? prev.filter(id => id !== d.id) : [...prev, d.id]
+                        );
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md text-left transition-colors ${
+                        checked ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+                      }`}
+                      data-testid={`button-destination-${d.id}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {docScope === "company" ? <MapPin className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
+                        {d.name}
+                      </span>
+                      {checked && <Check className="h-4 w-4" />}
+                    </button>
+                  );
+                })}
+              {((docScope === "company" ? companySites : groupMemberCompanies) ?? []).length === 0 && (
+                <p className="text-xs text-muted-foreground p-2">
+                  No {docScope === "company" ? "sites" : "member companies"} available for the selected {docScope === "company" ? "company" : "group"}.
+                </p>
+              )}
+            </div>
+            {shareDestinations.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1.5" data-testid="text-destination-count">
+                {shareDestinations.length} {docScope === "company" ? "site" : "company"}{shareDestinations.length === 1 ? "" : "s"} selected
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Existing site-scope picker */}
+        {docScope === "site" && (
+        <>
         {/* Selected sites badges */}
         {selectedSiteIds.length > 0 && (
           <div className="space-y-1.5">
@@ -1090,6 +1341,8 @@ export default function CreateFromTemplate() {
             })()}
           </div>
         )}
+        </>
+        )}
       </CardContent>
       <div className="px-6 pb-6 flex justify-between">
         <Button variant="outline" onClick={() => goToStep("template")} data-testid="button-back-template">
@@ -1097,11 +1350,23 @@ export default function CreateFromTemplate() {
           Back
         </Button>
         <Button
-          onClick={() => setShowSiteConfirmDialog(true)}
-          disabled={selectedSiteIds.length === 0}
+          onClick={() => {
+            if (docScope === "site") {
+              setShowSiteConfirmDialog(true);
+            } else {
+              goToStep("placeholders");
+            }
+          }}
+          disabled={
+            docScope === "site"
+              ? selectedSiteIds.length === 0
+              : !selectedEntityId || shareDestinations.length === 0
+          }
           data-testid="button-next-placeholders"
         >
-          Continue{selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}
+          {docScope === "site"
+            ? `Continue${selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}`
+            : `Continue${shareDestinations.length > 0 ? ` (${shareDestinations.length} ${docScope === "company" ? "site" : "compan"}${shareDestinations.length === 1 ? (docScope === "company" ? "" : "y") : (docScope === "company" ? "s" : "ies")})` : ""}`}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
