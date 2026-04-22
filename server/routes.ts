@@ -2742,9 +2742,16 @@ export async function registerRoutes(
       }
 
       // For group-scope: entityId must be a group owner company
+      // (i.e., at least one other company references it as their groupOwnerId).
+      // Note: Company.isGroupOwner is a computed field added by listing endpoints,
+      // not a DB column, so we must check membership directly.
       if (docScope === "group" && body.entityId) {
         const groupOwnerCompany = await storage.getCompany(body.entityId);
-        if (!groupOwnerCompany || !groupOwnerCompany.isGroupOwner) {
+        if (!groupOwnerCompany) {
+          return res.status(400).json({ error: "entityId must be a group owner company for group-scoped documents" });
+        }
+        const groupMembers = await storage.getGroupMembers(body.entityId);
+        if (!groupMembers || groupMembers.length === 0) {
           return res.status(400).json({ error: "entityId must be a group owner company for group-scoped documents" });
         }
       }
