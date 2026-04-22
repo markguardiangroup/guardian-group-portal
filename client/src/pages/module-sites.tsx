@@ -509,7 +509,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       <button
                         onClick={() => {
                           setSelectedSiteId("all");
-                          navigate(`${basePath}/documents`);
+                          navigate(
+                            `${basePath}/documents?scope=group&entityId=${encodeURIComponent(selectedGroup)}`
+                          );
                         }}
                         className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
                         data-testid={`link-view-group-${selectedGroup}`}
@@ -631,9 +633,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         <div className="border-t flex">
                           <button
                             onClick={() => {
-                              handleCompanyChange(company.name);
                               setSelectedSiteId("all");
-                              navigate(`${basePath}/documents`);
+                              navigate(
+                                `${basePath}/documents?scope=company&entityId=${encodeURIComponent(company.id)}`
+                              );
                             }}
                             className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
                             data-testid={`link-view-company-${company.id}`}

@@ -313,6 +313,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const urlSiteId = urlParams.get("siteId");
   const urlCompany = urlParams.get("company");
   const urlRenewal = urlParams.get("renewal");
+  const urlScope = urlParams.get("scope");
+  const urlEntityId = urlParams.get("entityId");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -325,6 +327,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
+  useEffect(() => {
+    if (urlScope && urlEntityId) {
+      setSelectedSiteId("all");
+    }
+  }, [urlScope, urlEntityId]);
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
@@ -705,6 +712,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
 
   const filteredDocuments = documents?.filter((doc) => {
+    // Scope filter — when navigating from a Group/Company card, only show docs
+    // for that specific scope+entity.
+    if (urlScope && urlEntityId) {
+      if ((doc as any).scope !== urlScope || (doc as any).entityId !== urlEntityId) {
+        return false;
+      }
+    }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
