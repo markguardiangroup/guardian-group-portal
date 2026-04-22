@@ -364,8 +364,23 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Group + Company cards (only when a group is selected) */}
-            {selectedGroup !== "all" && (() => {
+            {/* Group + Company cards */}
+            {(selectedGroup !== "all" ||
+              (selectedCompany && selectedCompany !== "all")) && (() => {
+              // Companies to render company cards for:
+              // - If a group is selected: members of that group (excluding the group-owner itself),
+              //   optionally narrowed to the selected company.
+              // - If no group but a company is selected: just that company.
+              const companyCardSource: CompanyListItem[] =
+                selectedGroup !== "all"
+                  ? selectedGroupCompanies.filter((c) => c.id !== selectedGroup)
+                  : companies.filter((c) => c.name === selectedCompany);
+              const companyCards = companyCardSource.filter((c) =>
+                !selectedCompany || selectedCompany === "all"
+                  ? true
+                  : c.name === selectedCompany
+              );
+
               const groupDocs = (documents ?? []).filter(
                 (d) =>
                   !d.isArchived &&
@@ -385,7 +400,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
               return (
                 <>
-                  {/* Group card — group-scoped docs */}
+                  {/* Group card — group-scoped docs (only when a group is selected) */}
+                  {selectedGroup !== "all" && (
                   <Card
                     className={`overflow-hidden transition-all hover:shadow-md border-2 ${moduleBorderDashedColors[module]} hover:border-solid`}
                     data-testid={`card-group-${selectedGroup}`}
@@ -486,16 +502,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </button>
                     </div>
                   </Card>
+                  )}
 
-                  {/* One card per company in the group — company-scoped docs */}
-                  {selectedGroupCompanies
-                    .filter((company) => company.id !== selectedGroup)
-                    .filter((company) =>
-                      !selectedCompany || selectedCompany === "all"
-                        ? true
-                        : company.name === selectedCompany
-                    )
-                    .map((company) => {
+                  {/* One card per company — company-scoped docs */}
+                  {companyCards.map((company) => {
                     const companyDocs = (documents ?? []).filter(
                       (d) =>
                         !d.isArchived &&
