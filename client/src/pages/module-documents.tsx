@@ -441,8 +441,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Derive the effective view mode: use the user's explicit choice if set, otherwise "folder".
   const viewMode: ViewMode | null = useMemo(() => {
     if (sites === undefined) return null;
+    // When viewing a specific group/company scope, the folder hierarchy
+    // (which is per-site) doesn't apply — show the flat table instead.
+    if (urlScope && urlEntityId) return explicitViewMode ?? "table";
     return explicitViewMode ?? "folder";
-  }, [sites, explicitViewMode]);
+  }, [sites, explicitViewMode, urlScope, urlEntityId]);
 
   const setViewMode = (mode: ViewMode) => setExplicitViewMode(mode);
 
