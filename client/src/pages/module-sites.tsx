@@ -319,16 +319,27 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 </SelectContent>
               </Select>
             )}
-            {isPrivilegedUser && (
-              <CompanyCombobox
-                sites={sites}
-                value={selectedCompany}
-                onValueChange={handleCompanyChange}
-                className="w-[260px]"
-                testId="select-company-sites"
-                excludeNames={groupOwnerNames}
-              />
-            )}
+            {isPrivilegedUser && (() => {
+              // When a group is selected, restrict the company filter to
+              // companies that belong to that group.
+              const sitesForCombobox =
+                selectedGroup === "all"
+                  ? sites
+                  : (sites ?? []).filter((s) => {
+                      const ids = new Set(selectedGroupCompanies.map((c) => c.id));
+                      return ids.has(s.companyId);
+                    });
+              return (
+                <CompanyCombobox
+                  sites={sitesForCombobox}
+                  value={selectedCompany}
+                  onValueChange={handleCompanyChange}
+                  className="w-[260px]"
+                  testId="select-company-sites"
+                  excludeNames={groupOwnerNames}
+                />
+              );
+            })()}
           </div>
         </div>
       </div>
