@@ -289,6 +289,22 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            {(selectedGroup !== "all" ||
+              (selectedCompany && selectedCompany !== "all")) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedGroup("all");
+                  handleCompanyChange(null);
+                }}
+                data-testid="button-clear-filters"
+                className="h-9 w-9"
+                aria-label="Clear filters"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             {groupOwners.length > 0 && (
               <Select
                 value={selectedGroup}
