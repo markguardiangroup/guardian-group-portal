@@ -488,7 +488,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   </Card>
 
                   {/* One card per company in the group — company-scoped docs */}
-                  {selectedGroupCompanies.map((company) => {
+                  {selectedGroupCompanies
+                    .filter((company) => company.id !== selectedGroup)
+                    .filter((company) =>
+                      !selectedCompany || selectedCompany === "all"
+                        ? true
+                        : company.name === selectedCompany
+                    )
+                    .map((company) => {
                     const companyDocs = (documents ?? []).filter(
                       (d) =>
                         !d.isArchived &&
