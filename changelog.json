@@ -698,6 +698,15 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T09:40:26.883Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c37bf27b-9b68-4136-9b3c-b99f270d3dc9",
+          "patch": 5,
+          "category": "UI",
+          "title": "Activation/reset screens use branded split layout",
+          "description": "Set-password, activation, validating, expired-link and success states now share the login page split layout — branded dark hero panel with Guardian Group logo, gradient headline and feature highlights on the left; white form card on the right — for a consistent first impression.",
+          "createdAt": "2026-04-23T09:46:34.735Z",
+          "createdBy": "agent"
         }
       ]
     }

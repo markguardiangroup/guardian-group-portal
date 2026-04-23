@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, ShieldCheck, X, FileText } from "lucide-react";
+import { Shield, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PdfViewer } from "@/components/pdf-viewer";
+import { AuthShell } from "@/components/auth-shell";
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
   <div className="flex items-center gap-2 text-xs">
@@ -22,13 +22,25 @@ const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
   </div>
 );
 
-const BrandingHeader = () => (
+const SectionHeader = ({
+  icon,
+  iconBg,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  description?: React.ReactNode;
+}) => (
   <div className="text-center mb-6">
-    <div className="flex items-center justify-center gap-2 mb-2">
-      <ShieldCheck className="h-8 w-8 text-primary" />
-      <span className="text-xl font-bold text-primary">Guardian Group</span>
+    <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}>
+      {icon}
     </div>
-    <p className="text-sm text-muted-foreground">H&S Compliance Portal</p>
+    <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+    {description && (
+      <p className="text-sm text-slate-500 mt-1.5">{description}</p>
+    )}
   </div>
 );
 
@@ -148,148 +160,113 @@ export default function SetPassword() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <BrandingHeader />
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle>Invalid Link</CardTitle>
-              <CardDescription>
-                This link is missing required information. Please use the link from your invitation email.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="justify-center">
-              <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
-                Go to Login
-              </Button>
-            </CardFooter>
-          </Card>
+      <AuthShell>
+        <SectionHeader
+          icon={<AlertCircle className="h-6 w-6 text-destructive" />}
+          iconBg="bg-destructive/10"
+          title="Invalid Link"
+          description="This link is missing required information. Please use the link from your invitation email."
+        />
+        <div className="flex justify-center">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
+            Go to Login
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (validating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <BrandingHeader />
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Validating your invitation...</p>
-              </div>
-            </CardContent>
-          </Card>
+      <AuthShell>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-slate-500 text-sm">Validating your invitation...</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (validationError || !validation?.valid) {
     const errorMessage = (validationError as Error)?.message || "This invitation link is invalid or has expired.";
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <BrandingHeader />
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <CardTitle>Link No Longer Valid</CardTitle>
-              <CardDescription>{errorMessage}</CardDescription>
-            </CardHeader>
-            <CardFooter className="flex-col gap-3">
-            <p className="text-sm text-muted-foreground text-center">
-              Please contact your administrator to request a new invitation.
-            </p>
-            <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
-              Go to Login
-            </Button>
-          </CardFooter>
-          </Card>
+      <AuthShell>
+        <SectionHeader
+          icon={<AlertCircle className="h-6 w-6 text-destructive" />}
+          iconBg="bg-destructive/10"
+          title="Link No Longer Valid"
+          description={errorMessage}
+        />
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-slate-500 text-center">
+            Please contact your administrator to request a new invitation.
+          </p>
+          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
+            Go to Login
+          </Button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md">
-          <BrandingHeader />
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-              <CardTitle>
-                {validation.purpose === "invite" ? "Account Activated" : "Password Reset Complete"}
-              </CardTitle>
-              <CardDescription>
-                {validation.purpose === "invite"
-                  ? "Your account is now active. You can log in with either of the following:"
-                  : "Your password has been reset. You can log in with either of the following:"}
-              </CardDescription>
-            </CardHeader>
-            <div className="px-6 pb-4">
-              <table className="w-full text-sm border rounded-md overflow-hidden">
-                <tbody>
-                  <tr className="border-b">
-                    <th className="text-left font-medium px-3 py-2 bg-muted/50 w-1/3">
-                      Email
-                    </th>
-                    <td className="px-3 py-2 font-bold break-all" data-testid="text-login-email">
-                      {validation.email}
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-left font-medium px-3 py-2 bg-muted/50">
-                      Username
-                    </th>
-                    <td className="px-3 py-2 font-bold break-all" data-testid="text-login-username">
-                      {validation.username}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <CardFooter className="justify-center">
-              <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
-                Log In Now
-              </Button>
-            </CardFooter>
-          </Card>
+      <AuthShell>
+        <SectionHeader
+          icon={<CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />}
+          iconBg="bg-green-100 dark:bg-green-900/30"
+          title={validation.purpose === "invite" ? "Account Activated" : "Password Reset Complete"}
+          description={
+            validation.purpose === "invite"
+              ? "Your account is now active. You can log in with either of the following:"
+              : "Your password has been reset. You can log in with either of the following:"
+          }
+        />
+        <div className="mb-4">
+          <table className="w-full text-sm border rounded-md overflow-hidden">
+            <tbody>
+              <tr className="border-b">
+                <th className="text-left font-medium px-3 py-2 bg-muted/50 w-1/3">
+                  Email
+                </th>
+                <td className="px-3 py-2 font-bold break-all" data-testid="text-login-email">
+                  {validation.email}
+                </td>
+              </tr>
+              <tr>
+                <th className="text-left font-medium px-3 py-2 bg-muted/50">
+                  Username
+                </th>
+                <td className="px-3 py-2 font-bold break-all" data-testid="text-login-username">
+                  {validation.username}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
+        <div className="flex justify-center">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
+            Log In Now
+          </Button>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <BrandingHeader />
-        <Card>
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>
-              {validation.purpose === "invite" ? "Set Up Your Password" : "Reset Your Password"}
-            </CardTitle>
-            <CardDescription>
-              {validation.purpose === "invite" 
-                ? `Welcome, ${validation.fullName}! Create a secure password to activate your account.`
-                : `Enter a new password for your account (${validation.email}).`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      <AuthShell>
+        <SectionHeader
+          icon={<Shield className="h-6 w-6 text-primary" />}
+          iconBg="bg-primary/10"
+          title={validation.purpose === "invite" ? "Set Up Your Password" : "Reset Your Password"}
+          description={
+            validation.purpose === "invite"
+              ? `Welcome, ${validation.fullName}! Create a secure password to activate your account.`
+              : `Enter a new password for your account (${validation.email}).`
+          }
+        />
+        <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="password">New Password</Label>
                 <div className="relative">
@@ -433,10 +410,8 @@ export default function SetPassword() {
                   validation.purpose === "invite" ? "Activate Account" : "Reset Password"
                 )}
               </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+        </form>
+      </AuthShell>
 
       {/* Legal document preview dialog */}
       <Dialog open={previewDoc !== null} onOpenChange={(open) => !open && setPreviewDoc(null)}>
@@ -459,6 +434,6 @@ export default function SetPassword() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
