@@ -316,6 +316,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const urlRenewal = urlParams.get("renewal");
   const urlScope = urlParams.get("scope");
   const urlEntityId = urlParams.get("entityId");
+  const urlEntityName = urlParams.get("entityName");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -331,8 +332,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   useEffect(() => {
     if (urlScope && urlEntityId) {
       setSelectedSiteId("all");
+      // Sync the company filter so the doc list and missing-required slots are scoped
+      // to this company's sites. For group scope we leave company as "all" (group docs
+      // span multiple companies) but still pin the header via entityName below.
+      if (urlScope === "company" && urlEntityName) {
+        handleCompanyChange(urlEntityName);
+      }
     }
-  }, [urlScope, urlEntityId]);
+  }, [urlScope, urlEntityId, urlEntityName]);
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
@@ -472,20 +479,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [basePath, selectedSiteId]);
 
   const contextCompany = useMemo(() => {
+    if (urlScope === "group" && urlEntityName) return `${urlEntityName} (Group)`;
+    if (urlScope === "company" && urlEntityName) return urlEntityName;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
     }
     if (selectedCompany && selectedCompany !== "all") return selectedCompany;
     return null;
-  }, [selectedSiteId, selectedCompany, sites]);
+  }, [selectedSiteId, selectedCompany, sites, urlScope, urlEntityName]);
 
   const contextSite = useMemo(() => {
+    if (urlScope === "group") return "Group Documents";
+    if (urlScope === "company") return "Company Documents";
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (selectedCompany && selectedCompany !== "all") return "All Sites";
     return "All Sites";
-  }, [selectedSiteId, selectedCompany, sites]);
+  }, [selectedSiteId, selectedCompany, sites, urlScope]);
 
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],

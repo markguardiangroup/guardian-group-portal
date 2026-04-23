@@ -746,6 +746,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T12:13:27.593Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "7797b761-01f0-48c5-b3e0-af4420859d1b",
+          "patch": 5,
+          "message": "Documents button on Group/Company tiles now opens a properly scoped Documents view with the Group or Company name in the header",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:22:15.748Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -512,7 +512,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         onClick={() => {
                           setSelectedSiteId("all");
                           navigate(
-                            `${basePath}/documents?scope=group&entityId=${encodeURIComponent(selectedGroup)}`
+                            `${basePath}/documents?scope=group&entityId=${encodeURIComponent(selectedGroup)}&entityName=${encodeURIComponent(selectedGroupOwnerName || "")}`
                           );
                         }}
                         className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
@@ -641,7 +641,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             onClick={() => {
                               setSelectedSiteId("all");
                               navigate(
-                                `${basePath}/documents?scope=company&entityId=${encodeURIComponent(company.id)}`
+                                `${basePath}/documents?scope=company&entityId=${encodeURIComponent(company.id)}&entityName=${encodeURIComponent(company.name)}`
                               );
                             }}
                             className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold ${moduleColors[module]} ${moduleActionBg[module]} transition-colors`}
