@@ -456,9 +456,16 @@ function EmailDeliveryLogDialog({
                 <div>
                   <p className="font-medium text-sm">Failed to load email logs</p>
                   <p className="text-sm mt-1 opacity-80">
-                    {(error as Error)?.message?.includes("Resend API")
-                      ? "The Resend API key may be missing or invalid. Check that RESEND_API_KEY (dev) or RESEND_API_KEY_PROD (production) is set."
-                      : (error as Error)?.message ?? "An unexpected error occurred."}
+                    {(() => {
+                      const msg = (error as Error)?.message ?? "";
+                      if (/restricted_api_key|restricted to only send/i.test(msg)) {
+                        return "The Resend API key is a send-only (restricted) key and cannot list emails. Replace RESEND_API_KEY (dev) or RESEND_API_KEY_PROD (production) with a Full access key from the Resend dashboard.";
+                      }
+                      if (/Resend API/i.test(msg)) {
+                        return "The Resend API key may be missing or invalid. Check that RESEND_API_KEY (dev) or RESEND_API_KEY_PROD (production) is set to a Full access key.";
+                      }
+                      return msg || "An unexpected error occurred.";
+                    })()}
                   </p>
                 </div>
               </div>
