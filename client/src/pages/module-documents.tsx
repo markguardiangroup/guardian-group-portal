@@ -1814,6 +1814,174 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   );
 }
 
+interface ShareRecord {
+  id: string;
+  documentId: string;
+  entityType: "site" | "company";
+  entityId: string;
+  entityName: string | null;
+}
+
+interface ShareCandidate {
+  id: string;
+  name: string;
+}
+
+function DocumentSharingCard({
+  documentId,
+  scope,
+  ownerEntityId,
+}: {
+  documentId: string;
+  scope: "company" | "group";
+  ownerEntityId: string;
+}) {
+  const { toast } = useToast();
+  const [selectedToAdd, setSelectedToAdd] = useState<string>("");
+
+  const sharesKey = ["/api/documents", documentId, "shares"] as const;
+
+  const { data: shares = [], isLoading: loadingShares } = useQuery<ShareRecord[]>({
+    queryKey: sharesKey,
+  });
+
+  const candidatesUrl =
+    scope === "group"
+      ? `/api/companies?groupOwnerId=${ownerEntityId}`
+      : `/api/sites?companyId=${ownerEntityId}`;
+
+  const { data: candidatesRaw = [] } = useQuery<any[]>({
+    queryKey: [candidatesUrl],
+  });
+
+  const candidates: ShareCandidate[] = (candidatesRaw || [])
+    .filter((c: any) => c.id !== ownerEntityId)
+    .map((c: any) => ({ id: c.id, name: c.name }));
+
+  const sharedIds = new Set(shares.map((s) => s.entityId));
+  const available = candidates.filter((c) => !sharedIds.has(c.id));
+
+  const invalidateAfterChange = () => {
+    queryClient.invalidateQueries({ queryKey: sharesKey });
+    queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+  };
+
+  const addShare = useMutation({
+    mutationFn: async (entityId: string) => {
+      const entityType = scope === "group" ? "company" : "site";
+      const res = await apiRequest("POST", `/api/documents/${documentId}/shares`, {
+        entityType,
+        entityId,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSelectedToAdd("");
+      invalidateAfterChange();
+      toast({ title: scope === "group" ? "Company added" : "Site added", description: "Compliance scores will update shortly." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not share document", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const removeShare = useMutation({
+    mutationFn: async (entityId: string) => {
+      const res = await apiRequest("DELETE", `/api/documents/${documentId}/shares/${entityId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidateAfterChange();
+      toast({ title: scope === "group" ? "Company removed" : "Site removed", description: "Compliance scores will update shortly." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Could not remove share", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const targetLabel = scope === "group" ? "Companies" : "Sites";
+  const singularLabel = scope === "group" ? "company" : "site";
+
+  return (
+    <Card data-testid="card-document-sharing">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Building2 className="h-4 w-4" />
+          Shared {targetLabel}
+        </CardTitle>
+        <CardDescription>
+          {scope === "group"
+            ? "Companies in this group that count this document toward their compliance."
+            : "Sites at this company that count this document toward their compliance."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loadingShares ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : shares.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Not shared with any {singularLabel} yet.
+          </p>
+        ) : (
+          <ul className="divide-y rounded-md border">
+            {shares.map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center justify-between gap-2 px-3 py-2"
+                data-testid={`row-share-${s.entityId}`}
+              >
+                <span className="text-sm truncate" title={s.entityName ?? undefined}>
+                  {s.entityName ?? s.entityId}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => {
+                    if (confirm(`Remove this ${singularLabel} from the shared document? Their compliance score will be recalculated.`)) {
+                      removeShare.mutate(s.entityId);
+                    }
+                  }}
+                  disabled={removeShare.isPending || shares.length <= 1}
+                  title={shares.length <= 1 ? `At least one ${singularLabel} must remain shared` : `Remove ${singularLabel}`}
+                  data-testid={`button-remove-share-${s.entityId}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex items-center gap-2 pt-1">
+          <Select value={selectedToAdd} onValueChange={setSelectedToAdd}>
+            <SelectTrigger className="flex-1" data-testid="select-add-share">
+              <SelectValue placeholder={available.length ? `Add ${singularLabel}…` : `All ${targetLabel.toLowerCase()} already shared`} />
+            </SelectTrigger>
+            <SelectContent>
+              {available.map((c) => (
+                <SelectItem key={c.id} value={c.id} data-testid={`option-share-${c.id}`}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            onClick={() => selectedToAdd && addShare.mutate(selectedToAdd)}
+            disabled={!selectedToAdd || addShare.isPending}
+            data-testid="button-add-share"
+          >
+            Add
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleType }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -2751,6 +2919,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               )}
             </CardContent>
           </Card>
+
+          {isPrivilegedUser && !document.isArchived && (document.scope === "company" || document.scope === "group") && document.entityId && (
+            <DocumentSharingCard
+              documentId={document.id}
+              scope={document.scope as "company" | "group"}
+              ownerEntityId={document.entityId}
+            />
+          )}
 
           {isPrivilegedUser && !document.isArchived && (
             <Card data-testid="card-compliance-tracking">

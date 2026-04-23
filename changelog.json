@@ -714,6 +714,14 @@
           "createdAt": "2026-04-23T09:52:15.715Z",
           "createdBy": "agent",
           "message": "Activation success screen no longer disappears when tab is refocused"
+        },
+        {
+          "id": "e0130b8d-aed7-4fc5-9e71-5315477319d6",
+          "patch": 5,
+          "message": "Group/company documents now show a Shared list with add/remove (auto-updates compliance)",
+          "category": "feature",
+          "createdAt": "2026-04-23T11:59:18.883Z",
+          "createdBy": "agent"
         }
       ]
     }
