@@ -1171,7 +1171,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const unfiledMissing = new Map<string, any>();
                   for (const slot of missingSlots) {
                     const ftId = (slot as any).folderTemplateId ?? null;
-                    const matchingFolder = ftId ? folders.find((f: any) => f.id === ftId || (f as any).folderTemplateId === ftId) : null;
+                    const matchingFolder = ftId ? folders.find((f: any) => f.id === ftId || (f as any).templateId === ftId || (f as any).folderTemplateId === ftId) : null;
                     if (matchingFolder) {
                       const m = missingByFolder.get(matchingFolder.id) || new Map<string, any>();
                       if (!m.has(slot.templateId)) m.set(slot.templateId, slot);
