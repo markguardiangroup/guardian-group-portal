@@ -2444,7 +2444,10 @@ export async function registerRoutes(
         }
       }
       
-      // Update the main document with new file info
+      // Update the main document with new file info. Reassign uploadedBy to
+      // the user who uploaded this new version so that any subsequent client
+      // sign-off notification goes to them (the consultant currently driving
+      // the approval cycle), not the original uploader.
       const updatedDocument = await storage.updateDocument(document.id, {
         fileName,
         fileUrl,
@@ -2453,6 +2456,7 @@ export async function registerRoutes(
         version: newVersionNumber,
         status: newStatus,
         approvalStatus: newApprovalStatus,
+        uploadedBy: user.id,
         updatedAt: new Date(),
       });
       
@@ -3245,7 +3249,6 @@ export async function registerRoutes(
 
       if (isClientSignOff && document.siteId) {
         try {
-          const assignments = await storage.getConsultantAssignments(document.siteId);
           const site = await storage.getSite(document.siteId);
           const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
           const modulePath = existingDoc.module === "health_safety" ? "health-safety" 
@@ -3254,35 +3257,38 @@ export async function registerRoutes(
             : "documents";
           const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
 
-          if (assignments.length > 0) {
-            for (const assignment of assignments) {
-              try {
-                const consultant = await storage.getUser(assignment.consultantId);
-                if (consultant && consultant.email) {
-                  await sendClientSignOffEmail({
-                    to: consultant.email,
-                    fullName: consultant.fullName,
-                    documentTitle: existingDoc.title,
-                    siteName: site?.name || "Unknown Site",
-                    clientName: user.fullName,
-                    documentUrl,
-                    role: "consultant",
-                  });
-                  await storage.createAuditLog({
-                    action: "email_sent",
-                    userId: user.id,
-                    userName: user.fullName,
-                    entityId: document.siteId,
-                    documentId: document.id,
-                    supportRequestId: null,
-                    module: existingDoc.module,
-                    details: `Client sign-off notification email sent to consultant ${consultant.fullName} (${consultant.email})`,
-                    metadata: JSON.stringify({ targetUserId: consultant.id, emailType: "sign_off_notification" }),
-                  });
-                }
-              } catch (emailError) {
-                console.error(`Failed to send sign-off notification to consultant ${assignment.consultantId}:`, emailError);
-              }
+          // Notify only the consultant who uploaded / last requested approval
+          // for this document — not every consultant assigned to the site.
+          const uploader = existingDoc.uploadedBy
+            ? await storage.getUser(existingDoc.uploadedBy)
+            : null;
+          const notifyUploader =
+            uploader && uploader.email && uploader.role === "consultant";
+
+          if (notifyUploader) {
+            try {
+              await sendClientSignOffEmail({
+                to: uploader.email!,
+                fullName: uploader.fullName,
+                documentTitle: existingDoc.title,
+                siteName: site?.name || "Unknown Site",
+                clientName: user.fullName,
+                documentUrl,
+                role: "consultant",
+              });
+              await storage.createAuditLog({
+                action: "email_sent",
+                userId: user.id,
+                userName: user.fullName,
+                entityId: document.siteId,
+                documentId: document.id,
+                supportRequestId: null,
+                module: existingDoc.module,
+                details: `Client sign-off notification email sent to consultant ${uploader.fullName} (${uploader.email})`,
+                metadata: JSON.stringify({ targetUserId: uploader.id, emailType: "sign_off_notification" }),
+              });
+            } catch (emailError) {
+              console.error(`Failed to send sign-off notification to consultant ${uploader.id}:`, emailError);
             }
           } else {
             const allUsers = await storage.getAllUsers();
