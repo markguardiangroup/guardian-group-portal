@@ -10042,7 +10042,7 @@ export async function registerRoutes(
                 };
               }),
               stats: {
-                totalDocuments: childFolderDocs.length,
+                totalDocuments: childFolderDocs.length + sharedForChildFolder.length,
                 compliant: childFolderDocs.filter(d => !d.isArchived && d.status === "compliant" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 reviewRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "review_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 overdue: childFolderDocs.filter(d => !d.isArchived && d.status === "overdue" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
@@ -10163,7 +10163,7 @@ export async function registerRoutes(
             }),
             childFolders,
             stats: {
-              totalDocuments: folderDocuments.length + childDocsTotal,
+              totalDocuments: folderDocuments.length + childDocsTotal + sharedForThisFolder.length,
               compliant: compliantCount + childCompliant,
               reviewRequired: reviewRequiredCount + childReviewRequired,
               overdue: overdueCount + childOverdue,
