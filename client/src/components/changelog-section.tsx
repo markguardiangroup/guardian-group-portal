@@ -281,27 +281,12 @@ export default function ChangelogSection() {
                         <span className="font-semibold text-base font-mono">
                           {versionLabel(version)}
                         </span>
-                        {patchNums.length > 0 && (
-                          <span className="text-xs text-muted-foreground font-mono">
-                            .00 – .{String(version.patch).padStart(2, "0")}
-                          </span>
-                        )}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          .{String(version.patch).padStart(2, "0")}
+                        </span>
                         {version.isActive && (
                           <Badge variant="default" className="text-xs px-1.5 py-0">
                             Active
-                          </Badge>
-                        )}
-                        {version.isActive && version.publishedPatch !== undefined && (
-                          <Badge
-                            variant="outline"
-                            className={`text-xs px-1.5 py-0 font-mono ${
-                              version.publishedPatch < version.patch
-                                ? "border-amber-400 text-amber-600 dark:text-amber-400"
-                                : "border-emerald-400 text-emerald-600 dark:text-emerald-400"
-                            }`}
-                            title={version.publishedPatch < version.patch ? "Unreleased changes exist" : "Dev and production are in sync"}
-                          >
-                            Live: {formatPatch(version, version.publishedPatch)}
                           </Badge>
                         )}
                         {version.label && (
