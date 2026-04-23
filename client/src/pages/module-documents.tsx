@@ -490,7 +490,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (sites === undefined) return null;
     // When viewing a specific group/company scope, the folder hierarchy
     // (which is per-site) doesn't apply — show the flat table instead.
-    if (urlScope && urlEntityId) return explicitViewMode ?? "table";
+    if (urlScope && urlEntityId) return explicitViewMode ?? "folder";
     return explicitViewMode ?? "folder";
   }, [sites, explicitViewMode, urlScope, urlEntityId]);
 
