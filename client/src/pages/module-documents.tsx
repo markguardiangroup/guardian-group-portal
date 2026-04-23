@@ -1152,62 +1152,135 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     );
                   }
 
-                  const renderFolder = (folder: any, depth: number) => {
+                  const computeStats = (docs: any[]) => ({
+                    totalDocuments: docs.length,
+                    compliant: docs.filter((d: any) => d.status === "compliant").length,
+                    reviewRequired: docs.filter((d: any) => d.status === "review_required").length,
+                    overdue: docs.filter((d: any) => d.status === "overdue").length,
+                  });
+
+                  const renderChildFolder = (childFolder: any) => {
+                    const childDocs = docsByFolder.get(childFolder.id) || [];
+                    const childStatusBadge = getFolderStatusBadge(computeStats(childDocs));
+                    return (
+                      <AccordionItem
+                        key={childFolder.id}
+                        value={childFolder.id}
+                        className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}
+                        data-testid={`folder-scope-${childFolder.id}`}
+                      >
+                        <AccordionTrigger className="hover:no-underline px-3 py-2 bg-muted/30">
+                          <div className="flex items-center justify-between w-full pr-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-7 w-7 items-center justify-center rounded-md ${moduleBgColors[module]}`}>
+                                <FolderOpen className={`h-3.5 w-3.5 ${moduleColors[module]}`} />
+                              </div>
+                              <span className="font-medium text-sm">{childFolder.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
+                              <span className="text-xs text-muted-foreground">
+                                {childDocs.length} document{childDocs.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="p-3 pl-10 space-y-2">
+                            {childDocs.length > 0 ? (
+                              childDocs.map(renderDocRow)
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">No documents in this subfolder</p>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  };
+
+                  const renderParentFolder = (folder: any) => {
                     const childFolders = folders
                       .filter((f: any) => f.parentId === folder.id)
                       .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
                     const folderDocs = docsByFolder.get(folder.id) || [];
-                    const totalDocsInTree = folderDocs.length + childFolders.reduce((sum: number, c: any) => sum + (docsByFolder.get(c.id)?.length || 0), 0);
+                    const allDocsInTree = [
+                      ...folderDocs,
+                      ...childFolders.flatMap((c: any) => docsByFolder.get(c.id) || []),
+                    ];
+                    const stats = computeStats(allDocsInTree);
+                    const statusBadge = getFolderStatusBadge(stats);
                     return (
-                      <details
+                      <AccordionItem
                         key={folder.id}
-                        className={`rounded-md border ${moduleBorderColors[module]} bg-background`}
-                        style={{ marginLeft: depth * 12 }}
-                        open={depth === 0}
-                        data-testid={`folder-scope-${folder.id}`}
+                        value={folder.id}
+                        data-testid={`accordion-folder-${folder.id}`}
+                        className={`border-b ${moduleBorderColors[module]}`}
                       >
-                        <summary className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer list-none">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FolderOpen className={`h-4 w-4 ${moduleColors[module]} shrink-0`} />
-                            <span className="font-medium text-sm truncate">{folder.name}</span>
+                        <AccordionTrigger className="hover:no-underline px-2">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-8 w-8 items-center justify-center rounded-md ${moduleBgColors[module]}`}>
+                                <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
+                              </div>
+                              <span className="font-medium">{folder.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
+                              <span className="text-sm text-muted-foreground">
+                                {stats.totalDocuments} document{stats.totalDocuments !== 1 ? "s" : ""}
+                              </span>
+                            </div>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {totalDocsInTree} document{totalDocsInTree !== 1 ? "s" : ""}
-                          </span>
-                        </summary>
-                        <div className="px-3 pb-3 space-y-2">
-                          {folderDocs.length > 0 && (
-                            <div className="space-y-2 pt-2">{folderDocs.map(renderDocRow)}</div>
-                          )}
-                          {childFolders.map((child: any) => renderFolder(child, depth + 1))}
-                          {folderDocs.length === 0 && childFolders.length === 0 && (
-                            <p className="text-xs text-muted-foreground italic pt-2">No documents in this folder</p>
-                          )}
-                        </div>
-                      </details>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pl-8 space-y-2">
+                            {childFolders.length > 0 && (
+                              <Accordion type="multiple" className="space-y-2 mb-4">
+                                {childFolders.map(renderChildFolder)}
+                              </Accordion>
+                            )}
+                            {folderDocs.length > 0 && (
+                              <div className="space-y-2">{folderDocs.map(renderDocRow)}</div>
+                            )}
+                            {folderDocs.length === 0 && childFolders.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic">No documents in this folder</p>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
                     );
                   };
 
                   return (
-                    <>
-                      {parents.map((p: any) => renderFolder(p, 0))}
+                    <Accordion type="multiple" className="w-full">
+                      {parents.map(renderParentFolder)}
                       {unfiled.length > 0 && (
-                        <details className={`rounded-md border ${moduleBorderColors[module]} bg-background`} open data-testid="folder-scope-unfiled">
-                          <summary className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer list-none">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <span className="font-medium text-sm">Unfiled</span>
+                        <AccordionItem
+                          value="__unfiled__"
+                          data-testid="folder-scope-unfiled"
+                          className={`border-b ${moduleBorderColors[module]}`}
+                        >
+                          <AccordionTrigger className="hover:no-underline px-2">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-md ${moduleBgColors[module]}`}>
+                                  <FolderOpen className={`h-4 w-4 ${moduleColors[module]}`} />
+                                </div>
+                                <span className="font-medium">Unfiled</span>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                {unfiled.length} document{unfiled.length !== 1 ? "s" : ""}
+                              </span>
                             </div>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {unfiled.length} document{unfiled.length !== 1 ? "s" : ""}
-                            </span>
-                          </summary>
-                          <div className="px-3 pb-3 space-y-2 pt-2">
-                            {unfiled.map(renderDocRow)}
-                          </div>
-                        </details>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="pl-8 space-y-2">
+                              {unfiled.map(renderDocRow)}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       )}
-                    </>
+                    </Accordion>
                   );
                 })()}
               </CardContent>
