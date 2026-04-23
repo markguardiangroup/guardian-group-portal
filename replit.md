@@ -22,6 +22,10 @@ Message style — concise, user-facing impact, under ~80 chars. No technical det
 - "Admins can grant Case Advocate permission to consultants"
 - "Fixed: non-active users are greyed out in the Case Access dialog"
 
+### Patch number policy (HARD REQUIREMENT — do not skip)
+
+After every successful publish to production, the active version's `patch` number MUST be incremented by 1 automatically (handled by `bumpDevPatchAfterPublish` in `server/changelog.ts`). This guarantees the live version is always 1 patch behind the dev version, and that new dev entries land on a fresh patch number. Do NOT bump the patch manually, do NOT bump it on server restart, and do NOT remove or bypass the post-publish bump. Any change to publish/deploy flow must preserve this behaviour.
+
 ## System Architecture
 
 The system utilizes a modern web stack:
