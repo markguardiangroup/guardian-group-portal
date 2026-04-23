@@ -702,20 +702,18 @@
         {
           "id": "c37bf27b-9b68-4136-9b3c-b99f270d3dc9",
           "patch": 5,
-          "category": "UI",
-          "title": "Activation/reset screens use branded split layout",
-          "description": "Set-password, activation, validating, expired-link and success states now share the login page split layout — branded dark hero panel with Guardian Group logo, gradient headline and feature highlights on the left; white form card on the right — for a consistent first impression.",
+          "category": "enhancement",
           "createdAt": "2026-04-23T09:46:34.735Z",
-          "createdBy": "agent"
+          "createdBy": "agent",
+          "message": "Activation/reset screens use branded split layout — Set-password, activation, validating, expired-link and success states now share the login page split layout — branded dark hero panel with Guardian Group logo, gradient headline and feature highlights on the left; white form card on the right — for a consistent first impression."
         },
         {
           "id": "b2600776-9d49-4717-bdfb-c2ad25fbaffc",
           "patch": 5,
-          "category": "Bug Fix",
-          "title": "Activation success screen stays put on tab focus",
-          "description": "Success card with email/username no longer flips to \"Link No Longer Valid\" when the user tabs away and back. The validation query stops refetching once activation succeeds and the success state takes priority.",
+          "category": "bug",
           "createdAt": "2026-04-23T09:52:15.715Z",
-          "createdBy": "agent"
+          "createdBy": "agent",
+          "message": "Activation success screen stays put on tab focus — Success card with email/username no longer flips to \"Link No Longer Valid\" when the user tabs away and back. The validation query stops refetching once activation succeeds and the success state takes priority."
         }
       ]
     }
