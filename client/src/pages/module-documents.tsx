@@ -982,6 +982,87 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       {viewMode === "folder" && (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="space-y-4">
+          {/* Scoped folder view — when navigated from a Group/Company tile,
+              the per-site folder hierarchy doesn't apply; render the scoped
+              documents (owned + linked) as a single themed folder card. */}
+          {urlScope && urlEntityId ? (
+            <Card className={`border ${moduleBorderColors[module]}`} data-testid={`card-folder-scope-${urlScope}`}>
+              <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
+                    <CardTitle className={`text-lg ${moduleColors[module]}`}>
+                      {urlEntityName || (urlScope === "group" ? "Group" : "Company")}
+                      {" "}— {urlScope === "group" ? "Group Documents" : "Company Documents"}
+                    </CardTitle>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {sortedDocuments.length} document{sortedDocuments.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                {sortedDocuments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
+                      <FileText className={`h-6 w-6 ${moduleColors[module]}`} />
+                    </div>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      No documents at this {urlScope === "group" ? "group" : "company"} scope yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sortedDocuments.map((doc) => {
+                      const viewedAsLinked = !!(
+                        (doc as any).scope !== urlScope ||
+                        (doc as any).entityId !== urlEntityId
+                      );
+                      const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
+                      const linkedFromScope: "group" | "company" | null = viewedAsLinked
+                        ? ((doc as any).scope === "group" ? "group" : "company")
+                        : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
+                      return (
+                        <Link
+                          key={doc.id}
+                          href={`${basePath}/documents/${doc.id}`}
+                          className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
+                          data-testid={`row-folder-doc-${doc.id}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{doc.title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
+                            </div>
+                            {isLinkedRow && (
+                              <Badge variant="outline" className={`text-xs shrink-0 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
+                                <LinkIcon className="h-3 w-3 mr-1" />
+                                Linked from {linkedFromScope === "group" ? "Group" : "Company"}
+                              </Badge>
+                            )}
+                            {doc.isArchived && (
+                              <Badge variant="secondary" className="gap-1 bg-muted shrink-0">
+                                <Archive className="h-3 w-3" />
+                                Archived
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+          <>
           {/* No site selected message */}
           {!hierarchySiteId && (
             <Card className={`border ${moduleBorderColors[module]}`}>
@@ -1364,6 +1445,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </CardContent>
             </Card>
+          )}
+          </>
           )}
         </div>
         <DragOverlay dropAnimation={null}>

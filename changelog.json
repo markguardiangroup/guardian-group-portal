@@ -754,6 +754,14 @@
           "category": "bug",
           "createdAt": "2026-04-23T12:22:15.748Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b1109e1e-76da-4860-84cc-4d7b2a274253",
+          "patch": 5,
+          "message": "Folders view now also respects Group/Company scope when opened from a tile, listing the scoped documents and linked items",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:25:23.275Z",
+          "createdBy": "agent"
         }
       ]
     }
