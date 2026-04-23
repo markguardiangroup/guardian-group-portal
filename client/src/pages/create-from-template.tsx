@@ -642,6 +642,7 @@ export default function CreateFromTemplate() {
           scope: docScope,
           entityId: selectedEntityId,
           shareDestinations,
+          folderId: selectedFolderId || undefined,
           type: docType?.code || "policy",
           fileName: selectedFile.name,
           fileUrl,
