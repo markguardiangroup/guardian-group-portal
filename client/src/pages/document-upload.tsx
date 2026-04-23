@@ -201,6 +201,7 @@ export default function DocumentUpload() {
   const urlFolderId = urlParams.get("folderId") || "";
   const urlUploadScope = (urlParams.get("scope") as "site" | "company" | "group" | null) || null;
   const urlUploadEntityId = urlParams.get("entityId") || "";
+  const urlCompanyFilterId = urlParams.get("companyId") || "";
 
   // Detect module from URL path
   const getModuleFromPath = (): ModuleType => {
@@ -388,14 +389,17 @@ export default function DocumentUpload() {
   // Group all sites by company for the accordion picker
   const siteGroups = useMemo(() => {
     if (!sites) return [];
+    const filtered = urlCompanyFilterId
+      ? sites.filter(s => s.companyId === urlCompanyFilterId)
+      : sites;
     const grouped: Record<string, { companyId: string; companyName: string; sites: SiteWithCompany[] }> = {};
-    for (const site of sites) {
+    for (const site of filtered) {
       const key = site.companyId || "";
       if (!grouped[key]) grouped[key] = { companyId: key, companyName: site.companyName || "", sites: [] };
       grouped[key].sites.push(site);
     }
     return Object.values(grouped).sort((a, b) => a.companyName.localeCompare(b.companyName));
-  }, [sites]);
+  }, [sites, urlCompanyFilterId]);
 
   const filteredSiteGroups = useMemo(() => {
     const q = sitePickerSearch.trim().toLowerCase();
@@ -911,6 +915,7 @@ export default function DocumentUpload() {
                   (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
                   && (!urlUploadScope || scope === urlUploadScope)
                   && (!urlSiteId || scope === "site")
+                  && (!urlCompanyFilterId || scope === "site")
                 ).map(scope => (
                     <button
                       key={scope}

@@ -513,6 +513,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       if (urlEntityName) params.set("entityName", urlEntityName);
     } else if (selectedSiteId && selectedSiteId !== "all") {
       params.set("siteId", selectedSiteId);
+    } else if (selectedCompanyId) {
+      // "All Sites" view of a single company — lock scope to site and pre-filter to that company.
+      params.set("scope", "site");
+      params.set("companyId", selectedCompanyId);
     }
     if (folderId) {
       params.set("folderId", folderId);
