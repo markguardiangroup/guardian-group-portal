@@ -595,6 +595,7 @@ export default function DocumentUpload() {
           scope: docScope,
           entityId: selectedEntityId,
           shareDestinations,
+          folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
           reviewDate: data.reviewDate,
