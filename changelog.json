@@ -682,6 +682,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T09:33:55.921Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "beb1944a-66be-413f-ab20-6531ad305a80",
+          "patch": 5,
+          "message": "Fixed: email document links now open the document after logging in",
+          "category": "bug",
+          "createdAt": "2026-04-23T09:37:34.619Z",
+          "createdBy": "agent"
         }
       ]
     }

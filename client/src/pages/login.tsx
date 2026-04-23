@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,6 +100,14 @@ const KEY_FEATURES = [
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  // Capture the URL the user was trying to reach BEFORE login replaced the
+  // page (e.g. a deep link from an approval email). We restore it after a
+  // successful login so users land on the document/page they clicked.
+  const intendedPathRef = useRef<string>(
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      : "/"
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -167,7 +175,12 @@ export default function Login() {
       // Navigate straight away — the DataPrefetcher in AuthenticatedApp handles
       // background loading of all other data once the user lands on the dashboard.
       setIsSubmitting(false);
-      setLocation("/");
+      // Restore the originally-requested URL (from an email deep link, etc.)
+      // unless the user actually started on /login or root.
+      const intended = intendedPathRef.current || "/";
+      const target =
+        intended === "/" || intended.startsWith("/login") ? "/" : intended;
+      setLocation(target);
     },
     onError: async (error: Error) => {
       setIsSubmitting(false);
