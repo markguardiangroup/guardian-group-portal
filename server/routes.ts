@@ -3704,16 +3704,31 @@ export async function registerRoutes(
   // Document Folders
   app.get("/api/folders", requireAuth, async (req, res) => {
     try {
-      const siteId = req.query.siteId as string;
+      const siteId = req.query.siteId as string | undefined;
+      const scope = req.query.scope as "company" | "group" | undefined;
+      const entityId = req.query.entityId as string | undefined;
       const module = req.query.module as ModuleType | undefined;
-      
-      if (!siteId) {
-        return res.status(400).json({ error: "siteId is required" });
-      }
       
       const user = await storage.getUser((req.session as any).userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
+      }
+
+      // Scoped (company/group) folders
+      if (scope === "company" || scope === "group") {
+        if (!entityId) {
+          return res.status(400).json({ error: "entityId is required for scoped folders" });
+        }
+        // Privileged users (admin/consultant) and clients of that entity may view.
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
+        }
+        const folders = await storage.getScopedDocumentFolders(scope, entityId, module);
+        return res.json(folders);
+      }
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "siteId or scope+entityId is required" });
       }
       
       const canAccess = await canUserAccessSite(user, siteId);
@@ -3764,18 +3779,40 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot create folders" });
       }
       
-      const { name, description, module, siteId, parentId } = req.body;
+      const { name, description, module, siteId, scope, entityId, parentId } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Folder name is required" });
       }
       
-      if (!siteId) {
-        return res.status(400).json({ error: "Site ID is required" });
-      }
-      
       if (!module) {
         return res.status(400).json({ error: "Module is required" });
+      }
+
+      // Scoped (company/group) folder
+      if (scope === "company" || scope === "group") {
+        if (!entityId) {
+          return res.status(400).json({ error: "entityId is required for scoped folders" });
+        }
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
+        }
+        const folder = await storage.createDocumentFolder({
+          name: name.trim(),
+          description: description || null,
+          module,
+          siteId: null as any,
+          scope,
+          entityId,
+          parentId: parentId || null,
+          sortOrder: 0,
+          createdBy: user.id,
+        } as any);
+        return res.status(201).json(folder);
+      }
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "Site ID or scope+entityId is required" });
       }
       
       const canAccess = await canUserAccessSite(user, siteId);
@@ -3788,10 +3825,12 @@ export async function registerRoutes(
         description: description || null,
         module,
         siteId,
+        scope: "site",
+        entityId: null as any,
         parentId: parentId || null,
         sortOrder: 0,
         createdBy: user.id,
-      });
+      } as any);
       
       res.status(201).json(folder);
     } catch (error) {
@@ -3816,9 +3855,15 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Folder not found" });
       }
       
-      const canAccess = await canUserAccessSite(user, folder.siteId);
-      if (!canAccess) {
-        return res.status(403).json({ error: "Access denied" });
+      if (folder.siteId) {
+        const canAccess = await canUserAccessSite(user, folder.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } else if (folder.scope === "company" || folder.scope === "group") {
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== folder.entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
+        }
       }
       
       const { name, description, parentId, sortOrder } = req.body;
@@ -3853,9 +3898,15 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Folder not found" });
       }
       
-      const canAccess = await canUserAccessSite(user, folder.siteId);
-      if (!canAccess) {
-        return res.status(403).json({ error: "Access denied" });
+      if (folder.siteId) {
+        const canAccess = await canUserAccessSite(user, folder.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } else if (folder.scope === "company" || folder.scope === "group") {
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== folder.entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
+        }
       }
       
       await storage.deleteDocumentFolder(req.params.id);
@@ -3874,14 +3925,30 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      const { siteId, module } = req.body;
-      
-      if (!siteId) {
-        return res.status(400).json({ error: "Site ID is required" });
-      }
+      const { siteId, scope, entityId, module } = req.body;
       
       if (!module) {
         return res.status(400).json({ error: "Module is required" });
+      }
+
+      // Scoped (company/group) provisioning
+      if (scope === "company" || scope === "group") {
+        if (!entityId) {
+          return res.status(400).json({ error: "entityId is required for scoped provisioning" });
+        }
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
+        }
+        const existing = await storage.getScopedDocumentFolders(scope, entityId, module);
+        if (existing.length === 0) {
+          const folders = await storage.provisionFoldersFromTemplates({ scope, entityId }, module, user.id);
+          return res.status(201).json({ folders, provisioned: true });
+        }
+        return res.json({ folders: existing, provisioned: false });
+      }
+      
+      if (!siteId) {
+        return res.status(400).json({ error: "Site ID or scope+entityId is required" });
       }
       
       const canAccess = await canUserAccessSite(user, siteId);

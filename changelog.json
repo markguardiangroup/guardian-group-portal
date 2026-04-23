@@ -762,6 +762,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T12:25:23.275Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c2210f2f-87eb-4971-95df-3b3551b385e4",
+          "patch": 5,
+          "message": "Folder structure now also exists at Group and Company level, with auto-provisioned folders from templates and a folder selector available when uploading or creating from template in those scopes",
+          "category": "feature",
+          "createdAt": "2026-04-23T12:38:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -175,6 +175,8 @@ export default function DocumentUpload() {
   const urlParams = new URLSearchParams(window.location.search);
   const urlSiteId = urlParams.get("siteId") || "";
   const urlFolderId = urlParams.get("folderId") || "";
+  const urlUploadScope = (urlParams.get("scope") as "site" | "company" | "group" | null) || null;
+  const urlUploadEntityId = urlParams.get("entityId") || "";
 
   // Detect module from URL path
   const getModuleFromPath = (): ModuleType => {
@@ -478,6 +480,21 @@ export default function DocumentUpload() {
     enabled: !!primarySiteId,
   });
 
+  // Fetch folders for scoped (company/group) uploads
+  const scopedFolderScope = urlUploadScope && (urlUploadScope === "company" || urlUploadScope === "group") ? urlUploadScope : null;
+  const { data: scopedFolders } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", "scoped", scopedFolderScope, urlUploadEntityId, selectedModule],
+    queryFn: async () => {
+      if (!scopedFolderScope || !urlUploadEntityId) return [];
+      const res = await fetch(`/api/folders?scope=${scopedFolderScope}&entityId=${urlUploadEntityId}&module=${selectedModule}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!scopedFolderScope && !!urlUploadEntityId,
+  });
+
   // Provision folders once per site (outside queryFn to avoid an invalidation loop)
   const provisionedSites = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -486,10 +503,28 @@ export default function DocumentUpload() {
     provisionFoldersMutation.mutate({ siteId: primarySiteId, module: selectedModule });
   }, [primarySiteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Provision scoped folders once per (scope,entity,module)
+  const provisionedScopes = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!scopedFolderScope || !urlUploadEntityId) return;
+    const key = `${scopedFolderScope}:${urlUploadEntityId}:${selectedModule}`;
+    if (provisionedScopes.current.has(key)) return;
+    provisionedScopes.current.add(key);
+    fetch("/api/folders/provision", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: scopedFolderScope, entityId: urlUploadEntityId, module: selectedModule }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", "scoped", scopedFolderScope, urlUploadEntityId, selectedModule] });
+    }).catch(() => {});
+  }, [scopedFolderScope, urlUploadEntityId, selectedModule]);
+
   // Filter and sort folders hierarchically by selected module
   const moduleFolders = (() => {
     const validTemplateIds = new Set(folderTemplates.map(ft => ft.id));
-    const forModule = siteFolders?.filter(f => f.module === selectedModule) || [];
+    const sourceFolders = scopedFolderScope ? (scopedFolders || []) : (siteFolders || []);
+    const forModule = sourceFolders.filter(f => f.module === selectedModule);
     // Toolkit root folders have sortOrder < 0; exclude them and all their children
     const toolkitRootIds = new Set(forModule.filter(f => (f.sortOrder ?? 0) < 0).map(f => f.id));
     // Only show folders whose template still exists (filter out orphaned folders from deleted templates)
@@ -810,7 +845,7 @@ export default function DocumentUpload() {
                     Use a pre-built template with standardised content and compliance settings.
                   </p>
                 </div>
-                <Link href={`/create-from-template?returnTo=${encodeURIComponent(location + (urlSiteId ? `?siteId=${urlSiteId}` : ""))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}`} className="w-full">
+                <Link href={`/create-from-template?returnTo=${encodeURIComponent(location + (urlSiteId ? `?siteId=${urlSiteId}` : urlUploadScope && urlUploadEntityId ? `?scope=${urlUploadScope}&entityId=${urlUploadEntityId}` : ""))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}${urlUploadScope && urlUploadEntityId ? `&scope=${urlUploadScope}&entityId=${urlUploadEntityId}` : ""}`} className="w-full">
                   <Button className="w-full" data-testid="button-create-from-template">
                     Create from Template
                     <ArrowRight className="ml-2 h-4 w-4" />

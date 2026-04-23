@@ -202,6 +202,8 @@ export default function CreateFromTemplate() {
   const preselectedSiteId = urlParams.get("siteId");
   const returnTo = urlParams.get("returnTo") || "/template-library";
   const preselectedModule = urlParams.get("module") || "all";
+  const preselectedScope = urlParams.get("scope") as "company" | "group" | null;
+  const preselectedEntityId = urlParams.get("entityId") || "";
   
   const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
@@ -239,9 +241,9 @@ export default function CreateFromTemplate() {
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
   const [docScope, setDocScope] = useState<"site" | "company" | "group">(
-    isFullPermissionClient ? "company" : "site"
+    preselectedScope ? preselectedScope : (isFullPermissionClient ? "company" : "site")
   );
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(preselectedEntityId);
   const [shareDestinations, setShareDestinations] = useState<string[]>([]);
   const [entitySearch, setEntitySearch] = useState("");
   const [destSearch, setDestSearch] = useState("");
@@ -368,6 +370,39 @@ export default function CreateFromTemplate() {
     enabled: !!primarySiteId,
   });
 
+  // Scoped (company/group) folders for current docScope
+  const tplScopedScope = (docScope === "company" || docScope === "group") ? docScope : null;
+  const tplScopedModule = selectedTemplate?.module || preselectedModule;
+  const { data: scopedFolders = [] } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", "scoped", tplScopedScope, selectedEntityId, tplScopedModule],
+    queryFn: async () => {
+      if (!tplScopedScope || !selectedEntityId || !tplScopedModule || tplScopedModule === "all") return [];
+      const res = await fetch(`/api/folders?scope=${tplScopedScope}&entityId=${selectedEntityId}&module=${tplScopedModule}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!tplScopedScope && !!selectedEntityId && !!tplScopedModule && tplScopedModule !== "all",
+  });
+
+  // Auto-provision scoped folders once
+  const provisionedTplScopes = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!tplScopedScope || !selectedEntityId || !tplScopedModule || tplScopedModule === "all") return;
+    const key = `${tplScopedScope}:${selectedEntityId}:${tplScopedModule}`;
+    if (provisionedTplScopes.current.has(key)) return;
+    provisionedTplScopes.current.add(key);
+    fetch("/api/folders/provision", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: tplScopedScope, entityId: selectedEntityId, module: tplScopedModule }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", "scoped", tplScopedScope, selectedEntityId, tplScopedModule] });
+    }).catch(() => {});
+  }, [tplScopedScope, selectedEntityId, tplScopedModule]);
+
   const { data: allUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; siteAssignments?: { siteId: string }[] }>>({
     queryKey: ["/api/users"],
   });
@@ -397,7 +432,8 @@ export default function CreateFromTemplate() {
   // Filter and sort folders hierarchically: parents first, then children immediately after
   const moduleFolders = (() => {
     const validTemplateIds = new Set(folderTemplates.map(ft => ft.id));
-    const forModule = siteFolders.filter(f => f.module === selectedTemplate?.module);
+    const sourceFolders = tplScopedScope ? scopedFolders : siteFolders;
+    const forModule = sourceFolders.filter(f => f.module === selectedTemplate?.module);
     // Toolkit root folders have sortOrder < 0; exclude them and all their children
     const toolkitRootIds = new Set(forModule.filter(f => (f.sortOrder ?? 0) < 0).map(f => f.id));
     // Only show folders whose template still exists (filter out orphaned folders from deleted templates)

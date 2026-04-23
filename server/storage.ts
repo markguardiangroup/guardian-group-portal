@@ -375,7 +375,8 @@ export interface IStorage {
   createDocumentTemplateVersion(version: InsertDocumentTemplateVersion): Promise<DocumentTemplateVersion>;
   
   // Provision folder structure from templates for a site
-  provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]>;
+  provisionFoldersFromTemplates(target: string | { scope: "company" | "group"; entityId: string }, module: ModuleType, createdBy: string): Promise<DocumentFolder[]>;
+  getScopedDocumentFolders(scope: "company" | "group", entityId: string, module?: ModuleType): Promise<DocumentFolder[]>;
   
   // Security - Login Attempts
   recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
@@ -2437,6 +2438,20 @@ export class MemStorage implements IStorage {
     return folders;
   }
 
+  // Folders scoped to a company or group (siteId is null for these)
+  async getScopedDocumentFolders(scope: "company" | "group", entityId: string, module?: ModuleType): Promise<DocumentFolder[]> {
+    let folders = await db.select().from(documentFoldersTable)
+      .where(and(
+        eq(documentFoldersTable.scope, scope),
+        eq(documentFoldersTable.entityId, entityId),
+      ))
+      .orderBy(asc(documentFoldersTable.sortOrder));
+    if (module) {
+      folders = folders.filter(f => f.module === module);
+    }
+    return folders;
+  }
+
   async getDocumentFolder(id: string): Promise<DocumentFolder | undefined> {
     const folders = await db.select().from(documentFoldersTable)
       .where(eq(documentFoldersTable.id, id));
@@ -3114,8 +3129,17 @@ export class MemStorage implements IStorage {
     return inserted;
   }
 
-  // Provision folder structure from templates for a site
-  async provisionFoldersFromTemplates(siteId: string, module: ModuleType, createdBy: string): Promise<DocumentFolder[]> {
+  // Provision folder structure from templates for a site, company, or group
+  async provisionFoldersFromTemplates(
+    target: string | { scope: "company" | "group"; entityId: string },
+    module: ModuleType,
+    createdBy: string,
+  ): Promise<DocumentFolder[]> {
+    const isScoped = typeof target !== "string";
+    const siteId = isScoped ? null : (target as string);
+    const scope: "site" | "company" | "group" = isScoped ? (target as any).scope : "site";
+    const entityId = isScoped ? (target as any).entityId : null;
+
     const templates = await this.getFolderTemplates(module);
     // Exclude locked Toolkit root folders and their mirrored subfolders — these are Toolkit-only
     const activeTemplates = templates.filter(t => t.isActive && !(t as any).isLocked && !(t as any).toolkitFolderId);
@@ -3131,12 +3155,14 @@ export class MemStorage implements IStorage {
         name: template.name,
         description: template.description ?? undefined,
         module: template.module,
-        siteId,
+        siteId: siteId as any,
+        scope,
+        entityId: entityId as any,
         parentId: parentFolderId,
         templateId: template.id,
         sortOrder: template.sortOrder,
         createdBy,
-      });
+      } as any);
       templateIdToFolderId.set(template.id, folder.id);
       createdFolders.push(folder);
 

@@ -468,7 +468,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   const getUploadUrl = useCallback((folderId?: string) => {
     const params = new URLSearchParams();
-    if (selectedSiteId && selectedSiteId !== "all") {
+    if (urlScope && urlEntityId) {
+      params.set("scope", urlScope);
+      params.set("entityId", urlEntityId);
+      if (urlEntityName) params.set("entityName", urlEntityName);
+    } else if (selectedSiteId && selectedSiteId !== "all") {
       params.set("siteId", selectedSiteId);
     }
     if (folderId) {
@@ -476,7 +480,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     const qs = params.toString();
     return `${basePath}/documents/upload${qs ? `?${qs}` : ""}`;
-  }, [basePath, selectedSiteId]);
+  }, [basePath, selectedSiteId, urlScope, urlEntityId, urlEntityName]);
 
   const contextCompany = useMemo(() => {
     if (urlScope === "group" && urlEntityName) return `${urlEntityName} (Group)`;

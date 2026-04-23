@@ -709,13 +709,17 @@ export const insertDocumentTemplateVersionSchema = createInsertSchema(documentTe
 export type InsertDocumentTemplateVersion = z.infer<typeof insertDocumentTemplateVersionSchema>;
 export type DocumentTemplateVersion = typeof documentTemplateVersions.$inferSelect;
 
-// Document Folders (for organizing documents)
+// Document Folders (for organizing documents).
+// Folders can be scoped to a single site (legacy default — siteId set, scope='site')
+// or to a company / group as a whole (siteId null, scope='company'|'group', entityId = company/group id).
 export const documentFolders = pgTable("document_folders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description"),
   module: text("module").$type<ModuleType>().notNull(),
-  siteId: varchar("site_id").notNull(),
+  siteId: varchar("site_id"), // nullable — only set for site-scoped folders
+  scope: text("scope").$type<DocumentScope>().notNull().default("site"),
+  entityId: varchar("entity_id"), // company or group id when scope is 'company'|'group'
   parentId: varchar("parent_id"), // Reference to parent folder for nesting
   templateId: varchar("template_id"), // Reference to folder template this was created from
   sortOrder: integer("sort_order").notNull().default(0),
