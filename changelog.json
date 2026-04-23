@@ -786,6 +786,14 @@
           "category": "bug",
           "createdAt": "2026-04-23T12:48:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f5543c62-ba1e-7ca4-c802-6e6884e6b827",
+          "patch": 5,
+          "message": "Group Owner selection on the Site Documents pages is now remembered when navigating between modules",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

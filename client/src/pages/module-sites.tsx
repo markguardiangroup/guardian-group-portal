@@ -118,8 +118,7 @@ const moduleLabels: Record<ModuleType, string> = {
 function ModuleSitesView({ module }: { module: ModuleType }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const { selectedCompany, handleCompanyChange, setSelectedSiteId } = useSiteFilter();
-  const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const { selectedCompany, handleCompanyChange, setSelectedSiteId, selectedGroup, setSelectedGroup } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const basePath =
