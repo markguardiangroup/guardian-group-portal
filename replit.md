@@ -8,13 +8,19 @@ The Guardian Group H&S Web Portal is a B2B compliance platform designed for Heal
 
 Preferred communication style: Simple, everyday language.
 
-Changelog entries must be concise — keep messages short and punchy (under ~80 characters where possible). No long explanations, no lists of affected pages, no technical implementation detail. Lead with the user-facing impact. Examples of the right tone:
+### Changelog policy (HARD REQUIREMENT — do not skip)
+
+After EVERY user-requested change (bug fix, enhancement, or new feature), the agent MUST append a short entry to the active version in `changelog.json` before ending the turn. This is automatic, mandatory, and applies to every change no matter how small. Never batch entries up across turns and never wait to be reminded.
+
+How to add an entry:
+- Append a new object to `versions[active].entries` in `changelog.json` with: `id` (uuid), `patch` (current `patch` of the active version), `message`, `category` (`bug` | `enhancement` | `feature` | `other`), `createdAt` (ISO timestamp), `createdBy` (`"agent"`).
+- Do NOT bump the `patch` number — that happens automatically on publish.
+
+Message style — concise, user-facing impact, under ~80 chars. No technical detail, no file lists. Examples:
 - "Fixed: login could hang due to slow background data requests"
 - "Improved: sites list now loads significantly faster"
 - "Admins can grant Case Advocate permission to consultants"
 - "Fixed: non-active users are greyed out in the Case Access dialog"
-
-After completing any user-requested change (bug fix, enhancement, or new feature), the agent must add a changelog entry. This is a hard requirement, not optional.
 
 ## System Architecture
 
