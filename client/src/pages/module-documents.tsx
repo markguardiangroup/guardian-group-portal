@@ -585,7 +585,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         if (m.companyId !== urlEntityId) return false;
       } else if (urlScope === "group" && urlEntityId) {
         const memberIds = groupMemberCompanyIds ?? [];
-        if (!memberIds.includes(m.companyId)) return false;
+        // Include the group entity itself (it can also own sites) plus any member companies.
+        if (m.companyId !== urlEntityId && !memberIds.includes(m.companyId)) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       return true;
