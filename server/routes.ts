@@ -1418,7 +1418,7 @@ export async function registerRoutes(
     const sites = await storage.getSites();
     const templates = await storage.getDocumentTemplates();
     const templateMap = new Map(templates.map(t => [t.id, t]));
-    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+    const companyEffectiveCache = new Map<string, Set<string>>();
     const siteExcludedCache = new Map<string, Set<string>>();
 
     let slotTotal = 0;
@@ -1439,10 +1439,10 @@ export async function registerRoutes(
         if (!ids.includes(site.id)) continue;
       }
       filteredSiteIds.add(site.id);
-      if (!companyReqCache.has(site.companyId)) {
-        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+      if (!companyEffectiveCache.has(site.companyId)) {
+        companyEffectiveCache.set(site.companyId, await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId));
       }
-      const required = companyReqCache.get(site.companyId)!;
+      const requiredIds = companyEffectiveCache.get(site.companyId)!;
       if (!siteExcludedCache.has(site.id)) {
         const overrides = await storage.getSiteTemplateOverrides(site.id);
         siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
@@ -1453,15 +1453,15 @@ export async function registerRoutes(
       const sharedToSite = await storage.getSharedDocumentsForSite(site.id, module, false);
       const allSiteDocs = [...siteDocs, ...sharedToSite.filter(sd => !sd.isArchived && !sd.caseId && !sd.incidentId)];
 
-      for (const rt of required) {
-        if (siteExcluded.has(rt.templateId)) continue;
-        const tmpl = templateMap.get(rt.templateId);
+      for (const rtTemplateId of requiredIds) {
+        if (siteExcluded.has(rtTemplateId)) continue;
+        const tmpl = templateMap.get(rtTemplateId);
         if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
         if (module && tmpl.module !== module) continue;
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
 
         slotTotal++;
-        const matchingDocs = allSiteDocs.filter(d => d.templateId === rt.templateId);
+        const matchingDocs = allSiteDocs.filter(d => d.templateId === rtTemplateId);
         matchingDocs.forEach(d => consumedDocIds.add(d.id));
 
         if (matchingDocs.length === 0) {
@@ -1532,7 +1532,7 @@ export async function registerRoutes(
     const templates = await storage.getDocumentTemplates();
     const templateMap = new Map(templates.map(t => [t.id, t]));
     const docs = await storage.getDocuments(module);
-    const companyReqCache = new Map<string, Awaited<ReturnType<typeof storage.getCompanyRequiredTemplates>>>();
+    const companyEffectiveCache = new Map<string, Set<string>>();
     const siteExcludedCache = new Map<string, Set<string>>();
     const companies = await storage.getCompanies();
     const companyMap = new Map(companies.map(c => [c.id, c]));
@@ -1546,10 +1546,10 @@ export async function registerRoutes(
         const ids = siteFilter.siteIds.split(",");
         if (!ids.includes(site.id)) continue;
       }
-      if (!companyReqCache.has(site.companyId)) {
-        companyReqCache.set(site.companyId, await storage.getCompanyRequiredTemplates(site.companyId));
+      if (!companyEffectiveCache.has(site.companyId)) {
+        companyEffectiveCache.set(site.companyId, await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId));
       }
-      const required = companyReqCache.get(site.companyId)!;
+      const requiredIds = companyEffectiveCache.get(site.companyId)!;
       if (!siteExcludedCache.has(site.id)) {
         const overrides = await storage.getSiteTemplateOverrides(site.id);
         siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
@@ -1560,18 +1560,18 @@ export async function registerRoutes(
       const sharedDocs = await storage.getSharedDocumentsForSite(site.id, module, false);
       const allSiteDocs = [...siteDocs, ...sharedDocs.filter(d => !d.isArchived && !d.caseId)];
       const company = companyMap.get(site.companyId);
-      for (const rt of required) {
-        if (siteExcluded.has(rt.templateId)) continue;
-        const tmpl = templateMap.get(rt.templateId);
+      for (const templateId of requiredIds) {
+        if (siteExcluded.has(templateId)) continue;
+        const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
         if (module && tmpl.module !== module) continue;
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
         // Only count as "missing" when no document has been uploaded at all for this slot
         // (docs that exist but are overdue/review-required are counted in those other stats)
-        const matchingDocs = allSiteDocs.filter(d => d.templateId === rt.templateId);
+        const matchingDocs = allSiteDocs.filter(d => d.templateId === templateId);
         if (matchingDocs.length === 0) {
           results.push({
-            templateId: rt.templateId,
+            templateId,
             templateName: tmpl.name,
             module: tmpl.module,
             requiresApproval: tmpl.requiresApproval || false,
@@ -1598,13 +1598,13 @@ export async function registerRoutes(
       const accessibleSites = allSites.filter((_, i) => accessChecks[i]);
 
       const uniqueCompanyIds = [...new Set(accessibleSites.map(s => s.companyId))];
-      const companyReqArrays = await Promise.all(
-        uniqueCompanyIds.map(cid => storage.getCompanyRequiredTemplates(cid))
+      const companyReqSets = await Promise.all(
+        uniqueCompanyIds.map(cid => storage.getEffectiveCompanyRequiredTemplateIds(cid))
       );
 
       const requiredIds = new Set<string>();
-      for (const arr of companyReqArrays) {
-        for (const r of arr) requiredIds.add(r.templateId);
+      for (const set of companyReqSets) {
+        for (const id of set) requiredIds.add(id);
       }
 
       const allTemplates = await storage.getDocumentTemplates();
@@ -2134,8 +2134,7 @@ export async function registerRoutes(
       const uniqueCompanyIdsModule = [...new Set(allDocuments.map(d => siteToCompanyModule.get(d.siteId)).filter(Boolean) as string[])];
       const companyReqCacheModule = new Map<string, Set<string>>();
       await Promise.all(uniqueCompanyIdsModule.map(async (companyId) => {
-        const reqs = await storage.getCompanyRequiredTemplates(companyId);
-        companyReqCacheModule.set(companyId, new Set(reqs.map(r => r.templateId)));
+        companyReqCacheModule.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
       }));
       
       // Filter documents by sites the user can access (site-scoped docs)
@@ -2234,8 +2233,7 @@ export async function registerRoutes(
       const uniqueCompanyIdsDocs = [...new Set(allDocuments.map(d => siteToCompanyDocs.get(d.siteId)).filter(Boolean) as string[])];
       const companyReqCacheDocs = new Map<string, Set<string>>();
       await Promise.all(uniqueCompanyIdsDocs.map(async (companyId) => {
-        const reqs = await storage.getCompanyRequiredTemplates(companyId);
-        companyReqCacheDocs.set(companyId, new Set(reqs.map(r => r.templateId)));
+        companyReqCacheDocs.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
       }));
       
       // Filter documents by sites the user can access
@@ -2250,8 +2248,7 @@ export async function registerRoutes(
             : (doc.entityId || undefined);
           // Ensure company required templates are loaded for this company
           if (companyId && !companyReqCacheDocs.has(companyId)) {
-            const reqs = await storage.getCompanyRequiredTemplates(companyId);
-            companyReqCacheDocs.set(companyId, new Set(reqs.map(r => r.templateId)));
+            companyReqCacheDocs.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
           }
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
             ? (companyReqCacheDocs.get(companyId)?.has(doc.templateId) ?? false)
@@ -7636,13 +7633,13 @@ export async function registerRoutes(
 
       for (const site of sites) {
         if (!site.companyId) continue;
-        const companyRequired = await storage.getCompanyRequiredTemplates(site.companyId);
+        const companyRequired = await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId);
         const siteOverrides = await storage.getSiteTemplateOverrides(site.id);
         const excludedIds = new Set(siteOverrides.filter((o: any) => o.action === "exclude").map((o: any) => o.templateId));
         const includedIds = new Set(siteOverrides.filter((o: any) => o.action === "include").map((o: any) => o.templateId));
         const effectiveTemplateIds = [
-          ...companyRequired.map((r: any) => r.templateId).filter((id: string) => !excludedIds.has(id)),
-          ...[...includedIds].filter((id: string) => !companyRequired.some((r: any) => r.templateId === id)),
+          ...[...companyRequired].filter((id: string) => !excludedIds.has(id)),
+          ...[...includedIds].filter((id: string) => !companyRequired.has(id)),
         ];
 
         const siteDocs = allDocs.filter((d: any) => d.siteId === site.id && !d.isArchived && !d.caseId);
@@ -9757,6 +9754,57 @@ export async function registerRoutes(
     }
   });
 
+  // Company Template Overrides — per-company opt-in/opt-out for templates
+  // inherited from a parent group's required-templates configuration.
+  app.get("/api/companies/:companyId/template-overrides", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const overrides = await storage.getCompanyTemplateOverrides(req.params.companyId);
+      res.json(overrides);
+    } catch (error) {
+      console.error("Get company template overrides error:", error);
+      res.status(500).json({ error: "Failed to fetch company template overrides" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/template-overrides", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { companyId } = req.params;
+      const { templateId, action } = req.body;
+      if (!templateId || !action || (action !== "include" && action !== "exclude")) {
+        return res.status(400).json({ error: "templateId and action ('include'|'exclude') are required" });
+      }
+      const result = await storage.setCompanyTemplateOverride(companyId, templateId, action, user.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Set company template override error:", error);
+      res.status(500).json({ error: "Failed to set company template override" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/template-overrides/:templateId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { companyId, templateId } = req.params;
+      const removed = await storage.removeCompanyTemplateOverride(companyId, templateId);
+      if (!removed) return res.status(404).json({ error: "Override not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove company template override error:", error);
+      res.status(500).json({ error: "Failed to remove company template override" });
+    }
+  });
+
   // Get documents hierarchy for a site module (folder-based view with compliance stats)
   app.get("/api/sites/:siteId/modules/:module/documents-hierarchy", requireAuth, async (req, res) => {
     try {
@@ -9840,8 +9888,7 @@ export async function registerRoutes(
       const uniqueCompanyIdsHierarchy = [...new Set(targetSiteIds.map(id => siteToCompanyHierarchy.get(id)).filter(Boolean) as string[])];
       const companyReqCacheHierarchy = new Map<string, Set<string>>();
       await Promise.all(uniqueCompanyIdsHierarchy.map(async (companyId) => {
-        const reqs = await storage.getCompanyRequiredTemplates(companyId);
-        companyReqCacheHierarchy.set(companyId, new Set(reqs.map(r => r.templateId)));
+        companyReqCacheHierarchy.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
       }));
       const getEffectiveIsRequired = (doc: { isRequired: boolean; templateId?: string | null; siteId: string }, docTmpl?: { isRequired?: boolean } | null) => {
         const companyId = siteToCompanyHierarchy.get(doc.siteId);

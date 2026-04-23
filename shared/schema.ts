@@ -1582,6 +1582,23 @@ export const insertSiteTemplateOverrideSchema = createInsertSchema(siteTemplateO
 export type InsertSiteTemplateOverride = z.infer<typeof insertSiteTemplateOverrideSchema>;
 export type SiteTemplateOverride = typeof siteTemplateOverrides.$inferSelect;
 
+// Company-level required template overrides — let a member company opt out
+// of (or opt in to) a template that was inherited from its parent group.
+export const companyTemplateOverrides = pgTable("company_template_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  templateId: varchar("template_id").notNull(),
+  action: text("action").$type<"include" | "exclude">().notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("company_template_override_unique").on(table.companyId, table.templateId),
+]);
+
+export const insertCompanyTemplateOverrideSchema = createInsertSchema(companyTemplateOverrides).omit({ id: true, createdAt: true });
+export type InsertCompanyTemplateOverride = z.infer<typeof insertCompanyTemplateOverrideSchema>;
+export type CompanyTemplateOverride = typeof companyTemplateOverrides.$inferSelect;
+
 // Toolkit Template Downloads (track when users download templates)
 export const toolkitDownloads = pgTable("toolkit_downloads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

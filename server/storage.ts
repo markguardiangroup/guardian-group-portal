@@ -52,6 +52,8 @@ import {
   companyRequiredTemplates as companyRequiredTemplatesTable,
   type SiteTemplateOverride,
   siteTemplateOverrides as siteTemplateOverridesTable,
+  type CompanyTemplateOverride,
+  companyTemplateOverrides as companyTemplateOverridesTable,
   type ClientUploadFolder, type InsertClientUploadFolder,
   type ClientUploadFolderAccess, type InsertClientUploadFolderAccess,
   type ClientUpload, type InsertClientUpload,
@@ -458,6 +460,12 @@ export interface IStorage {
   getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]>;
   setSiteTemplateOverride(siteId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<SiteTemplateOverride>;
   removeSiteTemplateOverride(siteId: string, templateId: string): Promise<boolean>;
+
+  // Company Template Overrides (override group-inherited requireds at the company level)
+  getCompanyTemplateOverrides(companyId: string): Promise<CompanyTemplateOverride[]>;
+  setCompanyTemplateOverride(companyId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<CompanyTemplateOverride>;
+  removeCompanyTemplateOverride(companyId: string, templateId: string): Promise<boolean>;
+  getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>>;
 
   // Client Upload Folders
   // Extended types used by client upload methods
@@ -4342,6 +4350,54 @@ export class MemStorage implements IStorage {
         eq(siteTemplateOverridesTable.templateId, templateId),
       ));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async getCompanyTemplateOverrides(companyId: string): Promise<CompanyTemplateOverride[]> {
+    return db.select().from(companyTemplateOverridesTable)
+      .where(eq(companyTemplateOverridesTable.companyId, companyId));
+  }
+
+  async setCompanyTemplateOverride(companyId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<CompanyTemplateOverride> {
+    const [result] = await db.insert(companyTemplateOverridesTable)
+      .values({ companyId, templateId, action, createdBy })
+      .onConflictDoUpdate({
+        target: [companyTemplateOverridesTable.companyId, companyTemplateOverridesTable.templateId],
+        set: { action, createdBy },
+      })
+      .returning();
+    return result;
+  }
+
+  async removeCompanyTemplateOverride(companyId: string, templateId: string): Promise<boolean> {
+    const result = await db.delete(companyTemplateOverridesTable)
+      .where(and(
+        eq(companyTemplateOverridesTable.companyId, companyId),
+        eq(companyTemplateOverridesTable.templateId, templateId),
+      ));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Returns the effective set of required template IDs for a company, including
+   * those inherited from its parent group (if any), with company-level overrides
+   * (include/exclude) applied. Mirrors the way site overrides apply on top of
+   * company requireds.
+   */
+  async getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>> {
+    const [companyRow] = await db.select().from(companies).where(eq(companies.id, companyId));
+    const ownReqs = await this.getCompanyRequiredTemplates(companyId);
+    const groupReqs = companyRow?.groupOwnerId
+      ? await this.getCompanyRequiredTemplates(companyRow.groupOwnerId)
+      : [];
+    const overrides = await this.getCompanyTemplateOverrides(companyId);
+    const effective = new Set<string>();
+    for (const r of ownReqs) effective.add(r.templateId);
+    for (const r of groupReqs) effective.add(r.templateId);
+    for (const o of overrides) {
+      if (o.action === "include") effective.add(o.templateId);
+      else if (o.action === "exclude") effective.delete(o.templateId);
+    }
+    return effective;
   }
 
   // Seed example pathways if none exist
