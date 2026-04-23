@@ -626,6 +626,46 @@
           "category": "bug",
           "createdAt": "2026-04-21T12:17:03.533Z",
           "createdBy": "user-admin"
+        },
+        {
+          "id": "887c39d5-f372-4187-8b48-cfb4607281c9",
+          "patch": 5,
+          "message": "Site Documents page: filter by Group Owner with new Group + Company summary cards",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6ff8871c-5c2e-4d72-bb56-1f1af1e0a366",
+          "patch": 5,
+          "message": "Fixed: shared documents to a Group could not be uploaded",
+          "category": "bug",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6e4ff2ea-3c3b-4cdb-b336-003f73431a2f",
+          "patch": 5,
+          "message": "Documents button on Group/Company cards opens a list filtered to that scope",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "543817bc-9f24-4d70-b8d0-a39748087540",
+          "patch": 5,
+          "message": "Site Documents filter bar now has an X to clear active filters",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "985d7eff-a966-495d-a706-6e8148803562",
+          "patch": 5,
+          "message": "Client sign-off emails now go only to the consultant driving the approval",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
         }
       ]
     }
