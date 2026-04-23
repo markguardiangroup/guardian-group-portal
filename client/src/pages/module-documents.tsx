@@ -564,12 +564,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Required-but-missing slots for the current module + selected site
   const missingSlots = useMemo(() => {
     if (!allMissingTemplates) return [];
+    // Required-document tracking is per-site only — hide at Group/Company scope views.
+    if (urlScope && urlEntityId) return [];
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       return true;
     });
-  }, [allMissingTemplates, module, selectedSiteId]);
+  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
   // Archived documents — fetched fresh only when the dialog opens
   const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
