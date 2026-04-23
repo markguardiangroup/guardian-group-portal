@@ -722,6 +722,14 @@
           "category": "feature",
           "createdAt": "2026-04-23T11:59:18.883Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "52284c9c-0b66-4e38-9c7f-f493c3bd9afc",
+          "patch": 5,
+          "message": "Fixed: shared-companies list crashed on group documents",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:01:42.703Z",
+          "createdBy": "agent"
         }
       ]
     }

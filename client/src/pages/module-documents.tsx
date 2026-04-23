@@ -1850,11 +1850,21 @@ function DocumentSharingCard({
       ? `/api/companies?groupOwnerId=${ownerEntityId}`
       : `/api/sites?companyId=${ownerEntityId}`;
 
-  const { data: candidatesRaw = [] } = useQuery<any[]>({
+  const { data: candidatesRaw } = useQuery<any>({
     queryKey: [candidatesUrl],
   });
 
-  const candidates: ShareCandidate[] = (candidatesRaw || [])
+  const candidatesList: any[] = Array.isArray(candidatesRaw)
+    ? candidatesRaw
+    : Array.isArray(candidatesRaw?.companies)
+      ? candidatesRaw.companies
+      : Array.isArray(candidatesRaw?.sites)
+        ? candidatesRaw.sites
+        : Array.isArray(candidatesRaw?.data)
+          ? candidatesRaw.data
+          : [];
+
+  const candidates: ShareCandidate[] = candidatesList
     .filter((c: any) => c.id !== ownerEntityId)
     .map((c: any) => ({ id: c.id, name: c.name }));
 
