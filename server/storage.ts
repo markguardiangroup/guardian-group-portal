@@ -995,15 +995,37 @@ export class MemStorage implements IStorage {
       supportAccess: insertCompany.supportAccess ?? false,
       reportsAccess: insertCompany.reportsAccess ?? false,
     }).returning();
+    // If joining a group at creation, copy the group's current required templates.
+    if (company.groupOwnerId) {
+      await this.cascadeGroupRequiredsToMember(company.groupOwnerId, company.id);
+    }
     return company;
   }
 
   async updateCompany(id: string, updates: Partial<Company>): Promise<Company | undefined> {
+    const [previous] = await db.select().from(companiesTable).where(eq(companiesTable.id, id));
     const [updatedCompany] = await db.update(companiesTable)
       .set(updates)
       .where(eq(companiesTable.id, id))
       .returning();
+    // If a company has been (re)assigned to a group, copy the group's current
+    // required templates into this company so they show up at the company level.
+    if (updatedCompany?.groupOwnerId && previous?.groupOwnerId !== updatedCompany.groupOwnerId) {
+      await this.cascadeGroupRequiredsToMember(updatedCompany.groupOwnerId, updatedCompany.id);
+    }
     return updatedCompany;
+  }
+
+  private async cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void> {
+    const groupReqs = await db.select().from(companyRequiredTemplatesTable)
+      .where(eq(companyRequiredTemplatesTable.companyId, groupOwnerId));
+    if (groupReqs.length === 0) return;
+    const values = groupReqs.map(r => ({
+      companyId: memberCompanyId,
+      templateId: r.templateId,
+      createdBy: r.createdBy,
+    }));
+    await db.insert(companyRequiredTemplatesTable).values(values).onConflictDoNothing();
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
@@ -4297,33 +4319,79 @@ export class MemStorage implements IStorage {
   }
 
   async setCompanyRequiredTemplates(companyId: string, templateIds: string[], createdBy: string): Promise<CompanyRequiredTemplate[]> {
+    const previous = await db.select().from(companyRequiredTemplatesTable)
+      .where(eq(companyRequiredTemplatesTable.companyId, companyId));
+    const previousIds = new Set(previous.map(p => p.templateId));
+    const nextIds = new Set(templateIds);
+    const toAdd = templateIds.filter(t => !previousIds.has(t));
+    const toRemove = [...previousIds].filter(t => !nextIds.has(t));
+
     await db.delete(companyRequiredTemplatesTable)
       .where(eq(companyRequiredTemplatesTable.companyId, companyId));
 
-    if (templateIds.length === 0) return [];
+    let inserted: CompanyRequiredTemplate[] = [];
+    if (templateIds.length > 0) {
+      const values = templateIds.map(templateId => ({ companyId, templateId, createdBy }));
+      inserted = await db.insert(companyRequiredTemplatesTable).values(values).returning();
+    }
 
-    const values = templateIds.map(templateId => ({
-      companyId,
-      templateId,
-      createdBy,
-    }));
-
-    return db.insert(companyRequiredTemplatesTable).values(values).returning();
+    // Cascade additions/removals to member companies if this is a group owner.
+    const members = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(eq(companiesTable.groupOwnerId, companyId));
+    if (members.length > 0) {
+      if (toAdd.length > 0) {
+        const memberValues = members.flatMap(m => toAdd.map(templateId => ({
+          companyId: m.id,
+          templateId,
+          createdBy,
+        })));
+        await db.insert(companyRequiredTemplatesTable).values(memberValues).onConflictDoNothing();
+      }
+      if (toRemove.length > 0) {
+        await db.delete(companyRequiredTemplatesTable).where(and(
+          inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
+          inArray(companyRequiredTemplatesTable.templateId, toRemove),
+        ));
+      }
+    }
+    return inserted;
   }
 
   async addCompanyRequiredTemplate(companyId: string, templateId: string, createdBy: string): Promise<CompanyRequiredTemplate> {
     const [existing] = await db.select().from(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
-    if (existing) return existing;
-    const [result] = await db.insert(companyRequiredTemplatesTable)
-      .values({ companyId, templateId, createdBy })
-      .returning();
+    let result = existing;
+    if (!result) {
+      const [inserted] = await db.insert(companyRequiredTemplatesTable)
+        .values({ companyId, templateId, createdBy })
+        .returning();
+      result = inserted;
+    }
+    // Cascade: if this company is a group owner (has member companies),
+    // copy the requirement into each member company so it shows up at the
+    // company level and can then be managed independently.
+    const members = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(eq(companiesTable.groupOwnerId, companyId));
+    if (members.length > 0) {
+      const memberValues = members.map(m => ({ companyId: m.id, templateId, createdBy }));
+      await db.insert(companyRequiredTemplatesTable).values(memberValues).onConflictDoNothing();
+    }
     return result;
   }
 
   async removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean> {
     const result = await db.delete(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
+    // Cascade removal to member companies (if this is a group owner). They
+    // can independently re-add the requirement afterwards if desired.
+    const members = await db.select({ id: companiesTable.id }).from(companiesTable)
+      .where(eq(companiesTable.groupOwnerId, companyId));
+    if (members.length > 0) {
+      await db.delete(companyRequiredTemplatesTable).where(and(
+        inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
+        eq(companyRequiredTemplatesTable.templateId, templateId),
+      ));
+    }
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -4378,26 +4446,14 @@ export class MemStorage implements IStorage {
   }
 
   /**
-   * Returns the effective set of required template IDs for a company, including
-   * those inherited from its parent group (if any), with company-level overrides
-   * (include/exclude) applied. Mirrors the way site overrides apply on top of
-   * company requireds.
+   * Returns the set of required template IDs for a company. Group-level
+   * requireds are physically cascaded into member companies on add (and
+   * removed on delete) by `addCompanyRequiredTemplate`/`removeCompanyRequiredTemplate`,
+   * so each company stores its own effective list and can manage it independently.
    */
   async getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>> {
-    const [companyRow] = await db.select().from(companiesTable).where(eq(companiesTable.id, companyId));
     const ownReqs = await this.getCompanyRequiredTemplates(companyId);
-    const groupReqs = companyRow?.groupOwnerId
-      ? await this.getCompanyRequiredTemplates(companyRow.groupOwnerId)
-      : [];
-    const overrides = await this.getCompanyTemplateOverrides(companyId);
-    const effective = new Set<string>();
-    for (const r of ownReqs) effective.add(r.templateId);
-    for (const r of groupReqs) effective.add(r.templateId);
-    for (const o of overrides) {
-      if (o.action === "include") effective.add(o.templateId);
-      else if (o.action === "exclude") effective.delete(o.templateId);
-    }
-    return effective;
+    return new Set(ownReqs.map(r => r.templateId));
   }
 
   // Seed example pathways if none exist

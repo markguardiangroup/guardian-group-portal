@@ -9754,57 +9754,6 @@ export async function registerRoutes(
     }
   });
 
-  // Company Template Overrides — per-company opt-in/opt-out for templates
-  // inherited from a parent group's required-templates configuration.
-  app.get("/api/companies/:companyId/template-overrides", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-      const overrides = await storage.getCompanyTemplateOverrides(req.params.companyId);
-      res.json(overrides);
-    } catch (error) {
-      console.error("Get company template overrides error:", error);
-      res.status(500).json({ error: "Failed to fetch company template overrides" });
-    }
-  });
-
-  app.post("/api/companies/:companyId/template-overrides", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-      const { companyId } = req.params;
-      const { templateId, action } = req.body;
-      if (!templateId || !action || (action !== "include" && action !== "exclude")) {
-        return res.status(400).json({ error: "templateId and action ('include'|'exclude') are required" });
-      }
-      const result = await storage.setCompanyTemplateOverride(companyId, templateId, action, user.id);
-      res.json(result);
-    } catch (error) {
-      console.error("Set company template override error:", error);
-      res.status(500).json({ error: "Failed to set company template override" });
-    }
-  });
-
-  app.delete("/api/companies/:companyId/template-overrides/:templateId", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-      const { companyId, templateId } = req.params;
-      const removed = await storage.removeCompanyTemplateOverride(companyId, templateId);
-      if (!removed) return res.status(404).json({ error: "Override not found" });
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Remove company template override error:", error);
-      res.status(500).json({ error: "Failed to remove company template override" });
-    }
-  });
-
   // Get documents hierarchy for a site module (folder-based view with compliance stats)
   app.get("/api/sites/:siteId/modules/:module/documents-hierarchy", requireAuth, async (req, res) => {
     try {
