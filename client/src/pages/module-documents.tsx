@@ -562,16 +562,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   });
 
   // Required-but-missing slots for the current module + selected site
+  // Member companies of the current group scope (used to filter required slots).
+  const { data: groupMemberCompanyIds } = useQuery<string[]>({
+    queryKey: ["/api/companies", "group-members", urlEntityId],
+    queryFn: async () => {
+      if (!urlEntityId) return [];
+      const res = await fetch(`/api/companies?groupOwnerId=${urlEntityId}&limit=1000`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const arr = Array.isArray(data) ? data : (data.companies ?? []);
+      return arr.map((c: any) => c.id);
+    },
+    enabled: !!urlEntityId && urlScope === "group",
+  });
+
   const missingSlots = useMemo(() => {
     if (!allMissingTemplates) return [];
-    // Required-document tracking is per-site only — hide at Group/Company scope views.
-    if (urlScope && urlEntityId) return [];
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
+      // Scope-view: include only slots under the selected entity
+      if (urlScope === "company" && urlEntityId) {
+        if (m.companyId !== urlEntityId) return false;
+      } else if (urlScope === "group" && urlEntityId) {
+        const memberIds = groupMemberCompanyIds ?? [];
+        if (!memberIds.includes(m.companyId)) return false;
+      }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       return true;
     });
-  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
+  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId, groupMemberCompanyIds]);
 
   // Archived documents — fetched fresh only when the dialog opens
   const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
@@ -1145,6 +1164,42 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     }
                   }
 
+                  // Group missing required slots by folder template id; dedupe by templateId
+                  // (a slot can recur per-site under the entity).
+                  const missingByFolder = new Map<string, Map<string, any>>();
+                  const unfiledMissing = new Map<string, any>();
+                  for (const slot of missingSlots) {
+                    const ftId = (slot as any).folderTemplateId ?? null;
+                    const matchingFolder = ftId ? folders.find((f: any) => f.id === ftId || (f as any).folderTemplateId === ftId) : null;
+                    if (matchingFolder) {
+                      const m = missingByFolder.get(matchingFolder.id) || new Map<string, any>();
+                      if (!m.has(slot.templateId)) m.set(slot.templateId, slot);
+                      missingByFolder.set(matchingFolder.id, m);
+                    } else {
+                      if (!unfiledMissing.has(slot.templateId)) unfiledMissing.set(slot.templateId, slot);
+                    }
+                  }
+
+                  const renderMissingRow = (slot: any) => (
+                    <div
+                      key={`missing-${slot.templateId}`}
+                      className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20"
+                      data-testid={`row-missing-scope-${slot.templateId}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm text-amber-800 dark:text-amber-200 truncate">{slot.templateName}</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                      </div>
+                    </div>
+                  );
+
                   if (folders.length === 0 && sortedDocuments.length === 0) {
                     return (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1167,6 +1222,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
                   const renderChildFolder = (childFolder: any) => {
                     const childDocs = docsByFolder.get(childFolder.id) || [];
+                    const childMissing = Array.from((missingByFolder.get(childFolder.id) ?? new Map()).values());
                     const childStatusBadge = getFolderStatusBadge(computeStats(childDocs));
                     return (
                       <AccordionItem
@@ -1184,6 +1240,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <span className="font-medium text-sm">{childFolder.name}</span>
                             </div>
                             <div className="flex items-center gap-2">
+                              {childMissing.length > 0 && (
+                                <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                                  <AlertCircle className="h-3 w-3" />
+                                  {childMissing.length} Missing
+                                </Badge>
+                              )}
                               {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
                               <span className="text-xs text-muted-foreground">
                                 {childDocs.length} document{childDocs.length !== 1 ? "s" : ""}
@@ -1193,9 +1255,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </AccordionTrigger>
                         <AccordionContent>
                           <div className="p-3 pl-10 space-y-2">
-                            {childDocs.length > 0 ? (
-                              childDocs.map(renderDocRow)
-                            ) : (
+                            {childDocs.map(renderDocRow)}
+                            {childMissing.map(renderMissingRow)}
+                            {childDocs.length === 0 && childMissing.length === 0 && (
                               <p className="text-xs text-muted-foreground italic">No documents in this subfolder</p>
                             )}
                           </div>
@@ -1209,6 +1271,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       .filter((f: any) => f.parentId === folder.id)
                       .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
                     const folderDocs = docsByFolder.get(folder.id) || [];
+                    const folderMissing = Array.from((missingByFolder.get(folder.id) ?? new Map()).values());
+                    const childMissingTotal = childFolders.reduce(
+                      (sum: number, c: any) => sum + ((missingByFolder.get(c.id) ?? new Map()).size),
+                      0,
+                    );
+                    const totalMissing = folderMissing.length + childMissingTotal;
                     const allDocsInTree = [
                       ...folderDocs,
                       ...childFolders.flatMap((c: any) => docsByFolder.get(c.id) || []),
@@ -1231,6 +1299,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <span className="font-medium">{folder.name}</span>
                             </div>
                             <div className="flex items-center gap-3">
+                              {totalMissing > 0 && (
+                                <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                                  <AlertCircle className="h-3 w-3" />
+                                  {totalMissing} Missing
+                                </Badge>
+                              )}
                               {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
                               <span className="text-sm text-muted-foreground">
                                 {stats.totalDocuments} document{stats.totalDocuments !== 1 ? "s" : ""}
@@ -1248,7 +1322,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {folderDocs.length > 0 && (
                               <div className="space-y-2">{folderDocs.map(renderDocRow)}</div>
                             )}
-                            {folderDocs.length === 0 && childFolders.length === 0 && (
+                            {folderMissing.length > 0 && (
+                              <div className="space-y-2">{folderMissing.map(renderMissingRow)}</div>
+                            )}
+                            {folderDocs.length === 0 && childFolders.length === 0 && folderMissing.length === 0 && (
                               <p className="text-xs text-muted-foreground italic">No documents in this folder</p>
                             )}
                           </div>
@@ -1260,7 +1337,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   return (
                     <Accordion type="multiple" className="w-full">
                       {parents.map(renderParentFolder)}
-                      {unfiled.length > 0 && (
+                      {(unfiled.length > 0 || unfiledMissing.size > 0) && (
                         <AccordionItem
                           value="__unfiled__"
                           data-testid="folder-scope-unfiled"
@@ -1274,14 +1351,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                 </div>
                                 <span className="font-medium">Unfiled</span>
                               </div>
-                              <span className="text-sm text-muted-foreground">
-                                {unfiled.length} document{unfiled.length !== 1 ? "s" : ""}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                {unfiledMissing.size > 0 && (
+                                  <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {unfiledMissing.size} Missing
+                                  </Badge>
+                                )}
+                                <span className="text-sm text-muted-foreground">
+                                  {unfiled.length} document{unfiled.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
                             <div className="pl-8 space-y-2">
                               {unfiled.map(renderDocRow)}
+                              {Array.from(unfiledMissing.values()).map(renderMissingRow)}
                             </div>
                           </AccordionContent>
                         </AccordionItem>

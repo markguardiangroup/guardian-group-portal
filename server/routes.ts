@@ -1516,6 +1516,7 @@ export async function registerRoutes(
     siteName: string;
     companyId: string;
     companyName: string;
+    folderTemplateId?: string | null;
     documentId?: string;
     documentStatus?: string;
     kind: "template_slot" | "required_document";
@@ -1578,6 +1579,7 @@ export async function registerRoutes(
             siteName: site.name,
             companyId: site.companyId,
             companyName: company?.name || "Unknown",
+            folderTemplateId: (tmpl as any).folderTemplateId ?? null,
             kind: "template_slot" as const,
           });
         }
