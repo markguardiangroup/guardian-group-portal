@@ -666,6 +666,22 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T09:05:11.338Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "486b871c-b607-4150-86d8-20d898ac7d0b",
+          "patch": 5,
+          "message": "Companies, Sites and Users pages now share a consistent header and footer layout",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:33:55.921Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "4591a6ec-0154-4ee0-a6bd-8ee10b5093f5",
+          "patch": 5,
+          "message": "Companies, Sites and Users pages now show a record count in the footer",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:33:55.921Z",
+          "createdBy": "agent"
         }
       ]
     }
