@@ -204,6 +204,7 @@ export default function CreateFromTemplate() {
   const preselectedModule = urlParams.get("module") || "all";
   const preselectedScope = urlParams.get("scope") as "site" | "company" | "group" | null;
   const preselectedEntityId = urlParams.get("entityId") || "";
+  const preselectedCompanyFilterId = urlParams.get("companyId") || "";
   
   const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
@@ -497,7 +498,10 @@ export default function CreateFromTemplate() {
 
 
   const filteredSites = useMemo(() => {
-    return sites.filter(s => {
+    const base = preselectedCompanyFilterId
+      ? sites.filter(s => s.companyId === preselectedCompanyFilterId)
+      : sites;
+    return base.filter(s => {
       if (siteSearch) {
         const search = siteSearch.toLowerCase();
         return s.name.toLowerCase().includes(search) ||
@@ -506,7 +510,7 @@ export default function CreateFromTemplate() {
       }
       return true;
     });
-  }, [sites, siteSearch]);
+  }, [sites, siteSearch, preselectedCompanyFilterId]);
 
   const sitesByCompany = useMemo(() => {
     const grouped: Record<string, { companyId: string; companyName: string; sites: typeof filteredSites }> = {};
@@ -1103,6 +1107,7 @@ export default function CreateFromTemplate() {
                 (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
                 && (!preselectedScope || scope === preselectedScope)
                 && (!preselectedSiteId || scope === "site")
+                && (!preselectedCompanyFilterId || scope === "site")
               ).map(scope => (
                 <button
                   key={scope}

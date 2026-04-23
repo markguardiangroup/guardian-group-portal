@@ -517,6 +517,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       // "All Sites" view of a single company — lock scope to site and pre-filter to that company.
       params.set("scope", "site");
       params.set("companyId", selectedCompanyId);
+    } else {
+      // "All Companies / All Sites" view — lock scope to site (no company/group context here).
+      params.set("scope", "site");
     }
     if (folderId) {
       params.set("folderId", folderId);
