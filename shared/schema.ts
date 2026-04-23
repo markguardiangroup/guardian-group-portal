@@ -1556,6 +1556,10 @@ export const companyRequiredTemplates = pgTable("company_required_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull(),
   templateId: varchar("template_id").notNull(),
+  // When this row was cascaded from a parent group's required-templates list,
+  // this column holds the parent group's company id. Null for rows added
+  // directly at this company level (or for the group's own rows).
+  inheritedFromCompanyId: varchar("inherited_from_company_id"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [

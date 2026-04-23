@@ -4344,13 +4344,17 @@ export class MemStorage implements IStorage {
           companyId: m.id,
           templateId,
           createdBy,
+          inheritedFromCompanyId: companyId,
         })));
         await db.insert(companyRequiredTemplatesTable).values(memberValues).onConflictDoNothing();
       }
       if (toRemove.length > 0) {
+        // Only cascade-remove rows that were inherited from this group; leave
+        // member-managed rows untouched.
         await db.delete(companyRequiredTemplatesTable).where(and(
           inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
           inArray(companyRequiredTemplatesTable.templateId, toRemove),
+          eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
         ));
       }
     }
@@ -4373,7 +4377,12 @@ export class MemStorage implements IStorage {
     const members = await db.select({ id: companiesTable.id }).from(companiesTable)
       .where(eq(companiesTable.groupOwnerId, companyId));
     if (members.length > 0) {
-      const memberValues = members.map(m => ({ companyId: m.id, templateId, createdBy }));
+      const memberValues = members.map(m => ({
+        companyId: m.id,
+        templateId,
+        createdBy,
+        inheritedFromCompanyId: companyId,
+      }));
       await db.insert(companyRequiredTemplatesTable).values(memberValues).onConflictDoNothing();
     }
     return result;
@@ -4382,14 +4391,15 @@ export class MemStorage implements IStorage {
   async removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean> {
     const result = await db.delete(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
-    // Cascade removal to member companies (if this is a group owner). They
-    // can independently re-add the requirement afterwards if desired.
+    // Cascade removal to member companies — but only rows that were inherited
+    // from this group, so independently-managed member entries are preserved.
     const members = await db.select({ id: companiesTable.id }).from(companiesTable)
       .where(eq(companiesTable.groupOwnerId, companyId));
     if (members.length > 0) {
       await db.delete(companyRequiredTemplatesTable).where(and(
         inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
         eq(companyRequiredTemplatesTable.templateId, templateId),
+        eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
       ));
     }
     return (result.rowCount ?? 0) > 0;

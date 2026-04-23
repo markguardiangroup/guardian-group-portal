@@ -453,6 +453,8 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const [moduleFilter, setModuleFilter] = useState<string | null>(null);
   const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set());
   const [isSavingReqs, setIsSavingReqs] = useState(false);
+  const [pendingRemoveInherited, setPendingRemoveInherited] = useState<{ templateId: string; templateName: string } | null>(null);
+  const [pendingBulkUntickInherited, setPendingBulkUntickInherited] = useState<string[] | null>(null);
 
   const { data: moduleAccess } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
@@ -515,7 +517,12 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     setAddSelectedIds(new Set());
   };
 
-  const handleSaveSelected = async () => {
+  const inheritedTemplateIdSet = useMemo(
+    () => new Set(requiredTemplates.filter(rt => rt.inheritedFromCompanyId).map(rt => rt.templateId)),
+    [requiredTemplates],
+  );
+
+  const performSaveSelected = async () => {
     setIsSavingReqs(true);
     try {
       const toAdd = allPrivateActive.filter(t => addSelectedIds.has(t.id) && !requiredIds.has(t.id));
@@ -535,7 +542,20 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
       toast({ title: "Failed to update requirements", variant: "destructive" });
     } finally {
       setIsSavingReqs(false);
+      setPendingBulkUntickInherited(null);
     }
+  };
+
+  const handleSaveSelected = async () => {
+    // If any of the rows being unticked were inherited from a parent group,
+    // confirm before applying — the change only affects this company/its sites.
+    const removingInherited = [...requiredIds]
+      .filter(id => !addSelectedIds.has(id) && inheritedTemplateIdSet.has(id));
+    if (removingInherited.length > 0) {
+      setPendingBulkUntickInherited(removingInherited);
+      return;
+    }
+    await performSaveSelected();
   };
 
   if (requiredLoading) {
@@ -660,10 +680,12 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
             </div>
           ) : (
             <div className="divide-y">
-              {[...requiredIds].map(templateId => {
+              {requiredTemplates.map(rt => {
+                const templateId = rt.templateId;
                 const tmpl = templateMap.get(templateId);
                 if (!tmpl) return null;
                 const ModIcon = MODULE_ICON[tmpl.module] || FileText;
+                const isInherited = !!rt.inheritedFromCompanyId;
                 return (
                   <div key={templateId} className="flex items-center gap-3 px-4 py-3" data-testid={`row-required-${templateId}`}>
                     <div className="p-1.5 rounded-md bg-muted shrink-0">
@@ -675,13 +697,29 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         {MODULE_LABELS[tmpl.module] || tmpl.module}
                       </p>
                     </div>
+                    {isInherited && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                        data-testid={`badge-inherited-${templateId}`}
+                      >
+                        <Building2 className="h-3 w-3" />
+                        Inherited
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeMutation.mutate(templateId)}
+                      onClick={() => {
+                        if (isInherited) {
+                          setPendingRemoveInherited({ templateId, templateName: tmpl.name });
+                        } else {
+                          removeMutation.mutate(templateId);
+                        }
+                      }}
                       disabled={isPending}
-                      title="Remove requirement"
+                      title={isInherited ? "Remove from this company only" : "Remove requirement"}
                       data-testid={`button-remove-requirement-${templateId}`}
                     >
                       <X className="h-4 w-4" />
@@ -693,6 +731,54 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!pendingRemoveInherited} onOpenChange={(v) => { if (!v) setPendingRemoveInherited(null); }}>
+        <AlertDialogContent data-testid="dialog-confirm-remove-inherited">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove inherited requirement?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium">{pendingRemoveInherited?.templateName}</span> was inherited from a parent group. Removing it will only affect this company and its sites — the requirement will remain in place at the group level and on other member companies. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-remove-inherited">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-remove-inherited"
+              onClick={() => {
+                if (pendingRemoveInherited) {
+                  removeMutation.mutate(pendingRemoveInherited.templateId);
+                  setPendingRemoveInherited(null);
+                }
+              }}
+            >
+              Remove from this company
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingBulkUntickInherited} onOpenChange={(v) => { if (!v) setPendingBulkUntickInherited(null); }}>
+        <AlertDialogContent data-testid="dialog-confirm-bulk-untick-inherited">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove inherited requirements?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {(pendingBulkUntickInherited?.length ?? 0)} of the requirements being removed
+              {(pendingBulkUntickInherited?.length ?? 0) === 1 ? " was" : " were"} inherited from a parent group.
+              Removing
+              {(pendingBulkUntickInherited?.length ?? 0) === 1 ? " it" : " them"} will only affect this company and its sites — the requirement will remain in place at the group level and on other member companies. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-untick-inherited">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-bulk-untick-inherited"
+              onClick={() => { void performSaveSelected(); }}
+            >
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
