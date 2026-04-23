@@ -607,38 +607,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return out;
   }, [missingSlots]);
 
-  // Count of missing-required rows actually displayed in the UI. The two render
-  // paths (scoped folder view vs. site hierarchy view) collapse/expand per-site
-  // missing slots differently, so the summary stat is computed to match exactly
-  // what the user sees rendered.
-  const displayedMissingCount = useMemo(() => {
-    // Scoped (group/company) view renders one row per unique missing templateId
-    // per folder (and once in Unfiled), regardless of how many sites are missing it.
-    if (urlScope && urlEntityId) {
-      return tableMissingSlots.length;
-    }
-    // Site-hierarchy view expands per-site via templateInfo.missingSites.
-    if (!hierarchy?.folders) return missingSlots.length;
-    let count = 0;
-    const walk = (folders: any[] | undefined) => {
-      if (!folders) return;
-      for (const f of folders) {
-        const ti = (f as any).templateInfo || [];
-        for (const t of ti) {
-          if (t.isRequired && !t.hasFulfilledDocument) {
-            const sites = Array.isArray(t.missingSites) && t.missingSites.length > 0
-              ? t.missingSites
-              : [{}];
-            count += sites.length;
-          }
-        }
-        walk((f as any).childFolders);
-      }
-    };
-    walk(hierarchy.folders);
-    return count;
-  }, [urlScope, urlEntityId, tableMissingSlots, hierarchy, missingSlots]);
-
   // Archived documents — fetched fresh only when the dialog opens
   const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module, "archived"],
@@ -739,6 +707,38 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     placeholderData: keepPreviousData,
     enabled: !!hierarchySiteId && viewMode === "folder",
   });
+
+  // Count of missing-required rows actually displayed in the UI. The two render
+  // paths (scoped folder view vs. site hierarchy view) collapse/expand per-site
+  // missing slots differently, so the summary stat is computed to match exactly
+  // what the user sees rendered.
+  const displayedMissingCount = useMemo(() => {
+    // Scoped (group/company) view renders one row per unique missing templateId
+    // per folder (and once in Unfiled), regardless of how many sites are missing it.
+    if (urlScope && urlEntityId) {
+      return tableMissingSlots.length;
+    }
+    // Site-hierarchy view expands per-site via templateInfo.missingSites.
+    if (!hierarchy?.folders) return missingSlots.length;
+    let count = 0;
+    const walk = (folders: any[] | undefined) => {
+      if (!folders) return;
+      for (const f of folders) {
+        const ti = (f as any).templateInfo || [];
+        for (const t of ti) {
+          if (t.isRequired && !t.hasFulfilledDocument) {
+            const sites = Array.isArray(t.missingSites) && t.missingSites.length > 0
+              ? t.missingSites
+              : [{}];
+            count += sites.length;
+          }
+        }
+        walk((f as any).childFolders);
+      }
+    };
+    walk(hierarchy.folders);
+    return count;
+  }, [urlScope, urlEntityId, tableMissingSlots, hierarchy, missingSlots]);
 
   // Group shared (Group/Company-scope) documents by the folder template they were filed under,
   // so each shared doc can be rendered inside the matching site folder. Any shared doc whose
