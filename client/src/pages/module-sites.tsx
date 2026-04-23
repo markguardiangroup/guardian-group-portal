@@ -51,6 +51,8 @@ interface Document {
   scope?: "site" | "company" | "group" | null;
   entityId?: string | null;
   isRequired?: boolean;
+  sharedWithCompanyIds?: string[];
+  sharedWithSiteIds?: string[];
 }
 
 interface CompanyListItem {
@@ -531,8 +533,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         !d.caseId &&
                         !d.incidentId &&
                         d.source !== "external" &&
-                        d.scope === "company" &&
-                        d.entityId === company.id
+                        (
+                          // Native company-scoped doc owned by this company
+                          (d.scope === "company" && d.entityId === company.id) ||
+                          // Group/company doc explicitly shared with this company
+                          (d.sharedWithCompanyIds?.includes(company.id) ?? false)
+                        )
                     );
                     const cReq = companyDocs.filter((d) => d.isRequired);
                     const cCompliant = cReq.filter((d) => d.status === "compliant").length;
@@ -784,11 +790,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {sortedFilteredSites.map((site) => {
               const siteDocs = (documents ?? []).filter(
                 (d) =>
-                  d.siteId === site.id &&
                   !d.isArchived &&
                   !d.caseId &&
                   !d.incidentId &&
-                  d.source !== "external"
+                  d.source !== "external" &&
+                  (
+                    // Native site doc
+                    d.siteId === site.id ||
+                    // Document explicitly shared with this site
+                    (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
+                    // Document shared with the site's parent company (cascades to sites)
+                    (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
+                  )
               );
               const total = siteDocs.length;
               const requiredSiteDocs = siteDocs.filter((d) => d.isRequired);

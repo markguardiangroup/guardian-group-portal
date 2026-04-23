@@ -730,6 +730,14 @@
           "category": "bug",
           "createdAt": "2026-04-23T12:01:42.703Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c5a3fb12-2eb2-44b5-b690-6cd3914d1b89",
+          "patch": 5,
+          "message": "Group-shared documents now appear and count for each shared company and its sites",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:06:30.848Z",
+          "createdBy": "agent"
         }
       ]
     }

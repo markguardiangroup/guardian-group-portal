@@ -2172,6 +2172,15 @@ export async function registerRoutes(
               const entityCompany = await storage.getCompany(doc.entityId);
               sharedFromEntityName = entityCompany?.name ?? null;
             }
+            // Surface explicit share assignments so company/site tiles can include
+            // group/company-scoped documents in their compliance counts.
+            const shareRecords = await storage.getDocumentShares(doc.id);
+            const sharedWithCompanyIds = shareRecords
+              .filter(s => s.entityType === "company")
+              .map(s => s.entityId);
+            const sharedWithSiteIds = shareRecords
+              .filter(s => s.entityType === "site")
+              .map(s => s.entityId);
             return {
               ...doc,
               isRequired: doc.isRequired || docTemplate?.isRequired || false,
@@ -2179,6 +2188,8 @@ export async function registerRoutes(
               isSharedLink,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
               sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
+              sharedWithCompanyIds,
+              sharedWithSiteIds,
             };
           })
       );
