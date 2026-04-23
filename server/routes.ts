@@ -2160,6 +2160,21 @@ export async function registerRoutes(
       // Include company/group scoped docs (siteId=null) that the user can access
       const scopedDocs = allDocuments.filter(d => d.siteId == null && (d.scope === "company" || d.scope === "group"));
       const scopedAccessChecks = await Promise.all(scopedDocs.map(doc => canUserAccessDocument(user, doc)));
+      // Pre-resolve source folder template ids so scoped docs whose folderId points
+      // to a different scope's folder (e.g. group-scoped doc with a group folderId
+      // viewed at company scope) can still be matched to the equivalent folder.
+      const scopedFolderIds = Array.from(new Set(
+        scopedDocs.map(d => d.folderId).filter((v): v is string => !!v)
+      ));
+      const scopedFolderTemplateMap = new Map<string, string | null>();
+      if (scopedFolderIds.length > 0) {
+        const scopedFolderRows = await Promise.all(
+          scopedFolderIds.map(fid => storage.getDocumentFolder(fid))
+        );
+        for (const f of scopedFolderRows) {
+          if (f) scopedFolderTemplateMap.set(f.id, f.templateId ?? null);
+        }
+      }
       const accessibleScopedDocs = await Promise.all(
         scopedDocs
           .filter((_, idx) => scopedAccessChecks[idx])
@@ -2209,6 +2224,7 @@ export async function registerRoutes(
               ...doc,
               isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaScope,
               renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
+              folderTemplateId: doc.folderId ? (scopedFolderTemplateMap.get(doc.folderId) ?? null) : null,
               isSharedLink,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
               sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
@@ -9853,6 +9869,34 @@ export async function registerRoutes(
         d.source !== "external"
       );
 
+      // Pre-fetch shared (company/group-scoped) docs visible to the target site so they
+      // can also count toward per-folder fulfillment when matched by folder template.
+      // (Only meaningful for single-site view — at "all sites" view shared docs are
+      // surfaced per site separately.)
+      const sharedDocsByFolderTemplateId = new Map<string, any[]>();
+      if (!isAllSites && targetSiteIds.length === 1) {
+        const sharedForFulfillment = await storage.getSharedDocumentsForSite(targetSiteIds[0], module as any, includeArchived);
+        const sharedFolderIdsForFulfillment = Array.from(new Set(
+          sharedForFulfillment.map(d => d.folderId).filter((v): v is string => !!v)
+        ));
+        const folderTplLookup = new Map<string, string | null>();
+        if (sharedFolderIdsForFulfillment.length > 0) {
+          const folderRowsForFulfillment = await Promise.all(
+            sharedFolderIdsForFulfillment.map(fid => storage.getDocumentFolder(fid))
+          );
+          for (const f of folderRowsForFulfillment) {
+            if (f) folderTplLookup.set(f.id, f.templateId ?? null);
+          }
+        }
+        for (const d of sharedForFulfillment) {
+          const ftId = d.folderId ? folderTplLookup.get(d.folderId) : null;
+          if (!ftId) continue;
+          const arr = sharedDocsByFolderTemplateId.get(ftId) ?? [];
+          arr.push(d);
+          sharedDocsByFolderTemplateId.set(ftId, arr);
+        }
+      }
+
       // Build company required-templates lookup so hierarchy document badges reflect
       // effective compliance requirement (isRequired via company config OR per-document flag)
       const allSitesHierarchy = await storage.getSites();
@@ -9908,9 +9952,13 @@ export async function registerRoutes(
           const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
           const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
           
-          // Check if required templates have been fulfilled
-          const fulfilledRequiredCount = requiredTemplates.filter(rt => 
-            folderDocuments.some(d => d.templateId === rt.id)
+          // Shared (company/group-scoped) docs that target this folder template
+          const sharedForThisFolder = sharedDocsByFolderTemplateId.get(folderTemplate.id) ?? [];
+
+          // Check if required templates have been fulfilled (site-scoped OR shared scoped)
+          const fulfilledRequiredCount = requiredTemplates.filter(rt =>
+            folderDocuments.some(d => d.templateId === rt.id) ||
+            sharedForThisFolder.some(d => d.templateId === rt.id)
           ).length;
           
           // Determine folder compliance status
@@ -9933,8 +9981,10 @@ export async function registerRoutes(
             
             const childDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === childTemplate.id);
             const childRequiredTemplates = childDocTemplates.filter(dt => dt.isRequired);
+            const sharedForChildFolder = sharedDocsByFolderTemplateId.get(childTemplate.id) ?? [];
             const childFulfilledCount = childRequiredTemplates.filter(rt =>
-              childFolderDocs.some(d => d.templateId === rt.id)
+              childFolderDocs.some(d => d.templateId === rt.id) ||
+              sharedForChildFolder.some(d => d.templateId === rt.id)
             ).length;
             
             return {
@@ -9980,7 +10030,9 @@ export async function registerRoutes(
                 name: dt.name,
                 isRequired: getEffectiveTemplateIsRequired(dt),
                 renewalPeriodMonths: dt.renewalPeriodMonths,
-                hasFulfilledDocument: childFolderDocs.some(d => d.templateId === dt.id),
+                hasFulfilledDocument:
+                  childFolderDocs.some(d => d.templateId === dt.id) ||
+                  sharedForChildFolder.some(d => d.templateId === dt.id),
               })),
             };
           });
@@ -10088,7 +10140,9 @@ export async function registerRoutes(
               name: dt.name,
               isRequired: getEffectiveTemplateIsRequired(dt),
               renewalPeriodMonths: dt.renewalPeriodMonths,
-              hasFulfilledDocument: folderDocuments.some(d => d.templateId === dt.id),
+              hasFulfilledDocument:
+                folderDocuments.some(d => d.templateId === dt.id) ||
+                sharedForThisFolder.some(d => d.templateId === dt.id),
             })),
           };
         });
@@ -10115,7 +10169,7 @@ export async function registerRoutes(
         if (sharedFolderIds.length > 0) {
           const folderRows = await Promise.all(sharedFolderIds.map(fid => storage.getDocumentFolder(fid)));
           for (const f of folderRows) {
-            if (f) folderTemplateMap.set(f.id, f.folderTemplateId ?? null);
+            if (f) folderTemplateMap.set(f.id, f.templateId ?? null);
           }
         }
         sharedDocuments = sharedForSite.map(d => {

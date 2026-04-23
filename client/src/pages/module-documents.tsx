@@ -1166,14 +1166,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const folders = (scopedFolders || []).filter((f: any) => f.module === module && (f.sortOrder ?? 0) >= 0);
                   const parents = folders.filter((f: any) => !f.parentId).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
-                  // Group documents by folderId; collect those without folder for "Unfiled"
+                  // Group documents by folderId; collect those without folder for "Unfiled".
+                  // When a doc's folderId points to a folder outside this scope (e.g. a
+                  // group-scoped doc whose source folder is the group's folder, viewed
+                  // at company scope), resolve to the equivalent folder in the current
+                  // scope by matching templateId — folders provisioned from the same
+                  // folder template share the same `templateId` value across scopes.
                   const docsByFolder = new Map<string, any[]>();
                   const unfiled: any[] = [];
                   for (const doc of sortedDocuments) {
-                    if (doc.folderId && folders.some((f: any) => f.id === doc.folderId)) {
-                      const arr = docsByFolder.get(doc.folderId) || [];
+                    let targetFolder: any = null;
+                    if (doc.folderId) {
+                      targetFolder = folders.find((f: any) => f.id === doc.folderId);
+                    }
+                    if (!targetFolder && (doc as any).folderTemplateId) {
+                      const ftId = (doc as any).folderTemplateId;
+                      targetFolder = folders.find((f: any) => f.templateId === ftId);
+                    }
+                    if (targetFolder) {
+                      const arr = docsByFolder.get(targetFolder.id) || [];
                       arr.push(doc);
-                      docsByFolder.set(doc.folderId, arr);
+                      docsByFolder.set(targetFolder.id, arr);
                     } else {
                       unfiled.push(doc);
                     }

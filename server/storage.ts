@@ -1242,6 +1242,28 @@ export class MemStorage implements IStorage {
     }
 
     // --- Group-scope docs ---
+    // Group-scope docs uploaded under this site's OWN company (no share record needed):
+    // when a company is itself a group, group-scoped docs uploaded against it should
+    // be visible at all of its own sites by default.
+    const ownGroupDocs = await db
+      .select()
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.scope, "group"),
+          eq(documentsTable.entityId, site.companyId),
+          isNull(documentsTable.siteId),
+          ...(module ? [eq(documentsTable.module, module as any)] : []),
+          ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
+        )
+      );
+    for (const doc of ownGroupDocs) {
+      if (!seenIds.has(doc.id)) {
+        seenIds.add(doc.id);
+        results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+      }
+    }
+
     // Determine which group owner IDs apply to this company (either it's a member or it IS the owner)
     const relevantGroupOwnerIds: string[] = [];
     if (company.groupOwnerId) relevantGroupOwnerIds.push(company.groupOwnerId);
