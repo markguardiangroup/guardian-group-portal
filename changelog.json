@@ -794,6 +794,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T12:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a6654d73-cb2f-8db5-d913-7f7995f7c938",
+          "patch": 5,
+          "message": "Shared Group/Company documents now appear inside the matching site folder with a dashed border and Shared tag, instead of in a separate Shared Documents area. Shared documents are read-only at site level and can only be edited at the parent (Group or Company) where they were created",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T13:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

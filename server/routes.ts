@@ -10086,6 +10086,17 @@ export async function registerRoutes(
         // Use the target site's company required templates for isRequired calculation
         const targetSiteCompanyId = siteToCompanyHierarchy.get(targetSiteIds[0]);
         const targetCompanyReqSet = targetSiteCompanyId ? (companyReqCacheHierarchy.get(targetSiteCompanyId) ?? new Set<string>()) : new Set<string>();
+        // Resolve folderTemplateId for each shared doc by looking up its source folder, so the
+        // client can place the shared doc inside the matching site folder (folders provisioned
+        // from the same template share the same folderTemplateId).
+        const sharedFolderIds = Array.from(new Set(sharedForSite.map(d => d.folderId).filter((v): v is string => !!v)));
+        const folderTemplateMap = new Map<string, string | null>();
+        if (sharedFolderIds.length > 0) {
+          const folderRows = await Promise.all(sharedFolderIds.map(fid => storage.getDocumentFolder(fid)));
+          for (const f of folderRows) {
+            if (f) folderTemplateMap.set(f.id, f.folderTemplateId ?? null);
+          }
+        }
         sharedDocuments = sharedForSite.map(d => {
           const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
           // Compute effective isRequired: source doc flag OR template flag OR company-required template
@@ -10104,6 +10115,8 @@ export async function registerRoutes(
             approvalStatus: d.approvalStatus,
             source: d.source,
             templateId: d.templateId,
+            folderId: d.folderId ?? null,
+            folderTemplateId: d.folderId ? (folderTemplateMap.get(d.folderId) ?? null) : null,
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
             isRequired: effectiveIsRequired,

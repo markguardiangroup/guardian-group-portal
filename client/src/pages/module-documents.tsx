@@ -230,6 +230,8 @@ interface HierarchyDocument {
   isSharedLink?: boolean;
   sharedScope?: "company" | "group";
   sharedFromEntityName?: string | null;
+  folderId?: string | null;
+  folderTemplateId?: string | null;
 }
 
 interface HierarchyFolder {
@@ -669,6 +671,37 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     placeholderData: keepPreviousData,
     enabled: !!hierarchySiteId && viewMode === "folder",
   });
+
+  // Group shared (Group/Company-scope) documents by the folder template they were filed under,
+  // so each shared doc can be rendered inside the matching site folder. Any shared doc whose
+  // folder template doesn't exist on this site falls through to "Unfiled".
+  const { sharedByFolderTemplate, unmatchedShared } = useMemo(() => {
+    const byTpl = new Map<string, HierarchyDocument[]>();
+    const unmatched: HierarchyDocument[] = [];
+    if (!hierarchy?.sharedDocuments) {
+      return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
+    }
+    const knownTemplateIds = new Set<string>();
+    const collectIds = (folders: HierarchyFolder[] | undefined) => {
+      if (!folders) return;
+      for (const f of folders) {
+        knownTemplateIds.add(f.id);
+        collectIds((f as any).childFolders);
+      }
+    };
+    collectIds(hierarchy.folders);
+    for (const doc of hierarchy.sharedDocuments) {
+      const tplId = doc.folderTemplateId ?? null;
+      if (tplId && knownTemplateIds.has(tplId)) {
+        const arr = byTpl.get(tplId) ?? [];
+        arr.push({ ...doc, isSharedLink: true });
+        byTpl.set(tplId, arr);
+      } else {
+        unmatched.push({ ...doc, isSharedLink: true });
+      }
+    }
+    return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
+  }, [hierarchy]);
 
   // Drag-and-drop for folder view (admin only — individual items use disabled:!isAdmin)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -1341,6 +1374,34 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             </Link>
                                             </DraggableDocRow>
                                           ))}
+                                          {/* Shared (Group/Company-scope) documents filed under this child folder template — read-only */}
+                                          {(sharedByFolderTemplate.get(childFolder.id) ?? []).map((doc) => (
+                                            <Link
+                                              key={doc.id}
+                                              href={`${basePath}/documents/${doc.id}`}
+                                              className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                                              data-testid={`link-shared-document-${doc.id}`}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                <div>
+                                                  <p className="font-medium text-sm">{doc.title}</p>
+                                                  <p className="text-xs text-muted-foreground">
+                                                    {doc.sharedFromEntityName
+                                                      ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                                                      : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
+                                                  Shared
+                                                </Badge>
+                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                            </Link>
+                                          ))}
                                           {/* Missing required slots for child folder */}
                                           {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
                                             <div key={ti.id} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
@@ -1423,7 +1484,42 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                 ))}
                               </div>
                             )}
-                            
+
+                            {/* Shared (Group/Company-scope) documents filed under this folder template — read-only */}
+                            {(sharedByFolderTemplate.get(folder.id) ?? []).length > 0 && (
+                              <div className="space-y-2">
+                                {(sharedByFolderTemplate.get(folder.id) ?? []).map((doc) => (
+                                  <Link
+                                    key={doc.id}
+                                    href={`${basePath}/documents/${doc.id}`}
+                                    className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                                    data-testid={`link-shared-document-${doc.id}`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                      <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="font-medium text-sm">{doc.title}</p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                          {doc.sharedFromEntityName
+                                            ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                                            : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
+                                        Shared
+                                      </Badge>
+                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+
                             {/* Missing required document slots */}
                             {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
                               <div key={ti.id} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
@@ -1483,19 +1579,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </Card>
           ) : null}
 
-          {/* Unfiled Documents */}
-          {hierarchySiteId && hierarchy?.unfiledDocuments && hierarchy.unfiledDocuments.length > 0 && (
+          {/* Unfiled Documents — includes any shared docs whose folder template doesn't exist on this site */}
+          {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + unmatchedShared.length) > 0 && (
             <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isAdmin}>
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
                 <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
                   <FileText className="h-4 w-4" />
                   Unfiled Documents
-                  <Badge variant="secondary">{hierarchy.unfiledDocuments.length}</Badge>
+                  <Badge variant="secondary">{(hierarchy?.unfiledDocuments?.length ?? 0) + unmatchedShared.length}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
-                {hierarchy.unfiledDocuments.map((doc) => (
+                {(hierarchy?.unfiledDocuments ?? []).map((doc) => (
                   <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={null} isDragEnabled={isAdmin}>
                   <Link
                     href={`${basePath}/documents/${doc.id}`}
@@ -1518,43 +1614,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </Link>
                   </DraggableDocRow>
                 ))}
-              </CardContent>
-            </Card>
-            </DroppableFolderZone>
-          )}
-
-          {/* Shared Documents (company or group scope) */}
-          {hierarchySiteId && hierarchy?.sharedDocuments && hierarchy.sharedDocuments.length > 0 && (
-            <Card className={`border ${moduleBorderColors[module]}`}>
-              <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
-                <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
-                  <Building2 className="h-4 w-4" />
-                  Shared Documents
-                  <Badge variant="secondary">{hierarchy.sharedDocuments.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 pt-4">
-                {hierarchy.sharedDocuments.map((doc) => (
+                {unmatchedShared.map((doc) => (
                   <Link
                     key={doc.id}
                     href={`${basePath}/documents/${doc.id}`}
-                    className={`flex items-center justify-between p-3 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
+                    className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
                     data-testid={`link-shared-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
+                      <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {doc.sharedFromEntityName
                             ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
-                            : `Shared ${doc.sharedScope ?? "document"}`}
+                            : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {doc.sharedScope === "group" ? "Group" : "Company"}
+                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
+                        Shared
                       </Badge>
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -1563,6 +1643,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </CardContent>
             </Card>
+            </DroppableFolderZone>
           )}
           </>
           )}
