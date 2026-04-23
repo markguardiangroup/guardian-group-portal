@@ -2182,9 +2182,32 @@ export async function registerRoutes(
             const sharedWithSiteIds = shareRecords
               .filter(s => s.entityType === "site")
               .map(s => s.entityId);
+
+            // A scoped doc is "required" when its template is in the required
+            // list of any destination company (or, for site shares, the site's
+            // owning company), or for the doc's origin entity itself.
+            let isRequiredViaScope = false;
+            if (doc.templateId) {
+              const candidateCompanyIds = new Set<string>(sharedWithCompanyIds);
+              if (doc.scope === "company" && doc.entityId) candidateCompanyIds.add(doc.entityId);
+              for (const sid of sharedWithSiteIds) {
+                const cId = siteToCompanyModule.get(sid);
+                if (cId) candidateCompanyIds.add(cId);
+              }
+              for (const cId of candidateCompanyIds) {
+                if (!companyReqCacheModule.has(cId)) {
+                  companyReqCacheModule.set(cId, await storage.getEffectiveCompanyRequiredTemplateIds(cId));
+                }
+                if (companyReqCacheModule.get(cId)?.has(doc.templateId)) {
+                  isRequiredViaScope = true;
+                  break;
+                }
+              }
+            }
+
             return {
               ...doc,
-              isRequired: doc.isRequired || docTemplate?.isRequired || false,
+              isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaScope,
               renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               isSharedLink,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
