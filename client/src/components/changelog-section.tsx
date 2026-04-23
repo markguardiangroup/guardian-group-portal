@@ -149,6 +149,34 @@ export default function ChangelogSection() {
     onSuccess: () => { invalidate(); setNewVersionOpen(false); },
   });
 
+  // Auto-detect publish: poll the production /api/changelog/published-patch
+  // endpoint and, if prod's active patch has caught up to dev's current patch
+  // (meaning a new publish has just shipped), bump dev so it advances to the
+  // next patch number. Only runs in dev — prod skips itself.
+  const isDev = typeof window !== "undefined" && import.meta.env.DEV;
+  const prodUrl = (import.meta.env.VITE_PROD_URL as string | undefined)?.replace(/\/$/, "");
+  useQuery<{ major: number; minor: number; patch: number }>({
+    queryKey: ["prod-published-patch", prodUrl],
+    enabled: isDev && !!prodUrl && !!changelog,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const res = await fetch(`${prodUrl}/api/changelog/published-patch`, { credentials: "omit" });
+      if (!res.ok) throw new Error("prod fetch failed");
+      const data = await res.json();
+      const active = changelog?.versions.find((v) => v.id === changelog.activeVersionId);
+      if (
+        active &&
+        data.major === active.major &&
+        data.minor === active.minor &&
+        data.patch >= active.patch &&
+        !bumpAfterPublishMutation.isPending
+      ) {
+        bumpAfterPublishMutation.mutate();
+      }
+      return data;
+    },
+  });
+
   const toggleCard = (id: string) =>
     setOpenCards((prev) => ({ ...prev, [id]: !prev[id] }));
 

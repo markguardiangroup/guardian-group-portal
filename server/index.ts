@@ -8,7 +8,6 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
-import { autoIncrementPatchIfChanged } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -212,11 +211,12 @@ process.on("uncaughtException", (err) => {
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
-    // Auto-bump patch on production startup — idempotent, only fires when
-    // new changelog entries exist that weren't present at the last publish.
-    autoIncrementPatchIfChanged().catch((err) =>
-      console.error("[changelog] Auto-bump failed:", err)
-    );
+    // NOTE: Production does NOT bump the changelog patch. Prod simply ships
+    // with whatever changelog.json was current in dev at build time, and the
+    // patch counter is owned by dev — dev advances itself after each publish
+    // (either via the manual "Bump Patch" button or the auto-detect poll on
+    // the changelog page that watches the live /api/changelog/published-patch
+    // endpoint).
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);

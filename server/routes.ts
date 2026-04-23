@@ -14531,6 +14531,24 @@ export async function registerRoutes(
    * Sets publishedPatch = current patch, increments dev patch by 1,
    * and syncs patchedEntryIds — so new entries go on the next patch number.
    */
+  /**
+   * GET /api/changelog/published-patch
+   * Public, unauthenticated. Returns the active version's currently-shipped
+   * patch number from THIS server's perspective. Dev polls the production URL
+   * for this so it can auto-bump itself when prod has shipped a new patch.
+   */
+  app.get("/api/changelog/published-patch", async (_req, res) => {
+    try {
+      const cl = await readChangelog();
+      const active = cl.versions.find((v) => v.id === cl.activeVersionId);
+      if (!active) return res.json({ major: 0, minor: 0, patch: 0 });
+      res.json({ major: active.major, minor: active.minor, patch: active.patch });
+    } catch (err) {
+      console.error("Changelog published-patch error:", err);
+      res.status(500).json({ error: "Failed to read changelog" });
+    }
+  });
+
   app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
     try {
       const user = await changelogAdminGuard(req, res);
