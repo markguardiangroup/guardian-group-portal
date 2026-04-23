@@ -166,7 +166,25 @@ export default function DocumentUpload() {
   const initialUrlParams = new URLSearchParams(window.location.search);
   const initialUrlScope = initialUrlParams.get("scope") as "site" | "company" | "group" | null;
   const initialUrlEntityId = initialUrlParams.get("entityId") || "";
+  const initialUrlEntityName = initialUrlParams.get("entityName") || "";
   const initialUrlSiteId = initialUrlParams.get("siteId") || "";
+
+  // Build the return URL preserving the original scope (group/company) so that
+  // the back button and post-upload "View Documents" button take the user back
+  // to the same scoped documents view (not the first company under the group).
+  const buildReturnUrl = (mod: ModuleType) => {
+    const base = modulePaths[mod] || "/documents";
+    const params = new URLSearchParams();
+    if (initialUrlScope && initialUrlEntityId) {
+      params.set("scope", initialUrlScope);
+      params.set("entityId", initialUrlEntityId);
+      if (initialUrlEntityName) params.set("entityName", initialUrlEntityName);
+    } else if (initialUrlSiteId) {
+      params.set("siteId", initialUrlSiteId);
+    }
+    const qs = params.toString();
+    return `${base}${qs ? `?${qs}` : ""}`;
+  };
   const [docScope, setDocScope] = useState<"site" | "company" | "group">(
     initialUrlScope ? initialUrlScope : (initialUrlSiteId ? "site" : (isFullPermissionClient ? "company" : "site"))
   );
@@ -796,7 +814,7 @@ export default function DocumentUpload() {
           onClick={() => {
             if (uploadStep === "site") setUploadStep("choice");
             else if (uploadStep === "upload") setUploadStep("site");
-            else navigate(modulePaths[selectedModule] || "/documents");
+            else navigate(buildReturnUrl(selectedModule));
           }}
         >
           <ArrowLeft className="h-5 w-5" />
@@ -1807,7 +1825,7 @@ export default function DocumentUpload() {
                 Upload Another
               </Button>
               <Button
-                onClick={() => navigate(modulePaths[selectedModule] || "/documents")}
+                onClick={() => navigate(buildReturnUrl(selectedModule))}
                 data-testid="button-view-documents"
               >
                 View Documents
