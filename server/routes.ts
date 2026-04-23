@@ -14549,6 +14549,39 @@ export async function registerRoutes(
     }
   });
 
+  /**
+   * GET /api/admin/login-report?date=YYYY-MM-DD
+   * Returns all successful login audit events for the given local date
+   * (defaults to today). Admin/consultant only.
+   */
+  app.get("/api/admin/login-report", requireAuth, async (req: any, res) => {
+    try {
+      const user = req.user;
+      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const dateStr = typeof req.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+        ? req.query.date
+        : new Date().toISOString().slice(0, 10);
+
+      const dayStart = new Date(`${dateStr}T00:00:00`);
+      const dayEnd = new Date(`${dateStr}T23:59:59.999`);
+
+      const allLogs = await storage.getAuditLogs();
+      const logins = allLogs.filter((log) => {
+        if (log.action !== "login") return false;
+        const t = new Date(log.createdAt).getTime();
+        return t >= dayStart.getTime() && t <= dayEnd.getTime();
+      });
+
+      res.json({ date: dateStr, logins });
+    } catch (err) {
+      console.error("Login report error:", err);
+      res.status(500).json({ error: "Failed to fetch login report" });
+    }
+  });
+
   app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
     try {
       const user = await changelogAdminGuard(req, res);

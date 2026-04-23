@@ -566,6 +566,27 @@ export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
   const [showEmailLog, setShowEmailLog] = useState(false);
+  const [showLoginReport, setShowLoginReport] = useState(false);
+  const [loginReportDate, setLoginReportDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+
+  interface LoginAuditEntry {
+    id: string;
+    userId: string;
+    userName: string;
+    details: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    createdAt: string;
+  }
+  const { data: loginReportData, isLoading: loginReportLoading } = useQuery<{ date: string; logins: LoginAuditEntry[] }>({
+    queryKey: ["/api/admin/login-report", loginReportDate],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/login-report?date=${loginReportDate}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch login report");
+      return res.json();
+    },
+    enabled: showLoginReport,
+  });
 
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({
     queryKey: ["/api/companies?limit=1000"],
@@ -704,6 +725,24 @@ export default function AdminReports() {
                 <div>
                   <p className="font-medium">Users Report</p>
                   <p className="text-sm text-muted-foreground">All users with roles and site assignments</p>
+                </div>
+              </div>
+              <Badge variant="secondary">View</Badge>
+            </div>
+
+            {/* User Logins Report */}
+            <div
+              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+              onClick={() => setShowLoginReport(true)}
+              data-testid="report-user-logins"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+                  <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-medium">User Logins</p>
+                  <p className="text-sm text-muted-foreground">All successful sign-ins, filterable by date</p>
                 </div>
               </div>
               <Badge variant="secondary">View</Badge>
@@ -926,6 +965,83 @@ export default function AdminReports() {
           onOpenChange={setShowEmailLog}
         />
       )}
+
+      {/* User Logins Report Dialog */}
+      <Dialog open={showLoginReport} onOpenChange={setShowLoginReport}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-auto" data-testid="dialog-login-report">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              User Logins
+            </DialogTitle>
+            <DialogDescription>
+              Successful sign-ins recorded in the audit log. Filter by date — defaults to today.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <label className="text-sm text-muted-foreground" htmlFor="login-report-date">Date</label>
+            <Input
+              id="login-report-date"
+              type="date"
+              value={loginReportDate}
+              onChange={(e) => setLoginReportDate(e.target.value)}
+              className="h-9 w-[180px]"
+              data-testid="input-login-report-date"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLoginReportDate(format(new Date(), "yyyy-MM-dd"))}
+              data-testid="button-login-report-today"
+            >
+              Today
+            </Button>
+            <Badge variant="secondary" data-testid="badge-login-count">
+              {loginReportData?.logins.length ?? 0} login{(loginReportData?.logins.length ?? 0) === 1 ? "" : "s"}
+            </Badge>
+          </div>
+
+          <div className="mt-4 rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>IP / Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loginReportLoading && (
+                  <TableRow><TableCell colSpan={3}>
+                    <div className="space-y-2 py-2">
+                      {[1,2,3,4].map(i => <Skeleton key={i} className="h-6 w-full" />)}
+                    </div>
+                  </TableCell></TableRow>
+                )}
+                {!loginReportLoading && (loginReportData?.logins ?? []).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground" data-testid="text-no-logins">
+                      No logins recorded for this date.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {(loginReportData?.logins ?? []).map((entry) => (
+                  <TableRow key={entry.id} data-testid={`row-login-${entry.id}`}>
+                    <TableCell className="font-mono text-xs whitespace-nowrap">
+                      {safeFormatDate(entry.createdAt, "HH:mm:ss")}
+                    </TableCell>
+                    <TableCell className="font-medium">{entry.userName}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {entry.ipAddress || entry.details || "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );
