@@ -593,6 +593,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId, groupMemberCompanyIds]);
 
+  // For the flat table view, collapse per-site duplicates of the same template
+  // (a template required at group level shows once per site in `missingSlots`,
+  // which would render the same template multiple times in the table).
+  const tableMissingSlots = useMemo(() => {
+    const seen = new Set<string>();
+    const out: typeof missingSlots = [];
+    for (const slot of missingSlots) {
+      if (seen.has(slot.templateId)) continue;
+      seen.add(slot.templateId);
+      out.push(slot);
+    }
+    return out;
+  }, [missingSlots]);
+
   // Archived documents — fetched fresh only when the dialog opens
   const { data: archivedDocuments, isLoading: isLoadingArchived } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module, "archived"],
@@ -2103,7 +2117,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   );
                 })}
                 {/* Missing required document slots — shown only when no active search/status/folder filters */}
-                {!searchQuery && statusFilter === "all" && folderFilter === "all" && missingSlots.map((slot) => (
+                {!searchQuery && statusFilter === "all" && folderFilter === "all" && tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10 border-dashed" data-testid={`row-missing-${slot.templateId}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -2144,7 +2158,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {missingSlots.map((slot) => (
+                {tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10" data-testid={`row-missing-${slot.templateId}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
