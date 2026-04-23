@@ -4384,7 +4384,7 @@ export class MemStorage implements IStorage {
    * company requireds.
    */
   async getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>> {
-    const [companyRow] = await db.select().from(companies).where(eq(companies.id, companyId));
+    const [companyRow] = await db.select().from(companiesTable).where(eq(companiesTable.id, companyId));
     const ownReqs = await this.getCompanyRequiredTemplates(companyId);
     const groupReqs = companyRow?.groupOwnerId
       ? await this.getCompanyRequiredTemplates(companyRow.groupOwnerId)
