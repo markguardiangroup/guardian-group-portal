@@ -823,7 +823,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // show them only in "all sites" mode; per-site shared doc display is handled by the
     // hierarchy/folder view which explicitly renders a "Shared Documents" section per site.
     let matchesSite = true;
-    if (selectedSiteId && selectedSiteId !== "all") {
+    if (urlScope && urlEntityId) {
+      // Scope-view already constrains by entity; skip site/company filters
+    } else if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.isSharedLink) {
         matchesSite = false;
       } else {
@@ -835,7 +837,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // Shared-link docs are excluded from company-filtered views for the same reason:
     // the hierarchy view handles scoped doc display per company context.
     let matchesCompany = true;
-    if (selectedCompany && selectedCompany !== "all") {
+    if (urlScope && urlEntityId) {
+      // Scope-view already constrains by entity
+    } else if (selectedCompany && selectedCompany !== "all") {
       if (doc.isSharedLink) {
         matchesCompany = false;
       } else {
