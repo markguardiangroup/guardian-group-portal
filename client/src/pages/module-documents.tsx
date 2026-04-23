@@ -1144,7 +1144,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           {isLinkedRow && (
                             <Badge variant="outline" className={`text-xs shrink-0 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
                               <LinkIcon className="h-3 w-3 mr-1" />
-                              Linked from {linkedFromScope === "group" ? "Group" : "Company"}
+                              Shared from {linkedFromScope === "group" ? "Group" : "Company"}
                             </Badge>
                           )}
                           {doc.isArchived && (
@@ -2026,7 +2026,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           {isLinkedRow ? (
                             <Badge variant="outline" className={`text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
                               <LinkIcon className="h-3 w-3 mr-1" />
-                              Linked from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
+                              Shared from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                             </Badge>
                           ) : null}
                           {doc.isArchived && (
