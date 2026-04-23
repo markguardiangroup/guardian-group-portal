@@ -56,3 +56,6 @@ timeoutMs = 60000
 
 [userenv.production]
 NODE_ENV = "production"
+
+[userenv.shared]
+VITE_PROD_URL = "https://www.guardiangroup.ai"
