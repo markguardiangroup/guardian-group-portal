@@ -232,11 +232,33 @@ export default function SetPassword() {
                 {validation.purpose === "invite" ? "Account Activated" : "Password Reset Complete"}
               </CardTitle>
               <CardDescription>
-                {validation.purpose === "invite" 
-                  ? `Your account is now active. You can log in using your email (${validation.email}) or username (${validation.username}).`
-                  : `Your password has been reset. You can log in using your email (${validation.email}) or username (${validation.username}).`}
+                {validation.purpose === "invite"
+                  ? "Your account is now active. You can log in with either of the following:"
+                  : "Your password has been reset. You can log in with either of the following:"}
               </CardDescription>
             </CardHeader>
+            <div className="px-6 pb-4">
+              <table className="w-full text-sm border rounded-md overflow-hidden">
+                <tbody>
+                  <tr className="border-b">
+                    <th className="text-left font-medium px-3 py-2 bg-muted/50 w-1/3">
+                      Email
+                    </th>
+                    <td className="px-3 py-2 font-bold break-all" data-testid="text-login-email">
+                      {validation.email}
+                    </td>
+                  </tr>
+                  <tr>
+                    <th className="text-left font-medium px-3 py-2 bg-muted/50">
+                      Username
+                    </th>
+                    <td className="px-3 py-2 font-bold break-all" data-testid="text-login-username">
+                      {validation.username}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <CardFooter className="justify-center">
               <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
                 Log In Now

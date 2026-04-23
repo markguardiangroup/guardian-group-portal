@@ -690,6 +690,14 @@
           "category": "bug",
           "createdAt": "2026-04-23T09:37:34.619Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d420eaa1-5222-4503-b3fa-fb49768045ba",
+          "patch": 5,
+          "message": "Activation page now shows email and username in a clear table",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:40:26.883Z",
+          "createdBy": "agent"
         }
       ]
     }
