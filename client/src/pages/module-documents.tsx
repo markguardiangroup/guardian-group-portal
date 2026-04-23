@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -340,6 +340,43 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
     }
   }, [urlScope, urlEntityId, urlEntityName]);
+
+  // Fetch scoped (company/group) folders for this module
+  const { data: scopedFolders = [] } = useQuery<any[]>({
+    queryKey: ["/api/folders", "scoped", urlScope, urlEntityId, module],
+    queryFn: async () => {
+      if (!urlScope || !urlEntityId) return [];
+      const res = await fetch(`/api/folders?scope=${urlScope}&entityId=${urlEntityId}&module=${module}`, {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!urlScope && !!urlEntityId,
+  });
+
+  // Auto-provision scoped folders once per (scope, entity, module)
+  const provisionedScopeKeys = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!urlScope || !urlEntityId) return;
+    if (urlScope !== "company" && urlScope !== "group") return;
+    const key = `${urlScope}:${urlEntityId}:${module}`;
+    if (provisionedScopeKeys.current.has(key)) return;
+    // Only auto-provision when no scoped folders exist yet
+    if (scopedFolders.length > 0) {
+      provisionedScopeKeys.current.add(key);
+      return;
+    }
+    provisionedScopeKeys.current.add(key);
+    fetch("/api/folders/provision", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: urlScope, entityId: urlEntityId, module }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/folders", "scoped", urlScope, urlEntityId, module] });
+    }).catch(() => {});
+  }, [urlScope, urlEntityId, module, scopedFolders.length]);
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
@@ -1005,64 +1042,141 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </span>
                 </div>
               </CardHeader>
-              <CardContent className="p-4">
-                {sortedDocuments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
-                      <FileText className={`h-6 w-6 ${moduleColors[module]}`} />
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      No documents at this {urlScope === "group" ? "group" : "company"} scope yet
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sortedDocuments.map((doc) => {
-                      const viewedAsLinked = !!(
-                        (doc as any).scope !== urlScope ||
-                        (doc as any).entityId !== urlEntityId
-                      );
-                      const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
-                      const linkedFromScope: "group" | "company" | null = viewedAsLinked
-                        ? ((doc as any).scope === "group" ? "group" : "company")
-                        : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
-                      return (
-                        <Link
-                          key={doc.id}
-                          href={`${basePath}/documents/${doc.id}`}
-                          className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
-                          data-testid={`row-folder-doc-${doc.id}`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">{doc.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
-                            </div>
-                            {isLinkedRow && (
-                              <Badge variant="outline" className={`text-xs shrink-0 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
-                                <LinkIcon className="h-3 w-3 mr-1" />
-                                Linked from {linkedFromScope === "group" ? "Group" : "Company"}
-                              </Badge>
-                            )}
-                            {doc.isArchived && (
-                              <Badge variant="secondary" className="gap-1 bg-muted shrink-0">
-                                <Archive className="h-3 w-3" />
-                                Archived
-                              </Badge>
-                            )}
+              <CardContent className="p-4 space-y-3">
+                {(() => {
+                  const renderDocRow = (doc: any) => {
+                    const viewedAsLinked = !!(
+                      (doc as any).scope !== urlScope ||
+                      (doc as any).entityId !== urlEntityId
+                    );
+                    const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
+                    const linkedFromScope: "group" | "company" | null = viewedAsLinked
+                      ? ((doc as any).scope === "group" ? "group" : "company")
+                      : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
+                    return (
+                      <Link
+                        key={doc.id}
+                        href={`${basePath}/documents/${doc.id}`}
+                        className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
+                        data-testid={`row-folder-doc-${doc.id}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
-                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{doc.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
                           </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                          {isLinkedRow && (
+                            <Badge variant="outline" className={`text-xs shrink-0 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
+                              <LinkIcon className="h-3 w-3 mr-1" />
+                              Linked from {linkedFromScope === "group" ? "Group" : "Company"}
+                            </Badge>
+                          )}
+                          {doc.isArchived && (
+                            <Badge variant="secondary" className="gap-1 bg-muted shrink-0">
+                              <Archive className="h-3 w-3" />
+                              Archived
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                          <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                        </div>
+                      </Link>
+                    );
+                  };
+
+                  // Build folder hierarchy from scoped folders for this module
+                  const folders = (scopedFolders || []).filter((f: any) => f.module === module && (f.sortOrder ?? 0) >= 0);
+                  const parents = folders.filter((f: any) => !f.parentId).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+                  // Group documents by folderId; collect those without folder for "Unfiled"
+                  const docsByFolder = new Map<string, any[]>();
+                  const unfiled: any[] = [];
+                  for (const doc of sortedDocuments) {
+                    if (doc.folderId && folders.some((f: any) => f.id === doc.folderId)) {
+                      const arr = docsByFolder.get(doc.folderId) || [];
+                      arr.push(doc);
+                      docsByFolder.set(doc.folderId, arr);
+                    } else {
+                      unfiled.push(doc);
+                    }
+                  }
+
+                  if (folders.length === 0 && sortedDocuments.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
+                          <FileText className={`h-6 w-6 ${moduleColors[module]}`} />
+                        </div>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          Setting up folders for this {urlScope === "group" ? "group" : "company"}…
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  const renderFolder = (folder: any, depth: number) => {
+                    const childFolders = folders
+                      .filter((f: any) => f.parentId === folder.id)
+                      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                    const folderDocs = docsByFolder.get(folder.id) || [];
+                    const totalDocsInTree = folderDocs.length + childFolders.reduce((sum: number, c: any) => sum + (docsByFolder.get(c.id)?.length || 0), 0);
+                    return (
+                      <details
+                        key={folder.id}
+                        className={`rounded-md border ${moduleBorderColors[module]} bg-background`}
+                        style={{ marginLeft: depth * 12 }}
+                        open={depth === 0}
+                        data-testid={`folder-scope-${folder.id}`}
+                      >
+                        <summary className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer list-none">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FolderOpen className={`h-4 w-4 ${moduleColors[module]} shrink-0`} />
+                            <span className="font-medium text-sm truncate">{folder.name}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {totalDocsInTree} document{totalDocsInTree !== 1 ? "s" : ""}
+                          </span>
+                        </summary>
+                        <div className="px-3 pb-3 space-y-2">
+                          {folderDocs.length > 0 && (
+                            <div className="space-y-2 pt-2">{folderDocs.map(renderDocRow)}</div>
+                          )}
+                          {childFolders.map((child: any) => renderFolder(child, depth + 1))}
+                          {folderDocs.length === 0 && childFolders.length === 0 && (
+                            <p className="text-xs text-muted-foreground italic pt-2">No documents in this folder</p>
+                          )}
+                        </div>
+                      </details>
+                    );
+                  };
+
+                  return (
+                    <>
+                      {parents.map((p: any) => renderFolder(p, 0))}
+                      {unfiled.length > 0 && (
+                        <details className={`rounded-md border ${moduleBorderColors[module]} bg-background`} open data-testid="folder-scope-unfiled">
+                          <summary className="flex items-center justify-between gap-2 px-3 py-2 cursor-pointer list-none">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <span className="font-medium text-sm">Unfiled</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {unfiled.length} document{unfiled.length !== 1 ? "s" : ""}
+                            </span>
+                          </summary>
+                          <div className="px-3 pb-3 space-y-2 pt-2">
+                            {unfiled.map(renderDocRow)}
+                          </div>
+                        </details>
+                      )}
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           ) : (

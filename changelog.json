@@ -770,6 +770,14 @@
           "category": "feature",
           "createdAt": "2026-04-23T12:38:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d3321a40-98fc-5a82-a6e0-4c4662c496f5",
+          "patch": 5,
+          "message": "Folders view at Group/Company scope now auto-creates the folder structure from templates and lists documents grouped by folder",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:42:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
