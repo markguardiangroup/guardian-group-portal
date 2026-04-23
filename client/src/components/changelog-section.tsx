@@ -386,7 +386,7 @@ export default function ChangelogSection() {
                               >
                                 {CATEGORY_LABELS[entry.category] ?? entry.category}
                               </Badge>
-                              <span className="text-sm flex-1">{entry.message}</span>
+                              <span className="text-sm flex-1 truncate min-w-0" title={entry.message}>{entry.message}</span>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button
                                   className="text-muted-foreground hover:text-foreground transition-colors"
