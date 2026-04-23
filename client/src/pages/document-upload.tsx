@@ -163,9 +163,15 @@ export default function DocumentUpload() {
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
   // Full-permission clients can only upload company/group scope docs, not site-scope
-  const [docScope, setDocScope] = useState<"site" | "company" | "group">(isFullPermissionClient ? "company" : "site");
+  const initialUrlParams = new URLSearchParams(window.location.search);
+  const initialUrlScope = initialUrlParams.get("scope") as "site" | "company" | "group" | null;
+  const initialUrlEntityId = initialUrlParams.get("entityId") || "";
+  const initialUrlSiteId = initialUrlParams.get("siteId") || "";
+  const [docScope, setDocScope] = useState<"site" | "company" | "group">(
+    initialUrlScope ? initialUrlScope : (initialUrlSiteId ? "site" : (isFullPermissionClient ? "company" : "site"))
+  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("");
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(initialUrlEntityId);
   const [entitySearch, setEntitySearch] = useState("");
   // Share destinations: site IDs (company scope) or company IDs (group scope) — require at least one
   const [shareDestinations, setShareDestinations] = useState<string[]>([]);
@@ -884,6 +890,8 @@ export default function DocumentUpload() {
                 <div className="flex gap-2">
                   {(["site", "company", "group"] as const).filter(scope =>
                   (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
+                  && (!urlUploadScope || scope === urlUploadScope)
+                  && (!urlSiteId || scope === "site")
                 ).map(scope => (
                     <button
                       key={scope}

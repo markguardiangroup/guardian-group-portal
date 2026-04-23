@@ -202,7 +202,7 @@ export default function CreateFromTemplate() {
   const preselectedSiteId = urlParams.get("siteId");
   const returnTo = urlParams.get("returnTo") || "/template-library";
   const preselectedModule = urlParams.get("module") || "all";
-  const preselectedScope = urlParams.get("scope") as "company" | "group" | null;
+  const preselectedScope = urlParams.get("scope") as "site" | "company" | "group" | null;
   const preselectedEntityId = urlParams.get("entityId") || "";
   
   const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
@@ -1100,6 +1100,8 @@ export default function CreateFromTemplate() {
             <div className="flex gap-2">
               {(["site", "company", "group"] as const).filter(scope =>
                 (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
+                && (!preselectedScope || scope === preselectedScope)
+                && (!preselectedSiteId || scope === "site")
               ).map(scope => (
                 <button
                   key={scope}
