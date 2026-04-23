@@ -870,7 +870,7 @@ export default function DocumentUpload() {
                     Use a pre-built template with standardised content and compliance settings.
                   </p>
                 </div>
-                <Link href={`/create-from-template?returnTo=${encodeURIComponent(location + (urlSiteId ? `?siteId=${urlSiteId}` : urlUploadScope && urlUploadEntityId ? `?scope=${urlUploadScope}&entityId=${urlUploadEntityId}` : ""))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}${urlUploadScope && urlUploadEntityId ? `&scope=${urlUploadScope}&entityId=${urlUploadEntityId}` : ""}`} className="w-full">
+                <Link href={`/create-from-template?returnTo=${encodeURIComponent(buildReturnUrl(initialModule))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}${urlUploadScope && urlUploadEntityId ? `&scope=${urlUploadScope}&entityId=${urlUploadEntityId}${initialUrlEntityName ? `&entityName=${encodeURIComponent(initialUrlEntityName)}` : ""}` : ""}`} className="w-full">
                   <Button className="w-full" data-testid="button-create-from-template">
                     Create from Template
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -1900,7 +1900,7 @@ export default function DocumentUpload() {
               className="w-full"
               onClick={() => {
                 setShowTemplatePrompt(false);
-                navigate(`/create-from-template?returnTo=${encodeURIComponent(location + (urlSiteId ? `?siteId=${urlSiteId}` : ""))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}`);
+                navigate(`/create-from-template?returnTo=${encodeURIComponent(buildReturnUrl(initialModule))}&module=${initialModule}${urlSiteId ? `&siteId=${urlSiteId}` : ""}${urlUploadScope && urlUploadEntityId ? `&scope=${urlUploadScope}&entityId=${urlUploadEntityId}${initialUrlEntityName ? `&entityName=${encodeURIComponent(initialUrlEntityName)}` : ""}` : ""}`);
               }}
               data-testid="button-prompt-switch-template"
             >
