@@ -9869,37 +9869,61 @@ export async function registerRoutes(
         d.source !== "external"
       );
 
-      // Pre-fetch shared (company/group-scoped) docs visible to the target site so they
-      // can also count toward per-folder fulfillment when matched by folder template.
-      // (Only meaningful for single-site view — at "all sites" view shared docs are
-      // surfaced per site separately.)
+      // Pre-fetch shared (company/group-scoped) docs visible to each target site so
+      // they can be folded into per-folder fulfillment and per-site missing-slot
+      // computation. Works for both single-site and all-sites views.
+      // - sharedDocsByFolderTemplateId: dedupe by docId, used to render shared docs
+      //   inside the folder
+      // - sharedFulfillmentBySiteAndTemplate: per-site fulfillment map used to
+      //   compute per-site missing slots in all-sites view
       const sharedDocsByFolderTemplateId = new Map<string, any[]>();
-      if (!isAllSites && targetSiteIds.length === 1) {
-        const sharedForFulfillment = await storage.getSharedDocumentsForSite(targetSiteIds[0], module as any, includeArchived);
-        const sharedFolderIdsForFulfillment = Array.from(new Set(
-          sharedForFulfillment.map(d => d.folderId).filter((v): v is string => !!v)
-        ));
+      const sharedFulfillmentBySiteAndTemplate = new Map<string, Set<string>>(); // siteId -> Set<templateId>
+      {
+        const sharedFolderIdsCollected = new Set<string>();
+        const perSiteShared: { siteId: string; docs: any[] }[] = [];
+        for (const sId of targetSiteIds) {
+          const sharedForSite = await storage.getSharedDocumentsForSite(sId, module as any, includeArchived);
+          perSiteShared.push({ siteId: sId, docs: sharedForSite });
+          for (const d of sharedForSite) {
+            if (d.folderId) sharedFolderIdsCollected.add(d.folderId);
+          }
+        }
         const folderTplLookup = new Map<string, string | null>();
-        if (sharedFolderIdsForFulfillment.length > 0) {
-          const folderRowsForFulfillment = await Promise.all(
-            sharedFolderIdsForFulfillment.map(fid => storage.getDocumentFolder(fid))
+        if (sharedFolderIdsCollected.size > 0) {
+          const folderRows = await Promise.all(
+            Array.from(sharedFolderIdsCollected).map(fid => storage.getDocumentFolder(fid))
           );
-          for (const f of folderRowsForFulfillment) {
+          for (const f of folderRows) {
             if (f) folderTplLookup.set(f.id, f.templateId ?? null);
           }
         }
-        for (const d of sharedForFulfillment) {
-          const ftId = d.folderId ? folderTplLookup.get(d.folderId) : null;
-          if (!ftId) continue;
-          const arr = sharedDocsByFolderTemplateId.get(ftId) ?? [];
-          arr.push(d);
-          sharedDocsByFolderTemplateId.set(ftId, arr);
+        const seenSharedDocByFolderTpl = new Map<string, Set<string>>();
+        for (const { siteId: sId, docs } of perSiteShared) {
+          for (const d of docs) {
+            // Per-site fulfillment by template id (used for missing-slot computation
+            // even when the doc has no folderId)
+            if (d.templateId) {
+              const set = sharedFulfillmentBySiteAndTemplate.get(sId) ?? new Set<string>();
+              set.add(d.templateId);
+              sharedFulfillmentBySiteAndTemplate.set(sId, set);
+            }
+            const ftId = d.folderId ? folderTplLookup.get(d.folderId) : null;
+            if (!ftId) continue;
+            const seen = seenSharedDocByFolderTpl.get(ftId) ?? new Set<string>();
+            if (seen.has(d.id)) continue;
+            seen.add(d.id);
+            seenSharedDocByFolderTpl.set(ftId, seen);
+            const arr = sharedDocsByFolderTemplateId.get(ftId) ?? [];
+            arr.push(d);
+            sharedDocsByFolderTemplateId.set(ftId, arr);
+          }
         }
       }
-
       // Build company required-templates lookup so hierarchy document badges reflect
       // effective compliance requirement (isRequired via company config OR per-document flag)
       const allSitesHierarchy = await storage.getSites();
+      // Site name lookup for per-site missing slot rendering
+      const siteNameById = new Map<string, string>(allSitesHierarchy.map(s => [s.id, s.name]));
       const siteToCompanyHierarchy = new Map(allSitesHierarchy.map(s => [s.id, s.companyId]));
       const uniqueCompanyIdsHierarchy = [...new Set(targetSiteIds.map(id => siteToCompanyHierarchy.get(id)).filter(Boolean) as string[])];
       const companyReqCacheHierarchy = new Map<string, Set<string>>();
@@ -10025,15 +10049,28 @@ export async function registerRoutes(
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
               },
-              templateInfo: childDocTemplates.map(dt => ({
-                id: dt.id,
-                name: dt.name,
-                isRequired: getEffectiveTemplateIsRequired(dt),
-                renewalPeriodMonths: dt.renewalPeriodMonths,
-                hasFulfilledDocument:
-                  childFolderDocs.some(d => d.templateId === dt.id) ||
-                  sharedForChildFolder.some(d => d.templateId === dt.id),
-              })),
+              templateInfo: childDocTemplates.map(dt => {
+                const isReq = getEffectiveTemplateIsRequired(dt);
+                const missingSites = isAllSites && isReq
+                  ? targetSiteIds
+                      .filter(sId => {
+                        const siteHasDoc = childFolderDocs.some(d => d.siteId === sId && d.templateId === dt.id);
+                        const sharedHas = sharedFulfillmentBySiteAndTemplate.get(sId)?.has(dt.id) ?? false;
+                        return !siteHasDoc && !sharedHas;
+                      })
+                      .map(sId => ({ siteId: sId, siteName: siteNameById.get(sId) ?? "Unknown" }))
+                  : [];
+                return {
+                  id: dt.id,
+                  name: dt.name,
+                  isRequired: isReq,
+                  renewalPeriodMonths: dt.renewalPeriodMonths,
+                  hasFulfilledDocument:
+                    childFolderDocs.some(d => d.templateId === dt.id) ||
+                    sharedForChildFolder.some(d => d.templateId === dt.id),
+                  missingSites,
+                };
+              }),
             };
           });
 
@@ -10135,15 +10172,28 @@ export async function registerRoutes(
               fulfilledRequired: fulfilledRequiredCount,
               folderStatus,
             },
-            templateInfo: folderDocTemplates.map(dt => ({
-              id: dt.id,
-              name: dt.name,
-              isRequired: getEffectiveTemplateIsRequired(dt),
-              renewalPeriodMonths: dt.renewalPeriodMonths,
-              hasFulfilledDocument:
-                folderDocuments.some(d => d.templateId === dt.id) ||
-                sharedForThisFolder.some(d => d.templateId === dt.id),
-            })),
+            templateInfo: folderDocTemplates.map(dt => {
+              const isReq = getEffectiveTemplateIsRequired(dt);
+              const missingSites = isAllSites && isReq
+                ? targetSiteIds
+                    .filter(sId => {
+                      const siteHasDoc = folderDocuments.some(d => d.siteId === sId && d.templateId === dt.id);
+                      const sharedHas = sharedFulfillmentBySiteAndTemplate.get(sId)?.has(dt.id) ?? false;
+                      return !siteHasDoc && !sharedHas;
+                    })
+                    .map(sId => ({ siteId: sId, siteName: siteNameById.get(sId) ?? "Unknown" }))
+                : [];
+              return {
+                id: dt.id,
+                name: dt.name,
+                isRequired: isReq,
+                renewalPeriodMonths: dt.renewalPeriodMonths,
+                hasFulfilledDocument:
+                  folderDocuments.some(d => d.templateId === dt.id) ||
+                  sharedForThisFolder.some(d => d.templateId === dt.id),
+                missingSites,
+              };
+            }),
           };
         });
       
@@ -10154,17 +10204,21 @@ export async function registerRoutes(
       const allKnownFolderIds = new Set(siteFolders.map(sf => sf.id));
       const unfiledDocuments = siteDocuments.filter(d => !d.folderId || !allKnownFolderIds.has(d.folderId));
 
-      // Fetch company/group scoped documents visible to target sites (only for single-site view)
+      // Fetch company/group scoped documents visible to target sites. For all-sites
+      // view we union shared docs across all target sites and dedupe by doc id so a
+      // single shared doc shared with N sites is shown once per folder.
       let sharedDocuments: any[] = [];
-      if (!isAllSites && targetSiteIds.length === 1) {
-        const sharedForSite = await storage.getSharedDocumentsForSite(targetSiteIds[0], module as any, includeArchived);
-        // Use the target site's company required templates for isRequired calculation
-        const targetSiteCompanyId = siteToCompanyHierarchy.get(targetSiteIds[0]);
-        const targetCompanyReqSet = targetSiteCompanyId ? (companyReqCacheHierarchy.get(targetSiteCompanyId) ?? new Set<string>()) : new Set<string>();
-        // Resolve folderTemplateId for each shared doc by looking up its source folder, so the
-        // client can place the shared doc inside the matching site folder (folders provisioned
-        // from the same template share the same folderTemplateId).
-        const sharedFolderIds = Array.from(new Set(sharedForSite.map(d => d.folderId).filter((v): v is string => !!v)));
+      {
+        const collected = new Map<string, any>(); // docId -> raw doc
+        for (const sId of targetSiteIds) {
+          const sharedForSite = await storage.getSharedDocumentsForSite(sId, module as any, includeArchived);
+          for (const d of sharedForSite) {
+            if (!collected.has(d.id)) collected.set(d.id, d);
+          }
+        }
+        const sharedList = Array.from(collected.values());
+        // Resolve folderTemplateId for each shared doc by looking up its source folder
+        const sharedFolderIds = Array.from(new Set(sharedList.map(d => d.folderId).filter((v): v is string => !!v)));
         const folderTemplateMap = new Map<string, string | null>();
         if (sharedFolderIds.length > 0) {
           const folderRows = await Promise.all(sharedFolderIds.map(fid => storage.getDocumentFolder(fid)));
@@ -10172,10 +10226,15 @@ export async function registerRoutes(
             if (f) folderTemplateMap.set(f.id, f.templateId ?? null);
           }
         }
-        sharedDocuments = sharedForSite.map(d => {
+        sharedDocuments = sharedList.map(d => {
           const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
-          // Compute effective isRequired: source doc flag OR template flag OR company-required template
-          const isRequiredViaCompanyTemplate = d.templateId ? targetCompanyReqSet.has(d.templateId) : false;
+          // Effective isRequired across any target site's company config
+          const isRequiredViaCompanyTemplate = d.templateId
+            ? targetSiteIds.some(sId => {
+                const cId = siteToCompanyHierarchy.get(sId);
+                return cId ? (companyReqCacheHierarchy.get(cId)?.has(d.templateId!) ?? false) : false;
+              })
+            : false;
           const effectiveIsRequired = d.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate;
           return {
             id: d.id,

@@ -1595,22 +1595,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               </div>
                                             </Link>
                                           ))}
-                                          {/* Missing required slots for child folder */}
-                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
-                                            <div key={ti.id} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
-                                              <div className="flex items-center gap-3">
-                                                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                                                <div>
-                                                  <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
+                                          {/* Missing required slots for child folder — per-site at all-sites view */}
+                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).flatMap((ti: any) => {
+                                            const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
+                                              ? ti.missingSites
+                                              : [{ siteId: "_", siteName: "" }];
+                                            return sites.map((ms) => (
+                                              <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
+                                                <div className="flex items-center gap-3">
+                                                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                                  <div>
+                                                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
+                                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                                  <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                                 </div>
                                               </div>
-                                              <div className="flex items-center gap-2">
-                                                <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
-                                                <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
-                                              </div>
-                                            </div>
-                                          ))}
+                                            ));
+                                          })}
                                           {/* Empty state — only when no docs and no missing required slots */}
                                           {(!childFolder.documents || childFolder.documents.filter((doc: any) => !doc.isArchived).length === 0) &&
                                            (!childFolder.templateInfo || childFolder.templateInfo.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).length === 0) && (
@@ -1713,22 +1718,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               </div>
                             )}
 
-                            {/* Missing required document slots */}
-                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).map((ti: any) => (
-                              <div key={ti.id} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20">
-                                <div className="flex items-center gap-3">
-                                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                                  <div>
-                                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
+                            {/* Missing required document slots — at all-sites view show one row per missing site */}
+                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).flatMap((ti: any) => {
+                              const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
+                                ? ti.missingSites
+                                : [{ siteId: "_", siteName: "" }];
+                              return sites.map((ms) => (
+                                <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
+                                  <div className="flex items-center gap-3">
+                                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                    <div>
+                                      <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
+                                      <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                    <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
-                                  <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
-                                </div>
-                              </div>
-                            ))}
+                              ));
+                            })}
 
                             {/* Upload to parent folder option - privileged only */}
                             {isPrivilegedUser && (
