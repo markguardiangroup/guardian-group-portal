@@ -85,6 +85,7 @@ import {
   LayoutDashboard,
   Building2,
   ExternalLink,
+  Link as LinkIcon,
 } from "lucide-react";
 import {
   Accordion,
@@ -715,10 +716,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
 
   const filteredDocuments = documents?.filter((doc) => {
-    // Scope filter — when navigating from a Group/Company card, only show docs
-    // for that specific scope+entity.
+    // Scope filter — when navigating from a Group/Company card, show docs that are
+    // either owned at that scope+entity, OR shared down to that entity from a higher
+    // scope (e.g. a group doc shared with this company).
     if (urlScope && urlEntityId) {
-      if ((doc as any).scope !== urlScope || (doc as any).entityId !== urlEntityId) {
+      const ownedAtScope = (doc as any).scope === urlScope && (doc as any).entityId === urlEntityId;
+      const sharedToCompany =
+        urlScope === "company" &&
+        Array.isArray((doc as any).sharedWithCompanyIds) &&
+        (doc as any).sharedWithCompanyIds.includes(urlEntityId);
+      if (!ownedAtScope && !sharedToCompany) {
         return false;
       }
     }
@@ -1499,7 +1506,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedDocuments.map((doc) => (
+                {sortedDocuments.map((doc) => {
+                  // When viewed in a company/group-scoped page, a doc whose native scope
+                  // (or owning entity) differs from the URL scope is being shown via a
+                  // share — render it read-only with a clear "linked from group/company"
+                  // indication, even if the server hasn't pre-flagged it as a shared link.
+                  const viewedAsLinked = !!(
+                    urlScope &&
+                    urlEntityId &&
+                    (
+                      (doc as any).scope !== urlScope ||
+                      (doc as any).entityId !== urlEntityId
+                    )
+                  );
+                  const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
+                  const linkedFromScope: "group" | "company" | null = viewedAsLinked
+                    ? ((doc as any).scope === "group" ? "group" : "company")
+                    : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
+                  return (
                   <TableRow key={doc.id} className="hover-elevate" data-testid={`row-document-${doc.id}`}>
                     <TableCell>
                       <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-3">
@@ -1513,9 +1537,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               {docMetaLine(doc)}
                             </p>
                           </div>
-                          {doc.isSharedLink ? (
-                            <Badge variant="outline" className={`text-xs ${doc.sharedScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined}>
-                              Shared from {doc.sharedScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
+                          {isLinkedRow ? (
+                            <Badge variant="outline" className={`text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
+                              <LinkIcon className="h-3 w-3 mr-1" />
+                              Linked from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                             </Badge>
                           ) : null}
                           {doc.isArchived && (
@@ -1571,7 +1596,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               View Details
                             </Link>
                           </DropdownMenuItem>
-                          {doc.isSharedLink && (
+                          {isLinkedRow && (
                             <DropdownMenuItem asChild>
                               <Link href={`/documents/${doc.id}`} data-testid={`link-view-source-${doc.id}`}>
                                 <ExternalLink className="mr-2 h-4 w-4" />
@@ -1616,7 +1641,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
                 {/* Missing required document slots — shown only when no active search/status/folder filters */}
                 {!searchQuery && statusFilter === "all" && folderFilter === "all" && missingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10 border-dashed" data-testid={`row-missing-${slot.templateId}`}>

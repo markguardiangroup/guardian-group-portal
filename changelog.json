@@ -738,6 +738,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-23T12:06:30.848Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "001d975a-9e0f-4ef2-84e0-82bff4a6ab1b",
+          "patch": 5,
+          "message": "Linked group documents now show on company document pages with a clear \"Linked from Group\" badge and read-only actions",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:13:27.593Z",
+          "createdBy": "agent"
         }
       ]
     }
