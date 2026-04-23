@@ -707,6 +707,15 @@
           "description": "Set-password, activation, validating, expired-link and success states now share the login page split layout — branded dark hero panel with Guardian Group logo, gradient headline and feature highlights on the left; white form card on the right — for a consistent first impression.",
           "createdAt": "2026-04-23T09:46:34.735Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2600776-9d49-4717-bdfb-c2ad25fbaffc",
+          "patch": 5,
+          "category": "Bug Fix",
+          "title": "Activation success screen stays put on tab focus",
+          "description": "Success card with email/username no longer flips to \"Link No Longer Valid\" when the user tabs away and back. The validation query stops refetching once activation succeeds and the success state takes priority.",
+          "createdAt": "2026-04-23T09:52:15.715Z",
+          "createdBy": "agent"
         }
       ]
     }
