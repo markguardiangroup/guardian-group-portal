@@ -573,41 +573,35 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           (d.sharedWithCompanyIds?.includes(company.id) ?? false)
                         )
                     );
-                    // All stat counts on the Company tile are template-slot driven so
-                    // they stay internally consistent: for each required template
-                    // (defined on this company), we look at the doc uploaded at the
-                    // company's own scope (scope="company", entityId=company.id) for
-                    // that templateId and bucket the slot. Group-shared/inherited docs
-                    // are not counted here — that's intentional, this tile reflects the
-                    // company's own required slots only (not site- or group-level).
-                    const companyRequiredTemplateIds = requiredTemplateIdsByCompany[company.id] ?? [];
-                    const ownCompanyDocs = (documents ?? []).filter(
-                      (d) =>
-                        !d.isArchived &&
-                        !d.caseId &&
-                        !d.incidentId &&
-                        d.source !== "external" &&
-                        d.scope === "company" &&
-                        d.entityId === company.id
-                    );
-                    const ownCompanyDocByTemplate = new Map<string, typeof ownCompanyDocs[number]>();
-                    for (const d of ownCompanyDocs) {
-                      if (d.templateId && !ownCompanyDocByTemplate.has(d.templateId)) {
-                        ownCompanyDocByTemplate.set(d.templateId, d);
-                      }
-                    }
+                    // The Company tile mirrors what the user sees on the Documents
+                    // page when filtered to this company's scope:
+                    //   - Compliant / Review: count visible documents (own
+                    //     company-scope docs + any group-shared docs targeting this
+                    //     company) by their status.
+                    //   - Missing: unique required templates that have no covering
+                    //     document at any of this company's sites — taken from the
+                    //     canonical /api/missing-required-templates endpoint, which
+                    //     correctly accounts for site-template overrides (excluded
+                    //     templates) and shared/site-scope docs that fulfil the slot.
+                    //     Deduped by templateId so a template required across N
+                    //     sites only counts once.
                     let cCompliant = 0;
                     let cReview = 0;
-                    let cMissing = 0;
-                    for (const tid of companyRequiredTemplateIds) {
-                      const d = ownCompanyDocByTemplate.get(tid);
-                      if (!d) cMissing++;
-                      else if (d.status === "compliant") cCompliant++;
+                    for (const d of companyDocs) {
+                      if (d.status === "compliant") cCompliant++;
                       else if (d.status === "review_required") cReview++;
-                      // overdue docs are intentionally not bucketed (they have a doc
-                      // uploaded so they aren't "Missing", and the tile has no Overdue box).
+                      // Overdue docs intentionally not bucketed — they have a doc
+                      // uploaded so they aren't "Missing", and the tile has no
+                      // Overdue box.
                     }
-                    const cDenom = companyRequiredTemplateIds.length;
+                    const cMissingTemplateIds = new Set<string>();
+                    for (const m of missingRequiredDetails) {
+                      if (m.companyId === company.id && m.module === module) {
+                        cMissingTemplateIds.add(m.templateId);
+                      }
+                    }
+                    const cMissing = cMissingTemplateIds.size;
+                    const cDenom = cCompliant + cReview + cMissing;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cReview > 0;
 

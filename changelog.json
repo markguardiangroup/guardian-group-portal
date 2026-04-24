@@ -962,6 +962,14 @@
           "category": "bug",
           "createdAt": "2026-04-24T16:04:42.744Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "64f1eb77-5b5e-4c42-ac8e-97a2e2e71748",
+          "patch": 6,
+          "message": "Fix Company tile Missing count to mirror Documents page (per-site canonical logic). For each company, count unique missing template IDs returned by /api/missing-required-templates (which already accounts for site-template overrides and shared/site-scope docs that fulfil a slot), instead of comparing only own company-scope docs to direct required-template rows. Compliant/Review now count visible docs (own + group-shared) by status. Reverts the previous overly aggressive inheritedFromCompanyId filter at the call site.",
+          "category": "bug",
+          "createdAt": "2026-04-24T18:09:51.551Z",
+          "createdBy": "agent"
         }
       ]
     }
