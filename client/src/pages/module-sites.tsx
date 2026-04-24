@@ -65,6 +65,7 @@ interface CompanyListItem {
 
 interface MissingRequired {
   siteId: string;
+  companyId?: string;
 }
 
 const moduleColors: Record<ModuleType, string> = {
@@ -410,11 +411,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               );
               const groupRequired = groupDocs.filter((d) => d.isRequired);
               const groupCompliant = groupRequired.filter((d) => d.status === "compliant").length;
-              const groupOverdue = groupRequired.filter((d) => d.status === "overdue").length;
               const groupReview = groupRequired.filter((d) => d.status === "review_required").length;
-              const groupDenom = groupCompliant + groupReview + groupOverdue;
+              // "Missing" at the group level = required template slots with no document
+              // uploaded across any site in any company belonging to this group.
+              const groupCompanyIdSet = new Set(selectedGroupCompanies.map((c) => c.id));
+              const groupMissing = missingRequiredDetails.filter((m) =>
+                m.companyId ? groupCompanyIdSet.has(m.companyId) : false
+              ).length;
+              const groupDenom = groupCompliant + groupReview + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
-              const groupHasIssues = groupOverdue > 0 || groupReview > 0;
+              const groupHasIssues = groupMissing > 0 || groupReview > 0;
 
               return (
                 <>
@@ -441,8 +447,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </div>
                         </div>
                         {groupHasIssues ? (
-                          groupOverdue > 0 ? (
-                            <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                          groupMissing > 0 ? (
+                            <Badge className="shrink-0 bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20 border text-xs px-1.5">
                               <AlertTriangle className="h-3 w-3" />
                             </Badge>
                           ) : (
@@ -500,9 +506,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <p className={`text-base font-bold ${groupReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupReview}</p>
                           <p className={`text-xs ${groupReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                         </div>
-                        <div className={`rounded-lg px-2 py-1.5 ${groupOverdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                          <p className={`text-base font-bold ${groupOverdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupOverdue}</p>
-                          <p className={`text-xs ${groupOverdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                        <div className={`rounded-lg px-2 py-1.5 ${groupMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                          <p className={`text-base font-bold ${groupMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-group-missing-${selectedGroup}`}>{groupMissing}</p>
+                          <p className={`text-xs ${groupMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
                         </div>
                       </div>
                     </CardContent>
@@ -541,11 +547,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     );
                     const cReq = companyDocs.filter((d) => d.isRequired);
                     const cCompliant = cReq.filter((d) => d.status === "compliant").length;
-                    const cOverdue = cReq.filter((d) => d.status === "overdue").length;
                     const cReview = cReq.filter((d) => d.status === "review_required").length;
-                    const cDenom = cCompliant + cReview + cOverdue;
+                    // "Missing" at the company level = required template slots with no
+                    // document uploaded across any site belonging to this company.
+                    const cMissing = missingRequiredDetails.filter((m) => m.companyId === company.id).length;
+                    const cDenom = cCompliant + cReview + cMissing;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
-                    const cHasIssues = cOverdue > 0 || cReview > 0;
+                    const cHasIssues = cMissing > 0 || cReview > 0;
 
                     return (
                       <Card
@@ -570,8 +578,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </div>
                             </div>
                             {cHasIssues ? (
-                              cOverdue > 0 ? (
-                                <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
+                              cMissing > 0 ? (
+                                <Badge className="shrink-0 bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20 border text-xs px-1.5">
                                   <AlertTriangle className="h-3 w-3" />
                                 </Badge>
                               ) : (
@@ -629,9 +637,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               <p className={`text-base font-bold ${cReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{cReview}</p>
                               <p className={`text-xs ${cReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                             </div>
-                            <div className={`rounded-lg px-2 py-1.5 ${cOverdue > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                              <p className={`text-base font-bold ${cOverdue > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cOverdue}</p>
-                              <p className={`text-xs ${cOverdue > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                            <div className={`rounded-lg px-2 py-1.5 ${cMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                              <p className={`text-base font-bold ${cMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cMissing}</p>
+                              <p className={`text-xs ${cMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
                             </div>
                           </div>
                         </CardContent>

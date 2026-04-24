@@ -930,6 +930,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-24T13:35:26.377Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "4f88a5fa-eddc-4cf8-9161-2996a755b486",
+          "patch": 6,
+          "message": "Module Sites: replaced 'Overdue' stat on Group and Company tiles with 'Missing'. Group missing aggregates required template slots with no document across every site in every company belonging to the selected group. Company missing aggregates required template slots with no document across every site belonging to that company. Mirrors the All Sites tile's orange 'Missing' styling and badge logic.",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T14:47:32.513Z",
+          "createdBy": "agent"
         }
       ]
     }
