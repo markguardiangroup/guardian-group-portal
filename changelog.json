@@ -954,6 +954,14 @@
           "category": "bug",
           "createdAt": "2026-04-24T15:48:40.904Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "6b31e51b-28a6-4ca8-bafd-642aee95e989",
+          "patch": 6,
+          "message": "Module Sites: 'Missing' on the Company tile now reflects only the company's OWN direct requirements. The /api/required-template-ids-by-company endpoint now filters companyRequiredTemplates to rows with inheritedFromCompanyId=null — so requirements that were cascaded down from a parent group are excluded from the per-company count. The Group tile is unaffected because it queries the group-owner companyId whose rows are direct (null) by construction. Site-level requirements are not (and were not) part of these counts; the All Sites tile is the place for those.",
+          "category": "bug",
+          "createdAt": "2026-04-24T16:04:42.744Z",
+          "createdBy": "agent"
         }
       ]
     }

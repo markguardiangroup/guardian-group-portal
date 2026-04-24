@@ -1674,7 +1674,14 @@ export async function registerRoutes(
 
       const result: Record<string, string[]> = {};
       companyIds.forEach((cid, i) => {
+        // Only include requirements added DIRECTLY at this company's own level —
+        // rows where inheritedFromCompanyId is null. Rows cascaded down from a
+        // parent group's required-templates list are excluded so the Company tile
+        // only counts each company's own requirements (and the Group tile, which
+        // queries the group-owner companyId, naturally only sees the group's own
+        // direct rows).
         result[cid] = reqLists[i]
+          .filter(r => r.inheritedFromCompanyId == null)
           .map(r => r.templateId)
           .filter(id => allowedTemplateIds.has(id));
       });
