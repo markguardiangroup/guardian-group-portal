@@ -697,8 +697,8 @@ export default function AdminReports() {
     document.body.removeChild(link);
   };
 
-  // Only admin and consultants can access this page
-  if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+  // Only administrators can access this page
+  if (!user || user.role !== "admin") {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -708,7 +708,7 @@ export default function AdminReports() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              This section is restricted to administrators and consultants only.
+              This section is restricted to administrators only.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -727,7 +727,7 @@ export default function AdminReports() {
             Admin Reports
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Confidential reports for administrators and consultants only
+            Confidential reports for administrators only
           </p>
         </div>
       </div>
@@ -741,7 +741,7 @@ export default function AdminReports() {
             <div>
               <p className="font-medium text-amber-800 dark:text-amber-200">Confidential Information</p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Reports in this section contain sensitive data and are only visible to administrators and consultants.
+                Reports in this section contain sensitive data and are only visible to administrators.
                 Do not share this information with unauthorised personnel.
               </p>
             </div>

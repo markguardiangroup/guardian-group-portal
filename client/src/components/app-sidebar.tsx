@@ -237,11 +237,6 @@ const consultantNavItems = [
     permission: "trainingLibrary" as const,
   },
   {
-    title: "Admin Reports",
-    url: "/admin-reports",
-    icon: ShieldAlert,
-  },
-  {
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,

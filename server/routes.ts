@@ -14365,8 +14365,8 @@ export async function registerRoutes(
 
   const changelogAdminGuard = async (req: any, res: any) => {
     const user = await storage.getUser((req.session as any)?.userId);
-    if (!user || (user.role !== "admin" && user.role !== "consultant")) {
-      res.status(403).json({ error: "Admin/consultant only" });
+    if (!user || user.role !== "admin") {
+      res.status(403).json({ error: "Admin only" });
       return null;
     }
     return user;
@@ -14622,7 +14622,7 @@ export async function registerRoutes(
     try {
       const userId = req.session?.userId;
       const user = userId ? await storage.getUser(userId) : null;
-      if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+      if (!user || user.role !== "admin") {
         return res.status(403).json({ error: "Forbidden" });
       }
 
@@ -14684,13 +14684,13 @@ export async function registerRoutes(
    * Returns users that currently have an unexpired session in the session
    * store. This is the simple session-store version (not a per-request
    * heartbeat), so it counts anyone whose browser still holds a valid
-   * session cookie even if the tab is idle. Admin/consultant only.
+   * session cookie even if the tab is idle. Admin only.
    */
   app.get("/api/admin/active-users", requireAuth, async (req: any, res) => {
     try {
       const callerId = req.session?.userId;
       const caller = callerId ? await storage.getUser(callerId) : null;
-      if (!caller || (caller.role !== "admin" && caller.role !== "consultant")) {
+      if (!caller || caller.role !== "admin") {
         return res.status(403).json({ error: "Forbidden" });
       }
 

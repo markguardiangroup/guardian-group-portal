@@ -111,7 +111,8 @@
         "6359c831-05f0-4a80-9d73-1b83fdb5e274",
         "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
         "9e223c29-17ed-4956-aa3c-c03cdde676f9",
-        "3be22683-ff52-458f-8322-a8444c9e097f"
+        "3be22683-ff52-458f-8322-a8444c9e097f",
+        "1cd04d25-c05e-4514-b85a-b28b27c40973"
       ],
       "entries": [
         {
@@ -920,6 +921,14 @@
           "message": "Admin Reports: moved Changelog / Release Notes onto its own dedicated page (/admin-reports/changelog) and added a tile to open it from the Admin Reports landing page.",
           "category": "enhancement",
           "createdAt": "2026-04-24T12:55:22.216Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "1cd04d25-c05e-4514-b85a-b28b27c40973",
+          "patch": 6,
+          "message": "Admin Reports & Changelog: locked down to administrators only. Removed consultants from the page-level access checks, the Active Users / User Logins / Changelog API endpoints, and the consultant sidebar link. Updated the page subtitle and confidentiality banner to say 'administrators only'.",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T13:35:26.377Z",
           "createdBy": "agent"
         }
       ]

@@ -8,7 +8,7 @@ import ChangelogSection from "@/components/changelog-section";
 export default function AdminChangelog() {
   const { user } = useAuth();
 
-  if (!user || (user.role !== "admin" && user.role !== "consultant")) {
+  if (!user || user.role !== "admin") {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -18,7 +18,7 @@ export default function AdminChangelog() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              This section is restricted to administrators and consultants only.
+              This section is restricted to administrators only.
             </CardDescription>
           </CardHeader>
         </Card>
