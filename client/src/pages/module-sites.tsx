@@ -420,21 +420,32 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   d.scope === "group" &&
                   d.entityId === selectedGroup
               );
-              const groupRequired = groupDocs.filter((d) => d.isRequired);
-              const groupCompliant = groupRequired.filter((d) => d.status === "compliant").length;
-              const groupReview = groupRequired.filter((d) => d.status === "review_required").length;
-              // "Missing" at the group level = required templates (defined on the
-              // group-owner company) that have no document uploaded at the group scope
-              // (i.e. no doc with scope="group" and entityId === selectedGroup that
-              // matches that templateId). This is intentionally NOT aggregated from
-              // sites or member companies — it reflects the group's own required slots.
+              // All stat counts on the Group tile are template-slot driven so they stay
+              // internally consistent: for each required template (defined on the
+              // group-owner company), we look at the doc uploaded at the group's own
+              // scope (scope="group", entityId=selectedGroup) for that templateId and
+              // bucket the slot. Shared/inherited docs from other scopes are not
+              // counted here — that's intentional, this tile reflects the group's own
+              // required slots only.
               const groupRequiredTemplateIds = requiredTemplateIdsByCompany[selectedGroup] ?? [];
-              const groupDocTemplateIds = new Set(
-                groupDocs.map((d) => d.templateId).filter((id): id is string => !!id)
-              );
-              const groupMissing = groupRequiredTemplateIds.filter(
-                (tid) => !groupDocTemplateIds.has(tid)
-              ).length;
+              const groupDocByTemplate = new Map<string, typeof groupDocs[number]>();
+              for (const d of groupDocs) {
+                if (d.templateId && !groupDocByTemplate.has(d.templateId)) {
+                  groupDocByTemplate.set(d.templateId, d);
+                }
+              }
+              let groupCompliant = 0;
+              let groupReview = 0;
+              let groupMissing = 0;
+              for (const tid of groupRequiredTemplateIds) {
+                const d = groupDocByTemplate.get(tid);
+                if (!d) groupMissing++;
+                else if (d.status === "compliant") groupCompliant++;
+                else if (d.status === "review_required") groupReview++;
+                // overdue docs are intentionally not bucketed here — they have a doc
+                // uploaded so they aren't "Missing" per the user's definition, and the
+                // tile doesn't show a separate Overdue box.
+              }
               const groupDenom = groupRequiredTemplateIds.length;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
               const groupHasIssues = groupMissing > 0 || groupReview > 0;
@@ -562,20 +573,40 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           (d.sharedWithCompanyIds?.includes(company.id) ?? false)
                         )
                     );
-                    const cReq = companyDocs.filter((d) => d.isRequired);
-                    const cCompliant = cReq.filter((d) => d.status === "compliant").length;
-                    const cReview = cReq.filter((d) => d.status === "review_required").length;
-                    // "Missing" at the company level = required templates (defined on
-                    // this company) that have no document uploaded at the company scope
-                    // (i.e. no doc with scope="company" and entityId === company.id that
-                    // matches that templateId). Site-level missing is shown on All Sites.
+                    // All stat counts on the Company tile are template-slot driven so
+                    // they stay internally consistent: for each required template
+                    // (defined on this company), we look at the doc uploaded at the
+                    // company's own scope (scope="company", entityId=company.id) for
+                    // that templateId and bucket the slot. Group-shared/inherited docs
+                    // are not counted here — that's intentional, this tile reflects the
+                    // company's own required slots only (not site- or group-level).
                     const companyRequiredTemplateIds = requiredTemplateIdsByCompany[company.id] ?? [];
-                    const companyDocTemplateIds = new Set(
-                      companyDocs.map((d) => d.templateId).filter((id): id is string => !!id)
+                    const ownCompanyDocs = (documents ?? []).filter(
+                      (d) =>
+                        !d.isArchived &&
+                        !d.caseId &&
+                        !d.incidentId &&
+                        d.source !== "external" &&
+                        d.scope === "company" &&
+                        d.entityId === company.id
                     );
-                    const cMissing = companyRequiredTemplateIds.filter(
-                      (tid) => !companyDocTemplateIds.has(tid)
-                    ).length;
+                    const ownCompanyDocByTemplate = new Map<string, typeof ownCompanyDocs[number]>();
+                    for (const d of ownCompanyDocs) {
+                      if (d.templateId && !ownCompanyDocByTemplate.has(d.templateId)) {
+                        ownCompanyDocByTemplate.set(d.templateId, d);
+                      }
+                    }
+                    let cCompliant = 0;
+                    let cReview = 0;
+                    let cMissing = 0;
+                    for (const tid of companyRequiredTemplateIds) {
+                      const d = ownCompanyDocByTemplate.get(tid);
+                      if (!d) cMissing++;
+                      else if (d.status === "compliant") cCompliant++;
+                      else if (d.status === "review_required") cReview++;
+                      // overdue docs are intentionally not bucketed (they have a doc
+                      // uploaded so they aren't "Missing", and the tile has no Overdue box).
+                    }
                     const cDenom = companyRequiredTemplateIds.length;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cReview > 0;

@@ -946,6 +946,14 @@
           "category": "bug",
           "createdAt": "2026-04-24T15:38:33.800Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "370508d5-c06d-4829-8a6e-1e7577b70bf3",
+          "patch": 6,
+          "message": "Module Sites: made the Group and Company tile stat counts internally consistent. Compliant / Review / Missing are now all driven by the same template-slot iteration: for each required template at that scope, look up the doc uploaded at the matching strict scope (group: scope='group' && entityId=selectedGroup; company: scope='company' && entityId=company.id) and bucket it. Group-shared / inherited docs no longer leak into Compliant or Review on the Company tile, which fixes cases like Recreation Limited showing 2 Compliant + 1 Missing at 100% (numerator and denominator now agree). Overdue docs are not bucketed (they have a doc, so not Missing per the agreed definition).",
+          "category": "bug",
+          "createdAt": "2026-04-24T15:48:40.904Z",
+          "createdBy": "agent"
         }
       ]
     }
