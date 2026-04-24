@@ -567,7 +567,26 @@ export default function AdminReports() {
   const [showUsersReport, setShowUsersReport] = useState(false);
   const [showEmailLog, setShowEmailLog] = useState(false);
   const [showLoginReport, setShowLoginReport] = useState(false);
-  const [loginReportDate, setLoginReportDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
+  const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const [loginReportFrom, setLoginReportFrom] = useState(todayStr);
+  const [loginReportTo, setLoginReportTo] = useState(todayStr);
+
+  // Keep custom from/to in sync with the selected preset so the user can flip
+  // to "Custom" and start tweaking from the preset's window.
+  useEffect(() => {
+    if (loginReportRange === "custom") return;
+    const days =
+      loginReportRange === "30d" ? 30 :
+      loginReportRange === "7d" ? 7 :
+      loginReportRange === "3d" ? 3 : 1;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (days - 1));
+    setLoginReportFrom(format(start, "yyyy-MM-dd"));
+    setLoginReportTo(format(end, "yyyy-MM-dd"));
+  }, [loginReportRange]);
 
   interface LoginAuditEntry {
     id: string;
@@ -578,10 +597,14 @@ export default function AdminReports() {
     userAgent: string | null;
     createdAt: string;
   }
-  const { data: loginReportData, isLoading: loginReportLoading } = useQuery<{ date: string; logins: LoginAuditEntry[] }>({
-    queryKey: ["/api/admin/login-report", loginReportDate],
+  const loginReportQs =
+    loginReportRange === "custom"
+      ? `from=${loginReportFrom}&to=${loginReportTo}`
+      : `range=${loginReportRange}`;
+  const { data: loginReportData, isLoading: loginReportLoading } = useQuery<{ from: string; to: string; range: string; logins: LoginAuditEntry[] }>({
+    queryKey: ["/api/admin/login-report", loginReportRange, loginReportFrom, loginReportTo],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/login-report?date=${loginReportDate}`, { credentials: "include" });
+      const res = await fetch(`/api/admin/login-report?${loginReportQs}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch login report");
       return res.json();
     },
@@ -975,28 +998,51 @@ export default function AdminReports() {
               User Logins
             </DialogTitle>
             <DialogDescription>
-              Successful sign-ins recorded in the audit log. Filter by date — defaults to today.
+              Successful sign-ins recorded in the audit log. Defaults to today.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-wrap items-center gap-3 mt-2">
-            <label className="text-sm text-muted-foreground" htmlFor="login-report-date">Date</label>
-            <Input
-              id="login-report-date"
-              type="date"
-              value={loginReportDate}
-              onChange={(e) => setLoginReportDate(e.target.value)}
-              className="h-9 w-[180px]"
-              data-testid="input-login-report-date"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLoginReportDate(format(new Date(), "yyyy-MM-dd"))}
-              data-testid="button-login-report-today"
+            <label className="text-sm text-muted-foreground" htmlFor="login-report-range">Range</label>
+            <Select
+              value={loginReportRange}
+              onValueChange={(v) => setLoginReportRange(v as LoginRangePreset)}
             >
-              Today
-            </Button>
+              <SelectTrigger id="login-report-range" className="h-9 w-[170px]" data-testid="select-login-report-range">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="3d">Last 3 days</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="custom">Custom range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {loginReportRange === "custom" && (
+              <>
+                <label className="text-sm text-muted-foreground" htmlFor="login-report-from">From</label>
+                <Input
+                  id="login-report-from"
+                  type="date"
+                  value={loginReportFrom}
+                  onChange={(e) => setLoginReportFrom(e.target.value)}
+                  className="h-9 w-[160px]"
+                  data-testid="input-login-report-from"
+                />
+                <label className="text-sm text-muted-foreground" htmlFor="login-report-to">To</label>
+                <Input
+                  id="login-report-to"
+                  type="date"
+                  value={loginReportTo}
+                  onChange={(e) => setLoginReportTo(e.target.value)}
+                  className="h-9 w-[160px]"
+                  data-testid="input-login-report-to"
+                />
+              </>
+            )}
+
             <Badge variant="secondary" data-testid="badge-login-count">
               {loginReportData?.logins.length ?? 0} login{(loginReportData?.logins.length ?? 0) === 1 ? "" : "s"}
             </Badge>

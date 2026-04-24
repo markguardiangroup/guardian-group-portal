@@ -14607,32 +14607,72 @@ export async function registerRoutes(
   });
 
   /**
-   * GET /api/admin/login-report?date=YYYY-MM-DD
-   * Returns all successful login audit events for the given local date
-   * (defaults to today). Admin/consultant only.
+   * GET /api/admin/login-report
+   * Returns all successful login audit events for a date window.
+   * Admin/consultant only.
+   *
+   * Query parameters (any of):
+   *   - range: "today" | "3d" | "7d" | "30d"  (preset window, default "today")
+   *   - from:  YYYY-MM-DD                      (custom start, inclusive)
+   *   - to:    YYYY-MM-DD                      (custom end,   inclusive)
+   * Custom from/to (when both are provided) take priority over the preset.
+   * For backwards-compat, ?date=YYYY-MM-DD acts as a single-day window.
    */
   app.get("/api/admin/login-report", requireAuth, async (req: any, res) => {
     try {
-      const user = req.user;
+      const userId = req.session?.userId;
+      const user = userId ? await storage.getUser(userId) : null;
       if (!user || (user.role !== "admin" && user.role !== "consultant")) {
         return res.status(403).json({ error: "Forbidden" });
       }
 
-      const dateStr = typeof req.query.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
-        ? req.query.date
-        : new Date().toISOString().slice(0, 10);
+      const isDateStr = (v: unknown): v is string =>
+        typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+      const todayStr = new Date().toISOString().slice(0, 10);
 
-      const dayStart = new Date(`${dateStr}T00:00:00`);
-      const dayEnd = new Date(`${dateStr}T23:59:59.999`);
+      let fromStr: string;
+      let toStr: string;
+      let range: "today" | "3d" | "7d" | "30d" | "custom" = "today";
+
+      if (isDateStr(req.query.from) && isDateStr(req.query.to)) {
+        fromStr = req.query.from;
+        toStr = req.query.to;
+        range = "custom";
+      } else if (isDateStr(req.query.date)) {
+        // Backwards-compat single-day mode
+        fromStr = req.query.date;
+        toStr = req.query.date;
+        range = "custom";
+      } else {
+        const requested = String(req.query.range ?? "today");
+        const days =
+          requested === "30d" ? 30 :
+          requested === "7d" ? 7 :
+          requested === "3d" ? 3 :
+          1;
+        range = (requested === "30d" || requested === "7d" || requested === "3d") ? requested : "today";
+        toStr = todayStr;
+        const start = new Date(`${todayStr}T00:00:00`);
+        start.setDate(start.getDate() - (days - 1));
+        fromStr = start.toISOString().slice(0, 10);
+      }
+
+      // Guard: ensure from <= to (swap if reversed)
+      if (fromStr > toStr) {
+        [fromStr, toStr] = [toStr, fromStr];
+      }
+
+      const windowStart = new Date(`${fromStr}T00:00:00`).getTime();
+      const windowEnd = new Date(`${toStr}T23:59:59.999`).getTime();
 
       const allLogs = await storage.getAuditLogs();
       const logins = allLogs.filter((log) => {
         if (log.action !== "login") return false;
         const t = new Date(log.createdAt).getTime();
-        return t >= dayStart.getTime() && t <= dayEnd.getTime();
+        return t >= windowStart && t <= windowEnd;
       });
 
-      res.json({ date: dateStr, logins });
+      res.json({ from: fromStr, to: toStr, range, logins });
     } catch (err) {
       console.error("Login report error:", err);
       res.status(500).json({ error: "Failed to fetch login report" });

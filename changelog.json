@@ -107,7 +107,9 @@
         "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
         "e2475826-d265-41c0-a014-ab46a461fe69",
         "03e532f5-93db-41ab-b284-ae59f19a552c",
-        "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26"
+        "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
+        "6359c831-05f0-4a80-9d73-1b83fdb5e274",
+        "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35"
       ],
       "entries": [
         {
@@ -884,6 +886,22 @@
           "message": "Client sign-off emails: stopped firing the 'No Consultant Assigned' admin email when a Pro consultant has already been notified. The system now (1) emails the consultant who uploaded the document, (2) falls back to any Pro consultant assigned to the site, and (3) only escalates to admins as a last resort when no consultant could be reached.",
           "category": "bug",
           "createdAt": "2026-04-24T11:30:10.175Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6359c831-05f0-4a80-9d73-1b83fdb5e274",
+          "patch": 6,
+          "message": "User Logins report: fixed a bug that caused the report to always show zero logins. The endpoint was checking the wrong user object and returning 403 to admins/consultants.",
+          "category": "bug",
+          "createdAt": "2026-04-24T11:33:28.947Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
+          "patch": 6,
+          "message": "User Logins report: added date-range presets — Today (default), Last 3 days, Last 7 days, Last 30 days, plus a Custom range with From/To date pickers.",
+          "category": "feature",
+          "createdAt": "2026-04-24T11:33:28.947Z",
           "createdBy": "agent"
         }
       ]
