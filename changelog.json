@@ -109,7 +109,8 @@
         "03e532f5-93db-41ab-b284-ae59f19a552c",
         "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
         "6359c831-05f0-4a80-9d73-1b83fdb5e274",
-        "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35"
+        "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
+        "9e223c29-17ed-4956-aa3c-c03cdde676f9"
       ],
       "entries": [
         {
@@ -902,6 +903,14 @@
           "message": "User Logins report: added date-range presets — Today (default), Last 3 days, Last 7 days, Last 30 days, plus a Custom range with From/To date pickers.",
           "category": "feature",
           "createdAt": "2026-04-24T11:33:28.947Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9e223c29-17ed-4956-aa3c-c03cdde676f9",
+          "patch": 6,
+          "message": "Admin Reports: added an Active Users Now tile that lists everyone with a current signed-in session, with a manual Refresh button and auto-refresh every 30 seconds while the dialog is open.",
+          "category": "feature",
+          "createdAt": "2026-04-24T11:45:47.680Z",
           "createdBy": "agent"
         }
       ]

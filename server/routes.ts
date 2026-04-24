@@ -14679,6 +14679,68 @@ export async function registerRoutes(
     }
   });
 
+  /**
+   * GET /api/admin/active-users
+   * Returns users that currently have an unexpired session in the session
+   * store. This is the simple session-store version (not a per-request
+   * heartbeat), so it counts anyone whose browser still holds a valid
+   * session cookie even if the tab is idle. Admin/consultant only.
+   */
+  app.get("/api/admin/active-users", requireAuth, async (req: any, res) => {
+    try {
+      const callerId = req.session?.userId;
+      const caller = callerId ? await storage.getUser(callerId) : null;
+      if (!caller || (caller.role !== "admin" && caller.role !== "consultant")) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const sessRows = await pool.query<{
+        user_id: string;
+        session_count: string;
+        latest_expire: Date;
+      }>(
+        `SELECT
+           sess::json->>'userId' AS user_id,
+           COUNT(*)::int AS session_count,
+           MAX(expire) AS latest_expire
+         FROM session
+         WHERE expire > NOW()
+           AND sess::json->>'userId' IS NOT NULL
+         GROUP BY sess::json->>'userId'
+         ORDER BY MAX(expire) DESC`
+      );
+
+      const userIds = sessRows.rows.map((r) => r.user_id).filter(Boolean);
+      const users = await Promise.all(userIds.map((id) => storage.getUser(id)));
+      const userById = new Map(users.filter((u): u is NonNullable<typeof u> => !!u).map((u) => [u.id, u]));
+
+      const activeUsers = sessRows.rows
+        .map((r) => {
+          const u = userById.get(r.user_id);
+          if (!u) return null;
+          return {
+            id: u.id,
+            name: u.name ?? null,
+            email: u.email ?? null,
+            role: u.role ?? null,
+            companyId: u.companyId ?? null,
+            sessionCount: Number(r.session_count),
+            sessionExpiresAt: new Date(r.latest_expire).toISOString(),
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null);
+
+      res.json({
+        count: activeUsers.length,
+        generatedAt: new Date().toISOString(),
+        activeUsers,
+      });
+    } catch (err) {
+      console.error("Active users report error:", err);
+      res.status(500).json({ error: "Failed to fetch active users" });
+    }
+  });
+
   app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
     try {
       const user = await changelogAdminGuard(req, res);

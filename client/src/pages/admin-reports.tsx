@@ -51,6 +51,7 @@ import {
   Loader2,
   RefreshCw,
   Clock,
+  Activity,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -566,6 +567,29 @@ export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
   const [showEmailLog, setShowEmailLog] = useState(false);
+  const [showActiveUsers, setShowActiveUsers] = useState(false);
+  interface ActiveUserEntry {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string | null;
+    companyId: string | null;
+    sessionCount: number;
+    sessionExpiresAt: string;
+  }
+  const {
+    data: activeUsersData,
+    isLoading: activeUsersLoading,
+    isFetching: activeUsersFetching,
+    refetch: refetchActiveUsers,
+    dataUpdatedAt: activeUsersUpdatedAt,
+  } = useQuery<{ count: number; generatedAt: string; activeUsers: ActiveUserEntry[] }>({
+    queryKey: ["/api/admin/active-users"],
+    enabled: showActiveUsers,
+    refetchInterval: showActiveUsers ? 30_000 : false,
+    refetchIntervalInBackground: false,
+  });
+
   const [showLoginReport, setShowLoginReport] = useState(false);
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
   const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
@@ -748,6 +772,24 @@ export default function AdminReports() {
                 <div>
                   <p className="font-medium">Users Report</p>
                   <p className="text-sm text-muted-foreground">All users with roles and site assignments</p>
+                </div>
+              </div>
+              <Badge variant="secondary">View</Badge>
+            </div>
+
+            {/* Active Users Now */}
+            <div
+              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+              onClick={() => setShowActiveUsers(true)}
+              data-testid="report-active-users"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
+                  <Activity className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-medium">Active Users Now</p>
+                  <p className="text-sm text-muted-foreground">Users with a current signed-in session</p>
                 </div>
               </div>
               <Badge variant="secondary">View</Badge>
@@ -988,6 +1030,101 @@ export default function AdminReports() {
           onOpenChange={setShowEmailLog}
         />
       )}
+
+      {/* Active Users Now Dialog */}
+      <Dialog open={showActiveUsers} onOpenChange={setShowActiveUsers}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-auto" data-testid="dialog-active-users">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Active Users Now
+            </DialogTitle>
+            <DialogDescription>
+              Users with at least one current signed-in session. Auto-refreshes every 30 seconds while this window is open.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-2">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" data-testid="badge-active-users-count">
+                {activeUsersData?.count ?? 0} active user{(activeUsersData?.count ?? 0) === 1 ? "" : "s"}
+              </Badge>
+              {activeUsersUpdatedAt > 0 && (
+                <span className="text-xs text-muted-foreground" data-testid="text-active-users-updated">
+                  Updated {format(new Date(activeUsersUpdatedAt), "HH:mm:ss")}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetchActiveUsers()}
+              disabled={activeUsersFetching}
+              data-testid="button-refresh-active-users"
+            >
+              {activeUsersFetching ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Refresh
+            </Button>
+          </div>
+
+          <div className="mt-4 rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Session expires</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeUsersLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6">
+                      <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" />
+                      Loading active users…
+                    </TableCell>
+                  </TableRow>
+                ) : (activeUsersData?.activeUsers ?? []).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      No active sessions right now.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  (activeUsersData?.activeUsers ?? []).map((u) => {
+                    const company = companiesData?.companies.find((c) => c.id === u.companyId);
+                    return (
+                      <TableRow key={u.id} data-testid={`row-active-user-${u.id}`}>
+                        <TableCell className="font-medium" data-testid={`text-active-name-${u.id}`}>
+                          {u.name ?? "—"}
+                        </TableCell>
+                        <TableCell data-testid={`text-active-email-${u.id}`}>{u.email ?? "—"}</TableCell>
+                        <TableCell>
+                          {u.role ? (
+                            <Badge variant="outline" data-testid={`badge-active-role-${u.id}`}>{u.role}</Badge>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell data-testid={`text-active-company-${u.id}`}>
+                          {company?.name ?? (u.companyId ? "—" : "—")}
+                        </TableCell>
+                        <TableCell data-testid={`text-active-expires-${u.id}`}>
+                          {format(parseISO(u.sessionExpiresAt), "PP HH:mm")}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* User Logins Report Dialog */}
       <Dialog open={showLoginReport} onOpenChange={setShowLoginReport}>
