@@ -106,7 +106,8 @@
         "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
         "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
         "e2475826-d265-41c0-a014-ab46a461fe69",
-        "03e532f5-93db-41ab-b284-ae59f19a552c"
+        "03e532f5-93db-41ab-b284-ae59f19a552c",
+        "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26"
       ],
       "entries": [
         {
@@ -875,6 +876,14 @@
           "message": "Template Library: anyone with permission to see the page now has the same management access as Admins (Add Template, Add Folder, edit, archive/delete, drag-to-reorder, etc.). Previously these actions were Admin-only.",
           "category": "enhancement",
           "createdAt": "2026-04-24T10:44:25.053Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
+          "patch": 6,
+          "message": "Client sign-off emails: stopped firing the 'No Consultant Assigned' admin email when a Pro consultant has already been notified. The system now (1) emails the consultant who uploaded the document, (2) falls back to any Pro consultant assigned to the site, and (3) only escalates to admins as a last resort when no consultant could be reached.",
+          "category": "bug",
+          "createdAt": "2026-04-24T11:30:10.175Z",
           "createdBy": "agent"
         }
       ]

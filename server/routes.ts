@@ -3319,25 +3319,35 @@ export async function registerRoutes(
             : "documents";
           const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
 
-          // Notify only the consultant who uploaded / last requested approval
-          // for this document — not every consultant assigned to the site.
+          // Notification policy for client sign-off:
+          //   1. Notify the consultant who uploaded / last requested approval
+          //      for this document (even if they're not assigned to the site —
+          //      e.g. a Pro consultant acting across companies).
+          //   2. If the uploader isn't a consultant (or can't be emailed),
+          //      notify any Pro consultant assigned to the site instead.
+          //   3. Only fall back to the admin "no consultant assigned" email
+          //      when neither (1) nor (2) reached anyone — i.e. no Pro
+          //      consultant was ever notified.
+          const notifiedUserIds = new Set<string>();
+
           const uploader = existingDoc.uploadedBy
             ? await storage.getUser(existingDoc.uploadedBy)
             : null;
-          const notifyUploader =
-            uploader && uploader.email && uploader.role === "consultant";
 
-          if (notifyUploader) {
+          const sendSignOffTo = async (target: { id: string; email: string | null; fullName: string; role: string | null }, label: string) => {
+            if (!target.email) return false;
+            if (notifiedUserIds.has(target.id)) return true;
             try {
               await sendClientSignOffEmail({
-                to: uploader.email!,
-                fullName: uploader.fullName,
+                to: target.email,
+                fullName: target.fullName,
                 documentTitle: existingDoc.title,
                 siteName: site?.name || "Unknown Site",
                 clientName: user.fullName,
                 documentUrl,
-                role: "consultant",
+                role: target.role || "consultant",
               });
+              notifiedUserIds.add(target.id);
               await storage.createAuditLog({
                 action: "email_sent",
                 userId: user.id,
@@ -3346,13 +3356,48 @@ export async function registerRoutes(
                 documentId: document.id,
                 supportRequestId: null,
                 module: existingDoc.module,
-                details: `Client sign-off notification email sent to consultant ${uploader.fullName} (${uploader.email})`,
-                metadata: JSON.stringify({ targetUserId: uploader.id, emailType: "sign_off_notification" }),
+                details: `Client sign-off notification email sent to ${label} ${target.fullName} (${target.email})`,
+                metadata: JSON.stringify({ targetUserId: target.id, emailType: "sign_off_notification" }),
               });
+              return true;
             } catch (emailError) {
-              console.error(`Failed to send sign-off notification to consultant ${uploader.id}:`, emailError);
+              console.error(`Failed to send sign-off notification to ${label} ${target.id}:`, emailError);
+              return false;
             }
-          } else {
+          };
+
+          // Step 1: notify the uploading consultant (if applicable).
+          if (uploader && uploader.email && uploader.role === "consultant") {
+            await sendSignOffTo(uploader, "consultant (uploader)");
+          }
+
+          // Step 2: notify any Pro consultant assigned to the site.
+          // Pro consultants act across the wider organisation, so they're
+          // the appropriate fallback before escalating to admins.
+          if (notifiedUserIds.size === 0) {
+            try {
+              const assignments = await storage.getConsultantAssignments(document.siteId);
+              const assignedConsultants = await Promise.all(
+                assignments.map(a => storage.getUser(a.consultantId))
+              );
+              const proConsultants = assignedConsultants.filter(
+                (u): u is NonNullable<typeof u> =>
+                  !!u &&
+                  u.role === "consultant" &&
+                  u.consultantTier === "pro" &&
+                  !!u.email &&
+                  u.status === "active"
+              );
+              for (const pc of proConsultants) {
+                await sendSignOffTo(pc, "assigned pro consultant");
+              }
+            } catch (err) {
+              console.error("Failed to look up assigned pro consultants for sign-off notification:", err);
+            }
+          }
+
+          // Step 3: only escalate to admins if no consultant was notified.
+          if (notifiedUserIds.size === 0) {
             const allUsers = await storage.getAllUsers();
             const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
             for (const admin of admins) {
