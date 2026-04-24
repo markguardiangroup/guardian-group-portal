@@ -52,6 +52,7 @@ const Companies = lazyPage(() => import("@/pages/companies"));
 const CompanyDetail = lazyPage(() => import("@/pages/company-detail"));
 const Reports = lazyPage(() => import("@/pages/reports"));
 const AdminReports = lazyPage(() => import("@/pages/admin-reports"));
+const AdminChangelog = lazyPage(() => import("@/pages/admin-changelog"));
 const Support = lazyPage(() => import("@/pages/support"));
 const Settings = lazyPage(() => import("@/pages/settings"));
 const UserManagement = lazyPage(() => import("@/pages/user-management"));
@@ -194,6 +195,7 @@ function Router() {
       <Route path="/sites/:siteId" component={SiteDetail} />
       <Route path="/reports" component={Reports} />
       <Route path="/admin-reports" component={AdminReports} />
+      <Route path="/admin-reports/changelog" component={AdminChangelog} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
       <Route path="/users" component={UserManagement} />

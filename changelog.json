@@ -110,7 +110,8 @@
         "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
         "6359c831-05f0-4a80-9d73-1b83fdb5e274",
         "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
-        "9e223c29-17ed-4956-aa3c-c03cdde676f9"
+        "9e223c29-17ed-4956-aa3c-c03cdde676f9",
+        "3be22683-ff52-458f-8322-a8444c9e097f"
       ],
       "entries": [
         {
@@ -911,6 +912,14 @@
           "message": "Admin Reports: added an Active Users Now tile that lists everyone with a current signed-in session, with a manual Refresh button and auto-refresh every 30 seconds while the dialog is open.",
           "category": "feature",
           "createdAt": "2026-04-24T11:45:47.680Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "3be22683-ff52-458f-8322-a8444c9e097f",
+          "patch": 6,
+          "message": "Admin Reports: moved Changelog / Release Notes onto its own dedicated page (/admin-reports/changelog) and added a tile to open it from the Admin Reports landing page.",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T12:55:22.216Z",
           "createdBy": "agent"
         }
       ]

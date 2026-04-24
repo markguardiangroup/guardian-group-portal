@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,6 @@ import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole, Company } from "@shared/schema";
-import ChangelogSection from "@/components/changelog-section";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -777,6 +777,25 @@ export default function AdminReports() {
               <Badge variant="secondary">View</Badge>
             </div>
 
+            {/* Changelog / Release Notes */}
+            <Link href="/admin-reports/changelog">
+              <div
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                data-testid="report-changelog"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-sky-500/10">
+                    <History className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Changelog / Release Notes</p>
+                    <p className="text-sm text-muted-foreground">Track software changes and version history</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">Open</Badge>
+              </div>
+            </Link>
+
             {/* Active Users Now */}
             <div
               className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
@@ -852,23 +871,6 @@ export default function AdminReports() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Changelog Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Changelog / Release Notes
-          </CardTitle>
-          <CardDescription>
-            Track software changes by version. Entries are logged here after each change request.
-            Patch versions are auto-incremented on each deployment; minor and major versions are created manually.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChangelogSection />
         </CardContent>
       </Card>
 
