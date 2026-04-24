@@ -226,6 +226,19 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// Returns true if the user is allowed to manage the Template Library
+// (admins, plus consultants whose `templateLibrary` permission toggle is on).
+// Anyone who can see the page gets full add/edit/archive/delete access.
+function canManageTemplateLibrary(user: { role?: string | null; consultantPermissions?: unknown } | null | undefined): boolean {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "consultant") {
+    const perms = user.consultantPermissions as { templateLibrary?: boolean } | null;
+    return perms?.templateLibrary === true;
+  }
+  return false;
+}
+
 const createDocumentSchema = z.object({
   title: z.string().min(1),
   comments: z.string().optional().nullable(),
@@ -4165,8 +4178,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create folder templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const schema = z.object({
@@ -4207,8 +4220,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update folder templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const template = await storage.getFolderTemplate(req.params.id);
@@ -4246,8 +4259,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete folder templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const template = await storage.getFolderTemplate(req.params.id);
@@ -4281,8 +4294,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can add folder document type rules" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const schema = z.object({
@@ -4348,8 +4361,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can add folder template rules" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const template = await storage.getFolderTemplate(req.params.id);
@@ -4399,8 +4412,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can delete folder template rules" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       await storage.deleteFolderDocumentTypeRule(req.params.id);
@@ -4446,12 +4459,12 @@ export async function registerRoutes(
     }
   });
   
-  // Get archived document templates (admin only)
+  // Get archived document templates (template-library managers only)
   app.get("/api/document-templates-archived", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can view archived templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       const templates = await storage.getArchivedDocumentTemplates();
       res.json(templates);
@@ -4501,8 +4514,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can create document templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const schema = z.object({
@@ -4582,8 +4595,8 @@ export async function registerRoutes(
   app.patch("/api/document-templates/bulk-sources", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can bulk-update template sources" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       const schema = z.object({
         templateIds: z.array(z.string()).min(1),
@@ -4641,8 +4654,8 @@ export async function registerRoutes(
       // If only toolkitFolderId or folderTemplateId is being changed, consultants are also allowed
       const changedKeys = Object.keys(parsed.data);
       const isJustFolderChange = changedKeys.length === 1 && (changedKeys[0] === "toolkitFolderId" || changedKeys[0] === "folderTemplateId");
-      if (!isJustFolderChange && user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can update document templates" });
+      if (!isJustFolderChange && !canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       // Auto-assign folderTemplateId for public templates based on the toolkit folder
@@ -4685,8 +4698,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can reorder templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const schema = z.object({
@@ -5069,9 +5082,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (user.role !== "admin" && !isProConsultant) {
-        return res.status(403).json({ error: "Only admins and pro consultants can delete document templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       // Require deletion reason
@@ -5112,8 +5124,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can restore document templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
       
       const success = await storage.restoreDocumentTemplate(req.params.id, user.id);
@@ -5141,8 +5153,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      if (user.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can permanently delete document templates" });
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
 
       const { reason } = req.body || {};

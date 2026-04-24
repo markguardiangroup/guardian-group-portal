@@ -105,7 +105,8 @@
         "a445031b-43c9-4412-85d6-10ac9c26c944",
         "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
         "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
-        "e2475826-d265-41c0-a014-ab46a461fe69"
+        "e2475826-d265-41c0-a014-ab46a461fe69",
+        "03e532f5-93db-41ab-b284-ae59f19a552c"
       ],
       "entries": [
         {
@@ -866,6 +867,14 @@
           "message": "Added a User Logins admin report (Admin Reports → User Logins) showing successful sign-ins for any chosen date, defaulting to today.",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "03e532f5-93db-41ab-b284-ae59f19a552c",
+          "patch": 6,
+          "message": "Template Library: anyone with permission to see the page now has the same management access as Admins (Add Template, Add Folder, edit, archive/delete, drag-to-reorder, etc.). Previously these actions were Admin-only.",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T10:44:25.053Z",
           "createdBy": "agent"
         }
       ]

@@ -410,8 +410,10 @@ function DraggableTemplateCard({ template, isAdmin, renderCard }: {
 export default function TemplateLibraryPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === "admin";
-  const canDelete = user?.role === "admin" || (user?.role === "consultant" && user?.consultantTier === "pro");
+  // Access to this page is gated by the per-user "Template Library" permission toggle.
+  // Anyone who can see the page gets full management access (add/edit/archive/delete/etc.).
+  const isAdmin = !!user;
+  const canDelete = !!user;
   
   const [activeTab, setActiveTab] = useState("templates");
   const [searchQuery, setSearchQuery] = useState("");
